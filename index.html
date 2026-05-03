@@ -3078,6 +3078,7 @@ function askConfirm(message, opts){
       <div class="block-body-sm" style="font-size:.8rem;color:var(--muted2);line-height:1.9">
         La carte est divisée en hexagones — les <strong style="color:var(--text)">Lands</strong>.<br>
         Loue une Land (loyer mensuel en RPC) et gagne 3 RPC à chaque passage d'un RP.<br>
+        <strong style="color:var(--gold)">Loyer dégressif</strong> : <strong style="color:var(--text)">P1→P3</strong> 5 000 RPC/mois · <strong style="color:var(--text)">P4→P6</strong> 4 800 RPC · <strong style="color:var(--text)">P7→P12</strong> 4 600 RPC.<br>
         Après plusieurs périodes, tu peux l'<strong style="color:var(--text)">acheter</strong> définitivement en NYX.<br>
         Ajoute des <strong style="color:var(--gold)">Étoiles</strong> : ★ 6 · ★★ 9 · ★★★ 12 RPC par passage.<br>
         Plafond de <strong style="color:var(--gold)">8 000 RPC / mois / Land</strong>.
@@ -7312,7 +7313,8 @@ async function rentLand(landId){
     }
   }
   var period=_periodData.period||1;
-  var rentCost=period<=1?5000:period<=6?4800:4600;
+  // Acquisition = mois 1 de location pour ce RP sur cette land → tarif plein 5000
+  var rentCost=getRentCostByMonths(1);
   var w=window.__wallet||{rpc:0};
   if(w.rpc<rentCost){showToast('⚠️ Pas assez de RPC ('+rentCost.toLocaleString('fr')+' requis)');return;}
   // Vérifier ban
@@ -7959,7 +7961,7 @@ async function _loadMyRentedLandsForRent(){
   var total=0;
   lands.forEach(function(l){
     var rp=_computeRentPeriods(l);
-    l._cost=rp<=1?5000:rp<=6?4800:4600;
+    l._cost=getRentCostByMonths(rp);
     total+=l._cost;
   });
   return {lands:lands,total:total};
@@ -8448,7 +8450,7 @@ async function showExploreSelectModal(hexIds, playerId, playerName){
 
   _exploreSelection={lands:freeLands.map(function(l){return l.id;}),playerId:playerId};
   var period=_periodData.period||1;
-  var rentCost=period<=1?5000:period<=6?4800:4600;
+  var rentCost=getRentCostByMonths(1); // acquisition = mois 1
 
   sub.textContent=playerName+' — '+freeLands.length+' Land'+(freeLands.length>1?'s':'')+' disponible'+(freeLands.length>1?'s':'')+' · '+rentCost.toLocaleString('fr')+' RPC / Land';
 
@@ -8471,8 +8473,7 @@ async function showExploreSelectModal(hexIds, playerId, playerName){
 
 function updateExploreSelectCost(){
   var checked=document.querySelectorAll('.explore-cb:checked');
-  var period=_periodData.period||1;
-  var rentCost=period<=1?5000:period<=6?4800:4600;
+  var rentCost=getRentCostByMonths(1); // acquisition = mois 1
   var total=checked.length*rentCost;
   var costEl=document.getElementById('explore-select-cost');
   if(costEl) costEl.textContent=checked.length+' sélectionnée'+(checked.length>1?'s':'')+' · −'+total.toLocaleString('fr')+' RPC';
@@ -8487,7 +8488,7 @@ async function confirmRentSelection(){
   var checked=document.querySelectorAll('.explore-cb:checked');
   if(!checked.length) return;
   var period=_periodData.period||1;
-  var rentCost=period<=1?5000:period<=6?4800:4600;
+  var rentCost=getRentCostByMonths(1); // acquisition = mois 1
   var totalCost=checked.length*rentCost;
   var playerId=_exploreSelection.playerId;
 
@@ -8542,6 +8543,18 @@ async function initAdminExplorePanel(){
 //  PÉRIODE — Timer et traitement auto
 // ══════════════════════════════════════════════════════════════════════
 var _periodData={period:1,start:null,end:null};
+
+// Tarif loyer dégressif PAR LAND, basé sur le nb de périodes CONSÉCUTIVES où le RP
+// loue cette land (logique de fidélité, indépendante de la période de compétition).
+//   Mois  1-3  → 5000 RPC (acquisition + 2 premières reconductions)
+//   Mois  4-6  → 4800 RPC
+//   Mois 7-12  → 4600 RPC (palier final, conservé au-delà du 12e mois)
+function getRentCostByMonths(monthsRented){
+  var m=monthsRented||1;
+  if(m<=3) return 5000;
+  if(m<=6) return 4800;
+  return 4600;
+}
 var _periodTimerInterval=null;
 
 // Dérive le nombre de périodes louées depuis rent_start_period (self-healing, pas de drift)
@@ -10616,12 +10629,19 @@ async function loadAdminStats(){
   el.innerHTML='<span style="color:var(--muted2)">Chargement…</span>';
   try{
     var now=new Date();
-    var startToday=new Date(now.getFullYear(),now.getMonth(),now.getDate()).toISOString();
-    var startYesterday=new Date(now.getFullYear(),now.getMonth(),now.getDate()-1).toISOString();
-    var startWeek=new Date(now.getFullYear(),now.getMonth(),now.getDate()-6).toISOString();
-    var startWeekDate=startWeek.substring(0,10);
-    var startTodayDate=startToday.substring(0,10);
-    var startYestDate=startYesterday.substring(0,10);
+    // FIX timezone : raisonner en jours Paris (et non UTC) sinon une course
+    // importée à 11h Paris (= 9h UTC) ne match pas la date courante car
+    // `new Date(y,m,d).toISOString()` convertit minuit Paris en 22h UTC la veille.
+    function _parisDateStr(d){
+      return new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Paris',year:'numeric',month:'2-digit',day:'2-digit'}).format(d);
+    }
+    var startTodayDate=_parisDateStr(now);
+    var startYestDate=_parisDateStr(new Date(now.getTime()-86400000));
+    var startWeekDate=_parisDateStr(new Date(now.getTime()-6*86400000));
+    // Pour created_at (timestamps précis) on borne via l'UTC équivalent à minuit Paris.
+    // Plus simple : on dérive la date Paris de chaque created_at lui aussi.
+    var startToday=startTodayDate; // date string "YYYY-MM-DD" Paris
+    var startYesterday=startYestDate;
 
     // Players des 7 derniers jours (avec strava + premium pour breakdown période)
     var {data:p7}=await supabaseClient.from('players').select('created_at,strava_access_token,premium').gte('created_at',startWeek);
@@ -10635,9 +10655,10 @@ async function loadAdminStats(){
     var {data:r7}=await supabaseClient.from('runs').select('run_date').gte('run_date',startWeekDate);
     var {count:totalRuns}=await supabaseClient.from('runs').select('*',{count:'exact',head:true});
 
-    // Helpers période
-    function inToday(iso){return iso && iso>=startToday;}
-    function inYest(iso){return iso && iso>=startYesterday && iso<startToday;}
+    // Helpers période — comparaison via date Paris (jour calendaire) pour éviter
+    // les drifts de timezone entre UTC et Europe/Paris.
+    function inToday(iso){return iso && _parisDateStr(new Date(iso))===startTodayDate;}
+    function inYest(iso){return iso && _parisDateStr(new Date(iso))===startYestDate;}
 
     var subToday=(p7||[]).filter(function(p){return inToday(p.created_at);}).length;
     var subYest=(p7||[]).filter(function(p){return inYest(p.created_at);}).length;
@@ -10647,10 +10668,10 @@ async function loadAdminStats(){
     var stYest=(p7||[]).filter(function(p){return p.strava_access_token && inYest(p.created_at);}).length;
     var st7=(p7||[]).filter(function(p){return p.strava_access_token;}).length;
 
-    // Bug fix : runs.run_date est un TIMESTAMP ("2026-05-02 09:42:35+00"), pas
-    // une date seule. Comparer avec startsWith sur la portion YYYY-MM-DD.
-    var runsToday=(r7||[]).filter(function(r){return r.run_date && r.run_date.indexOf(startTodayDate)===0;}).length;
-    var runsYest=(r7||[]).filter(function(r){return r.run_date && r.run_date.indexOf(startYestDate)===0;}).length;
+    // Bug fix : runs.run_date est un TIMESTAMP UTC ("2026-05-02 09:42:35+00").
+    // On compare la date Paris de chaque run pour rester cohérent avec startTodayDate.
+    var runsToday=(r7||[]).filter(function(r){return r.run_date && _parisDateStr(new Date(r.run_date))===startTodayDate;}).length;
+    var runsYest=(r7||[]).filter(function(r){return r.run_date && _parisDateStr(new Date(r.run_date))===startYestDate;}).length;
     var runs7=(r7||[]).length;
 
     var stravaPct=totalPlayers?Math.round((totalStrava||0)/totalPlayers*100):0;
@@ -10660,14 +10681,11 @@ async function loadAdminStats(){
     function dailyCounts(items, getter, isDateString){
       var counts=[];
       for(var i=6;i>=0;i--){
-        var d=new Date(now.getFullYear(),now.getMonth(),now.getDate()-i);
-        var dStart=d.toISOString();
-        var dEnd=new Date(d.getTime()+24*60*60*1000).toISOString();
-        var dDay=dStart.substring(0,10);
+        var dDay=_parisDateStr(new Date(now.getTime()-i*86400000));
         var c=(items||[]).filter(function(it){
           var v=getter(it); if(!v) return false;
           if(isDateString) return v===dDay;
-          return v>=dStart && v<dEnd;
+          return _parisDateStr(new Date(v))===dDay;
         }).length;
         counts.push(c);
       }
