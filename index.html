@@ -111,9 +111,21 @@
    Padding safe-area sur tous les côtés pour iPhone : viewport-fit=cover étend la
    WebView dans la zone du notch et des coins arrondis. Sans padding gauche/droite,
    le contenu peut être coupé par ces zones non-rectangulaires. */
+/* ── Verrouillage horizontal anti-shift Xiaomi MIUI ──────────────────────
+   Sans ces règles, après une rotation horizontale → verticale, la WebView
+   garde une largeur incorrecte et la page apparaît décalée à gauche.
+   On clamp html ET body à 100vw (largeur géométrique stable, ignore les
+   barres système masquables) et on bloque le pan horizontal.
+   `100svh` (small viewport height) au lieu de `100dvh` : stable, n'est
+   pas affecté par l'apparition/disparition de la barre nav système.        */
+html{
+  width:100%;max-width:100vw;overflow-x:hidden;
+}
 body{
   background:var(--bg);color:var(--text);font-family:'Rajdhani',sans-serif;
-  min-height:100dvh;overflow-x:hidden;
+  width:100%;max-width:100vw;
+  min-height:100svh;overflow-x:hidden;
+  touch-action:pan-y;
   padding-bottom:env(safe-area-inset-bottom);
   padding-left:env(safe-area-inset-left);
   padding-right:env(safe-area-inset-right);
@@ -17470,27 +17482,42 @@ if ('serviceWorker' in navigator) {
 })();
 
 // ── Fix layout shift après changement d'orientation ──────────────────
-// Bug observé sur Xiaomi One UI / certains Android : quand l'écran pivote
+// Bug observé sur Xiaomi MIUI / certains Android : quand l'écran pivote
 // et revient en portrait, la WebView garde les dimensions de l'orientation
 // précédente → la page apparaît décalée à gauche jusqu'à ce qu'on change
-// de page. On force un re-layout explicite après chaque pivot.
+// de page. Couplé à la fix CSS (html/body lock à 100vw + 100svh), on force
+// ici un VRAI reflow synchrone (lecture offsetHeight après modification
+// d'une propriété visuelle), ce qui oblige la WebView à recalculer.
 (function(){
   function _resetLayoutAfterRotation(){
-    setTimeout(function(){
-      try{
-        window.scrollTo(0,0);
-        document.documentElement.scrollLeft=0;
-        document.body.scrollLeft=0;
-        // Dispatch un resize manuel pour forcer les composants à recalculer
-        window.dispatchEvent(new Event('resize'));
-        // Re-invalidate la map Leaflet si initialisée
-        if(typeof _landsMap!=='undefined' && _landsMap){
-          _landsMap.invalidateSize();
-        }
-      }catch(e){console.warn('[orientation] layout reset fail',e);}
-    },250);
+    try{
+      // Force un reflow synchrone : on toggle visibility off→read→on. La
+      // lecture de offsetHeight invalide le layout cache de la WebView et
+      // force un recalcul à la prochaine frame.
+      var b=document.body;
+      b.style.minWidth='100vw';
+      void b.offsetHeight;            // ← lecture synchrone = reflow forcé
+      b.style.minWidth='';
+      void b.offsetHeight;
+      window.scrollTo(0,0);
+      document.documentElement.scrollLeft=0;
+      document.body.scrollLeft=0;
+      window.dispatchEvent(new Event('resize'));
+      if(typeof _landsMap!=='undefined' && _landsMap){
+        _landsMap.invalidateSize();
+      }
+    }catch(e){console.warn('[orientation] layout reset fail',e);}
   }
-  window.addEventListener('orientationchange',_resetLayoutAfterRotation);
+  // Timing : on déclenche en immédiat (pour les WebView qui ont déjà
+  // l'info à jour) ET à 200ms (pour celles qui mettent du temps à
+  // signaler le nouvel innerWidth) ET à 600ms (filet de sécurité MIUI
+  // qui peut prendre une frame additionnelle après animation système).
+  function _resetTriple(){
+    _resetLayoutAfterRotation();
+    setTimeout(_resetLayoutAfterRotation,200);
+    setTimeout(_resetLayoutAfterRotation,600);
+  }
+  window.addEventListener('orientationchange',_resetTriple);
   // resize event aussi (Android/iOS modernes utilisent resize plus que orientationchange)
   var _lastWidth=window.innerWidth;
   window.addEventListener('resize',function(){
