@@ -3636,6 +3636,8 @@ async function doRegister(){
     if(newRtwId) insertData.rtw_id=newRtwId;
     if(parrainUuid) insertData.referred_by=parrainUuid;
     var {data:ins,error:insErr}=await supabaseClient.from('players').upsert(insertData,{onConflict:'id'}).select();
+    // Nettoyer le code parrain en localStorage (utilisé une fois)
+    try{ localStorage.removeItem('pending_ref_code'); }catch(e){}
   }
   if(data.user && !data.session){
     showHgoError('📧 Vérifie tes emails pour confirmer, puis connecte-toi.');
@@ -4393,6 +4395,58 @@ async function disconnectApp(){
     hp.style.transition='opacity .4s ease';hp.style.opacity='1';
   });});
 }
+// Auto-fill du code parrain depuis l'URL `?ref=SL-XXXXX` (lien partagé via SMS/WhatsApp).
+// Le code est aussi stocké en localStorage 15 jours pour les futurs RPs qui cliquent
+// le lien mais ne s'inscrivent pas immédiatement.
+function _autoFillReferralFromUrl(){
+  try{
+    var urlCode=null;
+    try{
+      var params=new URLSearchParams(window.location.search);
+      var raw=params.get('ref');
+      if(raw){
+        var clean=raw.toUpperCase().trim();
+        if(/^SL-[A-Z0-9]{4,8}$/.test(clean)){
+          urlCode=clean;
+          // Persister 15 jours
+          localStorage.setItem('pending_ref_code',JSON.stringify({
+            code:clean, expires:Date.now()+15*86400000
+          }));
+          // Nettoyer l'URL pour ne pas re-déclencher si l'user partage la page
+          try{ history.replaceState({},'',window.location.pathname); }catch(e){}
+        }
+      }
+    }catch(e){}
+    // Pas de ?ref dans l'URL → check localStorage
+    if(!urlCode){
+      try{
+        var stored=localStorage.getItem('pending_ref_code');
+        if(stored){
+          var obj=JSON.parse(stored);
+          if(obj && obj.code && obj.expires && obj.expires>Date.now()){
+            urlCode=obj.code;
+          } else {
+            localStorage.removeItem('pending_ref_code');
+          }
+        }
+      }catch(e){}
+    }
+    if(!urlCode) return;
+    var input=document.getElementById('reg-code');
+    if(input){
+      input.value=urlCode;
+      // Déclenche la validation (affiche "Parrain trouvé : X")
+      if(typeof checkCode==='function') checkCode();
+    }
+  }catch(e){}
+}
+// Lance l'auto-fill au chargement de la page (DOMContentLoaded ou immédiat si déjà prêt).
+if(document.readyState==='loading'){
+  document.addEventListener('DOMContentLoaded',_autoFillReferralFromUrl);
+} else {
+  setTimeout(_autoFillReferralFromUrl,50);
+}
+
 async function checkCode(){
   var v=document.getElementById('reg-code').value.toUpperCase().trim();
   var m=document.getElementById('code-msg');
@@ -6215,6 +6269,46 @@ function getParrainageTitre(count){
   return {titre:'—',lettre:'·',color:'var(--muted2)'};
 }
 
+// Partage le code parrainage via la feuille système (SMS/WhatsApp/Mail/etc.)
+// Fallback desktop : copie dans le presse-papier + toast.
+async function shareReferralCode(code){
+  // URL avec ?ref= → l'app pré-remplit le code parrain à l'inscription (cf. _autoFillReferralFromUrl).
+  var url='https://speedixleague.com?ref='+encodeURIComponent(code);
+  var text='🏃 Salut ! Je joue à SPEEDIX League — un championnat de running gamifié : tu cours, tu marques des points, tu progresses dans la league et gagnes des récompenses chaque mois. De nombreux défis sympa à accomplir. Fonctionne avec Strava.\n\n'
+    +'Rejoins-moi et utilise mon code parrain pour qu\'on soit gagnants tous les deux : '+code+'\n\n'
+    +'Ça se passe ici alors viens vite, je t\'attends dans la league !\n\n'
+    +'👉 '+url;
+  // 1. Web Share API (mobile principalement)
+  if(navigator.share){
+    try{
+      await navigator.share({
+        title:'SPEEDIX League — code parrain '+code,
+        text:text
+      });
+      return;
+    }catch(e){
+      // L'utilisateur a annulé OU navigateur refuse → fallback clipboard
+      if(e && e.name==='AbortError') return;
+    }
+  }
+  // 2. Fallback clipboard (desktop ou WebView sans Web Share)
+  try{
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      await navigator.clipboard.writeText(text);
+      showToast('✓ Message copié — colle-le dans WhatsApp/SMS/Mail');
+    } else {
+      // Très vieux navigateurs : textarea + execCommand
+      var ta=document.createElement('textarea');
+      ta.value=text; document.body.appendChild(ta); ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      showToast('✓ Message copié — colle-le dans WhatsApp/SMS/Mail pour partager');
+    }
+  }catch(e){
+    showToast('⚠️ Impossible de partager — copie ton code : '+code);
+  }
+}
+
 async function loadParrainageData(playerId){
   if(!playerId) return;
   // Charger filleuls + rewards + mon parrain en parallèle
@@ -6422,7 +6516,8 @@ async function showParrainageInfo(){
     +'</div>'
     +'<div style="text-align:center;margin-bottom:.75rem;padding:.5rem .75rem;border-radius:7px;background:rgba(245,200,66,.06);border:1px solid rgba(245,200,66,.2)">'
       +'<div style="font-size:.6rem;color:var(--muted2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:.2rem">Ton code parrainage</div>'
-      +'<div style="font-family:Space Mono,monospace;font-size:1.1rem;color:var(--gold);font-weight:700;letter-spacing:2px">'+myCode+'</div>'
+      +'<div style="font-family:Space Mono,monospace;font-size:1.1rem;color:var(--gold);font-weight:700;letter-spacing:2px;margin-bottom:.5rem">'+myCode+'</div>'
+      +(viewedP?'':'<button onclick="event.stopPropagation();shareReferralCode(\''+myCode+'\')" style="padding:10px 1.2rem;border-radius:10px;border:none;border-bottom:4px solid #0c2e10;background:linear-gradient(180deg,#5ecb62,#2d8a32);color:#fff;font-family:Bebas Neue,sans-serif;font-size:.88rem;letter-spacing:2.5px;font-weight:700;cursor:pointer">📤 PARTAGER</button>')
     +'</div>'
     +(c.parrainName?'<div style="text-align:center;margin-bottom:.75rem;padding:.4rem .75rem;border-radius:7px;background:rgba(45,219,128,.06);border:1px solid rgba(45,219,128,.2)">'
       +'<div style="font-size:.6rem;color:var(--muted2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:.15rem">Invité par</div>'
