@@ -1668,7 +1668,7 @@ select option{background:#040c1c}
           <div class="eco-row"><span>À partir de la P3</span><span class="eco-price">4 800 RPC</span></div>
           <div class="eco-row"><span>À partir de la P6</span><span class="eco-price">4 600 RPC</span></div>
           <div style="font-size:.65rem;color:var(--muted2);margin-top:.5rem;line-height:1.8">
-            Loyer dû avant le 5 du mois<br>
+            Loyer dû entre le 5 et le 10 du mois<br>
             Après 12 périodes de location → obligation d'achat<br>
             Land remise en jeu = bloquée 2 périodes
           </div>
@@ -3848,6 +3848,10 @@ async function onLoginSuccess(user, isNew){
   // Loyer mensuel lands — vérifier et débiter le 5 du mois
   if(typeof processMonthlyRent==='function'){
     setTimeout(function(){ processMonthlyRent(); }, 2000);
+  }
+  // Premium expiré — proposer de quitter ou de renouveler
+  if(typeof _checkPremiumExpiration==='function'){
+    setTimeout(function(){ _checkPremiumExpiration(); }, 4500);
   }
   // Récap fin de période — afficher si le RP n'a pas vu la dernière rotation.
   // Délai 1500ms : on attend que loadPeriodSettings ait peuplé _periodData.
@@ -7714,7 +7718,7 @@ async function renderMyLands(page){
       ? 'Lands <span class="hl">de '+(window.__viewedPlayer.name||'RP')+'</span>'
       : 'Mes <span class="hl">Lands</span>';
   }
-  var {data:myLands}=await supabaseClient.from('lands').select('id,status,stars,rent_periods,rent_start_period,monthly_revenue,owner_id,tenant_id,free_until')
+  var {data:myLands}=await supabaseClient.from('lands').select('id,status,stars,rent_periods,rent_start_period,monthly_revenue,owner_id,tenant_id,free_until,rented_at')
     .or('tenant_id.eq.'+_lTargetUuid+',owner_id.eq.'+_lTargetUuid)
     .order('status');
   if(!myLands||!myLands.length){
@@ -7743,18 +7747,35 @@ async function renderMyLands(page){
   var rpcPassage=[3,6,9,12];
   var period=_periodData.period||1;
   // Calculer le loyer total — exclure les lands en gratuité (free_until > now)
+  // ET celles louées dans le mois courant (prorata déjà débité à l'acquisition)
   var nowMs=Date.now();
   var totalLoyer=0;
+  var currentMonthStr=(typeof _currentRentMonth==='function')?_currentRentMonth():null;
   myLands.forEach(function(l){
     if(l.status==='rented'){
       var isFree=l.free_until && new Date(l.free_until).getTime()>nowMs;
       if(isFree) return;
+      if(currentMonthStr && l.rented_at && typeof _rentMonthOf==='function' && _rentMonthOf(l.rented_at)===currentMonthStr) return;
       var rp=_computeRentPeriods(l);
       totalLoyer+=(rp<=1?5000:rp<=6?4800:4600);
     }
   });
+  // Si le loyer du mois a déjà été soldé, on bascule l'affichage en "✓ Payé"
+  var rentAlreadyPaid=false;
+  if(!_lIsOther && currentMonthStr && typeof _getRentStatus==='function'){
+    var lastPaid=await _getRentStatus(currentUser.id);
+    if(lastPaid===currentMonthStr) rentAlreadyPaid=true;
+  }
   var loyerEl=document.getElementById('lands-loyer-total');
-  if(loyerEl) loyerEl.innerHTML='Loyer ce mois : <strong style="color:var(--red);margin-left:.35rem">−'+totalLoyer.toLocaleString('fr')+' RPC</strong>';
+  if(loyerEl){
+    if(rentAlreadyPaid){
+      loyerEl.innerHTML='Loyer ce mois : <strong style="color:var(--green);margin-left:.35rem">✓ Payé</strong>';
+    } else if(totalLoyer===0){
+      loyerEl.innerHTML='Loyer ce mois : <strong style="color:var(--muted2);margin-left:.35rem">—</strong>';
+    } else {
+      loyerEl.innerHTML='Loyer ce mois : <strong style="color:var(--red);margin-left:.35rem">−'+totalLoyer.toLocaleString('fr')+' RPC</strong>';
+    }
+  }
   _allMyLands=myLands;
   // Pagination
   var totalPages=Math.ceil(myLands.length/_landsPerPage);
@@ -11615,6 +11636,134 @@ async function activateTrialPremium(playerId){
     headers:{'apikey':supabaseKey,'Authorization':'Bearer '+supabaseKey,'Content-Type':'application/json'},
     body:JSON.stringify({premium:true,premium_until:until.toISOString(),premium_trial:true})
   });
+}
+
+// ── Fin de Premium : confirmation + libération forcée des lands en surplus ──
+async function _checkPremiumExpiration(){
+  if(!currentUser || !window.__myPlayer) return;
+  if(!window.__myPlayer.premium) return; // déjà passé en Free
+  if(!window.__myPlayer.premiumUntil) return; // pas de date d'expiration
+  var until=new Date(window.__myPlayer.premiumUntil);
+  if(until>new Date()) return; // encore actif
+  // Premium juste expiré (DB dit toujours premium=true) → on déclenche le flow
+  var {count}=await supabaseClient.from('lands')
+    .select('id',{count:'exact',head:true})
+    .eq('tenant_id',currentUser.id)
+    .eq('status','rented');
+  _openPremiumExpireModal(count||0);
+}
+
+function _openPremiumExpireModal(nbLoc){
+  var excess=Math.max(0, nbLoc - 12);
+  var landsLine=excess>0
+    ?'<div style="margin-top:.6rem;padding:.45rem;border-radius:6px;background:rgba(255,68,68,.08);border:1px solid rgba(255,68,68,.3);font-size:.72rem;color:var(--red);text-align:left">⚠️ Tu as actuellement <strong>'+nbLoc+' lands</strong> en location. En quittant Premium, tu devras libérer <strong>'+excess+' land'+(excess>1?'s':'')+'</strong> (limite Free = 12).</div>'
+    :'';
+  document.getElementById('lm-title').textContent='⚠️ Fin de Premium';
+  document.getElementById('lm-sub').textContent='';
+  document.getElementById('lm-body').innerHTML='<div style="text-align:center">'
+    +'<div style="font-size:2.5rem;margin-bottom:.4rem">⭐</div>'
+    +'<div style="font-size:.85rem;color:var(--text);line-height:1.6;margin-bottom:.6rem">Attention, ton accès Premium se termine. Tu vas perdre tous tes avantages Premium :</div>'
+    +'<ul style="text-align:left;font-size:.75rem;color:var(--muted2);line-height:1.7;padding-left:1.2rem;margin:0 auto;max-width:280px">'
+    +'<li>Visibilité sur les Leagues</li>'
+    +'<li>Création de Team privée</li>'
+    +'<li>Location illimitée des Lands</li>'
+    +'<li>Consultation de toutes les PC</li>'
+    +'<li>Crédit RPC et NYX mensuel</li>'
+    +'<li>Pas de publicités</li>'
+    +'</ul>'
+    +landsLine
+    +'<div style="font-size:.85rem;color:var(--text);margin:.9rem 0 .6rem">Es-tu sûr de vouloir arrêter ?</div>'
+    +'<div style="display:flex;gap:.5rem;justify-content:center;flex-wrap:wrap">'
+    +'<button onclick="_acceptPremiumExit()" style="padding:.55rem 1.2rem;border-radius:7px;border:1.5px solid rgba(255,68,68,.5);background:rgba(255,68,68,.1);color:var(--red);font-weight:700;font-size:.82rem;cursor:pointer">OUI, j\'arrête</button>'
+    +'<button onclick="_keepPremium()" style="padding:.55rem 1.2rem;border-radius:7px;border:1.5px solid var(--gold);background:rgba(245,200,66,.12);color:var(--gold);font-weight:700;font-size:.82rem;cursor:pointer">NON, je reste Premium</button>'
+    +'</div></div>';
+  openModal('land-modal');
+}
+
+async function _acceptPremiumExit(){
+  closeModal('land-modal');
+  if(!currentUser) return;
+  var {data:lands}=await supabaseClient.from('lands')
+    .select('id, rented_at, monthly_revenue, stars')
+    .eq('tenant_id',currentUser.id)
+    .eq('status','rented');
+  var nbLoc=(lands||[]).length;
+  if(nbLoc<=12){
+    await _finalizePremiumExit();
+    showToast('😔 Désolé de te voir quitter le statut Premium. Reviens quand tu le souhaites.');
+    return;
+  }
+  _openPremiumReleaseModal(lands);
+}
+
+function _openPremiumReleaseModal(lands){
+  var excess=lands.length-12;
+  // Tri par date la plus récente en haut (plus simple à libérer)
+  lands.sort(function(a,b){return new Date(b.rented_at||0)-new Date(a.rented_at||0);});
+  document.getElementById('lm-title').textContent='Libérer des Lands';
+  document.getElementById('lm-sub').textContent='Sélectionne '+excess+' land'+(excess>1?'s':'')+' à libérer pour rentrer dans la limite Free (12 max).';
+  var listHtml='<div style="display:flex;flex-direction:column;gap:.3rem;max-height:40vh;overflow-y:auto;margin-bottom:.6rem;text-align:left">';
+  lands.forEach(function(l){
+    var stars=l.stars?(' '+'⭐'.repeat(l.stars)):'';
+    var dateTxt=l.rented_at?new Date(l.rented_at).toLocaleDateString('fr'):'—';
+    listHtml+='<label style="display:flex;align-items:center;gap:.5rem;padding:.4rem .55rem;border-radius:6px;border:1px solid var(--border);background:rgba(255,255,255,.03);cursor:pointer;font-size:.72rem">'
+      +'<input type="checkbox" class="prem-rel-cb" data-id="'+l.id+'" style="accent-color:var(--red);width:14px;height:14px">'
+      +'<span style="font-family:Space Mono,monospace;color:var(--muted2);flex:1">'+l.id.substring(0,12)+'…'+stars+'</span>'
+      +'<span style="font-size:.62rem;color:var(--muted2)">'+dateTxt+'</span>'
+      +'</label>';
+  });
+  listHtml+='</div>';
+  document.getElementById('lm-body').innerHTML=listHtml
+    +'<div id="prem-rel-cnt" style="text-align:center;font-size:.78rem;color:var(--muted2);margin-bottom:.5rem">0 / '+excess+' sélectionnée'+(excess>1?'s':'')+'</div>'
+    +'<button id="prem-rel-btn" onclick="_confirmReleaseExcess('+excess+')" disabled style="width:100%;padding:.55rem;border-radius:7px;border:1.5px solid rgba(255,68,68,.5);background:rgba(255,68,68,.1);color:var(--red);font-weight:700;font-size:.82rem;cursor:not-allowed;opacity:.5">Libérer</button>';
+  setTimeout(function(){
+    document.querySelectorAll('.prem-rel-cb').forEach(function(cb){
+      cb.addEventListener('change',function(){
+        var checked=document.querySelectorAll('.prem-rel-cb:checked').length;
+        var cnt=document.getElementById('prem-rel-cnt');
+        var btn=document.getElementById('prem-rel-btn');
+        if(cnt) cnt.textContent=checked+' / '+excess+' sélectionnée'+(excess>1?'s':'');
+        if(btn){
+          if(checked===excess){btn.disabled=false;btn.style.opacity='1';btn.style.cursor='pointer';}
+          else {btn.disabled=true;btn.style.opacity='.5';btn.style.cursor='not-allowed';}
+        }
+      });
+    });
+  },50);
+  openModal('land-modal');
+}
+
+async function _confirmReleaseExcess(needed){
+  var checked=document.querySelectorAll('.prem-rel-cb:checked');
+  if(checked.length!==needed) return;
+  closeModal('land-modal');
+  for(var i=0;i<checked.length;i++){
+    if(typeof _releaseSingleLand==='function'){
+      await _releaseSingleLand(checked[i].dataset.id);
+    }
+  }
+  await _finalizePremiumExit();
+  showToast('😔 Désolé de te voir quitter Premium. '+checked.length+' land'+(checked.length>1?'s':'')+' libérée'+(checked.length>1?'s':'')+'. Reviens quand tu le souhaites.');
+  if(typeof renderMyLands==='function') renderMyLands();
+  if(typeof loadLandsOnMap==='function') loadLandsOnMap();
+}
+
+async function _finalizePremiumExit(){
+  await supabaseClient.from('players').update({premium:false,premium_until:null,premium_trial:false}).eq('id',currentUser.id);
+  if(window.__myPlayer){
+    window.__myPlayer.premium=false;
+    window.__myPlayer.premiumUntil=null;
+    window.__myPlayer.premiumTrial=false;
+  }
+  if(typeof updatePremiumUI==='function') updatePremiumUI();
+}
+
+function _keepPremium(){
+  closeModal('land-modal');
+  showToast('🎉 Heureux de te voir changer d\'avis et que tu restes parmi nous en Premium !');
+  setTimeout(function(){
+    if(typeof handlePremiumClick==='function') handlePremiumClick();
+  },300);
 }
 
 function renderFreePrem(){
