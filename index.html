@@ -17543,9 +17543,11 @@ if(!window._collabCountdownInterval){
 async function acceptCollabChallenge(participantId){
   if(!currentUser) return;
   try {
-    // CAP MENSUEL : Free = 2 défis/mois calendaire, Premium = 5 défis/mois.
+    // CAP MENSUEL : Free = 3 défis/mois calendaire, Premium = 5 défis/mois.
     // Compte tout défi accepté (declined=false, accepted_at>=début du mois courant).
-    var _maxMonth=(typeof isPremium==='function' && isPremium())?5:2;
+    // Admin = pas de cap (utile pour tester / animer le jeu).
+    var _isAdminBypass=(typeof isAdmin==='function' && isAdmin());
+    var _maxMonth=_isAdminBypass?999999:((typeof isPremium==='function' && isPremium())?5:3);
     var _now=new Date();
     var _monthStartIso=new Date(_now.getFullYear(),_now.getMonth(),1).toISOString();
     var {data:myMonth}=await supabaseClient.from('collab_challenge_participants')
@@ -17555,7 +17557,7 @@ async function acceptCollabChallenge(participantId){
       .gte('accepted_at',_monthStartIso);
     var monthCount=(myMonth||[]).length;
     if(monthCount>=_maxMonth){
-      var _premiumMonthHint=(_maxMonth===2)?' (Premium = 5 max)':'';
+      var _premiumMonthHint=(_maxMonth===3)?' (Premium = 5 max)':'';
       showToast('⚠️ Quota mensuel atteint : '+_maxMonth+' défis collaboratifs ce mois'+_premiumMonthHint+'. Reviens le mois prochain.');
       return;
     }
@@ -17564,7 +17566,8 @@ async function acceptCollabChallenge(participantId){
     // dispersion et garde les défis significatifs.
     //   Free    = 2 défis max
     //   Premium = 3 défis max
-    var _maxActive=(typeof isPremium==='function' && isPremium())?3:2;
+    //   Admin   = pas de cap (test / animation)
+    var _maxActive=_isAdminBypass?999999:((typeof isPremium==='function' && isPremium())?3:2);
     var {data:myActive}=await supabaseClient.from('collab_challenge_participants')
       .select('challenge_id,collab_challenges(status,deadline)')
       .eq('player_id',currentUser.id)
