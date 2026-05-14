@@ -3492,6 +3492,36 @@ function askConfirm(message, opts){
 =========================================== -->
 
 <script>
+// ════════════════════════════════════════════════════════════════════════════
+// SOMMAIRE DU JAVASCRIPT — index.html
+// ════════════════════════════════════════════════════════════════════════════
+// Pour naviguer rapidement : grep "// §N " (où N = numéro de section).
+// Les numéros de ligne sont approximatifs — ils bougent à chaque édition.
+//
+// §1   AUTH & LOGIN FLOW                          (~3544)  doLogin, doRegister, onLoginSuccess
+// §2   APP BOOTSTRAP / PLAYERS LOAD               (~4527)  enterApp, showApp, loadPlayersFromSupabase
+// §3   GRADES & HELPERS UI                        (~4863)  computeGrade, updatePlayerGrade, natFlag, escapeHtml
+// §4   DASHBOARD                                  (~5076)  renderDashboard, computePts, calcPts
+// §5   LEAGUE / POINTS                            (~5654)  renderLeaguePanel, renderLeagueNav, getPrizeDistribution
+// §6   HISTORY / RÉFÉRRAL / CHALLENGES PERSO      (~6327)  renderHistory, showRunDetails, loadParrainageData, renderMyChallenges
+// §7   LANDS — MAP & MARCHÉ                       (~6777)  initLandsMap, loadLandsOnMap, buyLand, rentLand, addStar
+// §8   LOYER (RENT)                               (~8285)  RENT_DAILY_RATE, processMonthlyRent, adminAuditProrataRefunds
+// §9   EXPLORATION (CAPTURES)                     (~8664)  finishExploration, addTotems, showExploreSelectModal
+// §10  ADMIN — PANEL & SPONSOR LANDS              (~9067)  initAdminExplorePanel, adminFindAddress, adminSponsorLands
+// §11  PÉRIODES & FIN DE CYCLE                    (~9251)  processEndOfPeriod, renderPeriodRecap, startPeriodTimer
+// §12  CHAT TEAMS & SOCIAL FEED                   (~9997)  loadTeamChat, renderSocialFeed, toggleReaction, postComment
+// §13  ADMIN — UTILS & PRÉSENCE EN LIGNE          (~10940) isAdmin, initPresence, initAdminPanel, adminFindPlayerDuplicates
+// §14  PLAYER CARD & TERRITOIRE                   (~11593) showPlayerCard, showTerritoireRanking, switchMapMode
+// §15  ÉCONOMIE & PREMIUM                         (~12112) isPremium, isFullPremium, updatePremiumUI, _checkPremiumExpiration
+// §16  NAV / MODALS / TOASTS / WALLET / LICENCES  (~12439) nav, openModal, walletLoad, buyLicence
+// §17  RÉFÉRRAL / STREAK / INFIRMERIE / BOOSTS    (~13109) checkReferralReward, checkAndClaimStreak, activateInfirmerie, activateBoost
+// §18  STRAVA OAUTH & SYNC                        (~13765) connectStrava, syncStravaActivities, processStravaLands
+// §19  RUNS — CAPTURE & LIVE                      (~14757) saveCapturedRun, startLiveRun, stopLiveRun
+// §20  TEAMS — CRÉATION & GESTION                 (~15534) createTeam, doJoinTeam, leaveTeam, kickMember
+// §21  MEDALS / BADGES (UTILS DE CALCUL)          (~16527) loadPlayerMedals, _badgeRibbonLabel, _renderBadgeHex
+// §22  CHALLENGES / DÉFIS COLLAB / EVENTS         (~16781) renderChallenges, renderCollabChallenges, acceptCollabChallenge, participateEvent
+// §23  PAGE SETTINGS (⚙️ MON PROFIL)              (~18764) renderSettingsPage, editSettingsField, togglePushNotifs, confirmDeleteAccount
+// ════════════════════════════════════════════════════════════════════════════
 
 const supabaseUrl = "https://eqzvptszeaumsbljwift.supabase.co";
 const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVxenZwdHN6ZWF1bXNibGp3aWZ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU0MjM3MTcsImV4cCI6MjA5MDk5OTcxN30.wn2iJ3grAlLHTUZYiwlSBaCHvwCW86kTQ8eWNH484Lk"; // Settings → API → anon public (commence par eyJ...)
@@ -3509,6 +3539,12 @@ const supabaseClient = window.supabase.createClient(
 );
 var hcur=1;
 var currentUser=null;
+
+// ████████████████████████████████████████████████████████████████████████████
+// §1 — AUTH & LOGIN FLOW
+// Connexion, inscription, reset password, OAuth Strava côté login.
+// Entrée principale : doLogin, doRegister, onLoginSuccess.
+// ████████████████████████████████████████████████████████████████████████████
 
 // ─── Helpers stack social (FB + futurs Insta/TikTok/etc) ──────────
 // Le stack n'est visible QUE pour les visiteurs non-connectés (CTAs pour
@@ -4487,6 +4523,12 @@ async function doUpdatePassword(){
   }
 }
 
+// ████████████████████████████████████████████████████████████████████████████
+// §2 — APP BOOTSTRAP / PLAYERS LOAD
+// Une fois loggué, on entre dans l'app : chargement des joueurs, état UI,
+// nettoyage. Entrée principale : enterApp, showApp, loadPlayersFromSupabase.
+// ████████████████████████████████████████████████████████████████████████████
+
 async function enterApp(){
   if(currentUser){
     await onLoginSuccess(currentUser, true);
@@ -4817,6 +4859,11 @@ var AVATAR_LIBRARY=[
 // Logique : du grade le plus élevé au plus bas, on retient le premier dont
 // TOUTES les conditions sont remplies (AND). minSeuil=0 = pas de contrainte
 // sur ce critère (utile pour DÉBUTANT qui n'exige que les points).
+// ████████████████████████████████████████████████████████████████████████████
+// §3 — GRADES & HELPERS UI
+// Calcul du grade joueur + helpers UI (drapeaux, escape, etc.).
+// ████████████████████████████████████████████████████████████████████████████
+
 function computeGrade(periods, ptsCum, landsLoc, landsProp){
   for(var i=GRADES_DATA.length-1;i>=1;i--){
     var g=GRADES_DATA[i];
@@ -5025,6 +5072,11 @@ const FP_DATA=[
 /* ============================================================
    POINTS COMPUTATION
 ============================================================ */
+// ████████████████████████████████████████████████████████████████████████████
+// §4 — DASHBOARD
+// Calcul de points (computePts) + rendu de la page Dashboard.
+// ████████████████████████████████████████████████████████████████████████████
+
 function computePts(km,spd,elv,boost){
   const d=Math.max(km,0.01);
   // A — Points distance
@@ -5597,6 +5649,11 @@ function renderDashboard(){
    RENDER : LEAGUE
 ============================================================ */
 let activeLeagueKey='l4';
+
+// ████████████████████████████████████████████████████████████████████████████
+// §5 — LEAGUE / POINTS
+// Sélecteur de ligue, classement, distribution des prix.
+// ████████████████████████████████████████████████████████████████████████████
 
 function toggleLeaguePicker(){
   const dd=document.getElementById('league-picker-dropdown');
@@ -6266,6 +6323,11 @@ function renderLeaguePP(){
 var _histPage=0;
 var _histPerPage=5;
 var _allHistRuns=[];
+// ████████████████████████████████████████████████████████████████████████████
+// §6 — HISTORY / RÉFÉRRAL / CHALLENGES PERSO
+// Historique des courses, détails, parrainage, défis personnels (badges).
+// ████████████████████████████████████████████████████████████████████████████
+
 async function renderHistory(page){
   if(typeof page==='number') _histPage=page;
   var tb=document.getElementById('hist-tbody');
@@ -6710,6 +6772,12 @@ var _landsMap=null;
 var _landsHexLayer=null;
 var H3_RESOLUTION=10; // ~65m diamètre (même échelle que Stride)
 var _lastExploredHexes=[];
+
+// ████████████████████████████████████████████████████████████████████████████
+// §7 — LANDS — MAP & MARCHÉ
+// Carte hexagonale, capture / acquisition / location de Lands, étoiles,
+// revente, transferts. Vocabulaire : "capturer", JAMAIS "conquérir".
+// ████████████████████████████████████████████████████████████████████████████
 
 function initLandsMap(){
   if(_landsMap) return;
@@ -8213,6 +8281,12 @@ var _exploreSelection={lands:[],playerId:null};
 // ── Loyer mensuel lands — auto-déduction le 5 du mois ──
 // Tarif prorata journalier (5000 / 30 ≈ 165) appliqué à l'acquisition
 // pour les jours restants du mois en cours. Le mois suivant = mois plein.
+// ████████████████████████████████████████████████████████████████████████████
+// §8 — LOYER (RENT)
+// RENT_DAILY_RATE = 165 RPC/jour. Prorata à l'acquisition.
+// processMonthlyRent, _autoSettleUnpaidRent, adminAuditProrataRefunds.
+// ████████████████████████████████████████████████████████████████████████████
+
 var RENT_DAILY_RATE=165;
 
 // "YYYY-MM" d'une date (tz Europe/Paris)
@@ -8586,6 +8660,11 @@ async function adminAuditProrataRefunds(execute){
 // Modèle V2 (2026-04-28) : on NE PURGE PLUS au load. Le pending reste en DB
 // jusqu'à action explicite ("Terminer l'exploration" OU avoir loué tous les
 // hexes). Évite les pertes de tracé en cas de refresh inopiné.
+// ████████████████████████████████████████████████████████████████████████████
+// §9 — EXPLORATION (CAPTURES de hex après une course)
+// _mergePendingExploration, finishExploration, addTotems, showExploreSelectModal.
+// ████████████████████████████████████████████████████████████████████████████
+
 async function _mergePendingExploration(hexes, lat, lng){
   if(!currentUser || !hexes || !hexes.length) return;
   try {
@@ -8984,6 +9063,12 @@ async function confirmRentSelection(){
 }
 
 // Initialiser le select joueurs dans le simulateur exploration (legacy, plus utilisé)
+// ████████████████████████████████████████████████████████████████████████████
+// §10 — ADMIN — PANEL & SPONSOR LANDS
+// Outil admin "Trouver une adresse" + sponsorisation jusqu'à 3 hexes.
+// Sponsor : sponsor_name / logo / url / message sur la table lands.
+// ████████████████████████████████████████████████████████████████████████████
+
 async function initAdminExplorePanel(){
   var sel=document.getElementById('admin-explore-player');
   if(!sel||!isAdmin()) return;
@@ -9162,6 +9247,12 @@ var _periodData={period:1,start:null,end:null};
 //   Mois  1-3  → 5000 RPC (acquisition + 2 premières reconductions)
 //   Mois  4-6  → 4800 RPC
 //   Mois 7-12  → 4600 RPC (palier final, conservé au-delà du 12e mois)
+// ████████████████████████████████████████████████████████████████████████████
+// §11 — PÉRIODES & FIN DE CYCLE
+// Coût loyer par période, calcul fin de période, recap joueur.
+// processEndOfPeriod, renderPeriodRecap, startPeriodTimer.
+// ████████████████████████████████████████████████████████████████████████████
+
 function getRentCostByMonths(monthsRented){
   var m=monthsRented||1;
   if(m<=3) return 5000;
@@ -9902,6 +9993,12 @@ async function adminSetPeriodEnd(minutes){
 var _teamChatId=null;
 
 var _chatPollInterval=null;
+// ████████████████████████████████████████████████████████████████████████████
+// §12 — CHAT TEAMS & SOCIAL FEED
+// Polling chat team, fil social (runs des autres RP), réactions, commentaires.
+// renderSocialFeed, toggleReaction, postComment.
+// ████████████████████████████████████████████████████████████████████████████
+
 function startChatPoll(teamId){
   if(_chatPollInterval) clearInterval(_chatPollInterval);
   if(teamId){
@@ -10839,6 +10936,12 @@ async function postComment(runId){
 /* ============================================================
    ADMIN
 ============================================================ */
+// ████████████████████████████████████████████████████████████████████████████
+// §13 — ADMIN — UTILS & PRÉSENCE EN LIGNE
+// ADMIN_UID = seul compte admin du jeu. isAdmin() compare à cet UID.
+// initPresence, initAdminPanel, adminFindPlayerDuplicates, adminAddRun, etc.
+// ████████████████████████████████████████████████████████████████████████████
+
 var ADMIN_UID='0cba7ec2-3d9d-4b08-9b51-280aa0c05a28';
 
 function isAdmin(){return currentUser&&currentUser.id===ADMIN_UID;}
@@ -11486,6 +11589,12 @@ async function loadAdminStats(){
   }
 }
 
+// ████████████████████████████████████████████████████████████████████████████
+// §14 — PLAYER CARD & TERRITOIRE
+// Carte joueur (fiche détaillée), classement territoire, switch mode carte.
+// showPlayerCard, showTerritoireRanking, switchMapMode, loadTeamLandsOnMap.
+// ████████████████████████████████████████████████████████████████████████████
+
 function hexToRgb(hex){
   var r=hex.replace('#','');
   if(r.length===3) r=r.split('').map(function(c){return c+c;}).join('');
@@ -11999,6 +12108,13 @@ function renderGrades(){
 /* ============================================================
    RENDER : ECONOMY
 ============================================================ */
+// ████████████████████████████████████████████████████████████████████████████
+// §15 — ÉCONOMIE & PREMIUM
+// Achat de packs (RPC, NYX), tests Premium, modale d'expiration Premium,
+// libération forcée des Lands en surplus, trial 15 jours.
+// isPremium, _checkPremiumExpiration, _openPremiumExpireModal.
+// ████████████████████████████████████████████████████████████████████████████
+
 function buyPack(type, amount, price){
   if(!currentUser){showToast('⚠️ Connecte-toi d\'abord');return;}
   var label=type==='rpc'?amount.toLocaleString('de-DE')+' RPC':amount+' NYX';
@@ -12319,6 +12435,13 @@ function renderFreePrem(){
 /* ============================================================
    UI UTILS
 ============================================================ */
+// ████████████████████████████████████████████████████████████████████████████
+// §16 — NAV / MODALS / TOASTS / WALLET / LICENCES
+// Navigation entre pages, onboarding, helpers modals/toasts,
+// wallet (RPC/NYX) et achats de licences team.
+// nav, openModal, walletLoad, buyLicence.
+// ████████████████████████████████████████████████████████████████████████████
+
 function nav(page){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
@@ -12982,6 +13105,12 @@ async function walletCreditOther(playerId, rpc, nyx, reason){
 }
 
 // Vérifier les récompenses de parrainage pour le joueur connecté
+// ████████████████████████████████████████████████████████████████████████████
+// §17 — RÉFÉRRAL / STREAK / INFIRMERIE / BOOSTS
+// Récompenses parrainage, chaîne de connexion, infirmerie (disparition
+// volontaire = INTERDITE, on passe par l'infirmerie), boosts temporaires.
+// ████████████████████████████████████████████████████████████████████████████
+
 async function checkReferralReward(rewardType){
   if(!currentUser) return;
   // Récupérer mon parrain
@@ -13631,6 +13760,12 @@ var STRAVA_CLIENT_ID='222683';
 // passe par l'Edge Function strava-oauth (Supabase) qui le garde côté serveur.
 var STRAVA_OAUTH_ENDPOINT=supabaseUrl+'/functions/v1/strava-oauth';
 var STRAVA_REDIRECT='https://speedixleague.com';
+
+// ████████████████████████████████████████████████████████████████████████████
+// §18 — STRAVA OAUTH & SYNC
+// OAuth Strava (mobile = /oauth/mobile/authorize, web = endpoint Edge Function),
+// sync des activités, traitement des Lands traversées.
+// ████████████████████████████████████████████████████████████████████████████
 
 function connectStrava(){
   if(!currentUser){showToast('⚠️ Connecte-toi d\'abord');return;}
@@ -14618,6 +14753,12 @@ var RunTracker=(function(){
 // Sauvegarde une course capturée par RunTracker dans Supabase :
 // run + land_passages + crédit RPC + check badges. Mêmes mécaniques que
 // l'import Strava client mais sans densification (capture native déjà dense).
+// ████████████████████████████████████████████████████████████████████████████
+// §19 — RUNS — CAPTURE & LIVE
+// Enregistrement d'une course (Strava ou Live), tracker Live in-app,
+// anti-doublon (règles 120s + chevauchement temporel).
+// ████████████████████████████████████████████████████████████████████████████
+
 async function saveCapturedRun(captured, runName){
   if(!currentUser){throw new Error('Pas connecté');}
   // Kill switch : si l'admin a désactivé l'enregistrement des courses
@@ -15388,6 +15529,12 @@ function _showCrossSummary(crossings){
   }).join('');
   openModal('cross-summary-modal');
 }
+
+// ████████████████████████████████████████████████████████████████████████████
+// §20 — TEAMS — CRÉATION & GESTION
+// Création/rejoindre une équipe (privée ou ouverte), kick, requêtes, médailles
+// d'équipe, gestion des Open Teams.
+// ████████████████████████████████████████████████████████████████████████████
 
 function openJoinTeamModal(){
   openModal('join-team-modal');
@@ -16376,6 +16523,12 @@ var _cachedPlayerPalmares=null;
 var _cachedTeamPalmares=null;
 
 // Charger les médailles du joueur (connecté ou consulté) et mettre à jour la PC
+// ████████████████████████████████████████████████████████████████████████████
+// §21 — MEDALS / BADGES (UTILS DE CALCUL)
+// Helpers utilisés par les défis perso et collab : streaks, capitales,
+// fenêtres horaires, calcul de rubans de badge.
+// ████████████████████████████████████████████████████████████████████████████
+
 async function loadPlayerMedals(){
   if(!currentUser) return;
   // Si on consulte un autre RP, charger SES médailles
@@ -16623,6 +16776,13 @@ var _CHALLENGES_EXTRA_PAGE=0;
 var _CHALLENGES_PER_PAGE=8;
 var _CHALLENGES_TAB='defis'; // 'defis' (permanents) | 'events' (challenges datés)
 var _EVENTS_SUBTAB='upcoming'; // 'upcoming' (à venir) | 'history' (gagnés)
+
+// ████████████████████████████████████████████████████████████████████████████
+// §22 — CHALLENGES / DÉFIS COLLAB / EVENTS
+// Onglet 🎖️ Défis (badges perso) + onglet 🤜🤛 Voisins (collab) + onglet Events.
+// Caps collab : monthly Free=3 / Premium=5 / Admin=∞ ;
+//              simultané Free=2 / Premium=3 / Admin=∞.
+// ████████████████████████████████████████████████████████████████████████████
 
 async function renderChallenges(){
   var grid=document.getElementById('challenges-grid');
@@ -18599,6 +18759,13 @@ function _setRowsHtml(elId, rows){
 function _editBtn(fn){
   return '<span onclick="'+fn+'" title="Modifier" style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;cursor:pointer;font-size:.85rem;opacity:.7;transition:opacity .15s,background .15s" onmouseover="this.style.opacity=1;this.style.background=\'rgba(74,144,255,.1)\'" onmouseout="this.style.opacity=.7;this.style.background=\'transparent\'">✏️</span>';
 }
+
+// ████████████████████████████████████████████████████████████████████████████
+// §23 — PAGE SETTINGS (⚙️ MON PROFIL)
+// Page ajoutée 2026-05-07. Sections : Photo, Identité, Sportif, Compte,
+// Abonnement, Préférences, Zone rouge (suppression). DETTE TECHNIQUE :
+// Edge Function de suppression auth.users + VAPID push à finaliser.
+// ████████████████████████████████████████████████████████████████████████████
 
 async function renderSettingsPage(){
   if(!currentUser){ return; }
