@@ -17604,10 +17604,11 @@ async function renderCollabChallenges(){
           +'</div>';
       });
     }
-    // TERMINÉS (les 5 derniers max)
-    if(finished.length){
+    // TERMINÉS (les 5 derniers max — n'afficher QUE Réussi/Échec, masquer Refusé/Annulé/Expiré)
+    var finishedShown=finished.filter(function(it){ return it.chal.status==='success' || it.chal.status==='failed'; });
+    if(finishedShown.length){
       html+='<div style="font-family:Bebas Neue,sans-serif;font-size:.8rem;letter-spacing:1.5px;color:var(--muted2);margin-top:.6rem;margin-bottom:.3rem">📜 HISTORIQUE</div>';
-      finished.slice(0,5).forEach(function(it){
+      finishedShown.slice(0,5).forEach(function(it){
         var meta=_challengeMeta(it.chal.challenge_code);
         var label, color;
         if(it.chal.status==='success'){ label='✅ Réussi'; color='var(--green)'; }
@@ -17748,11 +17749,15 @@ async function acceptCollabChallenge(participantId){
     var _now=new Date();
     var _monthStartIso=new Date(_now.getFullYear(),_now.getMonth(),1).toISOString();
     var {data:myMonth}=await supabaseClient.from('collab_challenge_participants')
-      .select('id')
+      .select('id,collab_challenges(status)')
       .eq('player_id',currentUser.id)
       .eq('declined',false)
       .gte('accepted_at',_monthStartIso);
-    var monthCount=(myMonth||[]).length;
+    // Ne pas compter les défis 'expired' (= refusés par le voisin) dans le quota :
+    // le joueur ne doit pas perdre une place de son cap pour un refus de l'autre RP.
+    var monthCount=(myMonth||[]).filter(function(p){
+      return !p.collab_challenges || p.collab_challenges.status!=='expired';
+    }).length;
     if(monthCount>=_maxMonth){
       var _premiumMonthHint=(_maxMonth===3)?' (Premium = 5 max)':'';
       showToast('⚠️ Quota mensuel atteint : '+_maxMonth+' défis collaboratifs ce mois'+_premiumMonthHint+'. Reviens le mois prochain.');
