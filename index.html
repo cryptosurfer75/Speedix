@@ -7144,11 +7144,40 @@ async function loadLandsOnMap(){
       // Source de vérité = DB (cross-device). Fallback localStorage pour compat.
       var hideAt=null;
       var {data:meExpl}=await supabaseClient.from('players')
-        .select('exploration_dismissed_at').eq('id',myId).maybeSingle();
+        .select('exploration_dismissed_at,pending_exploration').eq('id',myId).maybeSingle();
       if(meExpl && meExpl.exploration_dismissed_at){
         hideAt=meExpl.exploration_dismissed_at;
       } else if(localStorage.getItem('expl-hide-'+myId)==='1'){
         hideAt=localStorage.getItem('expl-hide-at-'+myId);
+      }
+      // INVARIANT : une exploration en attente (hexes à valider) PRIME sur le flag
+      // "dismissed". Sans ça, les deux états se désynchronisent : le pop-up
+      // "Tu as exploré X Lands" revient à chaque login alors que le bouton
+      // "Terminer" reste masqué → le RP est coincé (impossible de clore). Si du
+      // pending existe, on force le tracé visible et on purge le flag obsolète.
+      var _hasPending=false;
+      try{
+        if(meExpl && meExpl.pending_exploration){
+          var _pe=JSON.parse(meExpl.pending_exploration);
+          _hasPending=!!(_pe && _pe.hexes && _pe.hexes.length);
+        }
+      }catch(e){}
+      window._hasPendingExploration=_hasPending;
+      if(_hasPending){
+        window._hidePassages=false;
+        if(hideAt){
+          try{
+            await window.fetch(supabaseUrl+'/rest/v1/players?id=eq.'+encodeURIComponent(myId),{
+              method:'PATCH',
+              headers:{'apikey':supabaseKey,'Authorization':'Bearer '+supabaseKey,'Content-Type':'application/json'},
+              body:JSON.stringify({exploration_dismissed_at:null})
+            });
+          }catch(e){}
+          localStorage.removeItem('expl-hide-'+myId);
+          localStorage.removeItem('expl-hide-at-'+myId);
+          localStorage.removeItem('expl-done-'+myId);
+        }
+        hideAt=null;
       }
       if(hideAt){
         var {data:latest}=await supabaseClient.from('runs')
@@ -7388,7 +7417,7 @@ async function loadLandsOnMap(){
   var _finBtnEl=document.getElementById('lands-finish-btn');
   if(myId&&!window._hidePassages){
     var allExpl=(_lastExploredHexes||[]).concat(window._recentExploredHexes||[]);
-    var hasExplored=allExpl.length>0 || (window._myPassageLandIds&&window._myPassageLandIds.length>0);
+    var hasExplored=allExpl.length>0 || (window._myPassageLandIds&&window._myPassageLandIds.length>0) || window._hasPendingExploration;
     if(_finBtnEl) _finBtnEl.style.display=hasExplored?'block':'none';
   } else if(_finBtnEl){
     // Session terminée → bouton caché
@@ -8778,10 +8807,12 @@ async function _mergePendingExploration(hexes, lat, lng){
     }
     var merged=Array.from(new Set((existing.hexes||[]).concat(hexes)));
     var pendingData=JSON.stringify({hexes:merged, lat:(lat!=null?lat:existing.lat), lng:(lng!=null?lng:existing.lng), updated_at:new Date().toISOString()});
+    // On (re)crée une exploration en attente → on efface le flag "terminé" pour
+    // garder les deux états cohérents (sinon : pop-up qui revient mais bouton caché).
     await window.fetch(supabaseUrl+'/rest/v1/players?id=eq.'+encodeURIComponent(currentUser.id),{
       method:'PATCH',
       headers:{'apikey':supabaseKey,'Authorization':'Bearer '+supabaseKey,'Content-Type':'application/json'},
-      body:JSON.stringify({pending_exploration:pendingData})
+      body:JSON.stringify({pending_exploration:pendingData,exploration_dismissed_at:null})
     });
   } catch(e){ console.warn('[pending] merge fail',e); }
 }
