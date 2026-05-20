@@ -13958,6 +13958,31 @@ var STRAVA_REDIRECT='https://speedixleague.com';
 // sync des activités, traitement des Lands traversées.
 // ████████████████████████████████████████████████████████████████████████████
 
+// Inscrit "XX Pts gagnés avec speedixleague.com 🏆🎉" à la SUITE de la description
+// existante de la course Strava — JAMAIS d'écrasement du commentaire du RP.
+// Best-effort : toute erreur (token sans droit d'écriture, course supprimée…) est
+// avalée pour ne JAMAIS bloquer l'import d'une course. Idempotent : si la mention y
+// est déjà, on ne réécrit pas (utile si la course repasse par ici).
+async function stravaWritePoints(activityId, pts, token){
+  try{
+    if(!activityId || !token) return;
+    var getR=await window.fetch('https://www.strava.com/api/v3/activities/'+activityId,{
+      headers:{'Authorization':'Bearer '+token}
+    });
+    if(!getR.ok) return; // lecture refusée / course absente → on abandonne en silence
+    var act=await getR.json();
+    var existing=(act && typeof act.description==='string') ? act.description : '';
+    if(existing.indexOf('speedixleague.com')>=0) return; // mention déjà présente
+    var line=pts+' Pts gagnés avec speedixleague.com 🏆🎉';
+    var newDesc=existing.trim() ? (existing.trim()+'\n\n'+line) : line;
+    await window.fetch('https://www.strava.com/api/v3/activities/'+activityId,{
+      method:'PUT',
+      headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},
+      body:JSON.stringify({description:newDesc})
+    });
+  }catch(e){ console.warn('[stravaWritePoints] échec (sans impact sur la course)',e); }
+}
+
 function connectStrava(){
   if(!currentUser){showToast('⚠️ Connecte-toi d\'abord');return;}
   // Vérifier si déjà connecté
@@ -13979,7 +14004,7 @@ function connectStrava(){
     +'?client_id='+STRAVA_CLIENT_ID
     +'&redirect_uri='+encodeURIComponent(STRAVA_REDIRECT)
     +'&response_type=code'
-    +'&scope=read,activity:read_all'
+    +'&scope=read,activity:read_all,activity:write'
     +'&approval_prompt=force'
     +'&state='+currentUser.id;
   window.location.href=authUrl;
@@ -14347,6 +14372,8 @@ async function syncStravaActivities(silent){
         resultsHtml+='<div style="padding:.35rem .3rem;font-size:.72rem;color:var(--muted2);border-bottom:1px solid rgba(30,37,53,.6)">⏭️ '+a.name+' — déjà importée (race condition webhook)</div>';
         continue;
       }
+      // Inscrire les points à la suite de la description Strava (best-effort, non bloquant)
+      if(a.id) await stravaWritePoints(a.id, pts, window.__stravaToken);
       // Créditer les RPC de course (6 RPC par point gagné)
       await walletCredit(pts * 6, 0, 'Course ' + (a.name || 'Strava') + ' · ' + pts + ' pts');
       // Décoder GPS en hexagones
