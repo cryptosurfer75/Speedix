@@ -14004,7 +14004,7 @@ function connectStrava(){
     +'?client_id='+STRAVA_CLIENT_ID
     +'&redirect_uri='+encodeURIComponent(STRAVA_REDIRECT)
     +'&response_type=code'
-    +'&scope=read,activity:read_all,activity:write'
+    +'&scope=read,activity:read_all'
     +'&approval_prompt=force'
     +'&state='+currentUser.id;
   window.location.href=authUrl;
