@@ -11231,28 +11231,38 @@ function adminSetupCollapsibleBlocks(){
 async function showAdminVersion(){
   var el=document.getElementById('admin-sw-version');
   if(!el) return;
-  if(!('serviceWorker' in navigator) || !navigator.serviceWorker.controller){
-    el.textContent='(hors-ligne SW)';
-    el.style.color='var(--muted2)';
+  if(!('serviceWorker' in navigator)){
+    el.innerHTML='<span style="color:var(--muted2)">SW non supporté</span>';
     return;
   }
-  // Demande sa version au SW actif via un canal de message éphémère
+  // On récupère l'enregistrement du SW, puis on interroge le SW ACTIF (reg.active).
+  // Le SW actif existe dès qu'il est installé, MÊME si la page courante n'est pas
+  // encore sous son contrôle (cas typique du tout 1er chargement après publication,
+  // où navigator.serviceWorker.controller est encore null pendant un instant).
+  var reg=null;
+  try{ reg=await navigator.serviceWorker.getRegistration(); }catch(e){}
+  var sw=(reg && reg.active) || navigator.serviceWorker.controller;
+  if(!sw){
+    el.innerHTML='<span style="color:var(--muted2)">SW pas encore actif — recharge la page</span>';
+    return;
+  }
+  // Demande sa version au SW via un canal de message éphémère
   var version=await new Promise(function(resolve){
     var done=false;
     var ch=new MessageChannel();
     ch.port1.onmessage=function(e){ done=true; resolve(e.data); };
-    try{ navigator.serviceWorker.controller.postMessage({type:'GET_VERSION'},[ch.port2]); }
+    try{ sw.postMessage({type:'GET_VERSION'},[ch.port2]); }
     catch(e){ resolve(null); }
     setTimeout(function(){ if(!done) resolve(null); }, 1500);
   });
-  // Une nouvelle version est-elle téléchargée et en attente d'activation ?
-  var majEnAttente=false;
-  try{
-    var reg=await navigator.serviceWorker.getRegistration();
-    if(reg && reg.waiting) majEnAttente=true;
-  }catch(e){}
-  var label=version ? String(version).replace('speedix-','').toUpperCase() : '?';
-  if(majEnAttente){
+  // Pas de réponse = SW actif d'une version trop ancienne (ne connaît pas la
+  // demande de version) → il faut recharger pour que le nouveau prenne la main.
+  if(!version){
+    el.innerHTML='<span style="color:#ff6060">ancienne version — recharge</span>';
+    return;
+  }
+  var label=String(version).replace('speedix-','').toUpperCase();
+  if(reg && reg.waiting){
     el.innerHTML=label+' <span style="color:#ff6060">⚠️ maj dispo — recharge</span>';
   } else {
     el.innerHTML=label+' <span style="color:var(--green)">✅</span>';
