@@ -14169,11 +14169,24 @@ async function syncStravaActivities(silent){
   }
   var after=Math.floor(afterDate.getTime()/1000);
   try{
-    var resp=await window.fetch('https://www.strava.com/api/v3/athlete/activities?per_page=30&after='+after,{
-      headers:{'Authorization':'Bearer '+window.__stravaToken}
-    });
-    var activities=await resp.json();
-    if(!Array.isArray(activities)){if(!silent)showToast('⚠️ Erreur Strava : '+(activities.message||'?'));return;}
+    // Rattrapage COMPLET de la période : Strava renvoie les activités avec
+    // 'after' en ordre CROISSANT (plus anciennes d'abord) et plafonne chaque
+    // page. Une seule page de 30 ratait donc les courses récentes d'un RP ayant
+    // fait > 30 sorties dans la période. On pagine maintenant jusqu'à épuisement
+    // (paquets de 200) pour tout récupérer, peu importe le nombre de courses.
+    var activities=[];
+    var _page=1;
+    while(true){
+      var _resp=await window.fetch('https://www.strava.com/api/v3/athlete/activities?per_page=200&page='+_page+'&after='+after,{
+        headers:{'Authorization':'Bearer '+window.__stravaToken}
+      });
+      var _batch=await _resp.json();
+      if(!Array.isArray(_batch)){if(!silent)showToast('⚠️ Erreur Strava : '+(_batch.message||'?'));return;}
+      activities=activities.concat(_batch);
+      if(_batch.length<200) break;     // dernière page atteinte
+      _page++;
+      if(_page>20) break;              // garde-fou : 20 × 200 = 4000 courses max
+    }
     // Filtrer les nouvelles activités (pas encore importées)
     var newActivities=[];
     // En-tête récap : combien Strava nous a renvoyé + depuis quelle date
