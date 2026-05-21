@@ -6,7 +6,7 @@
 //   SKIP_WAITING, et recharge automatiquement dès que le nouveau prend le
 //   contrôle — les utilisateurs ont ainsi la nouvelle version sans refresh manuel.
 
-const CACHE_VERSION = 'speedix-v307';
+const CACHE_VERSION = 'speedix-v308';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -37,6 +37,10 @@ self.addEventListener('install', event => {
 self.addEventListener('message', event => {
   if (event.data && event.data.type === 'SKIP_WAITING') {
     self.skipWaiting();
+  }
+  // Le panel admin demande la version réellement active → on répond sur le port fourni
+  if (event.data && event.data.type === 'GET_VERSION' && event.ports && event.ports[0]) {
+    event.ports[0].postMessage(CACHE_VERSION);
   }
 });
 
