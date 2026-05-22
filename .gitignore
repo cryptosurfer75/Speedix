@@ -1,0 +1,28 @@
+# Fichiers locaux / perso — NE doivent PAS partir dans le dépôt en ligne
+
+# macOS
+.DS_Store
+
+# Outils / config locale Claude Code
+.claude/
+
+# Docs internes (pas servies par le site)
+CLAUDE.md
+REGLES-DU-JEU.md
+REGLES-DU-JEU.pdf
+SPEEDIX-LIVRE-BLANC.md
+
+# Visuels de travail (non déployés)
+cover-speedix.jpg
+cover-speedix-mobile.jpg
+leagues-cover.jpg
+leagues-cover.png
+logo-speedix.png
+logo-speedix-hd.png
+logo-speedix-sm.png
+
+# Build mobile
+*.apk
+
+# Dossier CLI Supabase (le code serveur déployé vit ailleurs : checkBadges.ts / index.ts à la racine)
+supabase/
