@@ -1676,13 +1676,13 @@ select option{background:#040c1c}
       <div class="block">
         <div class="block-header"><div class="block-title">Coûts <span class="hl">Location</span></div></div>
         <div class="block-body-sm">
-          <div class="eco-row"><span>Période 1 (toute nouvelle land)</span><span class="eco-price">5 000 RPC</span></div>
-          <div class="eco-row"><span>À partir de la P3</span><span class="eco-price">4 800 RPC</span></div>
-          <div class="eco-row"><span>À partir de la P6</span><span class="eco-price">4 600 RPC</span></div>
+          <div class="eco-row"><span>Mois 1 à 3</span><span class="eco-price">5 000 RPC</span></div>
+          <div class="eco-row"><span>Mois 4 à 8</span><span class="eco-price">4 800 RPC</span></div>
+          <div class="eco-row"><span>Mois 9 à 12</span><span class="eco-price">4 600 RPC</span></div>
           <div style="font-size:.65rem;color:var(--muted2);margin-top:.5rem;line-height:1.8">
+            1er mois au prorata (165 RPC/jour restant)<br>
             Loyer dû entre le 5 et le 10 du mois<br>
-            Après 12 périodes de location → obligation d'achat<br>
-            Land remise en jeu = bloquée 2 périodes
+            Après 12 mois → acheter la Land ou elle repart dans le jeu
           </div>
         </div>
       </div>
@@ -1999,9 +1999,9 @@ select option{background:#040c1c}
     <div class="block">
       <div class="block-header"><div class="block-title">🔑 Lands <span class="hl">Location</span></div></div>
       <div class="block-body-sm">
-        <div class="eco-row"><span>Nouvelle land (P1)</span><span class="eco-price">5 000 RPC</span></div>
-        <div class="eco-row"><span>À partir de P3</span><span class="eco-price">4 800 RPC</span></div>
-        <div class="eco-row"><span>À partir de P6</span><span class="eco-price">4 600 RPC</span></div>
+        <div class="eco-row"><span>Mois 1 à 3</span><span class="eco-price">5 000 RPC</span></div>
+        <div class="eco-row"><span>Mois 4 à 8</span><span class="eco-price">4 800 RPC</span></div>
+        <div class="eco-row"><span>Mois 9 à 12</span><span class="eco-price">4 600 RPC</span></div>
       </div>
     </div>
 
@@ -3134,8 +3134,8 @@ function askConfirm(message, opts){
       <div class="block-body-sm" style="font-size:.8rem;color:var(--muted2);line-height:1.9">
         La carte est divisée en hexagones — les <strong style="color:var(--text)">Lands</strong>.<br>
         Loue une Land (loyer mensuel en RPC) et gagne 3 RPC à chaque passage d'un RP.<br>
-        <strong style="color:var(--gold)">Loyer dégressif</strong> : <strong style="color:var(--text)">P1→P3</strong> 5 000 RPC/mois · <strong style="color:var(--text)">P4→P6</strong> 4 800 RPC · <strong style="color:var(--text)">P7→P12</strong> 4 600 RPC.<br>
-        Après plusieurs périodes, tu peux l'<strong style="color:var(--text)">acheter</strong> définitivement en NYX.<br>
+        <strong style="color:var(--gold)">Loyer dégressif</strong> : <strong style="color:var(--text)">mois 1→3</strong> 5 000 RPC/mois · <strong style="color:var(--text)">mois 4→8</strong> 4 800 RPC · <strong style="color:var(--text)">mois 9→12</strong> 4 600 RPC.<br>
+        Le 1er mois est au prorata (165 RPC par jour restant). Après <strong style="color:var(--text)">12 mois</strong>, tu dois l'<strong style="color:var(--text)">acheter</strong> en NYX, sinon la Land repart dans le jeu.<br>
         Ajoute des <strong style="color:var(--gold)">Étoiles</strong> : ★ 6 · ★★ 9 · ★★★ 12 RPC par passage.<br>
         Plafond de <strong style="color:var(--gold)">8 000 RPC / mois / Land</strong>.
       </div>
@@ -8225,7 +8225,8 @@ async function renderMyLands(page){
       if(isFree) return;
       if(currentMonthStr && l.rented_at && typeof _rentMonthOf==='function' && _rentMonthOf(l.rented_at)===currentMonthStr) return;
       var rp=_computeRentPeriods(l);
-      totalLoyer+=(rp<=1?5000:rp<=6?4800:4600);
+      if(rp>12) return; // au-delà de 12 mois → remise en jeu, plus de loyer dû
+      totalLoyer+=getRentCostByMonths(rp);
     }
   });
   // Si le loyer du mois a déjà été soldé, on bascule l'affichage en "✓ Payé"
@@ -8290,7 +8291,7 @@ async function renderMyLands(page){
         :'<span class="badge g-debutant" '+clickAttr+'font-size:.55rem">Location</span>'));
     // Loyer selon la période de location (gratuit si free_until > now)
     var rp=_computeRentPeriods(l);
-    var rentCost=rp<=1?5000:rp<=6?4800:4600;
+    var rentCost=getRentCostByMonths(rp);
     var loyerCell;
     if(isOwned){
       loyerCell='<span style="color:var(--green);font-size:.7rem">—</span>';
@@ -8506,6 +8507,9 @@ async function _loadMyRentedLandsForRent(){
   // le mois plein commencera au cycle 5-10 du mois suivant.
   var currentMonth=_currentRentMonth();
   var billable=lands.filter(function(l){
+    // Au-delà de 12 mois : la land doit être achetée, sinon elle repart dans le
+    // jeu (remise en jeu gérée par _releaseExpiredLeases) → jamais facturée ici.
+    if(_computeRentPeriods(l)>12) return false;
     return !l.rented_at || _rentMonthOf(l.rented_at)!==currentMonth;
   });
   if(!billable.length) return {lands:[],total:0};
@@ -8526,6 +8530,9 @@ async function processMonthlyRent(){
   var currentMonth=_currentRentMonth();
   var lastPaid=await _getRentStatus(currentUser.id);
   if(lastPaid===currentMonth) return;
+
+  // Avant de facturer : remettre en jeu les locations qui dépassent 12 mois.
+  await _releaseExpiredLeases();
 
   var info=await _loadMyRentedLandsForRent();
   if(!info.lands.length){
@@ -8610,6 +8617,28 @@ async function _releaseSingleLand(landId){
   });
 }
 
+// Remise en jeu des locations de plus de 12 mois.
+// Règle : après 12 mois, le RP doit avoir acheté sa Land (location → propriété).
+// S'il ne l'a pas fait, la Land repart automatiquement dans le jeu.
+async function _releaseExpiredLeases(){
+  if(!currentUser) return [];
+  var {data:lands}=await supabaseClient.from('lands')
+    .select('id,rent_start_period,rent_periods,stars')
+    .eq('tenant_id',currentUser.id)
+    .eq('status','rented');
+  if(!lands||!lands.length) return [];
+  var expired=lands.filter(function(l){ return _computeRentPeriods(l)>12; });
+  for(var i=0;i<expired.length;i++){
+    await _releaseSingleLand(expired[i].id);
+  }
+  if(expired.length){
+    showToast('🏠 '+expired.length+' Land'+(expired.length>1?'s':'')+' remise'+(expired.length>1?'s':'')+' en jeu : location terminée après 12 mois (il fallait l\'acheter)');
+    if(typeof loadLandsOnMap==='function') loadLandsOnMap();
+    if(typeof renderMyLands==='function') renderMyLands();
+  }
+  return expired;
+}
+
 async function _autoSettleUnpaidRent(info){
   // info = { lands:[{id,_cost,...}], total }
   var w=window.__wallet||{rpc:0};
@@ -8671,14 +8700,18 @@ async function adminForceRent(){
     byTenant[l.tenant_id].push(l);
   });
   var totalDebited=0;
+  var totalReleased=0;
   var tenantsProcessed=0;
   for(var tid in byTenant){
     var lands=byTenant[tid];
     var loyer=0;
-    lands.forEach(function(l){
-      var rp=_computeRentPeriods(l);
-      loyer+=(rp<=1?5000:rp<=6?4800:4600);
-    });
+    for(var li=0;li<lands.length;li++){
+      var rp=_computeRentPeriods(lands[li]);
+      // Au-delà de 12 mois : la land repart dans le jeu (pas de loyer).
+      if(rp>12){ await _releaseSingleLand(lands[li].id); totalReleased++; continue; }
+      loyer+=getRentCostByMonths(rp);
+    }
+    if(loyer===0) continue; // toutes les lands de ce joueur ont été remises en jeu
     // Charger le solde du joueur
     var {data:player}=await supabaseClient.from('players').select('rpc_balance').eq('id',tid).single();
     if(!player) continue;
@@ -8698,7 +8731,7 @@ async function adminForceRent(){
     var {data:me}=await supabaseClient.from('players').select('rpc_balance,nyx_balance').eq('id',currentUser.id).single();
     if(me){window.__wallet.rpc=me.rpc_balance||0;window.__wallet.nyx=me.nyx_balance||0;walletRefreshUI();}
   }
-  if(msg){msg.style.color='var(--green)';msg.textContent='✓ Loyer prélevé : −'+totalDebited.toLocaleString('fr')+' RPC sur '+tenantsProcessed+' joueur'+(tenantsProcessed>1?'s':'')+' ('+allRented.length+' lands)';}
+  if(msg){msg.style.color='var(--green)';msg.textContent='✓ Loyer prélevé : −'+totalDebited.toLocaleString('fr')+' RPC sur '+tenantsProcessed+' joueur'+(tenantsProcessed>1?'s':'')+' ('+allRented.length+' lands)'+(totalReleased?(' · '+totalReleased+' land'+(totalReleased>1?'s':'')+' remise'+(totalReleased>1?'s':'')+' en jeu (>12 mois)'):'');}
   if(typeof renderMyLands==='function') renderMyLands();
 }
 
@@ -9423,8 +9456,10 @@ var _periodData={period:1,start:null,end:null};
 // Tarif loyer dégressif PAR LAND, basé sur le nb de périodes CONSÉCUTIVES où le RP
 // loue cette land (logique de fidélité, indépendante de la période de compétition).
 //   Mois  1-3  → 5000 RPC (acquisition + 2 premières reconductions)
-//   Mois  4-6  → 4800 RPC
-//   Mois 7-12  → 4600 RPC (palier final, conservé au-delà du 12e mois)
+//   Mois  4-8  → 4800 RPC
+//   Mois 9-12  → 4600 RPC
+//   Au-delà de 12 mois → la land repart dans le jeu si elle n'a pas été achetée
+//   (remise en jeu automatique, cf. _releaseExpiredLeases).
 // ████████████████████████████████████████████████████████████████████████████
 // §11 — PÉRIODES & FIN DE CYCLE
 // Coût loyer par période, calcul fin de période, recap joueur.
@@ -9434,7 +9469,7 @@ var _periodData={period:1,start:null,end:null};
 function getRentCostByMonths(monthsRented){
   var m=monthsRented||1;
   if(m<=3) return 5000;
-  if(m<=6) return 4800;
+  if(m<=8) return 4800;
   return 4600;
 }
 var _periodTimerInterval=null;
