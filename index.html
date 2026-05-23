@@ -1520,7 +1520,7 @@ select option{background:#040c1c}
           <th>Distance<div style="font-size:.55rem;color:var(--muted2);letter-spacing:.3px;font-weight:400;margin-top:.1rem">km</div></th>
           <th>Vitesse<div style="font-size:.55rem;color:var(--muted2);letter-spacing:.3px;font-weight:400;margin-top:.1rem">km/h</div></th>
           <th>Dénivelé<div style="font-size:.55rem;color:var(--muted2);letter-spacing:.3px;font-weight:400;margin-top:.1rem">m</div></th>
-          <th style="text-align:right">Points</th><th></th>
+          <th style="text-align:right">Points</th>
         </tr></thead>
         <tbody id="hist-tbody"></tbody>
       </table>
@@ -6601,12 +6601,11 @@ async function renderHistory(page){
       ?'<span style="color:var(--gold);font-family:Space Mono,monospace;font-size:.72rem;font-weight:700">⚡ +10%</span>'
       :'<span style="color:var(--muted);font-size:.75rem">—</span>';
     return '<tr>'
-      +'<td style="color:var(--muted2);font-family:Space Mono,monospace;font-size:.68rem;white-space:nowrap">'+date+'</td>'
+      +'<td onclick="showRunDetails(\''+r.id+'\')" style="cursor:pointer;color:var(--blue);text-decoration:underline;text-decoration-color:rgba(74,144,255,.35);text-underline-offset:2px;font-family:Space Mono,monospace;font-size:.68rem;white-space:nowrap" title="Voir le détail de la course">'+date+'</td>'
       +'<td style="font-weight:600">'+(km>0?km.toFixed(2):'—')+'</td>'
       +'<td style="font-family:Space Mono,monospace;font-size:.78rem">'+(spd>0?spd.toFixed(2):'—')+'</td>'
       +'<td style="font-family:Space Mono,monospace;font-size:.78rem">'+(elv>0?'↑ '+elv:'—')+'</td>'
       +'<td style="text-align:right"><strong style="color:var(--gold);font-family:Space Mono,monospace">'+pts.toLocaleString('fr')+'</strong></td>'
-      +'<td style="text-align:center"><span onclick="showRunDetails(\''+r.id+'\')" style="cursor:pointer;font-size:.8rem" title="Détails">ℹ️</span></td>'
     +'</tr>';
   }).join('');
   // Pagination
