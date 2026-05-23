@@ -26,3 +26,6 @@ logo-speedix-sm.png
 
 # Dossier CLI Supabase (le code serveur déployé vit ailleurs : checkBadges.ts / index.ts à la racine)
 supabase/
+
+# Outils locaux bots RP (scripts d'admin, .env avec service_role, etc.)
+bots/
