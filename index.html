@@ -3598,14 +3598,14 @@ function askConfirm(message, opts){
     </div>
 
     <!-- ── Photo perso ───────────────────────────────────── -->
-    <div class="block" style="margin-bottom:1rem">
+    <div class="block" style="margin-bottom:1rem;position:relative">
+      <div id="settings-app-version" title="Version de l'app" style="position:absolute;top:.55rem;right:.7rem;color:#fff;font-family:'Space Mono',monospace;font-size:.62rem;letter-spacing:.5px;opacity:.85;z-index:2"></div>
       <div class="block-header"><div class="block-title">📸 Photo <span class="hl">personnelle</span></div></div>
       <div class="block-body-sm" style="text-align:center">
         <div style="font-size:.68rem;color:var(--muted2);margin-bottom:.6rem">Visible uniquement par toi</div>
         <div style="display:inline-block;position:relative">
           <div id="settings-photo-frame" style="width:120px;height:120px;border-radius:50%;border:2px solid var(--gold);background:rgba(245,200,66,.06);display:flex;align-items:center;justify-content:center;overflow:hidden;font-size:2.5rem;color:var(--muted2)">👤</div>
           <div onclick="openPersonalPhotoPicker()" style="position:absolute;bottom:4px;right:4px;width:28px;height:28px;border-radius:50%;background:rgba(4,12,28,.85);border:1px solid var(--gold);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:.75rem" title="Changer la photo">✏️</div>
-          <div id="settings-app-version" title="Version de l'app" style="position:absolute;top:100%;right:0;margin-top:4px;color:#fff;font-family:'Space Mono',monospace;font-size:.62rem;letter-spacing:.5px;opacity:.85"></div>
         </div>
         <input type="file" id="settings-photo-input" accept="image/*" style="display:none" onchange="uploadPersonalPhoto(this)">
       </div>
