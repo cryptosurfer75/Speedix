@@ -1358,15 +1358,16 @@ select option{background:#040c1c}
       </button>
       <!-- Drapeau (rectangle, contenu dynamique inchangé) -->
       <div id="pc-flag" style="height:54px;border-radius:6px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;overflow:hidden;filter:drop-shadow(0 0 5px rgba(255,255,255,.15))"></div>
-      <!-- Carré droite — bouton QUIZZ (page complète à venir : question du jour) -->
-      <button onclick="if(typeof showToast==='function'){showToast('🎯 Quizz bientôt disponible — La question du jour arrive !');}else{alert('Quizz bientôt disponible');}" title="Quizz — La question du jour" style="
-        width:54px;height:54px;border-radius:10px;
+      <!-- Carré droite — bouton QUIZZ (question du jour) -->
+      <button onclick="nav('quizz')" title="Quizz — La question du jour" style="
+        position:relative;width:54px;height:54px;border-radius:10px;
         background:rgba(74,200,255,.1);border:1.5px solid rgba(74,200,255,.5);
         display:flex;align-items:center;justify-content:center;
         cursor:pointer;transition:all .18s;
         margin:0 auto;padding:0;
       " onmouseover="this.style.background='rgba(74,200,255,.22)';this.style.borderColor='rgba(74,200,255,.95)'"
          onmouseout="this.style.background='rgba(74,200,255,.1)';this.style.borderColor='rgba(74,200,255,.5)'">
+        <span id="quizz-badge" style="display:none;position:absolute;top:-3px;right:-3px;width:14px;height:14px;border-radius:50%;background:#ff8c2a;box-shadow:0 0 8px rgba(255,140,42,.7);border:2px solid #0a1432"></span>
         <span style="font-family:'Bebas Neue',sans-serif;font-size:1.8rem;letter-spacing:2px;line-height:1;color:#4ac8ff;font-weight:900;text-shadow:0 0 8px rgba(74,200,255,.55)">?!</span>
       </button>
     </div>
@@ -3665,6 +3666,20 @@ function askConfirm(message, opts){
   </div>
 </div>
 
+<!-- ============================================================
+     PAGE : QUIZZ QUOTIDIEN (ajouté 2026-05-25)
+============================================================ -->
+<div id="page-quizz" class="page">
+  <div style="max-width:640px;margin:0 auto;padding:0 .3rem">
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:2rem;letter-spacing:3px;line-height:1;margin-bottom:1.25rem;text-align:center">
+      <span style="color:var(--text)">Quizz</span> <span style="color:#4ac8ff;text-shadow:0 0 10px rgba(74,200,255,.5)">du jour</span>
+    </div>
+    <div id="quizz-content">
+      <!-- contenu généré dynamiquement par openQuizzPage() -->
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast">✓ <span id="toast-msg"></span></div>
 
 <!-- ==========================================
@@ -3701,6 +3716,7 @@ function askConfirm(message, opts){
 // §21  MEDALS / BADGES (UTILS DE CALCUL)          (~16527) loadPlayerMedals, _badgeRibbonLabel, _renderBadgeHex
 // §22  CHALLENGES / DÉFIS COLLAB / EVENTS         (~16781) renderChallenges, renderCollabChallenges, acceptCollabChallenge, participateEvent
 // §23  PAGE SETTINGS (⚙️ MON PROFIL)              (~18764) renderSettingsPage, editSettingsField, togglePushNotifs, confirmDeleteAccount
+// §24  QUIZZ QUOTIDIEN                            (~20800) QUIZZ_POOL, openQuizzPage, submitQuizzAnswer, useQuizzFifty, updateQuizzBadge
 // ════════════════════════════════════════════════════════════════════════════
 
 const supabaseUrl = "https://eqzvptszeaumsbljwift.supabase.co";
@@ -4094,6 +4110,17 @@ async function onLoginSuccess(user, isNew){
     var exi=PLAYERS.findIndex(function(p){return p.id===1;});
     if(exi>=0)PLAYERS[exi]=window.__myPlayer; else PLAYERS.unshift(window.__myPlayer);
     activeLeagueKey=window.__myPlayer.leagueKey;
+    // Charger les champs Quizz sur currentUser : nécessaire pour que la pastille ?!
+    // soit correcte dès l'écran d'accueil, sans devoir ouvrir la page Quizz d'abord.
+    currentUser.username=pd.username;
+    currentUser.quizz_streak=pd.quizz_streak||0;
+    currentUser.quizz_best_streak=pd.quizz_best_streak||0;
+    currentUser.quizz_last_answer_date=pd.quizz_last_answer_date||null;
+    currentUser.quizz_last_correct=pd.quizz_last_correct;
+    currentUser.quizz_total_rpc=pd.quizz_total_rpc||0;
+    currentUser.quizz_correct_count=pd.quizz_correct_count||0;
+    currentUser.quizz_total_time_ms=pd.quizz_total_time_ms||0;
+    currentUser.quizz_locked_at=pd.quizz_locked_at||0;
   }
   var {data:runs}=await supabaseClient.from('runs').select('points').eq('player_id',user.id).eq('period',0);
   if(window.__myPlayer){
@@ -13177,13 +13204,18 @@ function nav(page){
     // Sync la checkbox de préférence partage position avec la valeur en mémoire
     if(typeof syncSharePrefCheckbox==='function') syncSharePrefCheckbox();
   }
-  const pages=['league','dashboard','teams','lands','points','social','economy','access','grades','rules','legal','admin','settings'];
+  const pages=['league','dashboard','teams','lands','points','social','economy','access','grades','rules','legal','admin','settings','quizz'];
   if(page==='settings'){
     if(typeof renderSettingsPage==='function') renderSettingsPage();
   }
   if(page==='admin'){
     if(typeof showAdminVersion==='function') showAdminVersion();
   }
+  if(page==='quizz'){
+    if(typeof openQuizzPage==='function') openQuizzPage();
+  }
+  // Met à jour la pastille orange "non joué" sur le bouton ?! du dashboard
+  if(typeof updateQuizzBadge==='function') updateQuizzBadge();
   document.querySelectorAll('.nav-tab')[pages.indexOf(page)]?.classList.add('active');
   // Initialiser la carte Lands quand on y navigue
   if(page==='lands'){
@@ -20783,6 +20815,635 @@ if ('serviceWorker' in navigator) {
     }
   });
 })();
+
+// ████████████████████████████████████████████████████████████████████████████
+// §24 — QUIZZ QUOTIDIEN                            (ajouté 2026-05-25)
+// ████████████████████████████████████████████████████████████████████████████
+// Une question sport par jour, identique pour tous les RP.
+// Sélection pseudo-aléatoire basée sur la date (pas l'ordre du pool).
+// Joker 50/50 : élimine 2 leurres, gain RPC divisé par 2.
+// Streak : +1 si bonne réponse, reset à 0 si mauvaise OU jour manqué.
+// MVP Phase 1 — pas de NYX, pas de lock, pas de classement (Phase 2+).
+// Stockage : 5 colonnes sur players (quizz_streak, quizz_best_streak,
+// quizz_last_answer_date, quizz_last_correct, quizz_total_rpc).
+// ████████████████████████████████████████████████████████████████████████████
+
+// Pool de 80 questions sport — q : énoncé · a : 4 choix · c : index 0-3 de la bonne réponse
+const QUIZZ_POOL = [
+  // FOOTBALL (8)
+  {q:"Quelle équipe a remporté la Coupe du Monde de football 2022 au Qatar ?", a:["France","Argentine","Brésil","Croatie"], c:1},
+  {q:"Quel pays a remporté l'Euro 2024 en Allemagne ?", a:["Angleterre","France","Espagne","Allemagne"], c:2},
+  {q:"Combien de joueurs composent une équipe de football sur le terrain ?", a:["9","10","11","12"], c:2},
+  {q:"Combien de Coupes du Monde de football le Brésil a-t-il remportées ?", a:["3","4","5","6"], c:2},
+  {q:"Qui a marqué les deux buts de la France en finale de la Coupe du Monde 1998 ?", a:["Thierry Henry","Zinédine Zidane","Emmanuel Petit","Didier Deschamps"], c:1},
+  {q:"Quel club a remporté la Ligue des Champions 2024 ?", a:["Manchester City","Real Madrid","Bayern Munich","Paris SG"], c:1},
+  {q:"Combien de Ballons d'Or a remporté Lionel Messi (au 1er janvier 2025) ?", a:["6","7","8","9"], c:2},
+  {q:"Quel joueur français a été élu Ballon d'Or 2022 ?", a:["Kylian Mbappé","Karim Benzema","Antoine Griezmann","Olivier Giroud"], c:1},
+  // JO (10)
+  {q:"Dans quelle ville se sont déroulés les Jeux Olympiques d'été 2024 ?", a:["Tokyo","Paris","Los Angeles","Londres"], c:1},
+  {q:"Combien d'anneaux compte le drapeau olympique ?", a:["4","5","6","7"], c:1},
+  {q:"Quelle est la devise officielle des Jeux Olympiques ?", a:["Citius, Altius, Fortius","Vincere aut Mori","Sport et Honneur","Pour la gloire"], c:0},
+  {q:"Quelle ville accueillera les JO d'été 2028 ?", a:["Brisbane","Los Angeles","Berlin","Madrid"], c:1},
+  {q:"À cause de quel événement les JO de Tokyo 2020 ont-ils été décalés à 2021 ?", a:["Une grève","Un séisme","La pandémie de Covid-19","Un boycott"], c:2},
+  {q:"Quel pays a remporté le plus de médailles d'or en JO d'été dans l'histoire ?", a:["Russie","Chine","États-Unis","Allemagne"], c:2},
+  {q:"Tous les combien d'années ont lieu les Jeux Olympiques d'été ?", a:["2 ans","3 ans","4 ans","5 ans"], c:2},
+  {q:"Quel sport oppose deux équipes de joueurs sur un terrain glacé avec des balais ?", a:["Hockey","Curling","Bobsleigh","Patinage de vitesse"], c:1},
+  {q:"Qui a allumé la vasque olympique des JO de Paris 2024 ?", a:["Zinédine Zidane","Marie-José Pérec et Teddy Riner","Tony Estanguet","Florent Manaudou"], c:1},
+  {q:"Dans quelle ville française la flamme olympique 2024 est-elle arrivée par bateau ?", a:["Nice","Bordeaux","Marseille","La Rochelle"], c:2},
+  // ATHLÉTISME (15)
+  {q:"Quel athlète détient le record du monde du 100 mètres masculin ?", a:["Justin Gatlin","Usain Bolt","Tyson Gay","Yohan Blake"], c:1},
+  {q:"Quelle est la distance officielle d'un marathon ?", a:["40 km","41,195 km","42,195 km","45 km"], c:2},
+  {q:"En combien de secondes Usain Bolt a-t-il couru le 100 m lors de son record du monde ?", a:["9,58","9,69","9,72","9,81"], c:0},
+  {q:"Quel athlète suédois détient le record du monde de saut à la perche ?", a:["Renaud Lavillenie","Sergueï Bubka","Armand Duplantis","Thiago Braz"], c:2},
+  {q:"Combien de tours de stade fait-on pour courir un 5000 mètres ?", a:["10","12,5","15","20"], c:1},
+  {q:"Quel pays a dominé historiquement les courses de fond comme le marathon ?", a:["Kenya","Maroc","Australie","États-Unis"], c:0},
+  {q:"Combien d'épreuves compte le décathlon masculin ?", a:["7","8","10","12"], c:2},
+  {q:"Quelle est la distance officielle du steeple en athlétisme ?", a:["1500 m","2000 m","3000 m","5000 m"], c:2},
+  {q:"Combien d'épreuves compte l'heptathlon féminin ?", a:["5","6","7","8"], c:2},
+  {q:"Quelle est la distance officielle d'un semi-marathon ?", a:["10 km","15 km","environ 21 km","25 km"], c:2},
+  {q:"Quel marathonien éthiopien a remporté la médaille d'or olympique du marathon en 1960 à Rome en courant pieds nus ?", a:["Haile Gebreselassie","Abebe Bikila","Kenenisa Bekele","Mamo Wolde"], c:1},
+  {q:"Combien de haies un athlète doit-il franchir lors d'une course de 110 m haies ?", a:["8","10","12","14"], c:1},
+  {q:"Quel athlète français a remporté la médaille d'or olympique du saut à la perche en 2012 à Londres ?", a:["Jean Galfione","Renaud Lavillenie","Romain Mesnil","Jérôme Clavier"], c:1},
+  {q:"Quelle athlète française a réalisé le doublé 200 m / 400 m aux JO d'Atlanta en 1996 ?", a:["Christine Arron","Muriel Hurtis","Marie-José Pérec","Eunice Barber"], c:2},
+  {q:"Quel athlète a été le premier à courir le mile en moins de 4 minutes en 1954 ?", a:["Roger Bannister","Hicham El Guerrouj","Sebastian Coe","John Walker"], c:0},
+  // NBA (7)
+  {q:"Combien d'équipes compte la NBA ?", a:["24","28","30","32"], c:2},
+  {q:"Quelle franchise a remporté le titre NBA 2024 ?", a:["Denver Nuggets","Boston Celtics","Dallas Mavericks","Miami Heat"], c:1},
+  {q:"Quel joueur détient le record du nombre de points marqués en un seul match NBA ?", a:["Michael Jordan","Kobe Bryant","Wilt Chamberlain","LeBron James"], c:2},
+  {q:"Combien de joueurs sont sur le terrain par équipe en basket ?", a:["4","5","6","7"], c:1},
+  {q:"Quel joueur français a été sélectionné en numéro 1 de la draft NBA 2023 ?", a:["Rudy Gobert","Evan Fournier","Victor Wembanyama","Nicolas Batum"], c:2},
+  {q:"Combien de titres NBA Michael Jordan a-t-il remportés avec les Chicago Bulls ?", a:["4","5","6","7"], c:2},
+  {q:"Combien de temps dure un quart-temps NBA ?", a:["10 minutes","12 minutes","15 minutes","20 minutes"], c:1},
+  // F1 (4)
+  {q:"Quel pilote a été champion du monde de F1 en 2024 ?", a:["Lewis Hamilton","Max Verstappen","Charles Leclerc","Lando Norris"], c:1},
+  {q:"Combien de titres mondiaux Michael Schumacher a-t-il remportés en F1 ?", a:["5","6","7","8"], c:2},
+  {q:"Quel est le circuit le plus mythique du calendrier F1, situé dans une principauté ?", a:["Spa-Francorchamps","Silverstone","Monaco","Monza"], c:2},
+  {q:"Quel pilote français a été champion du monde de F1 à 4 reprises ?", a:["Alain Prost","Jacques Laffite","René Arnoux","Jean Alesi"], c:0},
+  // RUGBY (7)
+  {q:"Quelle équipe a remporté la Coupe du Monde de Rugby 2023 en France ?", a:["Nouvelle-Zélande","Afrique du Sud","Angleterre","France"], c:1},
+  {q:"Combien de joueurs compte une équipe de rugby à XV sur le terrain ?", a:["13","14","15","16"], c:2},
+  {q:"Combien de points rapporte un essai en rugby à XV ?", a:["3","4","5","7"], c:2},
+  {q:"Combien de points rapporte une transformation réussie ?", a:["1","2","3","5"], c:1},
+  {q:"Quelle équipe nationale est célèbre pour exécuter le \"Haka\" avant ses matchs ?", a:["Australie","Fidji","Nouvelle-Zélande","Samoa"], c:2},
+  {q:"Combien de nations participent au Tournoi des Six Nations ?", a:["4","5","6","7"], c:2},
+  {q:"Combien de points rapporte un drop en rugby ?", a:["2","3","4","5"], c:1},
+  // TENNIS (5)
+  {q:"Sur quelle surface se joue le tournoi de Wimbledon ?", a:["Terre battue","Dur","Gazon","Synthétique"], c:2},
+  {q:"Combien de tournois du Grand Chelem composent le circuit chaque année ?", a:["3","4","5","6"], c:1},
+  {q:"Quel joueur détient le record du nombre de Grands Chelems masculins (au 1er janvier 2025) ?", a:["Roger Federer","Rafael Nadal","Novak Djokovic","Pete Sampras"], c:2},
+  {q:"Sur quelle surface se joue Roland-Garros ?", a:["Gazon","Terre battue","Dur","Moquette"], c:1},
+  {q:"Quel joueur espagnol a remporté Roland-Garros à 14 reprises ?", a:["Carlos Alcaraz","Rafael Nadal","David Ferrer","Juan Carlos Ferrero"], c:1},
+  // CYCLISME (6)
+  {q:"Quel coureur slovène a remporté le Tour de France 2024 ?", a:["Jonas Vingegaard","Tadej Pogačar","Primož Roglič","Remco Evenepoel"], c:1},
+  {q:"De quelle couleur est le maillot du leader du Tour de France ?", a:["Vert","Jaune","Blanc","À pois"], c:1},
+  {q:"À qui est attribué le maillot à pois sur le Tour de France ?", a:["Au sprinter","Au meilleur jeune","Au meilleur grimpeur","Au leader"], c:2},
+  {q:"À qui est attribué le maillot vert sur le Tour de France ?", a:["Au meilleur sprinter","Au meilleur grimpeur","Au leader","Au meilleur jeune"], c:0},
+  {q:"Quel est le surnom du Tour d'Italie ?", a:["La Vuelta","Le Giro","La Classica","Le Maillot Rose"], c:1},
+  {q:"Quel coureur français a remporté 5 fois le Tour de France ?", a:["Laurent Fignon","Bernard Hinault","Raymond Poulidor","Bernard Thévenet"], c:1},
+  // DIVERS (18)
+  {q:"Quel boxeur américain était surnommé \"The Greatest\" ?", a:["Mike Tyson","Muhammad Ali","Sugar Ray Robinson","Floyd Mayweather"], c:1},
+  {q:"Combien de joueurs compte une équipe de handball sur le terrain (hors gardien) ?", a:["5","6","7","8"], c:1},
+  {q:"Quel sport pratique-t-on avec une crosse et un palet sur la glace ?", a:["Curling","Hockey sur glace","Patinage artistique","Bobsleigh"], c:1},
+  {q:"De quel pays Roger Federer est-il originaire ?", a:["Allemagne","Suisse","Autriche","Belgique"], c:1},
+  {q:"Combien de joueurs compose une équipe de water-polo dans l'eau ?", a:["5","6","7","8"], c:2},
+  {q:"Combien de sets faut-il gagner pour remporter un match de volley-ball international ?", a:["2","3","4","5"], c:1},
+  {q:"Quel sport associe natation, vélo et course à pied ?", a:["Pentathlon","Décathlon","Triathlon","Heptathlon"], c:2},
+  {q:"Avec quel sport associe-t-on le terme \"knock-out\" (K.O.) ?", a:["Lutte","Judo","Boxe","Karaté"], c:2},
+  {q:"Quel sport se joue avec un volant et des raquettes ?", a:["Squash","Badminton","Tennis de table","Padel"], c:1},
+  {q:"Quel nageur américain est le plus médaillé de l'histoire des Jeux Olympiques ?", a:["Mark Spitz","Michael Phelps","Caeleb Dressel","Ryan Lochte"], c:1},
+  {q:"Quel judoka français est le plus grand champion de l'histoire de son sport ?", a:["David Douillet","Lucie Décosse","Teddy Riner","Frédéric Demontfaucon"], c:2},
+  {q:"Quel événement de voile est une course autour du monde en solitaire et sans escale ?", a:["America's Cup","Volvo Ocean Race","Vendée Globe","Route du Rhum"], c:2},
+  {q:"Quelle gymnaste américaine est considérée comme la plus grande de tous les temps ?", a:["Nadia Comăneci","Simone Biles","Olga Korbut","Mary Lou Retton"], c:1},
+  {q:"Quel golfeur américain est l'un des plus titrés en Grand Chelem (15 majeurs) ?", a:["Tiger Woods","Rory McIlroy","Phil Mickelson","Jordan Spieth"], c:0},
+  {q:"Quel sport olympique se pratique avec un fleuret, une épée ou un sabre ?", a:["Lutte","Tir à l'arc","Escrime","Pentathlon moderne"], c:2},
+  {q:"Quelle est la grande finale annuelle du championnat de football américain (NFL) ?", a:["World Series","Stanley Cup","Super Bowl","Final Four"], c:2},
+  {q:"Quel sport pratique-t-on avec une boule en métal et un \"cochonnet\" ?", a:["Bowling","Pétanque","Curling","Croquet"], c:1},
+  {q:"Combien de rounds maximum compte un combat de boxe professionnelle pour un titre mondial ?", a:["8","10","12","15"], c:2}
+];
+
+// Sélection pseudo-aléatoire de la question du jour à partir d'une date YYYY-MM-DD.
+// Identique pour tous les RP un jour donné, mais l'ordre des questions ne suit PAS celui du pool.
+function quizzPickIndex(dateStr){
+  var seed=0;
+  for(var i=0;i<dateStr.length;i++) seed=(seed*31+dateStr.charCodeAt(i))|0;
+  return Math.abs(seed)%QUIZZ_POOL.length;
+}
+
+// Récompense RPC selon le palier de série (interpolation linéaire entre paliers du spec).
+function quizzReward(streak){
+  var tiers=[[1,50],[7,100],[15,150],[30,250],[60,400],[100,600],[200,900],[365,1500],[500,2000],[1000,3000]];
+  if(streak<=tiers[0][0]) return tiers[0][1];
+  if(streak>=tiers[tiers.length-1][0]) return tiers[tiers.length-1][1];
+  for(var i=0;i<tiers.length-1;i++){
+    var d1=tiers[i][0],r1=tiers[i][1],d2=tiers[i+1][0],r2=tiers[i+1][1];
+    if(streak>=d1 && streak<=d2){
+      var frac=(streak-d1)/(d2-d1);
+      return Math.round(r1+frac*(r2-r1));
+    }
+  }
+  return tiers[0][1];
+}
+
+// Paliers de verrouillage NYX (spec section 4.2). Au-delà de J300 : +4 NYX par palier de 50 jours.
+var QUIZZ_LOCK_TIERS=[[10,2],[25,4],[50,8],[80,12],[110,16],[150,20],[200,24],[250,28],[300,32]];
+
+// Renvoie le coût NYX pour verrouiller à ce palier exact, ou 0 si pas un palier.
+function quizzLockCost(streak){
+  for(var i=0;i<QUIZZ_LOCK_TIERS.length;i++){
+    if(QUIZZ_LOCK_TIERS[i][0]===streak) return QUIZZ_LOCK_TIERS[i][1];
+  }
+  if(streak>300 && streak%50===0) return 32+((streak-300)/50)*4;
+  return 0;
+}
+
+// Vrai si le streak correspond exactement à un palier de verrouillage
+function quizzIsPalier(streak){ return quizzLockCost(streak)>0; }
+
+// Renvoie le prochain palier au-dessus du streak donné
+function quizzNextPalierAfter(streak){
+  for(var i=0;i<QUIZZ_LOCK_TIERS.length;i++){
+    if(QUIZZ_LOCK_TIERS[i][0]>streak) return QUIZZ_LOCK_TIERS[i][0];
+  }
+  if(streak<350) return 350;
+  return Math.floor(streak/50)*50+50;
+}
+
+// YYYY-MM-DD du jour (heure locale du device)
+function quizzTodayStr(){
+  var d=new Date();
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+
+// YYYY-MM-DD d'hier
+function quizzYesterdayStr(){
+  var d=new Date(); d.setDate(d.getDate()-1);
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+
+// État volatile de la session quizz (réinitialisé à chaque ouverture)
+var _quizzState=null;
+
+// Indique si le RP a déjà répondu aujourd'hui (utilisé par la pastille du bouton ?!).
+function quizzAlreadyAnsweredToday(){
+  if(!currentUser) return false;
+  return currentUser.quizz_last_answer_date===quizzTodayStr();
+}
+
+// Affiche/cache la pastille orange "non joué" sur le bouton ?!
+// Pas de pastille avant 6h du matin (question pas encore ouverte) ni si déjà joué.
+function updateQuizzBadge(){
+  var badge=document.getElementById('quizz-badge');
+  if(!badge) return;
+  var hour=new Date().getHours();
+  if(hour<6){ badge.style.display='none'; return; }
+  badge.style.display=quizzAlreadyAnsweredToday()?'none':'block';
+}
+
+// Charge les données quizz depuis la DB et les colle sur currentUser.
+// Nécessaire car currentUser est l'objet auth Supabase, pas la ligne players.
+async function loadQuizzPlayerData(){
+  if(!currentUser) return;
+  try{
+    var {data:pd}=await supabaseClient
+      .from('players')
+      .select('username,quizz_streak,quizz_best_streak,quizz_last_answer_date,quizz_last_correct,quizz_total_rpc,quizz_correct_count,quizz_total_time_ms,quizz_locked_at')
+      .eq('id',currentUser.id)
+      .maybeSingle();
+    if(!pd) return;
+    currentUser.username=pd.username;
+    currentUser.quizz_streak=pd.quizz_streak||0;
+    currentUser.quizz_best_streak=pd.quizz_best_streak||0;
+    currentUser.quizz_last_answer_date=pd.quizz_last_answer_date||null;
+    currentUser.quizz_last_correct=pd.quizz_last_correct;
+    currentUser.quizz_total_rpc=pd.quizz_total_rpc||0;
+    currentUser.quizz_correct_count=pd.quizz_correct_count||0;
+    currentUser.quizz_total_time_ms=pd.quizz_total_time_ms||0;
+    currentUser.quizz_locked_at=pd.quizz_locked_at||0;
+  }catch(e){console.warn('loadQuizzPlayerData fail',e);}
+}
+
+// Ouverture de la page Quizz (appelée par nav('quizz'))
+async function openQuizzPage(){
+  if(!currentUser) return;
+  // Toujours fetcher l'état quizz frais depuis la DB
+  await loadQuizzPlayerData();
+  // Fenêtre 6h-minuit : avant 6h, écran d'attente (la question du jour n'est pas encore ouverte)
+  var hour=new Date().getHours();
+  if(hour<6){ renderQuizzWaitingForOpen(); return; }
+  var today=quizzTodayStr();
+  var yest=quizzYesterdayStr();
+  var lastDate=currentUser.quizz_last_answer_date||null;
+
+  // Reset si jour manqué : la série retombe au palier locké (0 si jamais locké)
+  if(lastDate && lastDate!==today && lastDate!==yest){
+    var floor=currentUser.quizz_locked_at||0;
+    if((currentUser.quizz_streak||0)>floor){
+      try{
+        await supabaseClient.from('players').update({quizz_streak:floor}).eq('id',currentUser.id);
+        currentUser.quizz_streak=floor;
+      }catch(e){console.warn('quizz reset streak fail',e);}
+    }
+  }
+
+  // Déjà répondu aujourd'hui ? → on retombe sur l'écran résultat du jour (avec stats)
+  if(lastDate===today){
+    renderQuizzResult(currentUser.quizz_last_correct, 0, currentUser.quizz_streak||0, true);
+    return;
+  }
+
+  // Préparer la question + mélanger l'ordre d'affichage des 4 choix
+  var idx=quizzPickIndex(today);
+  var q=QUIZZ_POOL[idx];
+  var order=[0,1,2,3];
+  for(var i=order.length-1;i>0;i--){
+    var j=Math.floor(Math.random()*(i+1));
+    var tmp=order[i]; order[i]=order[j]; order[j]=tmp;
+  }
+
+  _quizzState={
+    question:q,
+    order:order,
+    correctDisplayIdx:order.indexOf(q.c),
+    fiftyUsed:false,
+    eliminated:[],
+    answered:false,
+    timeLeft:20,
+    timerHandle:null
+  };
+
+  renderQuizzIntro();
+}
+
+// Écran affiché entre minuit et 6h : la question du jour n'est pas encore disponible.
+function renderQuizzWaitingForOpen(){
+  var container=document.getElementById('quizz-content');
+  if(!container) return;
+  var now=new Date();
+  var sixAm=new Date(now);
+  sixAm.setHours(6,0,0,0);
+  var msToSix=Math.max(0,sixAm-now);
+  var hToSix=Math.floor(msToSix/3600000);
+  var mToSix=Math.floor((msToSix%3600000)/60000);
+  var timeLeftTxt=hToSix>0?(hToSix+'h'+(mToSix<10?'0':'')+mToSix):(mToSix+' min');
+  container.innerHTML=''
+    +'<div style="position:relative">'
+    + '<button onclick="nav(\'dashboard\')" title="Retour à la Player Card" '
+    +   'style="position:absolute;top:-.4rem;right:-.2rem;width:34px;height:34px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.18);color:var(--muted2);font-size:1.15rem;cursor:pointer;transition:all .15s;font-weight:300;line-height:1;z-index:5" '
+    +   'onmouseover="this.style.background=\'rgba(255,107,107,.15)\';this.style.color=\'#ff6b6b\';this.style.borderColor=\'rgba(255,107,107,.45)\'" '
+    +   'onmouseout="this.style.background=\'rgba(255,255,255,.06)\';this.style.color=\'var(--muted2)\';this.style.borderColor=\'rgba(255,255,255,.18)\'">✕</button>'
+    + '<div style="text-align:center;padding:2rem 1rem 1.4rem">'
+    +   '<div style="font-size:3rem;margin-bottom:.7rem">🌙</div>'
+    +   '<div style="font-family:Bebas Neue,sans-serif;font-size:1.5rem;letter-spacing:2px;color:var(--gold);margin-bottom:.5rem">La nuit, le quizz dort</div>'
+    +   '<div style="font-size:.88rem;line-height:1.5;color:var(--text);margin-bottom:.5rem">La question du jour ouvre à <strong>6h du matin</strong>.</div>'
+    +   '<div style="font-size:.85rem;color:#4ac8ff;font-family:Space Mono,monospace">Reviens dans '+timeLeftTxt+'</div>'
+    + '</div>'
+    +'</div>';
+}
+
+// Écran d'intro affiché AVANT le lancement du chrono.
+// Le RP voit les règles, sa série, le gain potentiel, puis clique pour démarrer.
+function renderQuizzIntro(){
+  var streak=currentUser.quizz_streak||0;
+  var container=document.getElementById('quizz-content');
+  if(!container) return;
+  container.innerHTML=''
+    +'<div style="text-align:center;margin-bottom:1.2rem">'
+    + '<div style="font-family:Bebas Neue,sans-serif;font-size:.95rem;letter-spacing:2px;color:var(--gold)">Série en cours : '+streak+' jour'+(streak>1?'s':'')+'</div>'
+    +'</div>'
+    +'<div style="background:rgba(10,20,50,.6);border:1.5px solid rgba(74,144,255,.45);border-radius:12px;padding:1rem 1.1rem;margin-bottom:1.2rem">'
+    + '<div style="font-family:Bebas Neue,sans-serif;font-size:1.1rem;letter-spacing:2px;color:#4ac8ff;margin-bottom:.7rem">Règles du jeu</div>'
+    + '<ul style="margin:0;padding-left:1.1rem;font-size:.82rem;line-height:1.55;color:var(--text)">'
+    +   '<li>1 question sport par jour.</li>'
+    +   '<li>4 propositions → une seule bonne réponse.</li>'
+    +   '<li>20 secondes pour répondre.</li>'
+    +   '<li>Bonne réponse → ta série continue.</li>'
+    +   '<li>Mauvaise réponse → ta série revient à zéro.</li>'
+    +   '<li>Ta série augmente → la valeur des gains aussi.</li>'
+    +   '<li>Joker <strong>50/50</strong> → élimine 2 mauvaises réponses = gain divisé par 2.</li>'
+    +   '<li>Une seule tentative par jour → pas de seconde chance.</li>'
+    +   '<li>Possibilité de verrouiller ta série en NYX à chaque palier (J10, J25, J50…) → si tu rates, tu retombes au palier locké au lieu de zéro.</li>'
+    + '</ul>'
+    +'</div>'
+    +'<button onclick="renderQuizzQuestion()" style="display:block;width:100%;padding:.9rem;border-radius:10px;border:1.5px solid rgba(45,219,128,.6);background:rgba(45,219,128,.15);color:#2ddb80;font-family:Bebas Neue,sans-serif;font-size:1.25rem;letter-spacing:3px;cursor:pointer">Lancer le quizz →</button>';
+}
+
+// Rend la vue principale : timer + énoncé + 4 boutons + joker
+function renderQuizzQuestion(){
+  var s=_quizzState;
+  var streak=currentUser.quizz_streak||0;
+  var letters=['A','B','C','D'];
+  // Démarre la mesure du temps de réponse (utilisée pour la stat "Lucky Luke")
+  if(!s.startTime) s.startTime=Date.now();
+  var letterColors=['#4a90ff','#2ddb80','#ffb84a','#ff6b9d'];
+
+  var optionsHtml=s.order.map(function(origIdx,dispIdx){
+    var eliminated=s.eliminated.indexOf(dispIdx)>=0;
+    var disabled=eliminated||s.answered;
+    var opacity=eliminated?'0.25':'1';
+    var textDeco=eliminated?'line-through':'none';
+    return '<button onclick="submitQuizzAnswer('+dispIdx+')" '+(disabled?'disabled':'')
+      +' style="display:flex;align-items:center;gap:.7rem;width:100%;padding:.85rem 1rem;margin-bottom:.55rem;'
+      +'border-radius:10px;border:1.5px solid rgba(74,200,255,.4);background:rgba(10,20,50,.7);'
+      +'color:var(--text);font-size:.92rem;text-align:left;cursor:'+(disabled?'default':'pointer')+';'
+      +'opacity:'+opacity+';text-decoration:'+textDeco+';transition:all .15s">'
+      +'<span style="display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:8px;background:'+letterColors[dispIdx]+'33;color:'+letterColors[dispIdx]+';font-family:Bebas Neue,sans-serif;font-size:1.2rem;font-weight:700;flex-shrink:0">'+letters[dispIdx]+'</span>'
+      +'<span style="flex:1">'+escapeHtml(s.question.a[origIdx])+'</span>'
+      +'</button>';
+  }).join('');
+
+  var jokerBtn=s.fiftyUsed
+    ? '<div style="text-align:center;color:var(--muted2);font-size:.72rem;margin-top:.6rem">Joker 50/50 utilisé</div>'
+    : '<button onclick="useQuizzFifty()" style="display:flex;align-items:center;justify-content:center;gap:.6rem;margin:.7rem auto 0;padding:.6rem 1.4rem;border-radius:9px;border:1.5px solid rgba(255,184,74,.55);background:linear-gradient(135deg,rgba(255,184,74,.18),rgba(255,140,42,.12));color:#ffb84a;font-family:Bebas Neue,sans-serif;font-size:1.05rem;letter-spacing:2px;cursor:pointer;box-shadow:0 0 12px rgba(255,184,74,.18)">'
+      +'<span style="font-size:1.4rem;line-height:1;filter:drop-shadow(0 0 4px rgba(255,184,74,.5))">☎️</span>'
+      +'<span>Joker 50/50</span>'
+    +'</button>';
+
+  var container=document.getElementById('quizz-content');
+  if(!container) return;
+  container.innerHTML=''
+    +'<div style="text-align:center;margin-bottom:1rem">'
+    + '<div style="font-family:Bebas Neue,sans-serif;font-size:.95rem;letter-spacing:2px;color:var(--gold)">Série en cours : '+streak+' jour'+(streak>1?'s':'')+'</div>'
+    +'</div>'
+    +'<div id="quizz-timer" style="text-align:center;margin-bottom:.85rem;font-family:Space Mono,monospace;font-size:1.6rem;font-weight:700;color:#4ac8ff">⏱ '+s.timeLeft+'s</div>'
+    +'<div style="background:rgba(10,20,50,.6);border:1.5px solid rgba(74,144,255,.45);border-radius:12px;padding:1rem;margin-bottom:1rem">'
+    + '<div style="font-size:.95rem;line-height:1.45;color:var(--text)">'+escapeHtml(s.question.q)+'</div>'
+    +'</div>'
+    +optionsHtml
+    +jokerBtn;
+
+  startQuizzTimer();
+}
+
+// Compte à rebours 20s, passe en rouge dans les 5 dernières secondes
+function startQuizzTimer(){
+  var s=_quizzState;
+  if(!s || s.timerHandle) return;
+  s.timerHandle=setInterval(function(){
+    if(!_quizzState || _quizzState.answered){
+      clearInterval(s.timerHandle); s.timerHandle=null; return;
+    }
+    _quizzState.timeLeft--;
+    var t=document.getElementById('quizz-timer');
+    if(t) t.textContent='⏱ '+_quizzState.timeLeft+'s';
+    if(_quizzState.timeLeft<=0){
+      clearInterval(_quizzState.timerHandle); _quizzState.timerHandle=null;
+      submitQuizzAnswer(-1); // temps écoulé = mauvaise réponse
+    } else if(_quizzState.timeLeft<=5 && t){
+      t.style.color='#ff6b6b';
+    }
+  },1000);
+}
+
+// Joker 50/50 : élimine 2 mauvaises réponses au hasard parmi les 3 leurres
+function useQuizzFifty(){
+  var s=_quizzState;
+  if(!s || s.fiftyUsed || s.answered) return;
+  s.fiftyUsed=true;
+  var wrongDisp=[];
+  for(var i=0;i<4;i++) if(i!==s.correctDisplayIdx) wrongDisp.push(i);
+  var keepIdx=Math.floor(Math.random()*wrongDisp.length);
+  wrongDisp.splice(keepIdx,1);
+  s.eliminated=wrongDisp;
+  renderQuizzQuestion();
+}
+
+// Soumet la réponse (-1 = temps écoulé). Met à jour la DB et affiche le résultat.
+async function submitQuizzAnswer(dispIdx){
+  var s=_quizzState;
+  if(!s || s.answered) return;
+  s.answered=true;
+  if(s.timerHandle){ clearInterval(s.timerHandle); s.timerHandle=null; }
+
+  var correct=(dispIdx===s.correctDisplayIdx);
+  var today=quizzTodayStr();
+  var lockFloor=currentUser.quizz_locked_at||0;
+  var newStreak=correct?(currentUser.quizz_streak||0)+1:lockFloor;
+  var rpcGained=0;
+  if(correct){
+    rpcGained=quizzReward(newStreak);
+    if(s.fiftyUsed) rpcGained=Math.round(rpcGained/2);
+  }
+  var bestStreak=Math.max(currentUser.quizz_best_streak||0,newStreak);
+  var totalRpc=(currentUser.quizz_total_rpc||0)+rpcGained;
+
+  // Stat "Lucky Luke" : on n'incrémente le temps moyen que sur les bonnes réponses
+  var elapsedMs=s.startTime?(Date.now()-s.startTime):0;
+  var newCorrectCount=currentUser.quizz_correct_count||0;
+  var newTotalTimeMs=currentUser.quizz_total_time_ms||0;
+  if(correct){
+    newCorrectCount=newCorrectCount+1;
+    newTotalTimeMs=newTotalTimeMs+elapsedMs;
+  }
+
+  try{
+    await supabaseClient.from('players').update({
+      quizz_streak:newStreak,
+      quizz_best_streak:bestStreak,
+      quizz_last_answer_date:today,
+      quizz_last_correct:correct,
+      quizz_total_rpc:totalRpc,
+      quizz_correct_count:newCorrectCount,
+      quizz_total_time_ms:newTotalTimeMs
+    }).eq('id',currentUser.id);
+
+    currentUser.quizz_streak=newStreak;
+    currentUser.quizz_best_streak=bestStreak;
+    currentUser.quizz_last_answer_date=today;
+    currentUser.quizz_last_correct=correct;
+    currentUser.quizz_total_rpc=totalRpc;
+    currentUser.quizz_correct_count=newCorrectCount;
+    currentUser.quizz_total_time_ms=newTotalTimeMs;
+
+    if(rpcGained>0){
+      await supabaseClient.from('wallet_tx').insert({
+        player_id:currentUser.id,
+        rpc_delta:rpcGained,
+        nyx_delta:0,
+        reason:'Quizz quotidien (J'+newStreak+')'+(s.fiftyUsed?' [50/50]':'')
+      });
+    }
+  }catch(e){console.warn('quizz submit fail',e);}
+
+  renderQuizzResult(correct,rpcGained,newStreak);
+  updateQuizzBadge();
+  // Si bonne réponse ET palier de verrouillage atteint au-dessus du lock actuel → modale d'offre
+  if(correct) maybeShowQuizzLockModal(newStreak);
+}
+
+// Si le RP vient d'atteindre un palier (J10, J25, J50…) et que ce palier dépasse son lock
+// actuel, on lui propose de verrouiller sa série en payant le coût NYX correspondant.
+function maybeShowQuizzLockModal(newStreak){
+  if(!quizzIsPalier(newStreak)) return;
+  if(newStreak<=(currentUser.quizz_locked_at||0)) return;
+  var cost=quizzLockCost(newStreak);
+  var nextPalier=quizzNextPalierAfter(newStreak);
+  var distance=nextPalier-newStreak;
+  var msg='Verrouille ta série pour <strong style="color:var(--gold)">'+cost+' NYX</strong>.<br>'
+    +'<span style="color:var(--muted2);font-size:.85em">Si tu te trompes ou oublies un jour, ta série retombera à <strong>J'+newStreak+'</strong> au lieu de zéro.</span><br>'
+    +'<span style="color:var(--muted2);font-size:.8em">Sinon, prochain palier dans '+distance+' jour'+(distance>1?'s':'')+'.</span>';
+  askConfirm(msg,{
+    title:'Palier J'+newStreak+' atteint !',
+    emoji:'🔒',
+    okLabel:'Verrouiller ('+cost+' NYX)',
+    cancelLabel:'Plus tard',
+    success:true
+  }).then(function(confirmed){
+    if(confirmed) buyQuizzLock(newStreak);
+  });
+}
+
+// Achat du verrou : débite NYX via walletDebitNyx puis met à jour quizz_locked_at.
+async function buyQuizzLock(palier){
+  if(!currentUser) return;
+  var cost=quizzLockCost(palier);
+  if(cost<=0) return;
+  var ok=await walletDebitNyx(cost,'Verrouillage série quizz J'+palier);
+  if(!ok) return;
+  try{
+    await window.fetch(supabaseUrl+'/rest/v1/players?id=eq.'+encodeURIComponent(currentUser.id),{
+      method:'PATCH',
+      headers:{'apikey':supabaseKey,'Authorization':'Bearer '+supabaseKey,'Content-Type':'application/json'},
+      body:JSON.stringify({quizz_locked_at:palier})
+    });
+    currentUser.quizz_locked_at=palier;
+    if(typeof showToast==='function') showToast('🔒 Série verrouillée à J'+palier);
+    // Rafraîchit l'écran résultat pour refléter le nouveau lock dans les stats
+    if(document.getElementById('quizz-content')){
+      renderQuizzResult(currentUser.quizz_last_correct,0,currentUser.quizz_streak||0,true);
+    }
+  }catch(e){console.warn('quizz lock save fail',e);}
+}
+
+// Affiche l'écran de résultat après réponse (ou au re-clic le même jour : isReopen=true).
+// Inclut les 4 tuiles de stats + une croix ✕ en haut à droite pour sortir vite vers la PC.
+function renderQuizzResult(correct,rpcGained,currentStreak,isReopen){
+  isReopen=isReopen||false;
+  var s=_quizzState;
+  var best=currentUser.quizz_best_streak||0;
+  var total=currentUser.quizz_total_rpc||0;
+  var correctCount=currentUser.quizz_correct_count||0;
+  var totalTimeMs=currentUser.quizz_total_time_ms||0;
+  var avgTime=correctCount>0?(totalTimeMs/correctCount/1000).toFixed(1).replace('.',',')+' s':'—';
+  var displayStreak=isReopen?(currentUser.quizz_streak||0):currentStreak;
+
+  var titleHtml,sub,color;
+  if(correct){
+    titleHtml='✅ Bonne réponse !';
+    color='#2ddb80';
+    if(isReopen){
+      sub='Tu as déjà participé au quizz aujourd\'hui. Ta série est de <strong>'+displayStreak+' jour'+(displayStreak>1?'s':'')+'</strong>.';
+    } else {
+      sub='Tu gagnes <strong style="color:var(--gold)">+'+rpcGained+' RPC</strong>. Ta série passe à <strong>'+displayStreak+' jour'+(displayStreak>1?'s':'')+'</strong>.';
+      if(s && s.fiftyUsed) sub+='<div style="font-size:.7rem;color:var(--muted2);margin-top:.3rem">Gain divisé par 2 (joker 50/50)</div>';
+    }
+  } else {
+    titleHtml='❌ Mauvaise réponse';
+    color='#ff6b6b';
+    var lockFloor=currentUser.quizz_locked_at||0;
+    var floorTxt=lockFloor>0?'à <strong>J'+lockFloor+'</strong> (palier verrouillé)':'à 0';
+    if(isReopen){
+      sub='Tu as déjà participé au quizz aujourd\'hui. Ta série est retombée '+floorTxt+'.';
+    } else {
+      var correctAnswer=(s && s.question)?s.question.a[s.question.c]:'';
+      sub='La bonne réponse était : <strong style="color:var(--gold)">'+escapeHtml(correctAnswer)+'</strong>.<br>Ta série retombe '+floorTxt+'.';
+    }
+  }
+
+  var container=document.getElementById('quizz-content');
+  if(!container) return;
+  container.innerHTML=''
+    +'<div style="position:relative">'
+    + '<button onclick="nav(\'dashboard\')" title="Retour à la Player Card" '
+    +   'style="position:absolute;top:-.4rem;right:-.2rem;width:34px;height:34px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.18);color:var(--muted2);font-size:1.15rem;cursor:pointer;transition:all .15s;font-weight:300;line-height:1;z-index:5" '
+    +   'onmouseover="this.style.background=\'rgba(255,107,107,.15)\';this.style.color=\'#ff6b6b\';this.style.borderColor=\'rgba(255,107,107,.45)\'" '
+    +   'onmouseout="this.style.background=\'rgba(255,255,255,.06)\';this.style.color=\'var(--muted2)\';this.style.borderColor=\'rgba(255,255,255,.18)\'">✕</button>'
+    + '<div style="text-align:center;padding:.8rem 1rem 1.2rem">'
+    +   '<div style="font-family:Bebas Neue,sans-serif;font-size:2rem;letter-spacing:2px;color:'+color+';margin-bottom:.6rem">'+titleHtml+'</div>'
+    +   '<div style="font-size:.88rem;line-height:1.5;color:var(--text);margin-bottom:.8rem">'+sub+'</div>'
+    +   '<div style="font-size:.72rem;color:var(--muted2)">Reviens demain pour la prochaine question.</div>'
+    + '</div>'
+    +'</div>'
+    +'<div style="background:rgba(10,20,50,.6);border:1.5px solid rgba(74,144,255,.45);border-radius:12px;padding:1rem;margin-bottom:1rem">'
+    + '<div style="font-family:Bebas Neue,sans-serif;font-size:1.05rem;letter-spacing:2px;color:var(--text);margin-bottom:.6rem;text-align:center">Mes stats Quizz</div>'
+    + ((currentUser.quizz_locked_at||0)>0
+        ? '<div style="text-align:center;color:#ff8c2a;font-size:.78rem;margin-bottom:.7rem;font-weight:600">🔒 Série verrouillée à J'+(currentUser.quizz_locked_at)+'</div>'
+        : '')
+    + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:.6rem">'
+    +   '<div style="background:rgba(74,200,255,.08);border-radius:8px;padding:.6rem"><div style="font-family:Space Mono,monospace;font-size:1.1rem;font-weight:700;color:#4ac8ff">'+(currentUser.quizz_streak||0)+'</div><div style="font-size:.6rem;color:var(--muted2);text-transform:uppercase;letter-spacing:.5px">Série en cours</div></div>'
+    +   '<div style="background:rgba(45,219,128,.08);border-radius:8px;padding:.6rem"><div style="font-family:Space Mono,monospace;font-size:1.1rem;font-weight:700;color:#2ddb80">'+best+'</div><div style="font-size:.6rem;color:var(--muted2);text-transform:uppercase;letter-spacing:.5px">Meilleure série</div></div>'
+    +   '<div style="background:rgba(255,107,157,.08);border-radius:8px;padding:.6rem"><div style="font-family:Space Mono,monospace;font-size:1.1rem;font-weight:700;color:#ff6b9d">⚡ '+avgTime+'</div><div style="font-size:.6rem;color:var(--muted2);text-transform:uppercase;letter-spacing:.5px">Temps moyen</div></div>'
+    +   '<div style="background:rgba(255,201,71,.08);border-radius:8px;padding:.6rem"><div style="font-family:Space Mono,monospace;font-size:1.1rem;font-weight:700;color:var(--gold)">+'+total.toLocaleString('fr-FR')+' RPC</div><div style="font-size:.6rem;color:var(--muted2);text-transform:uppercase;letter-spacing:.5px">Total gagné</div></div>'
+    + '</div>'
+    +'</div>'
+    +'<div id="quizz-ranking"></div>';
+  loadQuizzRanking();
+}
+
+// Charge et affiche le classement des meilleures séries EN COURS (top 10 + toi si hors top).
+// Tri sur quizz_streak desc. Exclut les RP invisibles (infirmerie) et les comptes en suppression (RLS).
+async function loadQuizzRanking(){
+  var container=document.getElementById('quizz-ranking');
+  if(!container) return;
+  container.innerHTML='<div style="text-align:center;color:var(--muted2);font-size:.75rem;padding:.5rem">Chargement du classement…</div>';
+  try{
+    var res=await supabaseClient
+      .from('players')
+      .select('id,username,quizz_streak')
+      .gt('quizz_streak',0)
+      .eq('is_visible',true)
+      .order('quizz_streak',{ascending:false})
+      .limit(10);
+    if(res.error) throw res.error;
+    var data=res.data||[];
+
+    // Rendu d'une ligne de classement
+    function rowHtml(p,rank){
+      var rankDisplay=rank===1?'🥇':rank===2?'🥈':rank===3?'🥉':'#'+rank;
+      var isMe=p.id===currentUser.id;
+      var bg=isMe?'rgba(255,201,71,.12)':'rgba(10,20,50,.4)';
+      var border=isMe?'1.5px solid var(--gold)':'1px solid rgba(255,255,255,.08)';
+      var nameColor=isMe?'var(--gold)':'var(--text)';
+      var nameWeight=isMe?'700':'500';
+      return '<div style="display:flex;align-items:center;gap:.7rem;background:'+bg+';border:'+border+';border-radius:8px;padding:.55rem .75rem;margin-bottom:.4rem">'
+        +'<div style="font-family:Bebas Neue,sans-serif;font-size:1.05rem;letter-spacing:1px;color:var(--text);min-width:38px;text-align:center">'+rankDisplay+'</div>'
+        +'<div style="flex:1;color:'+nameColor+';font-size:.85rem;font-weight:'+nameWeight+';overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+escapeHtml(p.username||'RP')+(isMe?' <span style="font-size:.65rem;color:var(--muted2)">(toi)</span>':'')+'</div>'
+        +'<div style="font-family:Space Mono,monospace;font-size:.92rem;font-weight:700;color:#4ac8ff">🔥 '+p.quizz_streak+'</div>'
+      +'</div>';
+    }
+
+    var html=''
+      +'<div style="background:rgba(10,20,50,.6);border:1.5px solid rgba(74,144,255,.45);border-radius:12px;padding:1rem;margin-bottom:1rem">'
+      + '<div style="font-family:Bebas Neue,sans-serif;font-size:1.05rem;letter-spacing:2px;color:var(--text);margin-bottom:.7rem;text-align:center">Classement des Séries</div>';
+
+    if(data.length===0){
+      html+='<div style="text-align:center;color:var(--muted2);font-size:.78rem;padding:.5rem 0">Personne n\'a encore lancé sa série. À toi de jouer !</div>';
+    } else {
+      data.forEach(function(p,i){ html+=rowHtml(p,i+1); });
+
+      // Si moi pas dans le top 10 mais j'ai une série en cours → ligne séparée avec mon rang
+      var meInTop=data.some(function(p){return p.id===currentUser.id;});
+      var myStreak=currentUser.quizz_streak||0;
+      if(!meInTop && myStreak>0){
+        try{
+          var cnt=await supabaseClient
+            .from('players')
+            .select('id',{count:'exact',head:true})
+            .gt('quizz_streak',myStreak)
+            .eq('is_visible',true);
+          var myRank=(cnt.count||0)+1;
+          html+='<div style="text-align:center;color:var(--muted2);font-size:.85rem;letter-spacing:3px;margin:.3rem 0">···</div>';
+          html+=rowHtml({id:currentUser.id,username:currentUser.username,quizz_streak:myStreak},myRank);
+        }catch(e){console.warn('quizz rank count fail',e);}
+      }
+    }
+
+    html+='</div>';
+    container.innerHTML=html;
+  }catch(e){
+    console.warn('quizz ranking fail',e);
+    container.innerHTML='<div style="text-align:center;color:var(--muted2);font-size:.75rem;padding:.5rem">Classement indisponible</div>';
+  }
+}
 </script>
 </body>
 </html>
