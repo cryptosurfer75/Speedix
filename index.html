@@ -21491,7 +21491,9 @@ function renderQuizzResult(correct,rpcGained,currentStreak,isReopen){
   loadQuizzRanking();
 }
 
-// Charge et affiche le classement des meilleures séries EN COURS (top 50 + toi si hors top).
+// Charge et affiche le classement du quizz (top 50 + toi si hors top).
+// Inclut tous les RP qui ont déjà répondu au moins une fois, série à 0 incluse
+// (un RP qui a cassé sa série reste visible avec son score actuel).
 // Tri : 1) quizz_streak desc · 2) quizz_jokers_used asc (moins de jokers = mieux)
 //       · 3) quizz_total_time_ms asc (plus rapide = mieux, total cumulé sur bonnes réponses).
 // Exclut les RP invisibles (infirmerie) et les comptes en suppression (RLS).
@@ -21502,8 +21504,8 @@ async function loadQuizzRanking(){
   try{
     var res=await supabaseClient
       .from('players')
-      .select('id,username,quizz_streak,quizz_jokers_used,quizz_total_time_ms')
-      .gt('quizz_streak',0)
+      .select('id,username,quizz_streak,quizz_jokers_used,quizz_total_time_ms,quizz_last_answer_date')
+      .not('quizz_last_answer_date','is',null)
       .eq('is_visible',true)
       .order('quizz_streak',{ascending:false})
       .order('quizz_jokers_used',{ascending:true,nullsFirst:true})
@@ -21536,21 +21538,23 @@ async function loadQuizzRanking(){
       + '<div style="font-family:Bebas Neue,sans-serif;font-size:1.05rem;letter-spacing:2px;color:var(--text);margin-bottom:.7rem;text-align:center">Classement Quizz</div>';
 
     if(data.length===0){
-      html+='<div style="text-align:center;color:var(--muted2);font-size:.78rem;padding:.5rem 0">Personne n\'a encore lancé sa série. À toi de jouer !</div>';
+      html+='<div style="text-align:center;color:var(--muted2);font-size:.78rem;padding:.5rem 0">Personne n\'a encore répondu au quizz. À toi de jouer !</div>';
     } else {
       // Liste scrollable : au-delà de ~10 lignes (limit 50), on évite que le panneau pousse toute la page.
       html+='<div style="max-height:60vh;overflow-y:auto;padding-right:.25rem">';
       data.forEach(function(p,i){ html+=rowHtml(p,i+1); });
 
-      // Si moi pas dans le top 50 mais j'ai une série en cours → ligne séparée avec mon rang
+      // Si moi pas dans le top 50 mais j'ai déjà répondu → ligne séparée avec mon rang
       var meInTop=data.some(function(p){return p.id===currentUser.id;});
       var myStreak=currentUser.quizz_streak||0;
-      if(!meInTop && myStreak>0){
+      var iAnswered=!!currentUser.quizz_last_answer_date;
+      if(!meInTop && iAnswered){
         try{
           var cnt=await supabaseClient
             .from('players')
             .select('id',{count:'exact',head:true})
             .gt('quizz_streak',myStreak)
+            .not('quizz_last_answer_date','is',null)
             .eq('is_visible',true);
           var myRank=(cnt.count||0)+1;
           html+='<div style="text-align:center;color:var(--muted2);font-size:.85rem;letter-spacing:3px;margin:.3rem 0">···</div>';
