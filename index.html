@@ -2208,7 +2208,7 @@ select option{background:#040c1c}
       <div class="block-body">
         <div style="font-size:1.4rem;font-weight:700;margin-bottom:.1rem">5,99€ <span style="font-size:.8rem;color:var(--muted2)">/ mois</span></div>
         <div style="font-size:.78rem;color:var(--muted2);margin-bottom:.5rem">ou <strong style="color:var(--gold)">59,99€ / an</strong> — économisez 12€</div>
-        <div style="font-size:.75rem;color:var(--muted2)">Inclus : 20 NYX + 15 000 RPC + 5 Boosts + 2 Gels offerts / mois</div>
+        <div style="font-size:.75rem;color:var(--muted2)">Inclus : 20 NYX + 15 000 RPC + 5 Boosts + 5 Gels offerts / mois</div>
       </div>
     </div>
   </div>
@@ -5526,8 +5526,7 @@ const FP_DATA=[
   {f:'Création Team privée offerte',   free:false,prem:true},
   {f:'Trésors cachés & bonus spéciaux',free:false,prem:true},
   {f:'Challenges illimités',           free:false, prem:true},
-  {f:'5 Boosts offerts / mois',       free:false,prem:true},
-  {f:'2 Gels offerts / mois',         free:false,prem:true},
+  {f:'5 Boosts + 5 Gels offerts / mois', free:false,prem:true},
   {f:'20 NYX offerts / mois',         free:false,prem:true},
   {f:'15 000 RPC offerts / mois',     free:false,prem:true},
 ];
@@ -10353,7 +10352,7 @@ async function _processEndOfPeriodInner(){
     var patchData2={boost_stock:boostQty,boost_active_until:null};
     // Récompenses mensuelles Full Premium (Free non touché côté Gel)
     if(_bpPrem){
-      patchData2.gel_stock=2;
+      patchData2.gel_stock=5;
       patchData2.rpc_balance=(_bp.rpc_balance||0)+15000;
       patchData2.nyx_balance=(_bp.nyx_balance||0)+20;
     }
@@ -20882,102 +20881,159 @@ if ('serviceWorker' in navigator) {
 // Pool de 80 questions sport — q : énoncé · a : 4 choix · c : index 0-3 de la bonne réponse
 const QUIZZ_POOL = [
   // FOOTBALL (8)
-  {q:"Quelle équipe a remporté la Coupe du Monde de football 2022 au Qatar ?", a:["France","Argentine","Brésil","Croatie"], c:1},
-  {q:"Quel pays a remporté l'Euro 2024 en Allemagne ?", a:["Angleterre","France","Espagne","Allemagne"], c:2},
-  {q:"Combien de joueurs composent une équipe de football sur le terrain ?", a:["9","10","11","12"], c:2},
-  {q:"Combien de Coupes du Monde de football le Brésil a-t-il remportées ?", a:["3","4","5","6"], c:2},
-  {q:"Qui a marqué les deux buts de la France en finale de la Coupe du Monde 1998 ?", a:["Thierry Henry","Zinédine Zidane","Emmanuel Petit","Didier Deschamps"], c:1},
-  {q:"Quel club a remporté la Ligue des Champions 2024 ?", a:["Manchester City","Real Madrid","Bayern Munich","Paris SG"], c:1},
-  {q:"Combien de Ballons d'Or a remporté Lionel Messi (au 1er janvier 2025) ?", a:["6","7","8","9"], c:2},
-  {q:"Quel joueur français a été élu Ballon d'Or 2022 ?", a:["Kylian Mbappé","Karim Benzema","Antoine Griezmann","Olivier Giroud"], c:1},
+  {cat:'foot', q:"Quelle équipe a remporté la Coupe du Monde de football 2022 au Qatar ?", a:["France","Argentine","Brésil","Croatie"], c:1},
+  {cat:'foot', q:"Quel pays a remporté l'Euro 2024 en Allemagne ?", a:["Angleterre","France","Espagne","Allemagne"], c:2},
+  {cat:'foot', q:"Combien de joueurs composent une équipe de football sur le terrain ?", a:["9","10","11","12"], c:2},
+  {cat:'foot', q:"Combien de Coupes du Monde de football le Brésil a-t-il remportées ?", a:["3","4","5","6"], c:2},
+  {cat:'foot', q:"Qui a marqué les deux buts de la France en finale de la Coupe du Monde 1998 ?", a:["Thierry Henry","Zinédine Zidane","Emmanuel Petit","Didier Deschamps"], c:1},
+  {cat:'foot', q:"Quel club a remporté la Ligue des Champions 2024 ?", a:["Manchester City","Real Madrid","Bayern Munich","Paris SG"], c:1},
+  {cat:'foot', q:"Combien de Ballons d'Or a remporté Lionel Messi (au 1er janvier 2025) ?", a:["6","7","8","9"], c:2},
+  {cat:'foot', q:"Quel joueur français a été élu Ballon d'Or 2022 ?", a:["Kylian Mbappé","Karim Benzema","Antoine Griezmann","Olivier Giroud"], c:1},
   // JO (10)
-  {q:"Dans quelle ville se sont déroulés les Jeux Olympiques d'été 2024 ?", a:["Tokyo","Paris","Los Angeles","Londres"], c:1},
-  {q:"Combien d'anneaux compte le drapeau olympique ?", a:["4","5","6","7"], c:1},
-  {q:"Quelle est la devise officielle des Jeux Olympiques ?", a:["Citius, Altius, Fortius","Vincere aut Mori","Sport et Honneur","Pour la gloire"], c:0},
-  {q:"Quelle ville accueillera les JO d'été 2028 ?", a:["Brisbane","Los Angeles","Berlin","Madrid"], c:1},
-  {q:"À cause de quel événement les JO de Tokyo 2020 ont-ils été décalés à 2021 ?", a:["Une grève","Un séisme","La pandémie de Covid-19","Un boycott"], c:2},
-  {q:"Quel pays a remporté le plus de médailles d'or en JO d'été dans l'histoire ?", a:["Russie","Chine","États-Unis","Allemagne"], c:2},
-  {q:"Tous les combien d'années ont lieu les Jeux Olympiques d'été ?", a:["2 ans","3 ans","4 ans","5 ans"], c:2},
-  {q:"Quel sport oppose deux équipes de joueurs sur un terrain glacé avec des balais ?", a:["Hockey","Curling","Bobsleigh","Patinage de vitesse"], c:1},
-  {q:"Qui a allumé la vasque olympique des JO de Paris 2024 ?", a:["Zinédine Zidane","Marie-José Pérec et Teddy Riner","Tony Estanguet","Florent Manaudou"], c:1},
-  {q:"Dans quelle ville française la flamme olympique 2024 est-elle arrivée par bateau ?", a:["Nice","Bordeaux","Marseille","La Rochelle"], c:2},
+  {cat:'jo', q:"Dans quelle ville se sont déroulés les Jeux Olympiques d'été 2024 ?", a:["Tokyo","Paris","Los Angeles","Londres"], c:1},
+  {cat:'jo', q:"Combien d'anneaux compte le drapeau olympique ?", a:["4","5","6","7"], c:1},
+  {cat:'jo', q:"Quelle est la devise officielle des Jeux Olympiques ?", a:["Citius, Altius, Fortius","Vincere aut Mori","Sport et Honneur","Pour la gloire"], c:0},
+  {cat:'jo', q:"Quelle ville accueillera les JO d'été 2028 ?", a:["Brisbane","Los Angeles","Berlin","Madrid"], c:1},
+  {cat:'jo', q:"À cause de quel événement les JO de Tokyo 2020 ont-ils été décalés à 2021 ?", a:["Une grève","Un séisme","La pandémie de Covid-19","Un boycott"], c:2},
+  {cat:'jo', q:"Quel pays a remporté le plus de médailles d'or en JO d'été dans l'histoire ?", a:["Russie","Chine","États-Unis","Allemagne"], c:2},
+  {cat:'jo', q:"Tous les combien d'années ont lieu les Jeux Olympiques d'été ?", a:["2 ans","3 ans","4 ans","5 ans"], c:2},
+  {cat:'jo', q:"Quel sport oppose deux équipes de joueurs sur un terrain glacé avec des balais ?", a:["Hockey","Curling","Bobsleigh","Patinage de vitesse"], c:1},
+  {cat:'jo', q:"Qui a allumé la vasque olympique des JO de Paris 2024 ?", a:["Zinédine Zidane","Marie-José Pérec et Teddy Riner","Tony Estanguet","Florent Manaudou"], c:1},
+  {cat:'jo', q:"Dans quelle ville française la flamme olympique 2024 est-elle arrivée par bateau ?", a:["Nice","Bordeaux","Marseille","La Rochelle"], c:2},
   // ATHLÉTISME (15)
-  {q:"Quel athlète détient le record du monde du 100 mètres masculin ?", a:["Justin Gatlin","Usain Bolt","Tyson Gay","Yohan Blake"], c:1},
-  {q:"Quelle est la distance officielle d'un marathon ?", a:["40 km","41,195 km","42,195 km","45 km"], c:2},
-  {q:"En combien de secondes Usain Bolt a-t-il couru le 100 m lors de son record du monde ?", a:["9,58","9,69","9,72","9,81"], c:0},
-  {q:"Quel athlète suédois détient le record du monde de saut à la perche ?", a:["Renaud Lavillenie","Sergueï Bubka","Armand Duplantis","Thiago Braz"], c:2},
-  {q:"Combien de tours de stade fait-on pour courir un 5000 mètres ?", a:["10","12,5","15","20"], c:1},
-  {q:"Quel pays a dominé historiquement les courses de fond comme le marathon ?", a:["Kenya","Maroc","Australie","États-Unis"], c:0},
-  {q:"Combien d'épreuves compte le décathlon masculin ?", a:["7","8","10","12"], c:2},
-  {q:"Quelle est la distance officielle du steeple en athlétisme ?", a:["1500 m","2000 m","3000 m","5000 m"], c:2},
-  {q:"Combien d'épreuves compte l'heptathlon féminin ?", a:["5","6","7","8"], c:2},
-  {q:"Quelle est la distance officielle d'un semi-marathon ?", a:["10 km","15 km","environ 21 km","25 km"], c:2},
-  {q:"Quel marathonien éthiopien a remporté la médaille d'or olympique du marathon en 1960 à Rome en courant pieds nus ?", a:["Haile Gebreselassie","Abebe Bikila","Kenenisa Bekele","Mamo Wolde"], c:1},
-  {q:"Combien de haies un athlète doit-il franchir lors d'une course de 110 m haies ?", a:["8","10","12","14"], c:1},
-  {q:"Quel athlète français a remporté la médaille d'or olympique du saut à la perche en 2012 à Londres ?", a:["Jean Galfione","Renaud Lavillenie","Romain Mesnil","Jérôme Clavier"], c:1},
-  {q:"Quelle athlète française a réalisé le doublé 200 m / 400 m aux JO d'Atlanta en 1996 ?", a:["Christine Arron","Muriel Hurtis","Marie-José Pérec","Eunice Barber"], c:2},
-  {q:"Quel athlète a été le premier à courir le mile en moins de 4 minutes en 1954 ?", a:["Roger Bannister","Hicham El Guerrouj","Sebastian Coe","John Walker"], c:0},
+  {cat:'athle', q:"Quel athlète détient le record du monde du 100 mètres masculin ?", a:["Justin Gatlin","Usain Bolt","Tyson Gay","Yohan Blake"], c:1},
+  {cat:'athle', q:"Quelle est la distance officielle d'un marathon ?", a:["40 km","41,195 km","42,195 km","45 km"], c:2},
+  {cat:'athle', q:"En combien de secondes Usain Bolt a-t-il couru le 100 m lors de son record du monde ?", a:["9,58","9,69","9,72","9,81"], c:0},
+  {cat:'athle', q:"Quel athlète suédois détient le record du monde de saut à la perche ?", a:["Renaud Lavillenie","Sergueï Bubka","Armand Duplantis","Thiago Braz"], c:2},
+  {cat:'athle', q:"Combien de tours de stade fait-on pour courir un 5000 mètres ?", a:["10","12,5","15","20"], c:1},
+  {cat:'athle', q:"Quel pays a dominé historiquement les courses de fond comme le marathon ?", a:["Kenya","Maroc","Australie","États-Unis"], c:0},
+  {cat:'athle', q:"Combien d'épreuves compte le décathlon masculin ?", a:["7","8","10","12"], c:2},
+  {cat:'athle', q:"Quelle est la distance officielle du steeple en athlétisme ?", a:["1500 m","2000 m","3000 m","5000 m"], c:2},
+  {cat:'athle', q:"Combien d'épreuves compte l'heptathlon féminin ?", a:["5","6","7","8"], c:2},
+  {cat:'athle', q:"Quelle est la distance officielle d'un semi-marathon ?", a:["10 km","15 km","environ 21 km","25 km"], c:2},
+  {cat:'athle', q:"Quel marathonien éthiopien a remporté la médaille d'or olympique du marathon en 1960 à Rome en courant pieds nus ?", a:["Haile Gebreselassie","Abebe Bikila","Kenenisa Bekele","Mamo Wolde"], c:1},
+  {cat:'athle', q:"Combien de haies un athlète doit-il franchir lors d'une course de 110 m haies ?", a:["8","10","12","14"], c:1},
+  {cat:'athle', q:"Quel athlète français a remporté la médaille d'or olympique du saut à la perche en 2012 à Londres ?", a:["Jean Galfione","Renaud Lavillenie","Romain Mesnil","Jérôme Clavier"], c:1},
+  {cat:'athle', q:"Quelle athlète française a réalisé le doublé 200 m / 400 m aux JO d'Atlanta en 1996 ?", a:["Christine Arron","Muriel Hurtis","Marie-José Pérec","Eunice Barber"], c:2},
+  {cat:'athle', q:"Quel athlète a été le premier à courir le mile en moins de 4 minutes en 1954 ?", a:["Roger Bannister","Hicham El Guerrouj","Sebastian Coe","John Walker"], c:0},
   // NBA (7)
-  {q:"Combien d'équipes compte la NBA ?", a:["24","28","30","32"], c:2},
-  {q:"Quelle franchise a remporté le titre NBA 2024 ?", a:["Denver Nuggets","Boston Celtics","Dallas Mavericks","Miami Heat"], c:1},
-  {q:"Quel joueur détient le record du nombre de points marqués en un seul match NBA ?", a:["Michael Jordan","Kobe Bryant","Wilt Chamberlain","LeBron James"], c:2},
-  {q:"Combien de joueurs sont sur le terrain par équipe en basket ?", a:["4","5","6","7"], c:1},
-  {q:"Quel joueur français a été sélectionné en numéro 1 de la draft NBA 2023 ?", a:["Rudy Gobert","Evan Fournier","Victor Wembanyama","Nicolas Batum"], c:2},
-  {q:"Combien de titres NBA Michael Jordan a-t-il remportés avec les Chicago Bulls ?", a:["4","5","6","7"], c:2},
-  {q:"Combien de temps dure un quart-temps NBA ?", a:["10 minutes","12 minutes","15 minutes","20 minutes"], c:1},
+  {cat:'basket', q:"Combien d'équipes compte la NBA ?", a:["24","28","30","32"], c:2},
+  {cat:'basket', q:"Quelle franchise a remporté le titre NBA 2024 ?", a:["Denver Nuggets","Boston Celtics","Dallas Mavericks","Miami Heat"], c:1},
+  {cat:'basket', q:"Quel joueur détient le record du nombre de points marqués en un seul match NBA ?", a:["Michael Jordan","Kobe Bryant","Wilt Chamberlain","LeBron James"], c:2},
+  {cat:'basket', q:"Combien de joueurs sont sur le terrain par équipe en basket ?", a:["4","5","6","7"], c:1},
+  {cat:'basket', q:"Quel joueur français a été sélectionné en numéro 1 de la draft NBA 2023 ?", a:["Rudy Gobert","Evan Fournier","Victor Wembanyama","Nicolas Batum"], c:2},
+  {cat:'basket', q:"Combien de titres NBA Michael Jordan a-t-il remportés avec les Chicago Bulls ?", a:["4","5","6","7"], c:2},
+  {cat:'basket', q:"Combien de temps dure un quart-temps NBA ?", a:["10 minutes","12 minutes","15 minutes","20 minutes"], c:1},
   // F1 (4)
-  {q:"Quel pilote a été champion du monde de F1 en 2024 ?", a:["Lewis Hamilton","Max Verstappen","Charles Leclerc","Lando Norris"], c:1},
-  {q:"Combien de titres mondiaux Michael Schumacher a-t-il remportés en F1 ?", a:["5","6","7","8"], c:2},
-  {q:"Quel est le circuit le plus mythique du calendrier F1, situé dans une principauté ?", a:["Spa-Francorchamps","Silverstone","Monaco","Monza"], c:2},
-  {q:"Quel pilote français a été champion du monde de F1 à 4 reprises ?", a:["Alain Prost","Jacques Laffite","René Arnoux","Jean Alesi"], c:0},
+  {cat:'f1', q:"Quel pilote a été champion du monde de F1 en 2024 ?", a:["Lewis Hamilton","Max Verstappen","Charles Leclerc","Lando Norris"], c:1},
+  {cat:'f1', q:"Combien de titres mondiaux Michael Schumacher a-t-il remportés en F1 ?", a:["5","6","7","8"], c:2},
+  {cat:'f1', q:"Quel est le circuit le plus mythique du calendrier F1, situé dans une principauté ?", a:["Spa-Francorchamps","Silverstone","Monaco","Monza"], c:2},
+  {cat:'f1', q:"Quel pilote français a été champion du monde de F1 à 4 reprises ?", a:["Alain Prost","Jacques Laffite","René Arnoux","Jean Alesi"], c:0},
   // RUGBY (7)
-  {q:"Quelle équipe a remporté la Coupe du Monde de Rugby 2023 en France ?", a:["Nouvelle-Zélande","Afrique du Sud","Angleterre","France"], c:1},
-  {q:"Combien de joueurs compte une équipe de rugby à XV sur le terrain ?", a:["13","14","15","16"], c:2},
-  {q:"Combien de points rapporte un essai en rugby à XV ?", a:["3","4","5","7"], c:2},
-  {q:"Combien de points rapporte une transformation réussie ?", a:["1","2","3","5"], c:1},
-  {q:"Quelle équipe nationale est célèbre pour exécuter le \"Haka\" avant ses matchs ?", a:["Australie","Fidji","Nouvelle-Zélande","Samoa"], c:2},
-  {q:"Combien de nations participent au Tournoi des Six Nations ?", a:["4","5","6","7"], c:2},
-  {q:"Combien de points rapporte un drop en rugby ?", a:["2","3","4","5"], c:1},
+  {cat:'rugby', q:"Quelle équipe a remporté la Coupe du Monde de Rugby 2023 en France ?", a:["Nouvelle-Zélande","Afrique du Sud","Angleterre","France"], c:1},
+  {cat:'rugby', q:"Combien de joueurs compte une équipe de rugby à XV sur le terrain ?", a:["13","14","15","16"], c:2},
+  {cat:'rugby', q:"Combien de points rapporte un essai en rugby à XV ?", a:["3","4","5","7"], c:2},
+  {cat:'rugby', q:"Combien de points rapporte une transformation réussie ?", a:["1","2","3","5"], c:1},
+  {cat:'rugby', q:"Quelle équipe nationale est célèbre pour exécuter le \"Haka\" avant ses matchs ?", a:["Australie","Fidji","Nouvelle-Zélande","Samoa"], c:2},
+  {cat:'rugby', q:"Combien de nations participent au Tournoi des Six Nations ?", a:["4","5","6","7"], c:2},
+  {cat:'rugby', q:"Combien de points rapporte un drop en rugby ?", a:["2","3","4","5"], c:1},
   // TENNIS (5)
-  {q:"Sur quelle surface se joue le tournoi de Wimbledon ?", a:["Terre battue","Dur","Gazon","Synthétique"], c:2},
-  {q:"Combien de tournois du Grand Chelem composent le circuit chaque année ?", a:["3","4","5","6"], c:1},
-  {q:"Quel joueur détient le record du nombre de Grands Chelems masculins (au 1er janvier 2025) ?", a:["Roger Federer","Rafael Nadal","Novak Djokovic","Pete Sampras"], c:2},
-  {q:"Sur quelle surface se joue Roland-Garros ?", a:["Gazon","Terre battue","Dur","Moquette"], c:1},
-  {q:"Quel joueur espagnol a remporté Roland-Garros à 14 reprises ?", a:["Carlos Alcaraz","Rafael Nadal","David Ferrer","Juan Carlos Ferrero"], c:1},
+  {cat:'tennis', q:"Sur quelle surface se joue le tournoi de Wimbledon ?", a:["Terre battue","Dur","Gazon","Synthétique"], c:2},
+  {cat:'tennis', q:"Combien de tournois du Grand Chelem composent le circuit chaque année ?", a:["3","4","5","6"], c:1},
+  {cat:'tennis', q:"Quel joueur détient le record du nombre de Grands Chelems masculins (au 1er janvier 2025) ?", a:["Roger Federer","Rafael Nadal","Novak Djokovic","Pete Sampras"], c:2},
+  {cat:'tennis', q:"Sur quelle surface se joue Roland-Garros ?", a:["Gazon","Terre battue","Dur","Moquette"], c:1},
+  {cat:'tennis', q:"Quel joueur espagnol a remporté Roland-Garros à 14 reprises ?", a:["Carlos Alcaraz","Rafael Nadal","David Ferrer","Juan Carlos Ferrero"], c:1},
   // CYCLISME (6)
-  {q:"Quel coureur slovène a remporté le Tour de France 2024 ?", a:["Jonas Vingegaard","Tadej Pogačar","Primož Roglič","Remco Evenepoel"], c:1},
-  {q:"De quelle couleur est le maillot du leader du Tour de France ?", a:["Vert","Jaune","Blanc","À pois"], c:1},
-  {q:"À qui est attribué le maillot à pois sur le Tour de France ?", a:["Au sprinter","Au meilleur jeune","Au meilleur grimpeur","Au leader"], c:2},
-  {q:"À qui est attribué le maillot vert sur le Tour de France ?", a:["Au meilleur sprinter","Au meilleur grimpeur","Au leader","Au meilleur jeune"], c:0},
-  {q:"Quel est le surnom du Tour d'Italie ?", a:["La Vuelta","Le Giro","La Classica","Le Maillot Rose"], c:1},
-  {q:"Quel coureur français a remporté 5 fois le Tour de France ?", a:["Laurent Fignon","Bernard Hinault","Raymond Poulidor","Bernard Thévenet"], c:1},
-  // DIVERS (18)
-  {q:"Quel boxeur américain était surnommé \"The Greatest\" ?", a:["Mike Tyson","Muhammad Ali","Sugar Ray Robinson","Floyd Mayweather"], c:1},
-  {q:"Combien de joueurs compte une équipe de handball sur le terrain (hors gardien) ?", a:["5","6","7","8"], c:1},
-  {q:"Quel sport pratique-t-on avec une crosse et un palet sur la glace ?", a:["Curling","Hockey sur glace","Patinage artistique","Bobsleigh"], c:1},
-  {q:"De quel pays Roger Federer est-il originaire ?", a:["Allemagne","Suisse","Autriche","Belgique"], c:1},
-  {q:"Combien de joueurs compose une équipe de water-polo dans l'eau ?", a:["5","6","7","8"], c:2},
-  {q:"Combien de sets faut-il gagner pour remporter un match de volley-ball international ?", a:["2","3","4","5"], c:1},
-  {q:"Quel sport associe natation, vélo et course à pied ?", a:["Pentathlon","Décathlon","Triathlon","Heptathlon"], c:2},
-  {q:"Avec quel sport associe-t-on le terme \"knock-out\" (K.O.) ?", a:["Lutte","Judo","Boxe","Karaté"], c:2},
-  {q:"Quel sport se joue avec un volant et des raquettes ?", a:["Squash","Badminton","Tennis de table","Padel"], c:1},
-  {q:"Quel nageur américain est le plus médaillé de l'histoire des Jeux Olympiques ?", a:["Mark Spitz","Michael Phelps","Caeleb Dressel","Ryan Lochte"], c:1},
-  {q:"Quel judoka français est le plus grand champion de l'histoire de son sport ?", a:["David Douillet","Lucie Décosse","Teddy Riner","Frédéric Demontfaucon"], c:2},
-  {q:"Quel événement de voile est une course autour du monde en solitaire et sans escale ?", a:["America's Cup","Volvo Ocean Race","Vendée Globe","Route du Rhum"], c:2},
-  {q:"Quelle gymnaste américaine est considérée comme la plus grande de tous les temps ?", a:["Nadia Comăneci","Simone Biles","Olga Korbut","Mary Lou Retton"], c:1},
-  {q:"Quel golfeur américain est l'un des plus titrés en Grand Chelem (15 majeurs) ?", a:["Tiger Woods","Rory McIlroy","Phil Mickelson","Jordan Spieth"], c:0},
-  {q:"Quel sport olympique se pratique avec un fleuret, une épée ou un sabre ?", a:["Lutte","Tir à l'arc","Escrime","Pentathlon moderne"], c:2},
-  {q:"Quelle est la grande finale annuelle du championnat de football américain (NFL) ?", a:["World Series","Stanley Cup","Super Bowl","Final Four"], c:2},
-  {q:"Quel sport pratique-t-on avec une boule en métal et un \"cochonnet\" ?", a:["Bowling","Pétanque","Curling","Croquet"], c:1},
-  {q:"Combien de rounds maximum compte un combat de boxe professionnelle pour un titre mondial ?", a:["8","10","12","15"], c:2}
+  {cat:'cyclisme', q:"Quel coureur slovène a remporté le Tour de France 2024 ?", a:["Jonas Vingegaard","Tadej Pogačar","Primož Roglič","Remco Evenepoel"], c:1},
+  {cat:'cyclisme', q:"De quelle couleur est le maillot du leader du Tour de France ?", a:["Vert","Jaune","Blanc","À pois"], c:1},
+  {cat:'cyclisme', q:"À qui est attribué le maillot à pois sur le Tour de France ?", a:["Au sprinter","Au meilleur jeune","Au meilleur grimpeur","Au leader"], c:2},
+  {cat:'cyclisme', q:"À qui est attribué le maillot vert sur le Tour de France ?", a:["Au meilleur sprinter","Au meilleur grimpeur","Au leader","Au meilleur jeune"], c:0},
+  {cat:'cyclisme', q:"Quel est le surnom du Tour d'Italie ?", a:["La Vuelta","Le Giro","La Classica","Le Maillot Rose"], c:1},
+  {cat:'cyclisme', q:"Quel coureur français a remporté 5 fois le Tour de France ?", a:["Laurent Fignon","Bernard Hinault","Raymond Poulidor","Bernard Thévenet"], c:1},
+  // DIVERS (18) — taggés par sport réel pour ne pas s'enchaîner
+  {cat:'boxe', q:"Quel boxeur américain était surnommé \"The Greatest\" ?", a:["Mike Tyson","Muhammad Ali","Sugar Ray Robinson","Floyd Mayweather"], c:1},
+  {cat:'handball', q:"Combien de joueurs compte une équipe de handball sur le terrain (hors gardien) ?", a:["5","6","7","8"], c:1},
+  {cat:'hockey', q:"Quel sport pratique-t-on avec une crosse et un palet sur la glace ?", a:["Curling","Hockey sur glace","Patinage artistique","Bobsleigh"], c:1},
+  {cat:'tennis', q:"De quel pays Roger Federer est-il originaire ?", a:["Allemagne","Suisse","Autriche","Belgique"], c:1},
+  {cat:'aquatique', q:"Combien de joueurs compose une équipe de water-polo dans l'eau ?", a:["5","6","7","8"], c:2},
+  {cat:'volley', q:"Combien de sets faut-il gagner pour remporter un match de volley-ball international ?", a:["2","3","4","5"], c:1},
+  {cat:'triathlon', q:"Quel sport associe natation, vélo et course à pied ?", a:["Pentathlon","Décathlon","Triathlon","Heptathlon"], c:2},
+  {cat:'boxe', q:"Avec quel sport associe-t-on le terme \"knock-out\" (K.O.) ?", a:["Lutte","Judo","Boxe","Karaté"], c:2},
+  {cat:'badminton', q:"Quel sport se joue avec un volant et des raquettes ?", a:["Squash","Badminton","Tennis de table","Padel"], c:1},
+  {cat:'aquatique', q:"Quel nageur américain est le plus médaillé de l'histoire des Jeux Olympiques ?", a:["Mark Spitz","Michael Phelps","Caeleb Dressel","Ryan Lochte"], c:1},
+  {cat:'judo', q:"Quel judoka français est le plus grand champion de l'histoire de son sport ?", a:["David Douillet","Lucie Décosse","Teddy Riner","Frédéric Demontfaucon"], c:2},
+  {cat:'voile', q:"Quel événement de voile est une course autour du monde en solitaire et sans escale ?", a:["America's Cup","Volvo Ocean Race","Vendée Globe","Route du Rhum"], c:2},
+  {cat:'gym', q:"Quelle gymnaste américaine est considérée comme la plus grande de tous les temps ?", a:["Nadia Comăneci","Simone Biles","Olga Korbut","Mary Lou Retton"], c:1},
+  {cat:'golf', q:"Quel golfeur américain est l'un des plus titrés en Grand Chelem (15 majeurs) ?", a:["Tiger Woods","Rory McIlroy","Phil Mickelson","Jordan Spieth"], c:0},
+  {cat:'escrime', q:"Quel sport olympique se pratique avec un fleuret, une épée ou un sabre ?", a:["Lutte","Tir à l'arc","Escrime","Pentathlon moderne"], c:2},
+  {cat:'foot-us', q:"Quelle est la grande finale annuelle du championnat de football américain (NFL) ?", a:["World Series","Stanley Cup","Super Bowl","Final Four"], c:2},
+  {cat:'boules', q:"Quel sport pratique-t-on avec une boule en métal et un \"cochonnet\" ?", a:["Bowling","Pétanque","Curling","Croquet"], c:1},
+  {cat:'boxe', q:"Combien de rounds maximum compte un combat de boxe professionnelle pour un titre mondial ?", a:["8","10","12","15"], c:2}
 ];
 
-// Sélection pseudo-aléatoire de la question du jour à partir d'une date YYYY-MM-DD.
-// Identique pour tous les RP un jour donné, mais l'ordre des questions ne suit PAS celui du pool.
+// Sélection de la question du jour à partir d'une date YYYY-MM-DD.
+// Garantit : (1) identique pour tous les RP un jour donné, (2) chaque question
+// du pool passe une fois avant qu'une seule ne se répète, (3) jamais deux jours
+// de suite la même catégorie. L'ordre est recalculé chaque année (seed = année).
+function _quizzMulberry32(seed){
+  return function(){
+    seed |= 0; seed = (seed + 0x6D2B79F5) | 0;
+    var t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+function _quizzBuildOrder(seed){
+  var rand = _quizzMulberry32(seed);
+  var buckets = {};
+  for(var i=0;i<QUIZZ_POOL.length;i++){
+    var c = QUIZZ_POOL[i].cat || '_';
+    if(!buckets[c]) buckets[c] = [];
+    buckets[c].push(i);
+  }
+  // Mélange Fisher-Yates dans chaque catégorie
+  for(var k in buckets){
+    var arr = buckets[k];
+    for(var j=arr.length-1;j>0;j--){
+      var r = Math.floor(rand()*(j+1));
+      var t = arr[j]; arr[j] = arr[r]; arr[r] = t;
+    }
+  }
+  // Tirage glouton : à chaque tour, prendre la catégorie la plus représentée
+  // parmi celles restantes, en interdisant la même que la précédente.
+  var result = [];
+  var lastCat = null;
+  var totalLeft = QUIZZ_POOL.length;
+  while(totalLeft > 0){
+    var bestCat = null, bestCount = -1;
+    for(var k in buckets){
+      if(buckets[k].length === 0) continue;
+      if(k === lastCat) continue;
+      if(buckets[k].length > bestCount){ bestCount = buckets[k].length; bestCat = k; }
+    }
+    if(bestCat === null){
+      for(var k in buckets) if(buckets[k].length > 0){ bestCat = k; break; }
+    }
+    result.push(buckets[bestCat].shift());
+    lastCat = bestCat;
+    totalLeft--;
+  }
+  return result;
+}
+var _quizzOrderCache = null;
+var _quizzOrderYear = null;
 function quizzPickIndex(dateStr){
-  var seed=0;
-  for(var i=0;i<dateStr.length;i++) seed=(seed*31+dateStr.charCodeAt(i))|0;
-  return Math.abs(seed)%QUIZZ_POOL.length;
+  var year = parseInt(dateStr.slice(0,4),10) || 2026;
+  if(_quizzOrderYear !== year){
+    var seed = (year * 2654435761) | 0;
+    _quizzOrderCache = _quizzBuildOrder(seed);
+    _quizzOrderYear = year;
+  }
+  var d = new Date(dateStr + 'T00:00:00Z').getTime();
+  var jan1 = new Date(year + '-01-01T00:00:00Z').getTime();
+  var dayOfYear = Math.floor((d - jan1) / 86400000);
+  if(dayOfYear < 0) dayOfYear = 0;
+  return _quizzOrderCache[dayOfYear % _quizzOrderCache.length];
 }
 
 // Récompense RPC selon le palier de série (interpolation linéaire entre paliers du spec).
