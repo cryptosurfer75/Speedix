@@ -8038,8 +8038,11 @@ async function showLandDetail(landId){
   // colle avec le rendement crédité — un passage avant la location actuelle ne
   // doit PAS être compté (le tenant n'a rien touché dessus, voir code de crédit
   // dans syncStravaActivities qui ne crédite QUE le tenant en place au moment
-  // du passage).
+  // du passage). Le rendement affiché = somme des rpc_earned de ces mêmes
+  // passages (cohérent avec le compteur, juste même si étoiles changent en
+  // cours de mois — chaque passage garde son tarif d'alors).
   var nbPassages=0;
+  var revenuePassages=0;
   try{
     var _now=new Date();
     var _firstOfMonth=new Date(_now.getFullYear(), _now.getMonth(), 1);
@@ -8049,11 +8052,14 @@ async function showLandDetail(landId){
       if(_rentedDate>_firstOfMonth) _cutoff=_rentedDate;
     }
     var _cutoffStr=_cutoff.toISOString().slice(0,10);
-    var _passResp=await window.fetch(supabaseUrl+'/rest/v1/land_passages?land_id=eq.'+encodeURIComponent(landId)+'&passage_date=gte.'+_cutoffStr+'&select=id',{
+    var _passResp=await window.fetch(supabaseUrl+'/rest/v1/land_passages?land_id=eq.'+encodeURIComponent(landId)+'&passage_date=gte.'+_cutoffStr+'&select=id,rpc_earned',{
       headers:{'apikey':supabaseKey,'Authorization':'Bearer '+supabaseKey,'Accept':'application/json','Prefer':'count=exact'}
     });
     var _passList=await _passResp.json();
-    nbPassages=Array.isArray(_passList)?_passList.length:0;
+    if(Array.isArray(_passList)){
+      nbPassages=_passList.length;
+      revenuePassages=_passList.reduce(function(s,p){return s+(p.rpc_earned||0);},0);
+    }
   }catch(e){}
 
   // Détection : gratuité (défi voisin) vs sponsorisation admin (sponsor_name présent)
@@ -8104,7 +8110,7 @@ async function showLandDetail(landId){
       +'RPC / passage : <strong style="color:var(--gold)">'+rpcPerPassage+' RPC</strong><br>'
       +(land.status==='rented'?'Périodes louées : <strong style="color:var(--text)">'+_computeRentPeriods(land)+'</strong><br>':'')
       +'Passages ce mois : <strong onclick="showLandPassersList(\''+landId+'\')" style="color:var(--cyan);cursor:pointer;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:3px">'+nbPassages+'</strong> '+(nbPassages>1?'RPs':'RP')+'<br>'
-      +'Rendement ce mois : <strong style="color:var(--gold)">'+(land.monthly_revenue||0).toLocaleString('fr')+' RPC</strong>'
+      +'Rendement ce mois : <strong style="color:var(--gold)">'+revenuePassages.toLocaleString('fr')+' RPC</strong>'
     +'</div>';
   }
   // Bouton admin "Libérer" sur land sponsorisée OU sur land orpheline avec free_until
