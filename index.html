@@ -3934,6 +3934,20 @@ const I18N = {
     'lands.rent.thismonth'      : 'Loyer ce mois :',
     'lands.rent.paid'           : '✓ Payé',
     'lands.rent.tooltip'        : 'Cliquer pour payer le loyer mensuel',
+    // — Modales achat / vente d'une Land (tableau Mes Lands, colonne A/V)
+    'shop.price'                : 'Prix :',
+    'shop.cost'                 : 'Coût :',
+    'shop.buy.btn'              : 'Acheter ({n} NYX)',
+    'lands.right.modal.title'   : 'Acheter un droit d\'acquisition',
+    'lands.right.modal.msg'     : 'Un droit d\'acquisition te permet de devenir propriétaire de tes Lands.',
+    'lands.buy.modal.title'     : 'Acheter cette Land',
+    'lands.buy.modal.msg'       : 'Elle deviendra ta propriété définitive. Tu continues d\'encaisser les récompenses de passages.',
+    'lands.sell.modal.title'    : '💰 Vendre ta Land',
+    'lands.sell.modal.intro'    : 'Fixe ton prix de vente en NYX.',
+    'lands.sell.modal.tax'      : 'Une taxe de 10% sera prélevée à la vente.',
+    'lands.sell.modal.label'    : 'Prix de vente (NYX)',
+    'lands.sell.modal.ph'       : 'Ex : 150',
+    'lands.sell.modal.btn'      : 'Mettre en vente',
     'lands.map.title'           : 'Carte <span class="hl">Hexagonale</span>',
     'lands.map.indiv'           : 'Individuel',
     'lands.map.team'            : 'Team',
@@ -4615,6 +4629,20 @@ const I18N = {
     'lands.rent.thismonth'      : 'Rent this month:',
     'lands.rent.paid'           : '✓ Paid',
     'lands.rent.tooltip'        : 'Click to pay monthly rent',
+    // — Land buy / sell modals (My Lands table, B/S column)
+    'shop.price'                : 'Price:',
+    'shop.cost'                 : 'Cost:',
+    'shop.buy.btn'              : 'Buy ({n} NYX)',
+    'lands.right.modal.title'   : 'Buy an acquisition right',
+    'lands.right.modal.msg'     : 'An acquisition right lets you become the owner of your Lands.',
+    'lands.buy.modal.title'     : 'Buy this Land',
+    'lands.buy.modal.msg'       : 'It becomes yours permanently. You keep earning crossing rewards.',
+    'lands.sell.modal.title'    : '💰 Sell your Land',
+    'lands.sell.modal.intro'    : 'Set your selling price in NYX.',
+    'lands.sell.modal.tax'      : 'A 10% tax will be charged on the sale.',
+    'lands.sell.modal.label'    : 'Selling price (NYX)',
+    'lands.sell.modal.ph'       : 'e.g. 150',
+    'lands.sell.modal.btn'      : 'List for sale',
     'lands.map.title'           : '<span class="hl">Hexagonal</span> map',
     'lands.map.indiv'           : 'Individual',
     'lands.map.team'            : 'Team',
@@ -9971,7 +9999,7 @@ async function buyAcquisitionRight(){
   if(_hasAcquisitionRight){showToast('✓ Tu as déjà le droit d\'acquisition');return;}
   var w=window.__wallet||{nyx:0};
   if(w.nyx<60){showToast('⚠️ Solde insuffisant en NYX');return;}
-  if(!await askConfirm('Un droit d\'acquisition te permet de devenir propriétaire de tes Lands.\n\nCoût : <strong style="color:var(--gold)">60 NYX</strong>',{title:'Acheter un droit d\'acquisition',emoji:'🗝️',okLabel:'Acheter (60 NYX)'})) return;
+  if(!await askConfirm(t('lands.right.modal.msg')+'\n\n'+t('shop.cost')+' <strong style="color:var(--gold)">60 NYX</strong>',{title:t('lands.right.modal.title'),emoji:'🗝️',okLabel:t('shop.buy.btn').replace('{n}',60)})) return;
   var ok=await walletDebitNyx(60,'Droit d\'acquisition Lands');
   if(!ok) return;
   await window.fetch(supabaseUrl+'/rest/v1/players?id=eq.'+encodeURIComponent(currentUser.id),{
@@ -10003,7 +10031,7 @@ async function buyLand(landId){
   var price=getLandBuyPrice(_computeRentPeriods(land));
   var w=window.__wallet||{nyx:0};
   if(w.nyx<price){showToast('⚠️ Solde insuffisant ('+price+' NYX requis)');return;}
-  if(!await askConfirm('Elle deviendra ta propriété définitive. Tu continues d\'encaisser les récompenses de passages.\n\nPrix : <strong style="color:var(--gold)">'+price+' NYX</strong>',{title:'Acheter cette Land',emoji:'🏡',okLabel:'Acheter ('+price+' NYX)',success:true})) return;
+  if(!await askConfirm(t('lands.buy.modal.msg')+'\n\n'+t('shop.price')+' <strong style="color:var(--gold)">'+price+' NYX</strong>',{title:t('lands.buy.modal.title'),emoji:'🏡',okLabel:t('shop.buy.btn').replace('{n}',price),success:true})) return;
   var ok=await walletDebitNyx(price,'Achat Land '+landId.substring(0,8));
   if(!ok) return;
   await window.fetch(supabaseUrl+'/rest/v1/lands?id=eq.'+encodeURIComponent(landId),{
@@ -10045,15 +10073,15 @@ async function buyLand(landId){
 }
 
 function openSellModal(landId){
-  document.getElementById('lm-title').textContent='💰 Vendre ta Land';
+  document.getElementById('lm-title').textContent=t('lands.sell.modal.title');
   document.getElementById('lm-sub').textContent=landId.substring(0,10)+'…';
   document.getElementById('lm-body').innerHTML='<div style="display:flex;flex-direction:column;gap:.6rem">'
-    +'<div style="font-size:.78rem;color:var(--text)">Fixe ton prix de vente en NYX.<br><span style="color:var(--muted2)">Une taxe de 10% sera prélevée à la vente.</span></div>'
+    +'<div style="font-size:.78rem;color:var(--text)">'+t('lands.sell.modal.intro')+'<br><span style="color:var(--muted2)">'+t('lands.sell.modal.tax')+'</span></div>'
     +'<div>'
-      +'<label style="font-size:.65rem;color:var(--muted2);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:.2rem">Prix de vente (NYX)</label>'
-      +'<input id="sell-price-input" type="number" min="1" placeholder="Ex : 150" style="width:100%;padding:.45rem .6rem;border-radius:6px;border:1px solid var(--border2);background:var(--bg3);color:var(--green);font-size:.9rem;font-family:Space Mono,monospace;outline:none;box-sizing:border-box">'
+      +'<label style="font-size:.65rem;color:var(--muted2);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:.2rem">'+t('lands.sell.modal.label')+'</label>'
+      +'<input id="sell-price-input" type="number" min="1" placeholder="'+t('lands.sell.modal.ph')+'" style="width:100%;padding:.45rem .6rem;border-radius:6px;border:1px solid var(--border2);background:var(--bg3);color:var(--green);font-size:.9rem;font-family:Space Mono,monospace;outline:none;box-sizing:border-box">'
     +'</div>'
-    +'<button onclick="confirmSellLand(\''+landId+'\')" style="padding:.45rem;border-radius:7px;border:1.5px solid var(--cyan);background:rgba(32,208,224,.1);color:var(--cyan);font-weight:700;font-size:.82rem;cursor:pointer">Mettre en vente</button>'
+    +'<button onclick="confirmSellLand(\''+landId+'\')" style="padding:.45rem;border-radius:7px;border:1.5px solid var(--cyan);background:rgba(32,208,224,.1);color:var(--cyan);font-weight:700;font-size:.82rem;cursor:pointer">'+t('lands.sell.modal.btn')+'</button>'
   +'</div>';
   openModal('land-modal');
 }
@@ -10089,7 +10117,7 @@ async function buyLandFromSale(saleId,landId,sellerId,price){
   if(currentUser.id===sellerId){showToast('⚠️ Tu ne peux pas acheter ta propre Land');return;}
   var w=window.__wallet||{nyx:0};
   if(w.nyx<price){showToast('⚠️ Solde insuffisant ('+price+' NYX requis)');return;}
-  if(!await askConfirm('Prix : <strong style="color:var(--gold)">'+price+' NYX</strong>',{title:'Acheter cette Land',emoji:'🏡',okLabel:'Acheter ('+price+' NYX)',success:true})) return;
+  if(!await askConfirm(t('shop.price')+' <strong style="color:var(--gold)">'+price+' NYX</strong>',{title:t('lands.buy.modal.title'),emoji:'🏡',okLabel:t('shop.buy.btn').replace('{n}',price),success:true})) return;
   // Débiter l'acheteur
   var ok=await walletDebitNyx(price,'Achat Land '+landId.substring(0,8));
   if(!ok) return;
