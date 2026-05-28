@@ -903,26 +903,23 @@ select option{background:#040c1c}
 </style>
 
 <div style="position:relative;z-index:2;width:100%;text-align:center">
-<!-- Sélecteur de langue (FR/EN) — flottant en haut à droite, uniquement sur la page d'accueil/inscription -->
+<!-- Sélecteur de langue — chip unique en haut à droite. Affiche la langue vers
+     laquelle basculer : 🇬🇧 EN quand on est en FR, 🇫🇷 FR quand on est en EN.
+     FR par défaut ; le retour FR est aussi possible dans le profil. applyI18n
+     masque la langue active (voir bloc hero-lang-btn). -->
 <div id="hero-lang-switch" style="position:absolute;top:.6rem;right:.7rem;z-index:5;display:flex;gap:.3rem">
-  <button type="button" onclick="setLang('fr')" data-lang="fr" class="hero-lang-btn" style="padding:.32rem .6rem;border-radius:6px;border:1px solid rgba(255,255,255,.18);background:rgba(0,0,0,.5);color:#fff;font-family:'Space Mono',monospace;font-size:.68rem;font-weight:700;cursor:pointer;letter-spacing:.3px;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)">🇫🇷 FR</button>
-  <button type="button" onclick="setLang('en')" data-lang="en" class="hero-lang-btn" style="padding:.32rem .6rem;border-radius:6px;border:1px solid rgba(255,255,255,.18);background:rgba(0,0,0,.5);color:#fff;font-family:'Space Mono',monospace;font-size:.68rem;font-weight:700;cursor:pointer;letter-spacing:.3px;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)">🇬🇧 EN</button>
+  <button type="button" onclick="setLang('fr')" data-lang="fr" class="hero-lang-btn" style="display:none;padding:.34rem .62rem;border-radius:7px;border:1px solid rgba(255,255,255,.28);background:rgba(0,0,0,.55);color:#fff;font-family:'Space Mono',monospace;font-size:.72rem;font-weight:700;cursor:pointer;letter-spacing:.3px;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)">🇫🇷 FR</button>
+  <button type="button" onclick="setLang('en')" data-lang="en" class="hero-lang-btn" style="padding:.34rem .62rem;border-radius:7px;border:1px solid rgba(255,255,255,.28);background:rgba(0,0,0,.55);color:#fff;font-family:'Space Mono',monospace;font-size:.72rem;font-weight:700;cursor:pointer;letter-spacing:.3px;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)">🇬🇧 EN</button>
 </div>
 <div style="display:flex;flex-direction:column;align-items:center;width:100%;max-width:500px;margin:0 auto;background:#020408">
 <!-- Image 1 : Logo SPEEDIX (toujours visible — identité de marque) -->
 <img id="hero-logo" src="hero-speedix-league.png" alt="SPEEDIX LEAGUE" style="width:100%;display:block" loading="eager">
-<!-- Tagline entre les 2 images — masquée hors étape 1 -->
+<!-- Tagline — masquée hors étape 1 -->
 <div id="hero-tagline" data-i18n-html="hero.tagline" style="font-family:'Bebas Neue',sans-serif;font-size:1.15rem;letter-spacing:2.5px;color:#f5c842;text-align:center;padding:.9rem .5rem .55rem;line-height:1.15;text-shadow:0 0 18px rgba(245,200,66,.35)">1<sup style="font-size:.55em;letter-spacing:0">er</sup> CHAMPIONNAT DE RUNNING</div>
 <!-- Image 2 : Leagues — masquée hors étape 1 -->
 <img id="hero-leagues" src="hero-speedix-leagues.png" alt="Les 8 Leagues SPEEDIX" style="width:100%;display:block" loading="eager">
-<!-- Sous-titre sous l'image 2 — masqué dès qu'on entre dans le tunnel d'inscription
-     (étapes 2-5) pour libérer de la place au formulaire et éviter le scroll. -->
-<div id="hero-subtitle" style="text-align:center;padding:.7rem .5rem .3rem">
-  <div data-i18n-html="hero.subtitle.line1" style="font-family:'Bebas Neue',sans-serif;font-size:1rem;letter-spacing:3px;line-height:1.1;text-shadow:0 2px 10px rgba(0,0,0,.6)"><span style="color:#f5c842">COMPÉTITION</span> <span style="color:#8aaccc">—</span> <span style="color:#4a90ff">MOTIVATION</span> <span style="color:#8aaccc">—</span> <span style="color:#2ddb80">GAMING</span></div>
-  <div data-i18n="hero.subtitle.line2" style="font-family:'Rajdhani',sans-serif;font-size:.78rem;letter-spacing:1.5px;color:#fff;font-weight:600;margin-top:.2rem;font-style:italic">L'effort devient un jeu</div>
-</div>
 <!-- Boutons -->
-<div style="width:100%;max-width:420px;padding:1.5rem 20px 2rem;animation:bIn .7s .15s ease both">
+<div style="width:100%;max-width:420px;padding:.8rem 20px 1.2rem;animation:bIn .7s .15s ease both">
 
 
   <div id="hs1" class="hstep">
@@ -935,14 +932,8 @@ select option{background:#040c1c}
       <div style="position:absolute;top:0;bottom:0;width:50%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.16),transparent);transform:skewX(-15deg);animation:shine 3s 1s ease-in-out infinite;pointer-events:none"></div>
       <span data-i18n-html="hero.btn.create">▶ &nbsp;CRÉER MON COMPTE</span>
     </button>
-    <!-- Séparateur -->
-    <div style="display:flex;align-items:center;gap:8px;margin:14px 0 10px">
-      <div style="flex:1;height:1px;background:rgba(255,255,255,.08)"></div>
-      <span style="font-size:.6rem;color:rgba(255,255,255,.25);font-family:'Space Mono',monospace;letter-spacing:1px">OU</span>
-      <div style="flex:1;height:1px;background:rgba(255,255,255,.08)"></div>
-    </div>
-    <!-- Joueur existant — bouton bien visible -->
-    <button onclick="showLoginScreen()" style="width:75%;max-width:280px;display:block;margin:0 auto;padding:11px;border-radius:10px;border:1.5px solid rgba(74,144,255,.5);background:rgba(74,144,255,.08);font-family:'Bebas Neue',sans-serif;font-size:1rem;letter-spacing:4px;color:#4a90ff;cursor:pointer;transition:all .18s"
+    <!-- Joueur existant — bouton bien visible (séparateur "OU" retiré, écart resserré) -->
+    <button onclick="showLoginScreen()" style="width:75%;max-width:280px;display:block;margin:8px auto 0;padding:11px;border-radius:10px;border:1.5px solid rgba(74,144,255,.5);background:rgba(74,144,255,.08);font-family:'Bebas Neue',sans-serif;font-size:1rem;letter-spacing:4px;color:#4a90ff;cursor:pointer;transition:all .18s"
     onmouseover="this.style.background='rgba(74,144,255,.18)';this.style.borderColor='rgba(74,144,255,.8)'"
     onmouseout="this.style.background='rgba(74,144,255,.08)';this.style.borderColor='rgba(74,144,255,.5)'">
       <span data-i18n="hero.btn.login">🔑 J'AI DÉJÀ UN COMPTE</span>
@@ -1088,6 +1079,13 @@ select option{background:#040c1c}
     <div style="display:flex;justify-content:center;gap:6px"><div class="sdot" data-s="1"></div><div class="sdot" data-s="2"></div><div class="sdot" data-s="3"></div><div class="sdot" data-s="4"></div><div class="sdot" data-s="5"></div><div class="sdot active" data-s="6"></div></div>
   </div>
 
+</div>
+<!-- Slogan COMPÉTITION-MOTIVATION-GAMING — déplacé SOUS les boutons d'entrée (étape 1)
+     pour que CRÉER / J'AI DÉJÀ UN COMPTE restent visibles sans scroll.
+     Masqué hors étape 1 par showLoginScreen et hgo (manipulés par id #hero-subtitle). -->
+<div id="hero-subtitle" style="text-align:center;padding:.55rem .5rem .3rem">
+  <div data-i18n-html="hero.subtitle.line1" style="font-family:'Bebas Neue',sans-serif;font-size:1rem;letter-spacing:3px;line-height:1.1;text-shadow:0 2px 10px rgba(0,0,0,.6)"><span style="color:#f5c842">COMPÉTITION</span> <span style="color:#8aaccc">—</span> <span style="color:#4a90ff">MOTIVATION</span> <span style="color:#8aaccc">—</span> <span style="color:#2ddb80">GAMING</span></div>
+  <div data-i18n="hero.subtitle.line2" style="font-family:'Rajdhani',sans-serif;font-size:.78rem;letter-spacing:1.5px;color:#fff;font-weight:600;margin-top:.2rem;font-style:italic">L'effort devient un jeu</div>
 </div>
 </div>
 </div>
@@ -4959,7 +4957,7 @@ const I18N = {
     // — Page d'accueil (hero / landing)
     'hero.tagline'              : '1<sup style="font-size:.55em;letter-spacing:0">st</sup> RUNNING CHAMPIONSHIP',
     'hero.btn.create'           : '▶ &nbsp;CREATE MY ACCOUNT',
-    'hero.btn.login'            : '🔑 I ALREADY HAVE AN ACCOUNT',
+    'hero.btn.login'            : '🔑 I HAVE AN ACCOUNT',
     'hero.subtitle.line1'       : '<span style="color:#f5c842">COMPETITION</span> <span style="color:#8aaccc">—</span> <span style="color:#4a90ff">MOTIVATION</span> <span style="color:#8aaccc">—</span> <span style="color:#2ddb80">GAMING</span>',
     'hero.subtitle.line2'       : 'When effort becomes a game',
     // — Sign-up funnel: install (hs2 header)
@@ -5012,15 +5010,12 @@ const I18N = {
 };
 
 function _i18nDetectLang(){
-  // 1) Préférence sauvée
+  // Seule la préférence explicitement choisie (bouton FR/EN) est respectée.
+  // Sinon FR par défaut — on n'auto-détecte PAS la langue du téléphone,
+  // sinon les utilisateurs avec un mobile en anglais s'ouvriraient en EN.
   try{
     var saved=localStorage.getItem('speedix_lang');
     if(saved && I18N_SUPPORTED.indexOf(saved)>=0) return saved;
-  }catch(e){}
-  // 2) Langue du téléphone
-  try{
-    var nav=(navigator.language||navigator.userLanguage||I18N_DEFAULT_LANG).slice(0,2).toLowerCase();
-    if(I18N_SUPPORTED.indexOf(nav)>=0) return nav;
   }catch(e){}
   return I18N_DEFAULT_LANG;
 }
@@ -5094,14 +5089,12 @@ function applyI18n(root){
     for(var k=0;k<elsPh.length;k++){ elsPh[k].placeholder=t(elsPh[k].getAttribute('data-i18n-placeholder')); }
     var elsTitle=root.querySelectorAll('[data-i18n-title]');
     for(var y=0;y<elsTitle.length;y++){ elsTitle[y].title=t(elsTitle[y].getAttribute('data-i18n-title')); }
-    // Sélecteur de langue de la page d'accueil : highlight de la langue active
+    // Sélecteur de langue : chip unique en haut à droite. On n'affiche QUE la
+    // langue vers laquelle basculer ; la langue active est masquée.
     var langBtns=root.querySelectorAll('.hero-lang-btn');
     for(var x=0;x<langBtns.length;x++){
       var btn=langBtns[x];
-      var on=(btn.getAttribute('data-lang')===SPEEDIX_LANG);
-      btn.style.borderColor=on?'#f5c842':'rgba(255,255,255,.18)';
-      btn.style.background =on?'rgba(245,200,66,.18)':'rgba(0,0,0,.5)';
-      btn.style.color      =on?'#f5c842':'#fff';
+      btn.style.display=(btn.getAttribute('data-lang')===SPEEDIX_LANG)?'none':'';
     }
     // Menus déroulants de pays
     _applyCountryI18n(root);
