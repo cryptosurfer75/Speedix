@@ -5256,6 +5256,11 @@ function showLoginScreen(){
       '<div id="login-error" style="font-size:.65rem;color:#ff6060;text-align:center;display:none;font-family:Space Mono,monospace"></div>'+
     '</div>'+
     '<button onclick="doLogin()" style="width:100%;padding:12px;border-radius:10px;border:none;border-bottom:4px solid #0c2e10;background:linear-gradient(180deg,#5ecb62,#2d8a32);color:#fff;font-family:Bebas Neue,sans-serif;font-size:1rem;letter-spacing:3px;cursor:pointer;margin-bottom:6px">'+t('login.btn')+'</button>'+
+    // Boutons communauté — uniquement ici (sous SE CONNECTER) : Facebook au-dessus, Instagram en dessous.
+    '<div style="display:flex;flex-direction:column;align-items:center;gap:9px;margin:14px 0 6px">'+
+      '<a href="https://www.facebook.com/groups/906611848921910" target="_blank" rel="noopener noreferrer" aria-label="Communauté SPEEDIX sur Facebook" title="Communauté Facebook" style="display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;background:#1877F2;border-radius:50%;text-decoration:none;box-shadow:0 3px 10px rgba(0,0,0,.35);border:1.5px solid rgba(255,255,255,.85)"><svg width="20" height="20" viewBox="0 0 24 24" fill="#fff" aria-hidden="true"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg></a>'+
+      '<a href="https://www.instagram.com/speedixleague/" target="_blank" rel="noopener noreferrer" aria-label="SPEEDIX League sur Instagram" title="Instagram officiel" style="display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;background:linear-gradient(45deg,#f09433 0%,#e6683c 25%,#dc2743 50%,#cc2366 75%,#bc1888 100%);border-radius:50%;text-decoration:none;box-shadow:0 3px 10px rgba(0,0,0,.35);border:1.5px solid rgba(255,255,255,.85)"><svg width="20" height="20" viewBox="0 0 24 24" fill="#fff" aria-hidden="true"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg></a>'+
+    '</div>'+
     '<button onclick="location.reload()" style="background:none;border:none;color:rgba(255,255,255,.25);font-size:.62rem;cursor:pointer;font-family:Space Mono,monospace;width:100%;text-align:center">'+t('login.back')+'</button>';
 }
 
@@ -22380,68 +22385,12 @@ if ('serviceWorker' in navigator) {
 }
 </script>
 
-<!-- ==========================================================
-     BOUTON FLOTTANT COMMUNAUTÉ FB — visible avant connexion uniquement.
-     Remplace l'ancien chat Tawk.to (trop chronophage en solo).
-     Une fois le RP loggué, _chatHide() le masque (même comportement
-     que l'ancien widget chat).
-========================================================== -->
-<!-- Conteneur "social stack" — prévu pour ajouter Insta/TikTok/etc plus tard.
-     Petits boutons ronds empilés verticalement, discrets, ne masquent pas les CTAs. -->
-<div id="social-stack" style="position:fixed;bottom:14px;right:14px;z-index:9999;display:flex;flex-direction:column;gap:8px;align-items:flex-end">
-  <a id="ig-official-btn"
-     href="https://www.instagram.com/speedixleague/"
-     target="_blank"
-     rel="noopener noreferrer"
-     aria-label="SPEEDIX League sur Instagram"
-     title="Instagram officiel"
-     style="display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;background:linear-gradient(45deg,#f09433 0%,#e6683c 25%,#dc2743 50%,#cc2366 75%,#bc1888 100%);color:#fff;border-radius:50%;text-decoration:none;box-shadow:0 3px 10px rgba(0,0,0,.35);border:1.5px solid rgba(255,255,255,.85);transition:transform .15s ease, box-shadow .15s ease;opacity:.9">
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="#fff" aria-hidden="true"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>
-  </a>
-  <a id="fb-community-btn"
-     href="https://www.facebook.com/groups/906611848921910"
-     target="_blank"
-     rel="noopener noreferrer"
-     aria-label="Communauté SPEEDIX sur Facebook"
-     title="Communauté Facebook"
-     style="display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;background:#1877F2;color:#fff;border-radius:50%;text-decoration:none;box-shadow:0 3px 10px rgba(0,0,0,.35);border:1.5px solid rgba(255,255,255,.85);transition:transform .15s ease, box-shadow .15s ease;opacity:.9">
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="#fff" aria-hidden="true"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
-  </a>
-</div>
-<script>
-(function(){
-  try{
-    // Hover commun à tous les boutons sociaux du stack — léger lift + opacité pleine.
-    // Couleur de glow par bouton via data-glow (sinon fallback générique).
-    var stackBtns=document.querySelectorAll('#social-stack > a');
-    if(!stackBtns.length) return;
-    var glowMap={'fb-community-btn':'rgba(24,119,242,.5)','ig-official-btn':'rgba(220,39,67,.5)'};
-    stackBtns.forEach(function(btn){
-      var glow=glowMap[btn.id]||'rgba(255,255,255,.4)';
-      btn.addEventListener('mouseenter',function(){
-        btn.style.transform='scale(1.08)';
-        btn.style.opacity='1';
-        btn.style.boxShadow='0 5px 14px '+glow;
-      });
-      btn.addEventListener('mouseleave',function(){
-        btn.style.transform='';
-        btn.style.opacity='.9';
-        btn.style.boxShadow='0 3px 10px rgba(0,0,0,.35)';
-      });
-    });
-    // Au démarrage : si session Supabase active (RP qui revient), masquer
-    // tout le stack social immédiatement.
-    setTimeout(function(){
-      try{
-        if(typeof currentUser !== 'undefined' && currentUser){
-          var stack=document.getElementById('social-stack');
-          if(stack) stack.style.display='none';
-        }
-      }catch(e){}
-    }, 1500);
-  }catch(e){ console.warn('[FB community btn] init failed', e); }
-})();
+<!-- Boutons sociaux (Facebook + Instagram) : déplacés dans l'écran de connexion
+     uniquement (voir showLoginScreen), sous le bouton SE CONNECTER. Plus de
+     bouton flottant sur la page d'accueil. _chatHide/_chatShow restent en place
+     (no-op sans #social-stack) au cas où on réintroduise un widget plus tard. -->
 
+<script>
 // ── Fix layout shift après changement d'orientation ──────────────────
 // Bug observé sur Xiaomi MIUI / certains Android : quand l'écran pivote
 // et revient en portrait, la WebView garde les dimensions de l'orientation
@@ -22647,9 +22596,13 @@ function _quizzLocalize(entry){
 }
 
 // Sélection de la question du jour à partir d'une date YYYY-MM-DD.
-// Garantit : (1) identique pour tous les RP un jour donné, (2) chaque question
-// du pool passe une fois avant qu'une seule ne se répète, (3) jamais deux jours
-// de suite la même catégorie. L'ordre est recalculé chaque année (seed = année).
+// Anti-triche (2026-05-28) : la question est PROPRE À CHAQUE JOUEUR — deux RP
+// n'ont (quasi) jamais la même question le même jour, donc impossible de se
+// souffler la réponse. Reste déterministe par (joueur, jour) : recharger la page
+// redonne la même question (pas de "reroll" pour tomber sur une question facile).
+// Garantit aussi, pour chaque joueur : (1) chaque question du pool passe une fois
+// avant qu'une seule ne se répète, (2) jamais deux jours de suite la même
+// catégorie. L'ordre est recalculé chaque année et dépend de l'id du joueur.
 function _quizzMulberry32(seed){
   return function(){
     seed |= 0; seed = (seed + 0x6D2B79F5) | 0;
@@ -22674,35 +22627,49 @@ function _quizzBuildOrder(seed){
       var t = arr[j]; arr[j] = arr[r]; arr[r] = t;
     }
   }
-  // Tirage glouton : à chaque tour, prendre la catégorie la plus représentée
-  // parmi celles restantes, en interdisant la même que la précédente.
+  // Tirage pondéré aléatoire : à chaque tour, choisir une catégorie au hasard
+  // parmi celles restantes (probabilité ∝ nombre de questions restantes, pour
+  // garder l'équilibre), en interdisant la même catégorie que la précédente.
+  // Le hasard vient du seed propre au joueur → séquence différente par RP.
   var result = [];
   var lastCat = null;
   var totalLeft = QUIZZ_POOL.length;
   while(totalLeft > 0){
-    var bestCat = null, bestCount = -1;
+    var elig = [], weights = 0;
     for(var k in buckets){
       if(buckets[k].length === 0) continue;
       if(k === lastCat) continue;
-      if(buckets[k].length > bestCount){ bestCount = buckets[k].length; bestCat = k; }
+      elig.push(k); weights += buckets[k].length;
     }
-    if(bestCat === null){
-      for(var k in buckets) if(buckets[k].length > 0){ bestCat = k; break; }
+    if(elig.length === 0){ // il ne reste plus que la catégorie précédente
+      for(var k in buckets) if(buckets[k].length > 0){ elig = [k]; weights = buckets[k].length; break; }
     }
-    result.push(buckets[bestCat].shift());
-    lastCat = bestCat;
+    var pick = Math.floor(rand() * weights), chosen = elig[0], acc = 0;
+    for(var e=0;e<elig.length;e++){ acc += buckets[elig[e]].length; if(pick < acc){ chosen = elig[e]; break; } }
+    result.push(buckets[chosen].shift());
+    lastCat = chosen;
     totalLeft--;
   }
   return result;
 }
+// Hash 32 bits (FNV-1a) d'une chaîne → entier de seed. Sert à dériver un ordre
+// de questions unique par joueur à partir de son id.
+function _quizzStrSeed(str){
+  var h = 0x811c9dc5;
+  for(var i=0;i<str.length;i++){ h ^= str.charCodeAt(i); h = Math.imul(h, 0x01000193); }
+  return h | 0;
+}
 var _quizzOrderCache = null;
-var _quizzOrderYear = null;
+var _quizzOrderKey = null;
 function quizzPickIndex(dateStr){
   var year = parseInt(dateStr.slice(0,4),10) || 2026;
-  if(_quizzOrderYear !== year){
-    var seed = (year * 2654435761) | 0;
+  var uid = (currentUser && currentUser.id) ? String(currentUser.id) : '';
+  var key = year + '|' + uid;
+  if(_quizzOrderKey !== key){
+    // seed = année combinée à l'id du joueur → ordre de questions propre à chaque RP
+    var seed = ((year * 2654435761) ^ _quizzStrSeed(uid)) | 0;
     _quizzOrderCache = _quizzBuildOrder(seed);
-    _quizzOrderYear = year;
+    _quizzOrderKey = key;
   }
   var d = new Date(dateStr + 'T00:00:00Z').getTime();
   var jan1 = new Date(year + '-01-01T00:00:00Z').getTime();
