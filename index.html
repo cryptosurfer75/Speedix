@@ -4250,6 +4250,19 @@ const I18N = {
     // — Modales wallets
     'wallet.nyx.title'          : 'MA CAGNOTTE NYX',
     'wallet.rpc.title'          : 'MA CAGNOTTE RPC',
+    'wallet.line.rpc.running'   : 'RPC en courant',
+    'wallet.line.rpc.challenges': 'RPC avec défis & challenges',
+    'wallet.line.rpc.lands'     : 'RPC avec passages Lands',
+    'wallet.line.rpc.bought'    : 'RPC achetés',
+    'wallet.line.rpc.misc'      : 'Bonus divers (grades, parrainage…)',
+    'wallet.line.nyx.challenges': 'NYX avec défis & challenges',
+    'wallet.line.nyx.sales'     : 'NYX avec ventes de Lands',
+    'wallet.line.nyx.referral'  : 'NYX avec parrainage',
+    'wallet.line.nyx.bought'    : 'NYX achetés',
+    'wallet.line.nyx.misc'      : 'Bonus divers (grades, gifts…)',
+    'wallet.total'              : 'Total gagné',
+    'wallet.balance'            : 'Solde actuel (après dépenses)',
+    'wallet.error'              : 'Erreur chargement',
     // — Modal Streak info
     'streak.title'              : 'CHAÎNE DE CONNEXION',
     'streak.intro'              : '<strong style="color:var(--gold)">Connecte-toi chaque jour</strong> à SPEEDIX pour faire grimper ta chaîne et empocher tes récompenses RPC.',
@@ -4987,6 +5000,19 @@ const I18N = {
     // — Wallet modals
     'wallet.nyx.title'          : 'MY NYX WALLET',
     'wallet.rpc.title'          : 'MY RPC WALLET',
+    'wallet.line.rpc.running'   : 'RPC from running',
+    'wallet.line.rpc.challenges': 'RPC from challenges & quests',
+    'wallet.line.rpc.lands'     : 'RPC from Land crossings',
+    'wallet.line.rpc.bought'    : 'RPC purchased',
+    'wallet.line.rpc.misc'      : 'Misc bonuses (grades, referrals…)',
+    'wallet.line.nyx.challenges': 'NYX from challenges & quests',
+    'wallet.line.nyx.sales'     : 'NYX from Land sales',
+    'wallet.line.nyx.referral'  : 'NYX from referrals',
+    'wallet.line.nyx.bought'    : 'NYX purchased',
+    'wallet.line.nyx.misc'      : 'Misc bonuses (grades, gifts…)',
+    'wallet.total'              : 'Total earned',
+    'wallet.balance'            : 'Current balance (after spending)',
+    'wallet.error'              : 'Loading error',
     // — Streak info modal
     'streak.title'              : 'LOGIN STREAK',
     'streak.intro'              : '<strong style="color:var(--gold)">Log in every day</strong> on SPEEDIX to grow your streak and collect your RPC rewards.',
@@ -11953,7 +11979,19 @@ async function _processEndOfPeriodInner(){
   // alors la période de calibrage est terminée → on peut le passer compétitif.
   // Sinon (RP juste arrivé en calibrage durant cette période) il garde son
   // calibrage pour la période suivante.
-  for(var ci=0;ci<ranked.length;ci++){
+  //
+  // INTERRUPTEUR GLOBAL DE LANCEMENT : tant que game_settings.competition_enabled
+  // n'est pas 'true', AUCUNE bascule en compétitif n'a lieu — tout le monde reste
+  // en calibrage à chaque rotation. Permet de retarder le lancement officiel de
+  // la compétition (buy-in / podium / prize pool) sans reconfigurer les joueurs
+  // un par un. Pour lancer la compétition : passer cette clé à true côté Supabase.
+  // (clé absente = compétition OFF par sécurité).
+  var _compEnabled=false;
+  try {
+    var {data:_compRow}=await supabaseClient.from('game_settings').select('value').eq('key','competition_enabled').maybeSingle();
+    _compEnabled=(_compRow && (_compRow.value==='true' || _compRow.value===true));
+  } catch(eCompFlag){ console.warn('[rotation] lecture competition_enabled :', eCompFlag); }
+  if(_compEnabled) for(var ci=0;ci<ranked.length;ci++){
     var cp=ranked[ci];
     var cpFull=allPlayers.find(function(x){return x.id===cp.id;})||{};
     var cpInInf=cpFull.infirmerie_until && new Date(cpFull.infirmerie_until)>new Date();
@@ -12677,11 +12715,11 @@ async function renderSocialFeed(){
   var searchWrap=document.getElementById('feed-search')?.closest('div[style*="margin-bottom"]');
   if(friendsTab&&!isPremium()){
     friendsTab.style.opacity='.4';
-    friendsTab.textContent='🔒 Mes amis';
+    friendsTab.textContent='🔒 '+t('social.tab.friends');
     if(searchWrap) searchWrap.style.display='none';
   } else if(friendsTab){
     friendsTab.style.opacity='1';
-    friendsTab.textContent='Mes amis';
+    friendsTab.textContent=t('social.tab.friends');
     if(searchWrap) searchWrap.style.display='';
   }
   if(!currentUser){feed.innerHTML='<div style="text-align:center;padding:2rem;color:var(--muted2);font-size:.82rem">Connecte-toi pour voir le fil social</div>';return;}
@@ -15615,7 +15653,7 @@ async function showWalletBreakdown(){
   if(!currentUser) return;
   openModal('wallet-detail-modal');
   var bodyEl=document.getElementById('wallet-detail-body');
-  if(bodyEl) bodyEl.innerHTML='<div style="text-align:center;color:var(--muted2);font-size:.8rem;padding:1rem">Chargement…</div>';
+  if(bodyEl) bodyEl.innerHTML='<div style="text-align:center;color:var(--muted2);font-size:.8rem;padding:1rem">'+t('modal.loading')+'</div>';
   try {
     // 1. RPC course = somme des points de tous les runs × 6 (source de vérité,
     //    runs.points est toujours rempli même si wallet_tx a des trous legacy).
@@ -15674,22 +15712,22 @@ async function showWalletBreakdown(){
         +'</div>';
     };
     bodyEl.innerHTML=
-      line('🏃','RPC en courant',courseRpc,'#4a90ff')
-      +line('🎖️','RPC avec défis & challenges',defisRpc,'var(--gold)')
-      +line('🗺️','RPC avec passages Lands',landsRpc,'var(--green)')
-      +(achatRpc>0?line('💳','RPC achetés',achatRpc,'#20d0e0'):'')
-      +(autreRpc>0?line('🎁','Bonus divers (grades, parrainage…)',autreRpc,'#9060f0'):'')
+      line('🏃',t('wallet.line.rpc.running'),courseRpc,'#4a90ff')
+      +line('🎖️',t('wallet.line.rpc.challenges'),defisRpc,'var(--gold)')
+      +line('🗺️',t('wallet.line.rpc.lands'),landsRpc,'var(--green)')
+      +(achatRpc>0?line('💳',t('wallet.line.rpc.bought'),achatRpc,'#20d0e0'):'')
+      +(autreRpc>0?line('🎁',t('wallet.line.rpc.misc'),autreRpc,'#9060f0'):'')
       +'<div style="display:flex;justify-content:space-between;align-items:center;padding:.85rem .5rem;margin-top:.4rem;background:rgba(245,200,66,.08);border:1px solid rgba(245,200,66,.3);border-radius:8px">'
-      +'<span style="font-family:Bebas Neue,sans-serif;font-size:1rem;letter-spacing:2px;color:var(--text)">Total gagné</span>'
+      +'<span style="font-family:Bebas Neue,sans-serif;font-size:1rem;letter-spacing:2px;color:var(--text)">'+t('wallet.total')+'</span>'
       +'<strong style="font-family:Space Mono,monospace;font-size:1rem;color:var(--gold)">'+fmt(totalGagne)+' RPC</strong>'
       +'</div>'
       +'<div style="display:flex;justify-content:space-between;align-items:center;padding:.5rem .5rem;margin-top:.3rem;font-size:.7rem;color:var(--muted2)">'
-      +'<span>Solde actuel (après dépenses)</span>'
+      +'<span>'+t('wallet.balance')+'</span>'
       +'<span style="font-family:Space Mono,monospace">'+fmt(soldeActuel)+' RPC</span>'
       +'</div>';
   } catch(e){
     console.warn('showWalletBreakdown fail',e);
-    if(bodyEl) bodyEl.innerHTML='<div style="text-align:center;color:var(--red);font-size:.8rem;padding:1rem">Erreur chargement</div>';
+    if(bodyEl) bodyEl.innerHTML='<div style="text-align:center;color:var(--red);font-size:.8rem;padding:1rem">'+t('wallet.error')+'</div>';
   }
 }
 
@@ -15699,7 +15737,7 @@ async function showNyxBreakdown(){
   if(!currentUser) return;
   openModal('wallet-nyx-modal');
   var bodyEl=document.getElementById('wallet-nyx-body');
-  if(bodyEl) bodyEl.innerHTML='<div style="text-align:center;color:var(--muted2);font-size:.8rem;padding:1rem">Chargement…</div>';
+  if(bodyEl) bodyEl.innerHTML='<div style="text-align:center;color:var(--muted2);font-size:.8rem;padding:1rem">'+t('modal.loading')+'</div>';
   try {
     // 1. Badges débloqués (NYX crédité par check-badges, pas dans wallet_tx)
     var {data:pb}=await supabaseClient.from('player_badges')
@@ -15736,22 +15774,22 @@ async function showNyxBreakdown(){
         +'</div>';
     };
     bodyEl.innerHTML=
-      line('🎖️','NYX avec défis & challenges',defisNyx,'var(--gold)')
-      +line('🏷️','NYX avec ventes de Lands',ventesNyx,'var(--cyan)')
-      +(parrainageNyx>0?line('🤝','NYX avec parrainage',parrainageNyx,'#f5c842'):'')
-      +(achatNyx>0?line('💳','NYX achetés',achatNyx,'#20d0e0'):'')
-      +(autreNyx>0?line('🎁','Bonus divers (grades, gifts…)',autreNyx,'#9060f0'):'')
+      line('🎖️',t('wallet.line.nyx.challenges'),defisNyx,'var(--gold)')
+      +line('🏷️',t('wallet.line.nyx.sales'),ventesNyx,'var(--cyan)')
+      +(parrainageNyx>0?line('🤝',t('wallet.line.nyx.referral'),parrainageNyx,'#f5c842'):'')
+      +(achatNyx>0?line('💳',t('wallet.line.nyx.bought'),achatNyx,'#20d0e0'):'')
+      +(autreNyx>0?line('🎁',t('wallet.line.nyx.misc'),autreNyx,'#9060f0'):'')
       +'<div style="display:flex;justify-content:space-between;align-items:center;padding:.85rem .5rem;margin-top:.4rem;background:rgba(45,219,128,.08);border:1px solid rgba(45,219,128,.3);border-radius:8px">'
-      +'<span style="font-family:Bebas Neue,sans-serif;font-size:1rem;letter-spacing:2px;color:var(--text)">Total gagné</span>'
+      +'<span style="font-family:Bebas Neue,sans-serif;font-size:1rem;letter-spacing:2px;color:var(--text)">'+t('wallet.total')+'</span>'
       +'<strong style="font-family:Space Mono,monospace;font-size:1rem;color:var(--green)">'+fmt(totalGagne)+' NYX</strong>'
       +'</div>'
       +'<div style="display:flex;justify-content:space-between;align-items:center;padding:.5rem .5rem;margin-top:.3rem;font-size:.7rem;color:var(--muted2)">'
-      +'<span>Solde actuel (après dépenses)</span>'
+      +'<span>'+t('wallet.balance')+'</span>'
       +'<span style="font-family:Space Mono,monospace">'+fmt(soldeActuel)+' NYX</span>'
       +'</div>';
   } catch(e){
     console.warn('showNyxBreakdown fail',e);
-    if(bodyEl) bodyEl.innerHTML='<div style="text-align:center;color:var(--red);font-size:.8rem;padding:1rem">Erreur chargement</div>';
+    if(bodyEl) bodyEl.innerHTML='<div style="text-align:center;color:var(--red);font-size:.8rem;padding:1rem">'+t('wallet.error')+'</div>';
   }
 }
 
