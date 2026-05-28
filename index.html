@@ -3932,6 +3932,7 @@ const I18N = {
     'lands.page.title'          : 'Conquête des <span style="color:var(--gold)">Lands</span>',
     'lands.page.subtitle'       : 'Explorer · Louer · Acheter · Étoiles · Trésors',
     'lands.rent.thismonth'      : 'Loyer ce mois :',
+    'lands.rent.paid'           : '✓ Payé',
     'lands.rent.tooltip'        : 'Cliquer pour payer le loyer mensuel',
     'lands.map.title'           : 'Carte <span class="hl">Hexagonale</span>',
     'lands.map.indiv'           : 'Individuel',
@@ -4612,6 +4613,7 @@ const I18N = {
     'lands.page.title'          : '<span style="color:var(--gold)">Land</span> capture',
     'lands.page.subtitle'       : 'Explore · Rent · Buy · Stars · Treasures',
     'lands.rent.thismonth'      : 'Rent this month:',
+    'lands.rent.paid'           : '✓ Paid',
     'lands.rent.tooltip'        : 'Click to pay monthly rent',
     'lands.map.title'           : '<span class="hl">Hexagonal</span> map',
     'lands.map.indiv'           : 'Individual',
@@ -10268,11 +10270,11 @@ async function renderMyLands(page){
   var loyerEl=document.getElementById('lands-loyer-total');
   if(loyerEl){
     if(rentAlreadyPaid){
-      loyerEl.innerHTML='Loyer ce mois : <strong style="color:var(--green);margin-left:.35rem">✓ Payé</strong>';
+      loyerEl.innerHTML=t('lands.rent.thismonth')+' <strong style="color:var(--green);margin-left:.35rem">'+t('lands.rent.paid')+'</strong>';
     } else if(totalLoyer===0){
-      loyerEl.innerHTML='Loyer ce mois : <strong style="color:var(--muted2);margin-left:.35rem">—</strong>';
+      loyerEl.innerHTML=t('lands.rent.thismonth')+' <strong style="color:var(--muted2);margin-left:.35rem">—</strong>';
     } else {
-      loyerEl.innerHTML='Loyer ce mois : <strong style="color:var(--red);margin-left:.35rem">−'+totalLoyer.toLocaleString(SPEEDIX_LANG)+' RPC</strong>';
+      loyerEl.innerHTML=t('lands.rent.thismonth')+' <strong style="color:var(--red);margin-left:.35rem">−'+totalLoyer.toLocaleString(SPEEDIX_LANG)+' RPC</strong>';
     }
   }
   _allMyLands=myLands;
