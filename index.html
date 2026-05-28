@@ -1483,7 +1483,7 @@ select option{background:#040c1c}
     <!-- Gel : sur ma PC affiche mon stock, sur la PC d'un autre RP devient le bouton "Geler" -->
     <div class="block" id="gel-block">
       <div class="block-header">
-        <div class="block-title"><span class="hl" style="color:#4ac8ff">Gel</span> <span id="gel-status-label" data-i18n="dash.gel.status" style="font-size:.7rem;color:var(--muted2)">-5% · 24h</span></div>
+        <div class="block-title"><span class="hl" style="color:#4ac8ff" data-i18n="pcard.gel.label">Gel</span> <span id="gel-status-label" data-i18n="dash.gel.status" style="font-size:.7rem;color:var(--muted2)">-5% · 24h</span></div>
         <div style="display:flex;gap:.4rem;align-items:center">
           <div id="gel-timer" style="font-family:'Space Mono',monospace;font-size:.65rem;color:#4ac8ff;display:none"></div>
           <button onclick="openModal('gel-shop-modal')" data-i18n="dash.btn.buy" style="font-size:.6rem;padding:.15rem .45rem;border-radius:4px;border:1px solid rgba(74,200,255,.4);background:rgba(74,200,255,.08);color:#4ac8ff;font-weight:700;cursor:pointer">+ Acheter</button>
@@ -3675,7 +3675,7 @@ function askConfirm(message, opts){
 ============================================================ -->
 <div id="page-quizz" class="page">
   <div style="max-width:640px;margin:0 auto;padding:0 .3rem">
-    <div style="font-family:'Bebas Neue',sans-serif;font-size:2rem;letter-spacing:3px;line-height:1;margin-bottom:1.25rem;text-align:center">
+    <div data-i18n-html="quizz.page.title" style="font-family:'Bebas Neue',sans-serif;font-size:2rem;letter-spacing:3px;line-height:1;margin-bottom:1.25rem;text-align:center">
       <span style="color:var(--text)">Quizz</span> <span style="color:#4ac8ff;text-shadow:0 0 10px rgba(74,200,255,.5)">du jour</span>
     </div>
     <div id="quizz-content">
@@ -3849,6 +3849,39 @@ const I18N = {
     'dash.challenges.title'     : 'Mes <span class="hl">Challenges</span>',
     'dash.streak.singular'      : '{n} jour consécutif',
     'dash.streak.plural'        : '{n} jours consécutifs',
+    // — Carte joueur / dashboard (bas) : série, boost, gel, challenges
+    'pcard.streak.dead'         : 'Chaîne définitivement terminée 💔',
+    'pcard.streak.info.early'   : 'Jours 1-7 : <strong style="color:var(--gold)">300 RPC/jour</strong> · Ensuite : 100 RPC/jour',
+    'pcard.streak.info.active'  : '<strong style="color:var(--gold)">100 RPC/jour</strong> · Chaîne active depuis {n} jours',
+    'pcard.streak.info.warn'    : '<span style="color:var(--orange)">⚠️ {n} arrêt{s}</span> · <strong style="color:var(--gold)">{r} RPC/jour</strong>',
+    'pcard.boost.active'        : 'Boost actif : <strong style="color:var(--green)">+10%</strong> · {t} restant · {n} en réserve',
+    'pcard.boost.avail'         : '{n} boost{s} disponible{s} · Clique pour activer',
+    'pcard.boost.none'          : 'Aucun boost en réserve · <span style="cursor:pointer;color:var(--green);text-decoration:underline" onclick="openModal(\'boost-shop-modal\')">Acheter</span>',
+    'pcard.gel.label'           : 'Gel',
+    'pcard.gel.active'          : '<span style="color:#4ac8ff">🥶 Tu es gelé : <strong>-5%</strong> sur tes courses · {t} restant</span> · {n} en réserve',
+    'pcard.gel.stock'           : '{n} Gel{s} en réserve · va sur la PC d\'un autre RP pour l\'utiliser',
+    'pcard.gel.none'            : 'Aucun Gel en réserve · <span style="cursor:pointer;color:#4ac8ff;text-decoration:underline" onclick="openModal(\'gel-shop-modal\')">Acheter</span>',
+    'pcard.ch.none'             : 'Aucun',
+    'pcard.ch.upcoming'         : '{n} à venir',
+    'pcard.ch.empty.own'        : 'Aucun challenge en cours — va t\'inscrire au prochain !',
+    'pcard.ch.empty.other'      : 'Ce RP n\'a pas encore validé de challenge.',
+    'pcard.ch.btn'              : 'VOIR LES CHALLENGES',
+    // — Mode consultation (carte d'un autre RP) + infobulles
+    'pcard.slot.empty'          : 'Slot vide',
+    'pcard.boost.view.active'   : '⚡ Boost actif sur ce RP · {n} en réserve',
+    'pcard.boost.view.stock'    : '{n} boost{s} en réserve',
+    'pcard.boost.view.none'     : 'Aucun boost en réserve',
+    'pcard.boost.tip.activeView': 'Boost actif chez ce RP',
+    'pcard.boost.tip.activeOwn' : 'Boost actif — {t} restant',
+    'pcard.boost.tip.availView' : 'Boost en réserve chez ce RP',
+    'pcard.boost.tip.availOwn'  : 'Boost disponible — cliquer pour activer',
+    'pcard.gel.view.frozen'     : '<span style="color:#4ac8ff">🥶 Ce RP est déjà gelé · {t} restant{s}</span>',
+    'pcard.gel.view.frozenBtn'  : 'Déjà gelé',
+    'pcard.gel.view.buyBtn'     : '+ Acheter un Gel',
+    'pcard.gel.view.have'       : 'Tu as <strong style="color:#4ac8ff">{n}</strong> Gel{s} en réserve',
+    'pcard.gel.view.freezeBtn'  : '🥶 Geler ce RP',
+    'pcard.gel.tip.avail'       : 'Gel disponible — utilisable sur la PC d\'un autre RP',
+    'quizz.page.title'          : '<span style="color:var(--text)">Quizz</span> <span style="color:#4ac8ff;text-shadow:0 0 10px rgba(74,200,255,.5)">du jour</span>',
     // — Quizz quotidien
     'quizz.streak.singular'     : 'Série en cours : {n} jour',
     'quizz.streak.plural'       : 'Série en cours : {n} jours',
@@ -3930,6 +3963,22 @@ const I18N = {
     'lands.crossing.s2'         : '⭐⭐ Étoile ×2',
     'lands.crossing.s3'         : '⭐⭐⭐ Étoile ×3',
     'lands.crossing.note'       : 'Limité à 1 passage/jour/RP',
+    // — Popup d'exploration en fin de course (modale land-modal)
+    'lands.explored.modaltitle' : '🗺️ Exploration !',
+    'lands.explored.congrats'   : '🗺️ Félicitations !',
+    'lands.explored.intro'      : 'Tu as exploré',
+    'lands.explored.sub'        : 'Tes passages ont été enregistrés automatiquement.<br>Les lands visitées apparaissent sur la carte.',
+    'lands.explored.renthint'   : 'Clique sur les hexagones en jaune pour louer celles que tu désires. Sois stratégique pour former ton territoire.',
+    'lands.explored.renthint2'  : 'Clique sur les hexagones pour louer celles que tu désires. Sois stratégique pour former ton territoire.',
+    'lands.explored.btn'        : 'Explorer la carte →',
+    // — Popup d'acquisition d'une Land (devenir propriétaire)
+    'lands.owned.congrats'      : '🏠 Félicitations !',
+    'lands.owned.first.title'   : 'Tu es à présent propriétaire !',
+    'lands.owned.first.citizen' : 'Citoyen officiel de SPEEDIX',
+    'lands.owned.nth.pre'       : 'Tu viens d\'acquérir ta',
+    'lands.owned.nth.suffix'    : 'Land !',
+    'lands.owned.grow'          : 'Continue d\'agrandir ton territoire et bon jeu.',
+    'lands.owned.validate'      : 'Valider',
     // — Page Mes Courses (page-points)
     'runs.page.title'           : 'Mes <span style="color:var(--gold)">Courses</span>',
     'runs.page.subtitle'        : 'Historique & simulateur',
@@ -4480,6 +4529,39 @@ const I18N = {
     'dash.challenges.title'     : 'My <span class="hl">Challenges</span>',
     'dash.streak.singular'      : '{n} day in a row',
     'dash.streak.plural'        : '{n} days in a row',
+    // — Player card / dashboard (bottom): streak, boost, freeze, challenges
+    'pcard.streak.dead'         : 'Streak permanently over 💔',
+    'pcard.streak.info.early'   : 'Days 1-7: <strong style="color:var(--gold)">300 RPC/day</strong> · Then: 100 RPC/day',
+    'pcard.streak.info.active'  : '<strong style="color:var(--gold)">100 RPC/day</strong> · Streak active for {n} days',
+    'pcard.streak.info.warn'    : '<span style="color:var(--orange)">⚠️ {n} stop{s}</span> · <strong style="color:var(--gold)">{r} RPC/day</strong>',
+    'pcard.boost.active'        : 'Boost active: <strong style="color:var(--green)">+10%</strong> · {t} left · {n} in stock',
+    'pcard.boost.avail'         : '{n} boost{s} available · Tap to activate',
+    'pcard.boost.none'          : 'No boost in stock · <span style="cursor:pointer;color:var(--green);text-decoration:underline" onclick="openModal(\'boost-shop-modal\')">Buy</span>',
+    'pcard.gel.label'           : 'Freeze',
+    'pcard.gel.active'          : '<span style="color:#4ac8ff">🥶 You are frozen: <strong>-5%</strong> on your runs · {t} left</span> · {n} in stock',
+    'pcard.gel.stock'           : '{n} Freeze{s} in stock · go to another RP\'s card to use it',
+    'pcard.gel.none'            : 'No Freeze in stock · <span style="cursor:pointer;color:#4ac8ff;text-decoration:underline" onclick="openModal(\'gel-shop-modal\')">Buy</span>',
+    'pcard.ch.none'             : 'None',
+    'pcard.ch.upcoming'         : '{n} upcoming',
+    'pcard.ch.empty.own'        : 'No challenge in progress — sign up for the next one!',
+    'pcard.ch.empty.other'      : 'This RP hasn\'t completed any challenge yet.',
+    'pcard.ch.btn'              : 'VIEW CHALLENGES',
+    // — Read-only mode (another RP's card) + tooltips
+    'pcard.slot.empty'          : 'Empty slot',
+    'pcard.boost.view.active'   : '⚡ Boost active on this RP · {n} in stock',
+    'pcard.boost.view.stock'    : '{n} boost{s} in stock',
+    'pcard.boost.view.none'     : 'No boost in stock',
+    'pcard.boost.tip.activeView': 'Boost active on this RP',
+    'pcard.boost.tip.activeOwn' : 'Boost active — {t} left',
+    'pcard.boost.tip.availView' : 'Boost in stock on this RP',
+    'pcard.boost.tip.availOwn'  : 'Boost available — tap to activate',
+    'pcard.gel.view.frozen'     : '<span style="color:#4ac8ff">🥶 This RP is already frozen · {t} left</span>',
+    'pcard.gel.view.frozenBtn'  : 'Already frozen',
+    'pcard.gel.view.buyBtn'     : '+ Buy a Freeze',
+    'pcard.gel.view.have'       : 'You have <strong style="color:#4ac8ff">{n}</strong> Freeze{s} in stock',
+    'pcard.gel.view.freezeBtn'  : '🥶 Freeze this RP',
+    'pcard.gel.tip.avail'       : 'Freeze available — usable on another RP\'s card',
+    'quizz.page.title'          : '<span style="color:var(--text)">Daily</span> <span style="color:#4ac8ff;text-shadow:0 0 10px rgba(74,200,255,.5)">quiz</span>',
     // — Daily quiz
     'quizz.streak.singular'     : 'Current streak: {n} day',
     'quizz.streak.plural'       : 'Current streak: {n} days',
@@ -4561,6 +4643,22 @@ const I18N = {
     'lands.crossing.s2'         : '⭐⭐ Star ×2',
     'lands.crossing.s3'         : '⭐⭐⭐ Star ×3',
     'lands.crossing.note'       : 'Limited to 1 crossing/day/RP',
+    // — Run-end exploration popup (land-modal)
+    'lands.explored.modaltitle' : '🗺️ Exploration!',
+    'lands.explored.congrats'   : '🗺️ Congratulations!',
+    'lands.explored.intro'      : 'You explored',
+    'lands.explored.sub'        : 'Your crossings were saved automatically.<br>The lands you visited appear on the map.',
+    'lands.explored.renthint'   : 'Tap the yellow hexagons to rent the ones you want. Be strategic to build your territory.',
+    'lands.explored.renthint2'  : 'Tap the hexagons to rent the ones you want. Be strategic to build your territory.',
+    'lands.explored.btn'        : 'Explore the map →',
+    // — Land acquisition popup (becoming an owner)
+    'lands.owned.congrats'      : '🏠 Congratulations!',
+    'lands.owned.first.title'   : 'You are now an owner!',
+    'lands.owned.first.citizen' : 'Official SPEEDIX citizen',
+    'lands.owned.nth.pre'       : 'You just acquired your',
+    'lands.owned.nth.suffix'    : 'Land!',
+    'lands.owned.grow'          : 'Keep growing your territory and enjoy the game.',
+    'lands.owned.validate'      : 'Validate',
     // — My Runs page (page-points)
     'runs.page.title'           : 'My <span style="color:var(--gold)">Runs</span>',
     'runs.page.subtitle'        : 'History & simulator',
@@ -8673,20 +8771,20 @@ async function renderMyChallenges(){
     block.style.display='block';
 
     if(!combined.length){
-      if(countEl) countEl.textContent='Aucun';
+      if(countEl) countEl.textContent=t('pcard.ch.none');
       var ctaMsg=isOwn
-        ? 'Aucun challenge en cours — va t\'inscrire au prochain !'
-        : 'Ce RP n\'a pas encore validé de challenge.';
+        ? t('pcard.ch.empty.own')
+        : t('pcard.ch.empty.other');
       grid.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:.8rem .4rem;display:flex;flex-direction:column;align-items:center;gap:.45rem">'
         +'<div style="font-size:1.6rem;opacity:.5">🎖️</div>'
         +'<div style="font-size:.72rem;color:var(--muted2);line-height:1.4">'+ctaMsg+'</div>'
-        +(isOwn?'<button onclick="event.stopPropagation();nav(\'points\');setTimeout(function(){if(typeof switchChallengesTab===\'function\')switchChallengesTab(\'events\');},300);" style="padding:.35rem .75rem;border-radius:6px;border:1.5px solid var(--gold);background:rgba(245,200,66,.12);color:var(--gold);font-family:Bebas Neue,sans-serif;font-size:.7rem;letter-spacing:1.5px;cursor:pointer;font-weight:700">VOIR LES CHALLENGES</button>':'')
+        +(isOwn?'<button onclick="event.stopPropagation();nav(\'points\');setTimeout(function(){if(typeof switchChallengesTab===\'function\')switchChallengesTab(\'events\');},300);" style="padding:.35rem .75rem;border-radius:6px;border:1.5px solid var(--gold);background:rgba(245,200,66,.12);color:var(--gold);font-family:Bebas Neue,sans-serif;font-size:.7rem;letter-spacing:1.5px;cursor:pointer;font-weight:700">'+t('pcard.ch.btn')+'</button>':'')
         +'</div>';
       return;
     }
 
     if(countEl){
-      countEl.textContent=combined.length+' à venir';
+      countEl.textContent=t('pcard.ch.upcoming').replace('{n}',combined.length);
     }
 
     grid.innerHTML=combined.map(function(b){
@@ -9920,24 +10018,24 @@ async function buyLand(landId){
   var {data:ownedLands}=await supabaseClient.from('lands').select('id').eq('owner_id',currentUser.id).eq('status','owned');
   var nbOwned=(ownedLands||[]).length;
   setTimeout(function(){
-    document.getElementById('lm-title').textContent='🏠 Félicitations !';
+    document.getElementById('lm-title').textContent=t('lands.owned.congrats');
     document.getElementById('lm-sub').textContent='';
     if(nbOwned<=1){
       // Première propriété
       document.getElementById('lm-body').innerHTML='<div style="text-align:center;padding:.5rem 0">'
         +'<div style="font-size:3rem;margin-bottom:.5rem">🏠</div>'
-        +'<div style="font-family:Bebas Neue,sans-serif;font-size:1.4rem;letter-spacing:2px;color:var(--gold);margin-bottom:.4rem">Tu es à présent propriétaire !</div>'
-        +'<div style="font-size:.82rem;color:var(--text);margin-bottom:.3rem">Citoyen officiel de SPEEDIX</div>'
-        +'<div style="font-size:.75rem;color:var(--muted2);margin-bottom:1rem">Continue d\'agrandir ton territoire et bon jeu.</div>'
-        +'<button onclick="closeModal(\'land-modal\')" style="padding:.45rem 1.5rem;border-radius:7px;border:1.5px solid var(--green);background:rgba(45,219,128,.12);color:var(--green);font-weight:700;font-size:.85rem;cursor:pointer">Valider</button>'
+        +'<div style="font-family:Bebas Neue,sans-serif;font-size:1.4rem;letter-spacing:2px;color:var(--gold);margin-bottom:.4rem">'+t('lands.owned.first.title')+'</div>'
+        +'<div style="font-size:.82rem;color:var(--text);margin-bottom:.3rem">'+t('lands.owned.first.citizen')+'</div>'
+        +'<div style="font-size:.75rem;color:var(--muted2);margin-bottom:1rem">'+t('lands.owned.grow')+'</div>'
+        +'<button onclick="closeModal(\'land-modal\')" style="padding:.45rem 1.5rem;border-radius:7px;border:1.5px solid var(--green);background:rgba(45,219,128,.12);color:var(--green);font-weight:700;font-size:.85rem;cursor:pointer">'+t('lands.owned.validate')+'</button>'
       +'</div>';
     } else {
       // Xème propriété
       document.getElementById('lm-body').innerHTML='<div style="text-align:center;padding:.5rem 0">'
         +'<div style="font-size:3rem;margin-bottom:.5rem">🏠</div>'
-        +'<div style="font-family:Bebas Neue,sans-serif;font-size:1.4rem;letter-spacing:2px;color:var(--gold);margin-bottom:.4rem">Tu viens d\'acquérir ta '+nbOwned+(nbOwned===2?'ème':'ème')+' Land !</div>'
-        +'<div style="font-size:.75rem;color:var(--muted2);margin-bottom:1rem">Continue d\'agrandir ton territoire et bon jeu.</div>'
-        +'<button onclick="closeModal(\'land-modal\')" style="padding:.45rem 1.5rem;border-radius:7px;border:1.5px solid var(--green);background:rgba(45,219,128,.12);color:var(--green);font-weight:700;font-size:.85rem;cursor:pointer">Valider</button>'
+        +'<div style="font-family:Bebas Neue,sans-serif;font-size:1.4rem;letter-spacing:2px;color:var(--gold);margin-bottom:.4rem">'+t('lands.owned.nth.pre')+' '+_localizeOrdinal(nbOwned+'ème')+' '+t('lands.owned.nth.suffix')+'</div>'
+        +'<div style="font-size:.75rem;color:var(--muted2);margin-bottom:1rem">'+t('lands.owned.grow')+'</div>'
+        +'<button onclick="closeModal(\'land-modal\')" style="padding:.45rem 1.5rem;border-radius:7px;border:1.5px solid var(--green);background:rgba(45,219,128,.12);color:var(--green);font-weight:700;font-size:.85rem;cursor:pointer">'+t('lands.owned.validate')+'</button>'
       +'</div>';
     }
     openModal('land-modal');
@@ -10953,13 +11051,13 @@ async function loadPendingExploration(){
         var finBtn=document.getElementById('lands-finish-btn');
         if(finBtn) finBtn.style.display='block';
         // Modal de félicitations
-        document.getElementById('lm-title').textContent='🗺️ Félicitations !';
+        document.getElementById('lm-title').textContent=t('lands.explored.congrats');
         document.getElementById('lm-sub').textContent='';
         document.getElementById('lm-body').innerHTML='<div style="text-align:center;padding:.5rem 0">'
           +'<div style="font-size:2.5rem;margin-bottom:.5rem">🏃</div>'
-          +'<div style="font-family:Bebas Neue,sans-serif;font-size:1.5rem;letter-spacing:2px;color:var(--gold);margin-bottom:.3rem">Tu as exploré '+data.hexes.length+' Lands !</div>'
-          +'<div style="font-size:.78rem;color:var(--muted2);margin-bottom:.75rem">Clique sur les hexagones en jaune pour louer celles que tu désires. Sois stratégique pour former ton territoire.</div>'
-          +'<button onclick="closeModal(\'land-modal\')" style="padding:.45rem 1.5rem;border-radius:7px;border:1.5px solid var(--green);background:rgba(45,219,128,.12);color:var(--green);font-weight:700;font-size:.85rem;cursor:pointer">Explorer la carte →</button>'
+          +'<div style="font-family:Bebas Neue,sans-serif;font-size:1.5rem;letter-spacing:2px;color:var(--gold);margin-bottom:.3rem">'+t('lands.explored.intro')+' '+data.hexes.length+' Land'+(data.hexes.length>1?'s':'')+'!</div>'
+          +'<div style="font-size:.78rem;color:var(--muted2);margin-bottom:.75rem">'+t('lands.explored.renthint')+'</div>'
+          +'<button onclick="closeModal(\'land-modal\')" style="padding:.45rem 1.5rem;border-radius:7px;border:1.5px solid var(--green);background:rgba(45,219,128,.12);color:var(--green);font-weight:700;font-size:.85rem;cursor:pointer">'+t('lands.explored.btn')+'</button>'
         +'</div>';
         openModal('land-modal');
       }
@@ -14725,13 +14823,13 @@ function nav(page){
       // Popup lands explorées depuis la dernière sync
       if(window._recentExploredHexes&&window._recentExploredHexes.length>0){
         var nb=window._recentExploredHexes.length;
-        document.getElementById('lm-title').textContent='🗺️ Exploration !';
+        document.getElementById('lm-title').textContent=t('lands.explored.modaltitle');
         document.getElementById('lm-sub').textContent='';
         document.getElementById('lm-body').innerHTML='<div style="text-align:center;padding:.5rem 0">'
           +'<div style="font-size:2.5rem;margin-bottom:.5rem">🏃</div>'
-          +'<div style="font-family:Bebas Neue,sans-serif;font-size:1.5rem;letter-spacing:2px;color:var(--gold);margin-bottom:.3rem">Tu as exploré '+nb+' Land'+(nb>1?'s':'')+'!</div>'
-          +'<div style="font-size:.75rem;color:var(--muted2);margin-bottom:.75rem">Tes passages ont été enregistrés automatiquement.<br>Les lands visitées apparaissent sur la carte.</div>'
-          +'<button onclick="closeModal(\'land-modal\')" style="padding:.45rem 1.5rem;border-radius:7px;border:1.5px solid var(--green);background:rgba(45,219,128,.12);color:var(--green);font-weight:700;font-size:.85rem;cursor:pointer">Explorer la carte →</button>'
+          +'<div style="font-family:Bebas Neue,sans-serif;font-size:1.5rem;letter-spacing:2px;color:var(--gold);margin-bottom:.3rem">'+t('lands.explored.intro')+' '+nb+' Land'+(nb>1?'s':'')+'!</div>'
+          +'<div style="font-size:.75rem;color:var(--muted2);margin-bottom:.75rem">'+t('lands.explored.sub')+'</div>'
+          +'<button onclick="closeModal(\'land-modal\')" style="padding:.45rem 1.5rem;border-radius:7px;border:1.5px solid var(--green);background:rgba(45,219,128,.12);color:var(--green);font-weight:700;font-size:.85rem;cursor:pointer">'+t('lands.explored.btn')+'</button>'
           +'</div>';
         openModal('land-modal');
         // Centrer la carte sur les hexes explorés
@@ -15054,6 +15152,10 @@ const TOAST_I18N_EN = {
   '✓ Avatar mis à jour !':'✓ Avatar updated!',
   '⚡ Boost activé — +10% pendant 24h !':'⚡ Boost active — +10% for 24h!',
   '⚠️ Ce RP est déjà gelé':'⚠️ This RP is already frozen',
+  '👀 Mode consultation — tu ne peux pas activer les boosts d\'un autre RP':'👀 Read-only mode — you can\'t activate another RP\'s boosts',
+  '⚠️ Aucun RP cible':'⚠️ No target RP',
+  '⚠️ Tu ne peux pas te geler toi-même':'⚠️ You can\'t freeze yourself',
+  '⚠️ Erreur lors du gel':'⚠️ Error while freezing',
   '⚠️ Cette Team Open est complète':'⚠️ This Open Team is full',
   '⚠️ Choisis un nom et une ville':'⚠️ Pick a name and city',
   '⚠️ Choisis un pays':'⚠️ Pick a country',
@@ -15844,7 +15946,7 @@ function updateStreakDisplay(count, phase, misses){
   if(phase>=5){
     if(emojiEl) emojiEl.textContent='💔';
     if(statEl){
-      statEl.textContent='Chaîne définitivement terminée 💔';
+      statEl.textContent=t('pcard.streak.dead');
       statEl.style.color='#ff6060';
       statEl.style.fontFamily="'Bebas Neue',sans-serif";
       statEl.style.fontSize='.95rem';
@@ -15862,7 +15964,7 @@ function updateStreakDisplay(count, phase, misses){
   // ── Cas normal : on restore les styles si on revenait du mode "morte" ──
   if(emojiEl) emojiEl.textContent='🔥';
   if(statEl){
-    statEl.textContent=count+' jour'+(count>1?'s':'')+' consécutif'+(count>1?'s':'');
+    statEl.textContent=(count>1?t('dash.streak.plural'):t('dash.streak.singular')).replace('{n}',count);
     statEl.style.color='var(--gold)';
     statEl.style.fontFamily="'Space Mono',monospace";
     statEl.style.fontSize='.88rem';
@@ -15902,13 +16004,13 @@ function updateStreakDisplay(count, phase, misses){
   if(infoEl){
     if(phase===0){
       if(count<=7){
-        infoEl.innerHTML='Jours 1-7 : <strong style="color:var(--gold)">300 RPC/jour</strong> · Ensuite : 100 RPC/jour';
+        infoEl.innerHTML=t('pcard.streak.info.early');
       } else {
-        infoEl.innerHTML='<strong style="color:var(--gold)">100 RPC/jour</strong> · Chaîne active depuis '+count+' jours';
+        infoEl.innerHTML=t('pcard.streak.info.active').replace('{n}',count);
       }
     } else {
       var curReward=(typeof getStreakReward==='function')?getStreakReward(phase,count):0;
-      infoEl.innerHTML='<span style="color:var(--orange)">⚠️ '+phase+' arrêt'+(phase>1?'s':'')+'</span> · <strong style="color:var(--gold)">'+curReward+' RPC/jour</strong>';
+      infoEl.innerHTML=t('pcard.streak.info.warn').replace('{n}',phase).replace(/\{s\}/g,phase>1?'s':'').replace('{r}',curReward);
     }
   }
 }
@@ -16124,14 +16226,14 @@ async function renderBoostRow(){
   for(var i=0;i<10;i++){
     var cls,lbl,title,onclick='';
     if(i===0&&active){
-      cls='borb-on';lbl='ON';title=_viewP?'Boost actif chez ce RP':('Boost actif — '+getBoostTimeLeft()+' restant');
+      cls='borb-on';lbl='ON';title=_viewP?t('pcard.boost.tip.activeView'):t('pcard.boost.tip.activeOwn').replace('{t}',getBoostTimeLeft());
     } else if(i<stock+(active?1:0)){
       cls='borb-avail';lbl='⚡';
-      title=_viewP?'Boost en réserve chez ce RP':'Boost disponible — cliquer pour activer';
+      title=_viewP?t('pcard.boost.tip.availView'):t('pcard.boost.tip.availOwn');
       // Cliquable uniquement sur SA PROPRE PC
       if(!active&&!_viewP) onclick=' onclick="activateBoost()"';
     } else {
-      cls='borb-used';lbl='·';title='Slot vide';
+      cls='borb-used';lbl='·';title=t('pcard.slot.empty');
     }
     // ⚡ agrandi pour harmoniser avec le 🥶 du Gel.
     var _extra=(lbl==='⚡')?'font-size:0.9rem;line-height:1;':'';
@@ -16153,13 +16255,13 @@ async function renderBoostRow(){
   if(infoEl){
     if(_viewP){
       // Read-only sur la PC d'un autre RP
-      if(active) infoEl.innerHTML='⚡ Boost actif sur ce RP · '+stock+' en réserve';
-      else if(stock>0) infoEl.innerHTML=stock+' boost'+(stock>1?'s':'')+' en réserve';
-      else infoEl.innerHTML='Aucun boost en réserve';
+      if(active) infoEl.innerHTML=t('pcard.boost.view.active').replace('{n}',stock);
+      else if(stock>0) infoEl.innerHTML=t('pcard.boost.view.stock').replace('{n}',stock).replace(/\{s\}/g,stock>1?'s':'');
+      else infoEl.innerHTML=t('pcard.boost.view.none');
     } else {
-      if(active) infoEl.innerHTML='Boost actif : <strong style="color:var(--green)">+10%</strong> · '+getBoostTimeLeft()+' restant · '+stock+' en réserve';
-      else if(stock>0) infoEl.innerHTML=stock+' boost'+(stock>1?'s':'')+' disponible'+(stock>1?'s':'')+' · Clique pour activer';
-      else infoEl.innerHTML='Aucun boost en réserve · <span style="cursor:pointer;color:var(--green);text-decoration:underline" onclick="openModal(\'boost-shop-modal\')">Acheter</span>';
+      if(active) infoEl.innerHTML=t('pcard.boost.active').replace('{t}',getBoostTimeLeft()).replace('{n}',stock);
+      else if(stock>0) infoEl.innerHTML=t('pcard.boost.avail').replace('{n}',stock).replace(/\{s\}/g,stock>1?'s':'');
+      else infoEl.innerHTML=t('pcard.boost.none');
     }
   }
   // Stock dans la boutique
@@ -16179,7 +16281,7 @@ function startBoostTimer(){
     if(timerEl) timerEl.textContent='⚡ '+getBoostTimeLeft();
     var infoEl=document.getElementById('boost-info');
     var stock=(window.__boost||{}).stock||0;
-    if(infoEl) infoEl.innerHTML='Boost actif : <strong style="color:var(--green)">+10%</strong> · '+getBoostTimeLeft()+' restant · '+stock+' en réserve';
+    if(infoEl) infoEl.innerHTML=t('pcard.boost.active').replace('{t}',getBoostTimeLeft()).replace('{n}',stock);
   },60000);
 }
 
@@ -16291,14 +16393,14 @@ async function renderGelRow(){
       var diff=until-new Date();
       var hLeft=Math.floor(diff/3600000);
       var mLeft=Math.floor((diff%3600000)/60000);
-      if(infoEl) infoEl.innerHTML='<span style="color:#4ac8ff">🥶 Ce RP est déjà gelé · '+hLeft+'h'+String(mLeft).padStart(2,'0')+' restant'+(hLeft>0?'s':'')+'</span>';
-      if(actionEl) actionEl.innerHTML='<button disabled style="padding:.4rem 1rem;border-radius:6px;border:1px solid rgba(74,200,255,.2);background:rgba(74,200,255,.06);color:var(--muted);font-size:.75rem;font-weight:700;cursor:not-allowed">Déjà gelé</button>';
+      if(infoEl) infoEl.innerHTML=t('pcard.gel.view.frozen').replace('{t}',hLeft+'h'+String(mLeft).padStart(2,'0')).replace(/\{s\}/g,hLeft>0?'s':'');
+      if(actionEl) actionEl.innerHTML='<button disabled style="padding:.4rem 1rem;border-radius:6px;border:1px solid rgba(74,200,255,.2);background:rgba(74,200,255,.06);color:var(--muted);font-size:.75rem;font-weight:700;cursor:not-allowed">'+t('pcard.gel.view.frozenBtn')+'</button>';
     } else if(myStock<=0){
-      if(infoEl) infoEl.innerHTML='Aucun Gel en réserve · <span style="cursor:pointer;color:#4ac8ff;text-decoration:underline" onclick="openModal(\'gel-shop-modal\')">Acheter</span>';
-      if(actionEl) actionEl.innerHTML='<button onclick="openModal(\'gel-shop-modal\')" style="padding:.4rem 1rem;border-radius:6px;border:1.5px solid rgba(74,200,255,.4);background:rgba(74,200,255,.08);color:#4ac8ff;font-size:.75rem;font-weight:700;cursor:pointer">+ Acheter un Gel</button>';
+      if(infoEl) infoEl.innerHTML=t('pcard.gel.none');
+      if(actionEl) actionEl.innerHTML='<button onclick="openModal(\'gel-shop-modal\')" style="padding:.4rem 1rem;border-radius:6px;border:1.5px solid rgba(74,200,255,.4);background:rgba(74,200,255,.08);color:#4ac8ff;font-size:.75rem;font-weight:700;cursor:pointer">'+t('pcard.gel.view.buyBtn')+'</button>';
     } else {
-      if(infoEl) infoEl.innerHTML='Tu as <strong style="color:#4ac8ff">'+myStock+'</strong> Gel'+(myStock>1?'s':'')+' en réserve';
-      if(actionEl) actionEl.innerHTML='<button onclick="activateGelOnTarget()" style="padding:.45rem 1.1rem;border-radius:6px;border:1.5px solid rgba(74,200,255,.5);background:linear-gradient(175deg,rgba(74,200,255,.18),rgba(74,200,255,.06));color:#4ac8ff;font-size:.78rem;font-weight:800;letter-spacing:.5px;cursor:pointer">🥶 Geler ce RP</button>';
+      if(infoEl) infoEl.innerHTML=t('pcard.gel.view.have').replace('{n}',myStock).replace(/\{s\}/g,myStock>1?'s':'');
+      if(actionEl) actionEl.innerHTML='<button onclick="activateGelOnTarget()" style="padding:.45rem 1.1rem;border-radius:6px;border:1.5px solid rgba(74,200,255,.5);background:linear-gradient(175deg,rgba(74,200,255,.18),rgba(74,200,255,.06));color:#4ac8ff;font-size:.78rem;font-weight:800;letter-spacing:.5px;cursor:pointer">'+t('pcard.gel.view.freezeBtn')+'</button>';
     }
     return;
   }
@@ -16309,9 +16411,9 @@ async function renderGelRow(){
   for(var i=0;i<10;i++){
     if(i<stock){
       // Pastille bleu électrique + 🥶 plus gros pour bien remplir le cercle.
-      br.innerHTML+='<div class="borb" title="Gel disponible — utilisable sur la PC d\'un autre RP" style="cursor:default;border-color:rgba(74,200,255,.6);background:rgba(74,200,255,.12);font-size:0.9rem;line-height:1">🥶</div>';
+      br.innerHTML+='<div class="borb" title="'+t('pcard.gel.tip.avail')+'" style="cursor:default;border-color:rgba(74,200,255,.6);background:rgba(74,200,255,.12);font-size:0.9rem;line-height:1">🥶</div>';
     } else {
-      br.innerHTML+='<div class="borb borb-used" title="Slot vide" style="cursor:default">·</div>';
+      br.innerHTML+='<div class="borb borb-used" title="'+t('pcard.slot.empty')+'" style="cursor:default">·</div>';
     }
   }
   var timerEl=document.getElementById('gel-timer');
@@ -16326,9 +16428,9 @@ async function renderGelRow(){
   }
   var infoEl=document.getElementById('gel-info');
   if(infoEl){
-    if(active) infoEl.innerHTML='<span style="color:#4ac8ff">🥶 Tu es gelé : <strong>-5%</strong> sur tes courses · '+getGelTimeLeft()+' restant</span> · '+stock+' en réserve';
-    else if(stock>0) infoEl.innerHTML=stock+' Gel'+(stock>1?'s':'')+' en réserve · va sur la PC d\'un autre RP pour l\'utiliser';
-    else infoEl.innerHTML='Aucun Gel en réserve · <span style="cursor:pointer;color:#4ac8ff;text-decoration:underline" onclick="openModal(\'gel-shop-modal\')">Acheter</span>';
+    if(active) infoEl.innerHTML=t('pcard.gel.active').replace('{t}',getGelTimeLeft()).replace('{n}',stock);
+    else if(stock>0) infoEl.innerHTML=t('pcard.gel.stock').replace('{n}',stock).replace(/\{s\}/g,stock>1?'s':'');
+    else infoEl.innerHTML=t('pcard.gel.none');
   }
   var shopStock=document.getElementById('gel-shop-stock');
   if(shopStock) shopStock.textContent='En réserve : '+stock+' / 10';
@@ -17026,14 +17128,14 @@ async function processStravaLands(index){
     if(finBtn) finBtn.style.display='block';
   },300);
   // Modal félicitations
-  document.getElementById('lm-title').textContent='🗺️ Félicitations !';
+  document.getElementById('lm-title').textContent=t('lands.explored.congrats');
   document.getElementById('lm-sub').textContent='';
   document.getElementById('lm-body').innerHTML='<div style="text-align:center;padding:.5rem 0">'
     +'<div style="font-size:2.5rem;margin-bottom:.5rem">🏃</div>'
-    +'<div style="font-family:Bebas Neue,sans-serif;font-size:1.5rem;letter-spacing:2px;color:var(--gold);margin-bottom:.3rem">Tu as exploré '+activity.hexes.length+' Lands !</div>'
+    +'<div style="font-family:Bebas Neue,sans-serif;font-size:1.5rem;letter-spacing:2px;color:var(--gold);margin-bottom:.3rem">'+t('lands.explored.intro')+' '+activity.hexes.length+' Land'+(activity.hexes.length>1?'s':'')+'!</div>'
     +'<div style="font-size:.78rem;color:var(--muted2);margin-bottom:.3rem">'+activity.name+' · '+Math.round(activity.km*10)/10+' km · '+activity.pts+' pts</div>'
-    +'<div style="font-size:.75rem;color:var(--muted2);margin-bottom:.75rem">Clique sur les hexagones pour louer celles que tu désires. Sois stratégique pour former ton territoire.</div>'
-    +'<button onclick="closeModal(\'land-modal\')" style="padding:.45rem 1.5rem;border-radius:7px;border:1.5px solid var(--green);background:rgba(45,219,128,.12);color:var(--green);font-weight:700;font-size:.85rem;cursor:pointer">Explorer la carte →</button>'
+    +'<div style="font-size:.75rem;color:var(--muted2);margin-bottom:.75rem">'+t('lands.explored.renthint2')+'</div>'
+    +'<button onclick="closeModal(\'land-modal\')" style="padding:.45rem 1.5rem;border-radius:7px;border:1.5px solid var(--green);background:rgba(45,219,128,.12);color:var(--green);font-weight:700;font-size:.85rem;cursor:pointer">'+t('lands.explored.btn')+'</button>'
   +'</div>';
   openModal('land-modal');
 }
