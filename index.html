@@ -19029,7 +19029,7 @@ async function renderTeams(){
           ?'<span style="font-size:1.05rem;line-height:1">🥇</span>'
           :rank===2?'<span style="font-size:1.05rem;line-height:1">🥈</span>'
           :rank===3?'<span style="font-size:1.05rem;line-height:1">🥉</span>'
-          :'<span style="font-family:monospace;font-size:.78rem;color:var(--muted2);font-weight:700">#'+rank+'</span>';
+          :'<span style="font-family:monospace;font-size:.78rem;color:var(--muted2);font-weight:700">'+rank+'</span>';
         var teamEmoji=t.emoji||'🏃';
         var teamColor=t.color||'#4a90ff';
         var isOpen=(t.invite_code===OPEN_TEAM_MARKER);
