@@ -3938,6 +3938,9 @@ const I18N = {
     'shop.price'                : 'Prix :',
     'shop.cost'                 : 'Coût :',
     'shop.buy.btn'              : 'Acheter ({n} NYX)',
+    'shop.buy.places.title'     : 'Acheter +{n} place{s}',
+    'shop.buy.boost.title'      : 'Acheter {n} boost{s}',
+    'shop.buy.gel.title'        : 'Acheter {n} Gel{s}',
     'lands.right.modal.title'   : 'Acheter un droit d\'acquisition',
     'lands.right.modal.msg'     : 'Un droit d\'acquisition te permet de devenir propriétaire de tes Lands.',
     'lands.buy.modal.title'     : 'Acheter cette Land',
@@ -4633,6 +4636,9 @@ const I18N = {
     'shop.price'                : 'Price:',
     'shop.cost'                 : 'Cost:',
     'shop.buy.btn'              : 'Buy ({n} NYX)',
+    'shop.buy.places.title'     : 'Buy +{n} slot{s}',
+    'shop.buy.boost.title'      : 'Buy {n} boost{s}',
+    'shop.buy.gel.title'        : 'Buy {n} Freeze{s}',
     'lands.right.modal.title'   : 'Buy an acquisition right',
     'lands.right.modal.msg'     : 'An acquisition right lets you become the owner of your Lands.',
     'lands.buy.modal.title'     : 'Buy this Land',
@@ -15617,7 +15623,7 @@ async function buyLicence(qty,price){
   if(!teamId){showToast('⚠️ Tu n\'es dans aucune team');return;}
   var w=window.__wallet||{nyx:0};
   if(w.nyx<price){showToast('⚠️ Solde insuffisant ('+price+' NYX requis)');return;}
-  if(!await askConfirm('Prix : <strong style="color:var(--gold)">'+price+' NYX</strong>',{title:'Acheter +'+qty+' place'+(qty>1?'s':''),emoji:'➕',okLabel:'Acheter ('+price+' NYX)'})) return;
+  if(!await askConfirm(t('shop.price')+' <strong style="color:var(--gold)">'+price+' NYX</strong>',{title:t('shop.buy.places.title').replace('{n}',qty).replace(/\{s\}/g,qty>1?'s':''),emoji:'➕',okLabel:t('shop.buy.btn').replace('{n}',price)})) return;
   var {data:team}=await supabaseClient.from('teams').select('extra_slots').eq('id',teamId).single();
   if(!team){showToast('⚠️ Team introuvable');return;}
   var current=team.extra_slots||0;
@@ -16342,7 +16348,7 @@ async function activateBoost(){
 
 async function buyBoosts(qty, cost){
   if(!currentUser) return;
-  if(!await askConfirm('Prix : <strong style="color:var(--gold)">'+cost+' NYX</strong>',{title:'Acheter '+qty+' boost'+(qty>1?'s':''),emoji:'⚡',okLabel:'Acheter ('+cost+' NYX)'})) return;
+  if(!await askConfirm(t('shop.price')+' <strong style="color:var(--gold)">'+cost+' NYX</strong>',{title:t('shop.buy.boost.title').replace('{n}',qty).replace(/\{s\}/g,qty>1?'s':''),emoji:'⚡',okLabel:t('shop.buy.btn').replace('{n}',cost)})) return;
   var w=window.__wallet||{rpc:0,nyx:0};
   if(w.nyx<cost){showToast('⚠️ Solde insuffisant en NYX');return;}
   var b=window.__boost||{stock:0};
@@ -16524,7 +16530,7 @@ async function activateGelOnTarget(){
 
 async function buyGels(qty, cost){
   if(!currentUser) return;
-  if(!await askConfirm('Prix : <strong style="color:var(--gold)">'+cost+' NYX</strong>',{title:'Acheter '+qty+' Gel'+(qty>1?'s':''),emoji:'🥶',okLabel:'Acheter ('+cost+' NYX)'})) return;
+  if(!await askConfirm(t('shop.price')+' <strong style="color:var(--gold)">'+cost+' NYX</strong>',{title:t('shop.buy.gel.title').replace('{n}',qty).replace(/\{s\}/g,qty>1?'s':''),emoji:'🥶',okLabel:t('shop.buy.btn').replace('{n}',cost)})) return;
   var w=window.__wallet||{rpc:0,nyx:0};
   if(w.nyx<cost){showToast('⚠️ Solde insuffisant en NYX');return;}
   var g=window.__gel||{stock:0};
