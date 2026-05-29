@@ -13327,16 +13327,44 @@ async function shareRunCard(runId){
     document.body.appendChild(ov);
     document.getElementById('share-card-close').onclick=_closeShareModal;
 
+    // Helpers natifs (app installée Capacitor) — le partage / la sauvegarde
+    // d'image ne fonctionnent PAS via Web Share / <a download> dans la WebView
+    // Android. On passe alors par les modules natifs Share + Filesystem (présents
+    // seulement dans un build qui les embarque ; sinon ces branches sont sautées).
+    function _capNative(){
+      return !!(window.Capacitor
+        && typeof window.Capacitor.isNativePlatform==='function'
+        && window.Capacitor.isNativePlatform()
+        && window.Capacitor.Plugins);
+    }
+    function _blobToB64(b){
+      return new Promise(function(res,rej){
+        var fr=new FileReader();
+        fr.onloadend=function(){ res(String(fr.result).split(',')[1]); };
+        fr.onerror=rej;
+        fr.readAsDataURL(b);
+      });
+    }
+
     // Téléchargement direct (l'URL reste valide jusqu'à fermeture de la fenêtre)
-    document.getElementById('share-card-dl').onclick=function(){
+    document.getElementById('share-card-dl').onclick=async function(){
+      // App native : <a download> n'enregistre rien dans la WebView → module Fichiers
+      if(_capNative() && window.Capacitor.Plugins.Filesystem){
+        try{
+          var b64=await _blobToB64(blob);
+          await window.Capacitor.Plugins.Filesystem.writeFile({path:file.name,data:b64,directory:'DOCUMENTS'});
+          showToast(_en?'📸 Saved to your Documents':'📸 Enregistrée dans tes Documents');
+        }catch(e){ showToast(_en?'⚠️ Save failed':'⚠️ Échec de l’enregistrement'); }
+        return;
+      }
       var link=document.createElement('a');
       link.download=file.name; link.href=imgUrl; link.click();
       showToast(_en?'📸 Image downloaded!':'📸 Image téléchargée !');
     };
 
-    // Partage natif — déclenché par CE clic (activation fraîche → OK Android)
+    // Partage natif — déclenché par CE clic (activation fraîche → OK Android Chrome)
     document.getElementById('share-card-share').onclick=async function(){
-      // Niveau 1 : Web Share API AVEC le fichier image (idéal)
+      // Niveau 1 : Web Share API AVEC le fichier image (iPhone + Chrome Android/PC)
       if(navigator.share && navigator.canShare && navigator.canShare({files:[file]})){
         try{
           await navigator.share({title:shareTitle, text:shareText, files:[file]});
@@ -13344,6 +13372,21 @@ async function shareRunCard(runId){
           showToast(_en?'📸 Shared!':'📸 Partagé !');
           return;
         }catch(e){ if(e.name==='AbortError') return; /* sinon → fallback */ }
+      }
+      // Niveau 1bis : APP NATIVE (Android) — Web Share absent de la WebView, on
+      // écrit l'image en cache puis on ouvre la feuille de partage native.
+      if(_capNative() && window.Capacitor.Plugins.Share && window.Capacitor.Plugins.Filesystem){
+        try{
+          var b64=await _blobToB64(blob);
+          var w=await window.Capacitor.Plugins.Filesystem.writeFile({path:file.name,data:b64,directory:'CACHE'});
+          await window.Capacitor.Plugins.Share.share({title:shareTitle, text:shareText, files:[w.uri]});
+          _closeShareModal();
+          showToast(_en?'📸 Shared!':'📸 Partagé !');
+        }catch(e){
+          if(!(e && /cancel/i.test((e.message||'')+(e.errorMessage||''))))
+            showToast(_en?'⚠️ Share unavailable':'⚠️ Partage indisponible');
+        }
+        return;
       }
       // Niveau 2 : Web Share API SANS fichier (texte + lien) + téléchargement
       if(navigator.share){
