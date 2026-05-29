@@ -23683,7 +23683,7 @@ function _renderQuizzRanking(){
 
   // Rendu d'une ligne du tableau de classement
   function rowHtml(p,rank){
-    var rankDisplay=rank===1?'🥇':rank===2?'🥈':rank===3?'🥉':'#'+rank;
+    var rankDisplay=rank===1?'🥇':rank===2?'🥈':rank===3?'🥉':''+rank;
     var isMe=p.id===currentUser.id;
     var bg=isMe?'rgba(255,201,71,.12)':'rgba(10,20,50,.4)';
     var border=isMe?'1.5px solid var(--gold)':'1px solid rgba(255,255,255,.08)';
