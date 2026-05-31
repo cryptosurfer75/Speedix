@@ -12440,9 +12440,13 @@ async function _processEndOfPeriodInner(){
   //     log mais on continue (la rotation peut être finalisée manuellement).
   var newPeriod=_periodData.period+1;
   var now=getParisDate();
-  // Prochain mois, minuit heure de Paris
-  var nextStartParis=new Date(now.getFullYear(),now.getMonth()+1,1,0,0,0);
-  var nextEndParis=new Date(now.getFullYear(),now.getMonth()+2,0,23,59,59);
+  // La rotation se déclenche APRÈS minuit le 1er du mois (elle part quand
+  // now > period_end, qui est le dernier instant du mois). `now` est donc DÉJÀ
+  // dans le nouveau mois → la nouvelle période = le mois COURANT de `now`.
+  // BUG FIX 2026-06-01 : c'était getMonth()+1 / +2 → la période sautait un mois
+  // (ex. juin → juillet = 60 jours). Cf. mémoire « rotation 1er juin ».
+  var nextStartParis=new Date(now.getFullYear(),now.getMonth(),1,0,0,0);
+  var nextEndParis=new Date(now.getFullYear(),now.getMonth()+1,0,23,59,59);
   // Convertir en UTC pour stocker (Paris = UTC+1 hiver / UTC+2 été)
   var nextStart=new Date(nextStartParis.toLocaleString('en-US',{timeZone:'Europe/Paris'}));
   var nextEnd=new Date(nextEndParis.toLocaleString('en-US',{timeZone:'Europe/Paris'}));
