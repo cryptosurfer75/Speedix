@@ -2976,10 +2976,10 @@ function askConfirm(message, opts){
   <div class="modal-box" style="max-width:380px;text-align:center;padding:2rem 1.5rem">
     <button class="modal-close" onclick="closeModal('referral-notif-modal')">✕</button>
     <div style="font-size:3.5rem;margin-bottom:.5rem;animation:blasonPop .5s cubic-bezier(.22,.68,0,1.2) both">🤝</div>
-    <div style="font-family:'Bebas Neue',sans-serif;font-size:1.6rem;letter-spacing:3px;color:var(--gold);margin-bottom:.25rem">Bravo !</div>
+    <div data-i18n="refnotif.bravo" style="font-family:'Bebas Neue',sans-serif;font-size:1.6rem;letter-spacing:3px;color:var(--gold);margin-bottom:.25rem">Bravo !</div>
     <div id="ref-notif-text" style="font-size:.85rem;color:var(--text);margin-bottom:.5rem;line-height:1.5"></div>
     <div style="font-family:'Space Mono',monospace;font-size:1.3rem;color:var(--green);font-weight:700;margin-bottom:.5rem;text-shadow:0 0 12px rgba(45,219,128,.4)">+5 💎 NYX</div>
-    <div style="font-size:.7rem;color:var(--muted2);margin-bottom:1rem">Motive tes filleuls à progresser dans SPEEDIX</div>
+    <div data-i18n="refnotif.motive" style="font-size:.7rem;color:var(--muted2);margin-bottom:1rem">Motive tes filleuls à progresser dans SPEEDIX</div>
     <button id="ref-notif-btn" onclick="closeModal('referral-notif-modal')" style="padding:.5rem 2rem;border-radius:8px;border:1.5px solid var(--green);background:linear-gradient(135deg,rgba(45,219,128,.15),rgba(32,180,100,.08));color:var(--green);font-weight:700;font-size:.85rem;cursor:pointer;letter-spacing:.5px">OK</button>
   </div>
 </div>
@@ -2992,9 +2992,9 @@ function askConfirm(message, opts){
     <div id="streak-modal-title" style="font-family:'Bebas Neue',sans-serif;font-size:1.8rem;letter-spacing:3px;color:var(--gold);margin-bottom:.25rem">Félicitations !</div>
     <div id="streak-modal-sub" style="font-size:.85rem;color:var(--text);margin-bottom:.75rem">1 jour de connexion</div>
     <div id="streak-modal-reward" style="font-family:'Space Mono',monospace;font-size:1.4rem;color:var(--gold);font-weight:700;margin-bottom:.5rem;text-shadow:0 0 12px rgba(245,200,66,.4)">+300 RPC</div>
-    <div style="font-size:.72rem;color:var(--muted2);line-height:1.5;margin-bottom:.6rem">Connecte toi tous les jours pour récupérer tes bonus quotidien.</div>
+    <div data-i18n="streak.daily.hint" style="font-size:.72rem;color:var(--muted2);line-height:1.5;margin-bottom:.6rem">Connecte toi tous les jours pour récupérer tes bonus quotidien.</div>
     <div id="streak-modal-info" style="font-size:.7rem;color:var(--muted2);line-height:1.6"></div>
-    <button id="streak-modal-btn" onclick="closeModal('streak-modal')" style="margin-top:1rem;padding:.5rem 2rem;border-radius:8px;border:1.5px solid var(--green);background:linear-gradient(135deg,rgba(45,219,128,.15),rgba(32,180,100,.08));color:var(--green);font-weight:700;font-size:.85rem;cursor:pointer;letter-spacing:.5px">C'est parti ! 🚀</button>
+    <button id="streak-modal-btn" data-i18n="streak.btn" onclick="closeModal('streak-modal')" style="margin-top:1rem;padding:.5rem 2rem;border-radius:8px;border:1.5px solid var(--green);background:linear-gradient(135deg,rgba(45,219,128,.15),rgba(32,180,100,.08));color:var(--green);font-weight:700;font-size:.85rem;cursor:pointer;letter-spacing:.5px">C'est parti ! 🚀</button>
   </div>
 </div>
 
@@ -4383,6 +4383,10 @@ const I18N = {
     'prc.title'                 : 'Période terminée !',
     'prc.sub'                   : 'Voici ton bilan du mois',
     'prc.btn'                   : 'Continuer',
+    'streak.daily.hint'         : 'Connecte toi tous les jours pour récupérer tes bonus quotidien.',
+    'streak.btn'                : 'C\'est parti ! 🚀',
+    'refnotif.bravo'            : 'Bravo !',
+    'refnotif.motive'           : 'Motive tes filleuls à progresser dans SPEEDIX',
     // — Modal Collab Help
     'ch.title'                  : 'Défis collaboratifs entre voisins',
     'ch.sub'                    : 'Coopère avec tes voisins pour gagner des récompenses ensemble',
@@ -5144,6 +5148,10 @@ const I18N = {
     'prc.title'                 : 'Period over!',
     'prc.sub'                   : 'Here\'s your monthly summary',
     'prc.btn'                   : 'Continue',
+    'streak.daily.hint'         : 'Log in every day to collect your daily bonus.',
+    'streak.btn'                : 'Let\'s go! 🚀',
+    'refnotif.bravo'            : 'Well done!',
+    'refnotif.motive'           : 'Motivate your referrals to progress in SPEEDIX',
     // — Collab Help modal
     'ch.title'                  : 'Neighbor collaborative challenges',
     'ch.sub'                    : 'Cooperate with your neighbors to earn rewards together',
@@ -7215,14 +7223,15 @@ function showGradeUpgradePopup(queue){
     modal=document.createElement('div');
     modal.id='grade-upgrade-modal';
     modal.className='modal';
+    var _enGU=(SPEEDIX_LANG==='en');
     modal.innerHTML='<div class="modal-box" style="max-width:380px;text-align:center;padding:1.6rem 1.4rem">'
       +'<div id="gu-emoji" style="font-size:3.4rem;margin-bottom:.4rem">🎖️</div>'
-      +'<div id="gu-title" style="font-family:Bebas Neue,sans-serif;font-size:1.5rem;letter-spacing:2.5px;margin-bottom:.3rem">FÉLICITATIONS</div>'
-      +'<div id="gu-sub" style="font-size:.85rem;color:var(--muted2);margin-bottom:1rem">Tu passes au grade supérieur</div>'
+      +'<div id="gu-title" style="font-family:Bebas Neue,sans-serif;font-size:1.5rem;letter-spacing:2.5px;margin-bottom:.3rem">'+(_enGU?'CONGRATULATIONS':'FÉLICITATIONS')+'</div>'
+      +'<div id="gu-sub" style="font-size:.85rem;color:var(--muted2);margin-bottom:1rem">'+(_enGU?'You\'ve reached the next grade':'Tu passes au grade supérieur')+'</div>'
       +'<div id="gu-badge" style="display:inline-block;font-family:Bebas Neue,sans-serif;font-size:1.6rem;letter-spacing:3px;padding:.4rem 1.2rem;border-radius:8px;border:2px solid;margin-bottom:1rem"></div>'
       +'<div id="gu-msg" style="font-size:.78rem;color:var(--muted);margin-bottom:1rem;line-height:1.5"></div>'
       +'<div id="gu-rewards" style="margin-bottom:1.2rem"></div>'
-      +'<div style="display:flex;justify-content:center"><button class="btn btn-gold" onclick="_closeGradeUpgrade()" style="padding:.85rem 2.5rem;font-size:.9rem">Continuer</button></div>'
+      +'<div style="display:flex;justify-content:center"><button class="btn btn-gold" onclick="_closeGradeUpgrade()" style="padding:.85rem 2.5rem;font-size:.9rem">'+(_enGU?'Continue':'Continuer')+'</button></div>'
       +'</div>';
     document.body.appendChild(modal);
   }
@@ -7233,15 +7242,20 @@ function showGradeUpgradePopup(queue){
   document.getElementById('gu-badge').style.background=color.replace(')',', .08)').replace('var(','rgba(var(');
   // Fallback simple pour le background si var() complexe
   document.getElementById('gu-badge').style.background='rgba(255,255,255,.04)';
-  var msg='Tu quittes la zone précédente et accèdes au grade <strong style="color:'+color+'">'+g.name+'</strong>. Continue ta progression dans SPEEDIX !';
-  if(g.cls==='debutant') msg='Tu quittes la zone Starter et deviens <strong style="color:'+color+'">DÉBUTANT</strong>. Continue ta progression dans SPEEDIX !';
+  var _enGM=(SPEEDIX_LANG==='en');
+  var msg=_enGM
+    ?'You leave the previous zone and reach the <strong style="color:'+color+'">'+g.name+'</strong> grade. Keep progressing in SPEEDIX!'
+    :'Tu quittes la zone précédente et accèdes au grade <strong style="color:'+color+'">'+g.name+'</strong>. Continue ta progression dans SPEEDIX !';
+  if(g.cls==='debutant') msg=_enGM
+    ?'You leave the Starter zone and become <strong style="color:'+color+'">DÉBUTANT</strong>. Keep progressing in SPEEDIX!'
+    :'Tu quittes la zone Starter et deviens <strong style="color:'+color+'">DÉBUTANT</strong>. Continue ta progression dans SPEEDIX !';
   document.getElementById('gu-msg').innerHTML=msg;
   var rewardsParts=[];
   if((g.rpcReward||0)>0) rewardsParts.push('<span style="color:var(--gold);font-weight:700">+'+g.rpcReward.toLocaleString(SPEEDIX_LANG)+' RPC</span>');
   if((g.nyxReward||0)>0) rewardsParts.push('<span style="color:var(--green);font-weight:700">+'+g.nyxReward+' 💎 NYX</span>');
   var rewardHtml='';
   if(rewardsParts.length){
-    rewardHtml='<div style="font-size:.78rem;color:var(--muted2);margin-bottom:.35rem">Tu gagnes :</div>'
+    rewardHtml='<div style="font-size:.78rem;color:var(--muted2);margin-bottom:.35rem">'+(_enGM?'You earn:':'Tu gagnes :')+'</div>'
       +'<div style="font-family:Space Mono,monospace;font-size:1.05rem">'+rewardsParts.join(' &nbsp;·&nbsp; ')+'</div>';
   }
   document.getElementById('gu-rewards').innerHTML=rewardHtml;
@@ -15055,18 +15069,22 @@ function showPremiumGiftPopup(untilDate){
   }
   var body=document.getElementById('pg-body');
   if(!body) return;
+  var _en=(SPEEDIX_LANG==='en');
+  var _feats=_en
+    ?['🏆 League','💎 Player Cards','📰 Feed','🎯 Challenges','⚔️ Duels','etc.']
+    :['🏆 League','💎 Player Cards','📰 Feed','🎯 Challenges','⚔️ Défis','etc.'];
   body.innerHTML='<div style="text-align:center;padding:.4rem 0">'
     +'<div style="font-size:2.8rem;margin-bottom:.4rem">🎁</div>'
-    +'<div style="font-family:Bebas Neue,sans-serif;font-size:1.3rem;letter-spacing:2px;color:var(--gold);margin-bottom:.6rem">FÉLICITATIONS !</div>'
+    +'<div style="font-family:Bebas Neue,sans-serif;font-size:1.3rem;letter-spacing:2px;color:var(--gold);margin-bottom:.6rem">'+(_en?'CONGRATULATIONS!':'FÉLICITATIONS !')+'</div>'
     +'<div style="font-size:.88rem;color:var(--text);line-height:1.55;margin-bottom:1rem">'
-    +'Speedix t\'offre <strong style="color:var(--gold)">15 jours de Premium</strong>.<br>'
-    +'Pendant cette période, profite de <strong>toutes les fonctions</strong> de l\'app sans aucune restriction.'
+    +(_en
+       ?'Speedix gives you <strong style="color:var(--gold)">15 days of Premium</strong>.<br>During this period, enjoy <strong>every feature</strong> of the app with no restrictions.'
+       :'Speedix t\'offre <strong style="color:var(--gold)">15 jours de Premium</strong>.<br>Pendant cette période, profite de <strong>toutes les fonctions</strong> de l\'app sans aucune restriction.')
     +'</div>'
     +'<div style="display:flex;flex-wrap:wrap;justify-content:center;gap:.4rem;margin-bottom:1.1rem">'
-    +['🏆 League','💎 Player Cards','📰 Feed','🎯 Challenges','⚔️ Défis','etc.']
-       .map(function(f){return '<span style="font-size:.7rem;padding:.22rem .5rem;border-radius:6px;background:rgba(245,200,66,.12);border:1px solid rgba(245,200,66,.35);color:var(--gold);font-weight:700">'+f+'</span>';}).join('')
+    +_feats.map(function(f){return '<span style="font-size:.7rem;padding:.22rem .5rem;border-radius:6px;background:rgba(245,200,66,.12);border:1px solid rgba(245,200,66,.35);color:var(--gold);font-weight:700">'+f+'</span>';}).join('')
     +'</div>'
-    +(dateStr?'<div style="font-size:.72rem;color:var(--muted2)">Premium actif jusqu\'au <strong style="color:var(--text)">'+dateStr+'</strong></div>':'')
+    +(dateStr?'<div style="font-size:.72rem;color:var(--muted2)">'+(_en?'Premium active until ':'Premium actif jusqu\'au ')+'<strong style="color:var(--text)">'+dateStr+'</strong></div>':'')
     +'</div>';
   openModal('premium-gift-modal');
 }
@@ -16271,6 +16289,12 @@ var REWARD_LABELS={
   '1000_pts':'a dépassé 1 000 points',
   'same_team':'a rejoint ta team'
 };
+var REWARD_LABELS_EN={
+  'first_run':'completed their first run',
+  '3_periods':'reached 3 consecutive periods',
+  '1000_pts':'passed 1,000 points',
+  'same_team':'joined your team'
+};
 
 // Vérifier les notifications de parrainage non lues à la connexion
 async function checkReferralNotifications(){
@@ -16295,8 +16319,9 @@ async function checkReferralNotifications(){
   pending.forEach(function(r,i){
     delay=i*2500; // 2.5s entre chaque notif
     setTimeout(function(){
-      var name=nameMap[r.filleul_id]||'Un filleul';
-      var action=REWARD_LABELS[r.reward_type]||'a franchi une étape';
+      var _enRN=(SPEEDIX_LANG==='en');
+      var name=nameMap[r.filleul_id]||(_enRN?'A referral':'Un filleul');
+      var action=(_enRN?REWARD_LABELS_EN:REWARD_LABELS)[r.reward_type]||(_enRN?'reached a milestone':'a franchi une étape');
       // Construit le HTML coloré : RPC en gold, NYX en green
       var rewardParts=[];
       if(r.rpc_amount>0) rewardParts.push('<span style="color:var(--gold)">+'+r.rpc_amount.toLocaleString(SPEEDIX_LANG)+' RPC</span>');
@@ -16354,20 +16379,38 @@ function getStreakReward(phase, count){
 }
 
 function getStreakMessage(phase, count, reward){
-  if(phase>=5) return {emoji:'💔',title:'Chaîne terminée',sub:'Tu as épuisé tes chances',reward:'',info:'Tu as accumulé 5 arrêts — la chaîne de connexion est définitivement terminée.'};
+  var _en=(SPEEDIX_LANG==='en');
+  if(phase>=5) return {emoji:'💔',
+    title:_en?'Streak over':'Chaîne terminée',
+    sub:_en?'You\'ve run out of chances':'Tu as épuisé tes chances',
+    reward:'',
+    info:_en?'You\'ve accumulated 5 misses — your login streak is permanently over.':'Tu as accumulé 5 arrêts — la chaîne de connexion est définitivement terminée.'};
   var emoji=count<=3?'🔥':count<=7?'🔥🔥':count<=14?'🔥🔥🔥':'⚡';
-  var milestones={7:'🎯 1 semaine complète !',14:'💪 2 semaines !',30:'🏆 1 mois de suite !',50:'👑 50 jours !',100:'🌟 100 jours légendaire !'};
+  var milestones=_en
+    ?{7:'🎯 1 full week!',14:'💪 2 weeks!',30:'🏆 1 month straight!',50:'👑 50 days!',100:'🌟 100 legendary days!'}
+    :{7:'🎯 1 semaine complète !',14:'💪 2 semaines !',30:'🏆 1 mois de suite !',50:'👑 50 jours !',100:'🌟 100 jours légendaire !'};
   var bonus=milestones[count]||'';
-  var title=count===1?'Première connexion !':'Jour '+count+' !';
-  var sub=phase===0
-    ? count+' jour'+(count>1?'s':'')+' consécutif'+(count>1?'s':'')
-    : 'Après '+phase+' arrêt'+(phase>1?'s':'')+' · '+count+' jour'+(count>1?'s':'')+' consécutif'+(count>1?'s':'');
+  var title=_en
+    ?(count===1?'First login!':'Day '+count+'!')
+    :(count===1?'Première connexion !':'Jour '+count+' !');
+  var sub;
+  if(_en){
+    sub=phase===0
+      ? count+' consecutive day'+(count>1?'s':'')
+      : 'After '+phase+' miss'+(phase>1?'es':'')+' · '+count+' consecutive day'+(count>1?'s':'');
+  } else {
+    sub=phase===0
+      ? count+' jour'+(count>1?'s':'')+' consécutif'+(count>1?'s':'')
+      : 'Après '+phase+' arrêt'+(phase>1?'s':'')+' · '+count+' jour'+(count>1?'s':'')+' consécutif'+(count>1?'s':'');
+  }
   var info;
   if(phase===0){
-    info=count<=7?'Jours 1-7 : 300 RPC/jour · Ensuite : 100 RPC/jour':'100 RPC/jour · Continue la série !';
+    if(_en) info=count<=7?'Days 1-7: 300 RPC/day · Then: 100 RPC/day':'100 RPC/day · Keep the streak going!';
+    else    info=count<=7?'Jours 1-7 : 300 RPC/jour · Ensuite : 100 RPC/jour':'100 RPC/jour · Continue la série !';
   } else {
     var next=Math.max(0,getStreakReward(phase+1,1));
-    info='⚠️ '+reward+' RPC/jour · Un nouvel arrêt te fera passer à '+next+' RPC/jour'+(phase>=4?' (fin de série)':'');
+    if(_en) info='⚠️ '+reward+' RPC/day · Another miss will drop you to '+next+' RPC/day'+(phase>=4?' (end of streak)':'');
+    else    info='⚠️ '+reward+' RPC/jour · Un nouvel arrêt te fera passer à '+next+' RPC/jour'+(phase>=4?' (fin de série)':'');
   }
   if(bonus) info=bonus+'<br>'+info;
   return {emoji:emoji,title:title,sub:sub,reward:'+'+reward+' RPC',info:info};
@@ -21451,6 +21494,7 @@ function _showNextCollabResult(){
   var _metaRaw=COLLAB_CHALLENGE_CATALOG.find(function(x){return x.code===chal.challenge_code;});
   var meta=_metaRaw ? Object.assign({}, _metaRaw, _collabLocalize(_metaRaw)) : {title:chal.challenge_code};
   var neighName=item.neighborInfo?item.neighborInfo.username:t('collab.neighbor.your');
+  var _en=(SPEEDIX_LANG==='en');
   var emoji,title,sub,body,btnColor;
   var neighChip='<strong style="color:var(--cyan)">'+neighName+'</strong>';
   if(chal.status==='success'){
@@ -21458,36 +21502,48 @@ function _showNextCollabResult(){
     sub=meta.title;
     if(chal.reward_type==='land_6m' && item.grantedHex){
       // Récompense territoriale réelle
-      body='<div style="font-size:.88rem;margin-bottom:.7rem;line-height:1.55">Tu viens de valider un défi avec ton voisin '+neighChip+'.<br>Speedix vous félicite ! 🎁</div>'
-        +'<div style="font-size:.95rem;margin-bottom:.4rem">🏞️ Félicitation tu remportes <strong style="color:var(--green)">une nouvelle land gratuite</strong> pendant 6 mois !</div>'
-        +'<div style="font-size:.65rem;color:var(--muted2);font-family:Space Mono,monospace;word-break:break-all">Hex : '+item.grantedHex+'</div>'
-        +'<div style="font-size:.7rem;color:var(--muted2);margin-top:.4rem">Visible sur ta carte des Lands. À la fin des 6 mois : la garder (loyer normal), la rendre, ou l\'acheter pour 80 NYX.</div>';
+      body=(_en
+          ?'<div style="font-size:.88rem;margin-bottom:.7rem;line-height:1.55">You just completed a challenge with your neighbor '+neighChip+'.<br>Speedix congratulates you both! 🎁</div>'
+            +'<div style="font-size:.95rem;margin-bottom:.4rem">🏞️ Congrats, you win <strong style="color:var(--green)">a new free land</strong> for 6 months!</div>'
+          :'<div style="font-size:.88rem;margin-bottom:.7rem;line-height:1.55">Tu viens de valider un défi avec ton voisin '+neighChip+'.<br>Speedix vous félicite ! 🎁</div>'
+            +'<div style="font-size:.95rem;margin-bottom:.4rem">🏞️ Félicitation tu remportes <strong style="color:var(--green)">une nouvelle land gratuite</strong> pendant 6 mois !</div>')
+        +'<div style="font-size:.65rem;color:var(--muted2);font-family:Space Mono,monospace;word-break:break-all">'+(_en?'Hex: ':'Hex : ')+item.grantedHex+'</div>'
+        +'<div style="font-size:.7rem;color:var(--muted2);margin-top:.4rem">'+(_en?'Shown on your Lands map. After 6 months: keep it (normal rent), return it, or buy it for 80 NYX.':'Visible sur ta carte des Lands. À la fin des 6 mois : la garder (loyer normal), la rendre, ou l\'acheter pour 80 NYX.')+'</div>';
     } else {
       // Récompense RPC (ou fallback RPC du land_6m)
       var rpcEach=Math.round((chal.reward_rpc||0)/2);
       var nyxEach=Math.round((chal.reward_nyx||0)/2);
       var fallbackNote=(chal.reward_type==='land_6m'&&!item.grantedHex)
-        ?'<div style="font-size:.7rem;color:var(--orange);margin-top:.5rem">Carte saturée → conversion en récompense RPC (2 500 RPC chacun en consolation).</div>'
+        ?'<div style="font-size:.7rem;color:var(--orange);margin-top:.5rem">'+(_en?'Map saturated → converted to an RPC reward (2,500 RPC each as consolation).':'Carte saturée → conversion en récompense RPC (2 500 RPC chacun en consolation).')+'</div>'
         :'';
       var rewardLine='<span style="color:var(--gold)">+'+rpcEach.toLocaleString(SPEEDIX_LANG)+' RPC</span>';
       if(nyxEach>0) rewardLine+=' · <span style="color:var(--green)">+'+nyxEach+' 💎 NYX</span>';
       if(chal.reward_type==='land_6m' && !item.grantedHex){
         rewardLine='<span style="color:var(--gold)">+2 500 RPC</span>';
       }
-      body='<div style="font-size:.88rem;margin-bottom:.7rem;line-height:1.55">Tu viens de valider un défi avec ton voisin '+neighChip+'.<br>Speedix vous félicite ! 🎁</div>'
-        +'<div style="font-size:.95rem">Félicitation tu remportes '+rewardLine+'</div>'
+      body=(_en
+          ?'<div style="font-size:.88rem;margin-bottom:.7rem;line-height:1.55">You just completed a challenge with your neighbor '+neighChip+'.<br>Speedix congratulates you both! 🎁</div>'
+            +'<div style="font-size:.95rem">Congrats, you win '+rewardLine+'</div>'
+          :'<div style="font-size:.88rem;margin-bottom:.7rem;line-height:1.55">Tu viens de valider un défi avec ton voisin '+neighChip+'.<br>Speedix vous félicite ! 🎁</div>'
+            +'<div style="font-size:.95rem">Félicitation tu remportes '+rewardLine+'</div>')
         +fallbackNote;
     }
   } else if(chal.status==='failed'){
-    emoji='😔'; title='Défi loupé'; btnColor='var(--red)';
+    emoji='😔'; title=_en?'Challenge missed':'Défi loupé'; btnColor='var(--red)';
     sub=meta.title;
-    body='<div style="font-size:.88rem;margin-bottom:.5rem;line-height:1.55">Le défi avec '+neighChip+' n\'a pas été validé à temps.</div>'
-      +'<div style="font-size:.78rem;color:var(--muted2)">Pas de récompense cette fois — un nouveau défi vous sera proposé bientôt.</div>';
+    body=_en
+      ?'<div style="font-size:.88rem;margin-bottom:.5rem;line-height:1.55">The challenge with '+neighChip+' wasn\'t completed in time.</div>'
+        +'<div style="font-size:.78rem;color:var(--muted2)">No reward this time — a new challenge will be offered soon.</div>'
+      :'<div style="font-size:.88rem;margin-bottom:.5rem;line-height:1.55">Le défi avec '+neighChip+' n\'a pas été validé à temps.</div>'
+        +'<div style="font-size:.78rem;color:var(--muted2)">Pas de récompense cette fois — un nouveau défi vous sera proposé bientôt.</div>';
   } else if(chal.status==='cancelled'){
-    emoji='🚫'; title='Défi annulé'; btnColor='var(--orange)';
+    emoji='🚫'; title=_en?'Challenge cancelled':'Défi annulé'; btnColor='var(--orange)';
     sub=meta.title;
-    body='<div style="font-size:.88rem;margin-bottom:.5rem;line-height:1.55">Le défi avec '+neighChip+' a été annulé.</div>'
-      +'<div style="font-size:.78rem;color:var(--muted2)">Raison : frontière disparue ou un des RPs en infirmerie. Aucune conséquence.</div>';
+    body=_en
+      ?'<div style="font-size:.88rem;margin-bottom:.5rem;line-height:1.55">The challenge with '+neighChip+' was cancelled.</div>'
+        +'<div style="font-size:.78rem;color:var(--muted2)">Reason: shared border gone or one of the runners in the infirmary. No consequences.</div>'
+      :'<div style="font-size:.88rem;margin-bottom:.5rem;line-height:1.55">Le défi avec '+neighChip+' a été annulé.</div>'
+        +'<div style="font-size:.78rem;color:var(--muted2)">Raison : frontière disparue ou un des RPs en infirmerie. Aucune conséquence.</div>';
   }
   document.getElementById('ccr-emoji').textContent=emoji;
   document.getElementById('ccr-title').textContent=title;
@@ -22939,15 +22995,16 @@ function _showAccountRecoveryModal(hoursLeft, playerId){
     var modal=document.createElement('div');
     modal.className='modal open';
     modal.style.zIndex=99999;
+    var _en=(SPEEDIX_LANG==='en');
     modal.innerHTML='<div class="modal-box" style="max-width:440px;border:1.5px solid rgba(245,200,66,.5)">'
       +'<div style="text-align:center">'
         +'<div style="font-size:2.8rem;margin-bottom:.4rem">⏳</div>'
-        +'<div class="modal-title" style="color:var(--gold)">Suppression en cours</div>'
-        +'<div style="font-size:.82rem;color:var(--text);line-height:1.55;margin:.8rem 0">Ton compte sera <strong style="color:#ff6060">définitivement supprimé dans '+hoursLeft+'h</strong>.</div>'
-        +'<div style="font-size:.76rem;color:var(--muted2);line-height:1.5;margin-bottom:1rem">Tu peux encore tout annuler maintenant — tes Lands, ton Premium et ton historique seront restaurés à l\'identique.</div>'
+        +'<div class="modal-title" style="color:var(--gold)">'+(_en?'Deletion in progress':'Suppression en cours')+'</div>'
+        +'<div style="font-size:.82rem;color:var(--text);line-height:1.55;margin:.8rem 0">'+(_en?'Your account will be <strong style="color:#ff6060">permanently deleted in '+hoursLeft+'h</strong>.':'Ton compte sera <strong style="color:#ff6060">définitivement supprimé dans '+hoursLeft+'h</strong>.')+'</div>'
+        +'<div style="font-size:.76rem;color:var(--muted2);line-height:1.5;margin-bottom:1rem">'+(_en?'You can still cancel everything now — your Lands, Premium and history will be restored exactly as they were.':'Tu peux encore tout annuler maintenant — tes Lands, ton Premium et ton historique seront restaurés à l\'identique.')+'</div>'
         +'<div style="display:flex;flex-direction:column;gap:.5rem;max-width:300px;margin:0 auto">'
-          +'<button data-act="cancel" style="padding:.7rem 1rem;border-radius:8px;border:1.5px solid var(--green);background:linear-gradient(175deg,rgba(45,219,128,.22),rgba(20,160,80,.12));color:var(--green);font-weight:700;font-size:.88rem;cursor:pointer">↺ Annuler la suppression</button>'
-          +'<button data-act="continue" style="padding:.55rem 1rem;border-radius:7px;border:1px solid rgba(255,68,68,.3);background:transparent;color:#ff6060;font-size:.78rem;cursor:pointer">Continuer la suppression et se déconnecter</button>'
+          +'<button data-act="cancel" style="padding:.7rem 1rem;border-radius:8px;border:1.5px solid var(--green);background:linear-gradient(175deg,rgba(45,219,128,.22),rgba(20,160,80,.12));color:var(--green);font-weight:700;font-size:.88rem;cursor:pointer">'+(_en?'↺ Cancel deletion':'↺ Annuler la suppression')+'</button>'
+          +'<button data-act="continue" style="padding:.55rem 1rem;border-radius:7px;border:1px solid rgba(255,68,68,.3);background:transparent;color:#ff6060;font-size:.78rem;cursor:pointer">'+(_en?'Continue deletion and log out':'Continuer la suppression et se déconnecter')+'</button>'
         +'</div>'
       +'</div></div>';
     document.body.appendChild(modal);
