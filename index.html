@@ -10904,29 +10904,15 @@ async function _markRentPaid(uid){
   await supabaseClient.from('players').update({last_rent_paid_month:_currentRentMonth()}).eq('id',uid);
 }
 
+// La recette unique en base (process_player_rent) est la SEULE source de calcul du
+// loyer. Ici on lui demande juste une SIMULATION (p_commit=false) : aucun débit.
 async function _loadMyRentedLandsForRent(){
-  var {data:lands}=await supabaseClient.from('lands')
-    .select('id,rent_periods,rent_start_period,stars,rented_at')
-    .eq('tenant_id',currentUser.id)
-    .eq('status','rented');
-  if(!lands||!lands.length) return {lands:[],total:0};
-  // Skip les lands acquises dans le mois courant : prorata déjà débité à la location,
-  // le mois plein commencera au cycle 5-10 du mois suivant.
-  var currentMonth=_currentRentMonth();
-  var billable=lands.filter(function(l){
-    // Au-delà de 12 mois : la land doit être achetée, sinon elle repart dans le
-    // jeu (remise en jeu gérée par _releaseExpiredLeases) → jamais facturée ici.
-    if(_computeRentPeriods(l)>12) return false;
-    return !l.rented_at || _rentMonthOf(l.rented_at)!==currentMonth;
-  });
-  if(!billable.length) return {lands:[],total:0};
-  var total=0;
-  billable.forEach(function(l){
-    var rp=_computeRentPeriods(l);
-    l._cost=getRentCostByMonths(rp);
-    total+=l._cost;
-  });
-  return {lands:billable,total:total};
+  if(!currentUser) return {lands:[],total:0};
+  var {data,error}=await supabaseClient.rpc('process_player_rent',
+    {p_player_id:currentUser.id,p_commit:false,p_force_release:false});
+  if(error||!data||!data.lands) return {lands:[],total:0};
+  var lands=data.lands.map(function(l){ return {id:l.land_id,_cost:l.cost,months:l.months}; });
+  return {lands:lands,total:data.total||0};
 }
 
 async function processMonthlyRent(){
@@ -10938,24 +10924,31 @@ async function processMonthlyRent(){
   var lastPaid=await _getRentStatus(currentUser.id);
   if(lastPaid===currentMonth) return;
 
-  // Avant de facturer : remettre en jeu les locations qui dépassent 12 mois.
+  // Remettre en jeu les locations de plus de 12 mois (règle : acheter sinon retour au jeu).
   await _releaseExpiredLeases();
 
-  var info=await _loadMyRentedLandsForRent();
-  if(!info.lands.length){
-    await _markRentPaid(currentUser.id); // rien à prélever → marqué OK
-    return;
-  }
-
-  // Entre le 5 et le 10 : demander validation
+  // Entre le 5 et le 10 : on montre la fenêtre de validation (le joueur paie ou non).
   if(dayOfMonth<=10){
+    var info=await _loadMyRentedLandsForRent();
+    if(!info.lands.length){ await _markRentPaid(currentUser.id); return; }
     _openRentValidationModal(info);
     return;
   }
 
-  // Passé le 10 : libérer juste assez de lands (aléatoire) pour que le reste soit payable
-  await _autoSettleUnpaidRent(info);
-  await _markRentPaid(currentUser.id);
+  // Passé le 10 : encaissement FORCÉ via la recette unique en base — elle débite, et
+  // libère au hasard juste assez de Lands si le solde est insuffisant, puis marque payé.
+  var {data,error}=await supabaseClient.rpc('process_player_rent',
+    {p_player_id:currentUser.id,p_commit:true,p_force_release:true});
+  if(error){ console.warn('[rent] forced settle',error); return; }
+  var rel=((data&&data.released_short)||0)+((data&&data.released_expired)||0);
+  if(rel>0){
+    showToast('⚠️ '+rel+' Land'+(rel>1?'s':'')+' remise'+(rel>1?'s':'')+' en jeu (loyer impayé)'+((data&&data.debited)?(' · −'+data.debited.toLocaleString(SPEEDIX_LANG)+' RPC'):''));
+  } else if(data&&data.debited>0){
+    showToast('🏠 Loyer prélevé : −'+data.debited.toLocaleString(SPEEDIX_LANG)+' RPC');
+  }
+  if(typeof walletLoad==='function') await walletLoad();
+  if(typeof loadLandsOnMap==='function') loadLandsOnMap();
+  if(typeof renderMyLands==='function') renderMyLands();
 }
 
 function _openRentValidationModal(info){
@@ -10989,15 +10982,15 @@ function _openRentValidationModal(info){
 
 async function submitRentPayment(){
   if(!currentUser) return;
-  var info=await _loadMyRentedLandsForRent();
-  if(!info.lands.length){closeModal('rent-validation-modal');return;}
-  var w=window.__wallet||{rpc:0};
-  if(w.rpc<info.total){showToast('⚠️ Solde insuffisant');return;}
-  var ok=await walletCredit(-info.total,0,'Loyer mensuel '+info.lands.length+' lands');
-  if(!ok) return;
-  await _markRentPaid(currentUser.id);
+  // Paiement volontaire (5-10) : on encaisse via la recette unique, SANS libération
+  // forcée (p_force_release=false). Si le solde est insuffisant, elle ne prélève rien.
+  var {data,error}=await supabaseClient.rpc('process_player_rent',
+    {p_player_id:currentUser.id,p_commit:true,p_force_release:false});
+  if(error){ showToast('⚠️ Erreur loyer : '+error.message); return; }
+  if(data&&data.status==='insufficient'){ showToast('⚠️ Solde insuffisant'); return; }
   closeModal('rent-validation-modal');
-  showToast('🏠 Loyer prélevé : −'+info.total.toLocaleString(SPEEDIX_LANG)+' RPC ('+info.lands.length+' land'+(info.lands.length>1?'s':'')+')');
+  showToast('🏠 Loyer prélevé : −'+((data&&data.debited)||0).toLocaleString(SPEEDIX_LANG)+' RPC');
+  if(typeof walletLoad==='function') await walletLoad();
   if(typeof renderMyLands==='function') renderMyLands();
 }
 
@@ -11091,54 +11084,32 @@ async function adminForceRent(){
   if(!isAdmin()) return;
   var msg=document.getElementById('admin-rent-msg');
   if(msg){msg.style.color='var(--gold)';msg.textContent='Prélèvement en cours…';}
-  // Charger TOUTES les lands en location (tous joueurs)
-  var {data:allRented}=await supabaseClient.from('lands')
-    .select('id,tenant_id,rent_periods,stars')
-    .eq('status','rented');
-  if(!allRented||!allRented.length){
-    if(msg){msg.style.color='var(--muted2)';msg.textContent='Aucune land en location.';}
-    return;
+  // Récupérer TOUS les locataires (paginé — un SELECT brut plafonne à 1000 lignes).
+  var tenants={}, from=0, page=1000;
+  while(true){
+    var {data:chunk,error}=await supabaseClient.from('lands')
+      .select('tenant_id').eq('status','rented').not('tenant_id','is',null)
+      .order('id').range(from,from+page-1);
+    if(error||!chunk||!chunk.length) break;
+    chunk.forEach(function(l){ if(l.tenant_id) tenants[l.tenant_id]=true; });
+    if(chunk.length<page) break;
+    from+=page;
   }
-  // Grouper par tenant
-  var byTenant={};
-  allRented.forEach(function(l){
-    if(!l.tenant_id) return;
-    if(!byTenant[l.tenant_id]) byTenant[l.tenant_id]=[];
-    byTenant[l.tenant_id].push(l);
-  });
-  var totalDebited=0;
-  var totalReleased=0;
-  var tenantsProcessed=0;
-  for(var tid in byTenant){
-    var lands=byTenant[tid];
-    var loyer=0;
-    for(var li=0;li<lands.length;li++){
-      var rp=_computeRentPeriods(lands[li]);
-      // Au-delà de 12 mois : la land repart dans le jeu (pas de loyer).
-      if(rp>12){ await _releaseSingleLand(lands[li].id); totalReleased++; continue; }
-      loyer+=getRentCostByMonths(rp);
-    }
-    if(loyer===0) continue; // toutes les lands de ce joueur ont été remises en jeu
-    // Charger le solde du joueur
-    var {data:player}=await supabaseClient.from('players').select('rpc_balance').eq('id',tid).single();
-    if(!player) continue;
-    var newRpc=(player.rpc_balance||0)-loyer;
-    if(newRpc<0) newRpc=0;
-    // Débiter
-    await window.fetch(supabaseUrl+'/rest/v1/players?id=eq.'+encodeURIComponent(tid),{
-      method:'PATCH',
-      headers:{'apikey':supabaseKey,'Authorization':'Bearer '+supabaseKey,'Content-Type':'application/json'},
-      body:JSON.stringify({rpc_balance:newRpc})
-    });
-    totalDebited+=loyer;
-    tenantsProcessed++;
+  var ids=Object.keys(tenants);
+  if(!ids.length){ if(msg){msg.style.color='var(--muted2)';msg.textContent='Aucune land en location.';} return; }
+  // Chaque joueur est traité par la recette unique en base (même règle que le cron serveur).
+  var totalDebited=0, totalReleased=0, n=0;
+  for(var i=0;i<ids.length;i++){
+    var {data,error}=await supabaseClient.rpc('process_player_rent',
+      {p_player_id:ids[i],p_commit:true,p_force_release:true});
+    if(error||!data) continue;
+    n++;
+    totalDebited+=(data.debited||0);
+    totalReleased+=((data.released_short||0)+(data.released_expired||0));
   }
-  // Refresh mon wallet si concerné
-  if(byTenant[currentUser.id]&&window.__wallet){
-    var {data:me}=await supabaseClient.from('players').select('rpc_balance,nyx_balance').eq('id',currentUser.id).single();
-    if(me){window.__wallet.rpc=me.rpc_balance||0;window.__wallet.nyx=me.nyx_balance||0;walletRefreshUI();}
-  }
-  if(msg){msg.style.color='var(--green)';msg.textContent='✓ Loyer prélevé : −'+totalDebited.toLocaleString(SPEEDIX_LANG)+' RPC sur '+tenantsProcessed+' joueur'+(tenantsProcessed>1?'s':'')+' ('+allRented.length+' lands)'+(totalReleased?(' · '+totalReleased+' land'+(totalReleased>1?'s':'')+' remise'+(totalReleased>1?'s':'')+' en jeu (>12 mois)'):'');}
+  if(typeof walletLoad==='function') await walletLoad();
+  if(msg){msg.style.color='var(--green)';msg.textContent='✓ Loyer : −'+totalDebited.toLocaleString(SPEEDIX_LANG)+' RPC sur '+n+' joueur'+(n>1?'s':'')+(totalReleased?(' · '+totalReleased+' land'+(totalReleased>1?'s':'')+' remise'+(totalReleased>1?'s':'')+' en jeu'):'');}
+  if(typeof loadLandsOnMap==='function') loadLandsOnMap();
   if(typeof renderMyLands==='function') renderMyLands();
 }
 
