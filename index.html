@@ -5883,6 +5883,7 @@ async function onLoginSuccess(user, isNew){
     currentUser.quizz_locked_at=pd.quizz_locked_at||0;
     currentUser.quizz_jokers_used=pd.quizz_jokers_used||0;
     currentUser.quizz_answered_count=pd.quizz_answered_count||0;
+    currentUser.quizz_answered_correct=pd.quizz_answered_correct||0;
   }
   var {data:runs}=await supabaseClient.from('runs').select('points').eq('player_id',user.id).eq('period',0);
   if(window.__myPlayer){
@@ -23494,7 +23495,7 @@ async function loadQuizzPlayerData(){
   try{
     var {data:pd}=await supabaseClient
       .from('players')
-      .select('username,quizz_streak,quizz_best_streak,quizz_last_answer_date,quizz_last_correct,quizz_total_rpc,quizz_correct_count,quizz_total_time_ms,quizz_locked_at,quizz_jokers_used,quizz_answered_count')
+      .select('username,quizz_streak,quizz_best_streak,quizz_last_answer_date,quizz_last_correct,quizz_total_rpc,quizz_correct_count,quizz_total_time_ms,quizz_locked_at,quizz_jokers_used,quizz_answered_count,quizz_answered_correct')
       .eq('id',currentUser.id)
       .maybeSingle();
     if(!pd) return;
@@ -23509,6 +23510,7 @@ async function loadQuizzPlayerData(){
     currentUser.quizz_locked_at=pd.quizz_locked_at||0;
     currentUser.quizz_jokers_used=pd.quizz_jokers_used||0;
     currentUser.quizz_answered_count=pd.quizz_answered_count||0;
+    currentUser.quizz_answered_correct=pd.quizz_answered_correct||0;
   }catch(e){console.warn('loadQuizzPlayerData fail',e);}
 }
 
@@ -23733,6 +23735,10 @@ async function submitQuizzAnswer(dispIdx){
   // Compteur de questions répondues : +1 à CHAQUE réponse (bonne OU mauvaise).
   // Sert à la stat "bonnes réponses / répondues" (ex. 12/14).
   var newAnsweredCount=(currentUser.quizz_answered_count||0)+1;
+  // Numérateur de la case : +1 seulement si bonne réponse. Compteur DÉDIÉ à la
+  // case (réinitialisé à la série en cours), distinct de quizz_correct_count qui
+  // reste le total all-time servant au "Temps moyen".
+  var newAnsweredCorrect=(currentUser.quizz_answered_correct||0)+(correct?1:0);
 
   try{
     await supabaseClient.from('players').update({
@@ -23744,7 +23750,8 @@ async function submitQuizzAnswer(dispIdx){
       quizz_correct_count:newCorrectCount,
       quizz_total_time_ms:newTotalTimeMs,
       quizz_jokers_used:newJokersUsed,
-      quizz_answered_count:newAnsweredCount
+      quizz_answered_count:newAnsweredCount,
+      quizz_answered_correct:newAnsweredCorrect
     }).eq('id',currentUser.id);
 
     currentUser.quizz_streak=newStreak;
@@ -23756,6 +23763,7 @@ async function submitQuizzAnswer(dispIdx){
     currentUser.quizz_total_time_ms=newTotalTimeMs;
     currentUser.quizz_jokers_used=newJokersUsed;
     currentUser.quizz_answered_count=newAnsweredCount;
+    currentUser.quizz_answered_correct=newAnsweredCorrect;
 
     if(rpcGained>0){
       await supabaseClient.from('wallet_tx').insert({
@@ -23864,6 +23872,7 @@ function renderQuizzResult(correct,rpcGained,currentStreak,isReopen){
   var total=currentUser.quizz_total_rpc||0;
   var correctCount=currentUser.quizz_correct_count||0;
   var answeredCount=currentUser.quizz_answered_count||0;
+  var answeredCorrect=currentUser.quizz_answered_correct||0;
   var qTitle=quizzTitle(currentUser.quizz_streak||0);
   var totalTimeMs=currentUser.quizz_total_time_ms||0;
   var avgTime=correctCount>0?((totalTimeMs/correctCount/1000).toFixed(1).replace('.',SPEEDIX_LANG==='en'?'.':',')+' s'):'—';
@@ -23917,7 +23926,7 @@ function renderQuizzResult(correct,rpcGained,currentStreak,isReopen){
     +   '<div style="background:rgba(45,219,128,.08);border-radius:8px;padding:.6rem"><div style="font-family:Space Mono,monospace;font-size:1.1rem;font-weight:700;color:#2ddb80">'+best+'</div><div style="font-size:.6rem;color:var(--muted2);text-transform:uppercase;letter-spacing:.5px">'+t('quizz.stats.best')+'</div></div>'
     +   '<div style="background:rgba(169,109,255,.08);border-radius:8px;padding:.6rem"><div style="font-family:Space Mono,monospace;font-size:1.1rem;font-weight:700;color:#a96dff">⚡ '+avgTime+'</div><div style="font-size:.6rem;color:var(--muted2);text-transform:uppercase;letter-spacing:.5px">'+t('quizz.stats.avg')+'</div></div>'
     +   '<div style="background:rgba(255,201,71,.08);border-radius:8px;padding:.6rem"><div style="font-family:Space Mono,monospace;font-size:1.1rem;font-weight:700;color:var(--gold)">+'+total.toLocaleString(SPEEDIX_LANG)+' RPC</div><div style="font-size:.6rem;color:var(--muted2);text-transform:uppercase;letter-spacing:.5px">'+t('quizz.stats.total')+'</div></div>'
-    +   '<div style="background:rgba(255,107,157,.08);border-radius:8px;padding:.6rem"><div style="font-family:Space Mono,monospace;font-size:1.1rem;font-weight:700;color:#ff6b9d">'+correctCount+'/'+answeredCount+'</div><div style="font-size:.6rem;color:var(--muted2);text-transform:uppercase;letter-spacing:.5px">'+t('quizz.stats.answers')+'</div></div>'
+    +   '<div style="background:rgba(255,107,157,.08);border-radius:8px;padding:.6rem"><div style="font-family:Space Mono,monospace;font-size:1.1rem;font-weight:700;color:#ff6b9d">'+answeredCorrect+'/'+answeredCount+'</div><div style="font-size:.6rem;color:var(--muted2);text-transform:uppercase;letter-spacing:.5px">'+t('quizz.stats.answers')+'</div></div>'
     +   '<div style="background:'+qTitle.color+'14;border-radius:8px;padding:.6rem;display:flex;flex-direction:column;justify-content:center"><div style="font-family:Bebas Neue,sans-serif;font-size:1rem;letter-spacing:1px;font-weight:700;color:'+qTitle.color+';line-height:1.05">'+qTitle.label+'</div><div style="font-size:.6rem;color:var(--muted2);text-transform:uppercase;letter-spacing:.5px;margin-top:.2rem">'+t('quizz.stats.level')+'</div></div>'
     + '</div>'
     +'</div>'
