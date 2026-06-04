@@ -4008,6 +4008,8 @@ const I18N = {
     'quizz.stats.best'          : 'Meilleure série',
     'quizz.stats.avg'           : 'Temps moyen',
     'quizz.stats.total'         : 'Total gagné',
+    'quizz.stats.answers'       : 'Bonnes réponses',
+    'quizz.stats.level'         : 'Niveau',
     'quizz.rank.loading'        : 'Chargement du classement…',
     'quizz.rank.title'          : 'Classement Quizz',
     'quizz.rank.empty'          : 'Personne n\'a encore répondu au quizz. À toi de jouer !',
@@ -4773,6 +4775,8 @@ const I18N = {
     'quizz.stats.best'          : 'Best streak',
     'quizz.stats.avg'           : 'Average time',
     'quizz.stats.total'         : 'Total won',
+    'quizz.stats.answers'       : 'Correct answers',
+    'quizz.stats.level'         : 'Level',
     'quizz.rank.loading'        : 'Loading rankings…',
     'quizz.rank.title'          : 'Quiz Rankings',
     'quizz.rank.empty'          : 'No one has played the quiz yet. You\'re up!',
@@ -5878,6 +5882,7 @@ async function onLoginSuccess(user, isNew){
     currentUser.quizz_total_time_ms=pd.quizz_total_time_ms||0;
     currentUser.quizz_locked_at=pd.quizz_locked_at||0;
     currentUser.quizz_jokers_used=pd.quizz_jokers_used||0;
+    currentUser.quizz_answered_count=pd.quizz_answered_count||0;
   }
   var {data:runs}=await supabaseClient.from('runs').select('points').eq('player_id',user.id).eq('period',0);
   if(window.__myPlayer){
@@ -23489,7 +23494,7 @@ async function loadQuizzPlayerData(){
   try{
     var {data:pd}=await supabaseClient
       .from('players')
-      .select('username,quizz_streak,quizz_best_streak,quizz_last_answer_date,quizz_last_correct,quizz_total_rpc,quizz_correct_count,quizz_total_time_ms,quizz_locked_at,quizz_jokers_used')
+      .select('username,quizz_streak,quizz_best_streak,quizz_last_answer_date,quizz_last_correct,quizz_total_rpc,quizz_correct_count,quizz_total_time_ms,quizz_locked_at,quizz_jokers_used,quizz_answered_count')
       .eq('id',currentUser.id)
       .maybeSingle();
     if(!pd) return;
@@ -23503,6 +23508,7 @@ async function loadQuizzPlayerData(){
     currentUser.quizz_total_time_ms=pd.quizz_total_time_ms||0;
     currentUser.quizz_locked_at=pd.quizz_locked_at||0;
     currentUser.quizz_jokers_used=pd.quizz_jokers_used||0;
+    currentUser.quizz_answered_count=pd.quizz_answered_count||0;
   }catch(e){console.warn('loadQuizzPlayerData fail',e);}
 }
 
@@ -23724,6 +23730,9 @@ async function submitQuizzAnswer(dispIdx){
   }
   // Compteur jokers : on incrémente que si 50/50 effectivement utilisé sur cette question
   var newJokersUsed=(currentUser.quizz_jokers_used||0)+(s.fiftyUsed?1:0);
+  // Compteur de questions répondues : +1 à CHAQUE réponse (bonne OU mauvaise).
+  // Sert à la stat "bonnes réponses / répondues" (ex. 12/14).
+  var newAnsweredCount=(currentUser.quizz_answered_count||0)+1;
 
   try{
     await supabaseClient.from('players').update({
@@ -23734,7 +23743,8 @@ async function submitQuizzAnswer(dispIdx){
       quizz_total_rpc:totalRpc,
       quizz_correct_count:newCorrectCount,
       quizz_total_time_ms:newTotalTimeMs,
-      quizz_jokers_used:newJokersUsed
+      quizz_jokers_used:newJokersUsed,
+      quizz_answered_count:newAnsweredCount
     }).eq('id',currentUser.id);
 
     currentUser.quizz_streak=newStreak;
@@ -23745,6 +23755,7 @@ async function submitQuizzAnswer(dispIdx){
     currentUser.quizz_correct_count=newCorrectCount;
     currentUser.quizz_total_time_ms=newTotalTimeMs;
     currentUser.quizz_jokers_used=newJokersUsed;
+    currentUser.quizz_answered_count=newAnsweredCount;
 
     if(rpcGained>0){
       await supabaseClient.from('wallet_tx').insert({
@@ -23824,14 +23835,36 @@ async function buyQuizzLock(palier){
   }catch(e){console.warn('quizz lock save fail',e);}
 }
 
+// Titre de niveau basé sur la SÉRIE EN COURS (quizz_streak). Pas de %, car une
+// mauvaise réponse ramène déjà la série à 0 (ou au palier verrouillé) → le titre
+// peut redescendre, c'est voulu. Renvoie {label localisé, color}.
+function quizzTitle(streak){
+  var s=streak||0, fr, en, color;
+  if(s>=71){ fr='Génie certifié';          en='Certified genius';  color='#ffd24a'; }
+  else if(s>=56){ fr='Maître du jeu';        en='Game master';      color='#ffb84a'; }
+  else if(s>=41){ fr='Wikipédia en short';   en='Walking Wikipedia';color='#c89bff'; }
+  else if(s>=33){ fr='Crack du quizz';        en='Quiz ace';         color='#a96dff'; }
+  else if(s>=25){ fr='Machine à réponses';    en='Answer machine';   color='#6d9dff'; }
+  else if(s>=17){ fr='Candidat expert';       en='Expert candidate'; color='#4ac8ff'; }
+  else if(s>=13){ fr='Potentiel sérieux';     en='Serious potential';color='#2ddb80'; }
+  else if(s>=9){  fr='Connaissances affûtées';en='Sharp knowledge';  color='#5cd17a'; }
+  else if(s>=5){  fr='Cerveau activé';         en='Brain online';     color='#9acd32'; }
+  else if(s>=2){  fr='Série en cours';         en='On a roll';        color='#ffb84a'; }
+  else if(s>=1){  fr='Enfin le départ';        en='Finally started';  color='#ff9d4a'; }
+  else {          fr='Erreur 404';             en='Error 404';        color='#ff6b6b'; }
+  return { label:(SPEEDIX_LANG==='en'?en:fr), color:color };
+}
+
 // Affiche l'écran de résultat après réponse (ou au re-clic le même jour : isReopen=true).
-// Inclut les 4 tuiles de stats + une croix ✕ en haut à droite pour sortir vite vers la PC.
+// Inclut les 6 tuiles de stats + une croix ✕ en haut à droite pour sortir vite vers la PC.
 function renderQuizzResult(correct,rpcGained,currentStreak,isReopen){
   isReopen=isReopen||false;
   var s=_quizzState;
   var best=currentUser.quizz_best_streak||0;
   var total=currentUser.quizz_total_rpc||0;
   var correctCount=currentUser.quizz_correct_count||0;
+  var answeredCount=currentUser.quizz_answered_count||0;
+  var qTitle=quizzTitle(currentUser.quizz_streak||0);
   var totalTimeMs=currentUser.quizz_total_time_ms||0;
   var avgTime=correctCount>0?((totalTimeMs/correctCount/1000).toFixed(1).replace('.',SPEEDIX_LANG==='en'?'.':',')+' s'):'—';
   var displayStreak=isReopen?(currentUser.quizz_streak||0):currentStreak;
@@ -23884,6 +23917,8 @@ function renderQuizzResult(correct,rpcGained,currentStreak,isReopen){
     +   '<div style="background:rgba(45,219,128,.08);border-radius:8px;padding:.6rem"><div style="font-family:Space Mono,monospace;font-size:1.1rem;font-weight:700;color:#2ddb80">'+best+'</div><div style="font-size:.6rem;color:var(--muted2);text-transform:uppercase;letter-spacing:.5px">'+t('quizz.stats.best')+'</div></div>'
     +   '<div style="background:rgba(169,109,255,.08);border-radius:8px;padding:.6rem"><div style="font-family:Space Mono,monospace;font-size:1.1rem;font-weight:700;color:#a96dff">⚡ '+avgTime+'</div><div style="font-size:.6rem;color:var(--muted2);text-transform:uppercase;letter-spacing:.5px">'+t('quizz.stats.avg')+'</div></div>'
     +   '<div style="background:rgba(255,201,71,.08);border-radius:8px;padding:.6rem"><div style="font-family:Space Mono,monospace;font-size:1.1rem;font-weight:700;color:var(--gold)">+'+total.toLocaleString(SPEEDIX_LANG)+' RPC</div><div style="font-size:.6rem;color:var(--muted2);text-transform:uppercase;letter-spacing:.5px">'+t('quizz.stats.total')+'</div></div>'
+    +   '<div style="background:rgba(255,107,157,.08);border-radius:8px;padding:.6rem"><div style="font-family:Space Mono,monospace;font-size:1.1rem;font-weight:700;color:#ff6b9d">'+correctCount+'/'+answeredCount+'</div><div style="font-size:.6rem;color:var(--muted2);text-transform:uppercase;letter-spacing:.5px">'+t('quizz.stats.answers')+'</div></div>'
+    +   '<div style="background:'+qTitle.color+'14;border-radius:8px;padding:.6rem;display:flex;flex-direction:column;justify-content:center"><div style="font-family:Bebas Neue,sans-serif;font-size:1rem;letter-spacing:1px;font-weight:700;color:'+qTitle.color+';line-height:1.05">'+qTitle.label+'</div><div style="font-size:.6rem;color:var(--muted2);text-transform:uppercase;letter-spacing:.5px;margin-top:.2rem">'+t('quizz.stats.level')+'</div></div>'
     + '</div>'
     +'</div>'
     +'<div id="quizz-ranking"></div>';
