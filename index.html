@@ -955,10 +955,10 @@ select option{background:#040c1c}
 @keyframes logoPulse{0%,100%{filter:drop-shadow(0 0 20px rgba(245,200,66,.3)) drop-shadow(0 0 40px rgba(245,200,66,.1))}50%{filter:drop-shadow(0 0 25px rgba(245,200,66,.45)) drop-shadow(0 0 50px rgba(245,200,66,.2))}}
 @keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
 @media(max-width:600px){
-  /* Page Lands : tableau "Mes Lands" trop large pour mobile (8 colonnes).
-     On masque les colonnes secondaires (Statut, P.loc., Loyer) pour ne garder que l'essentiel. */
-  #lands-tbl th:nth-child(2),
-  #lands-tbl td:nth-child(2),
+  /* Page Lands : tableau "Mes Lands" large sur mobile. La colonne ID est
+     désormais un simple numéro (compact), ce qui libère la place pour garder
+     la colonne "Statut" — la pastille cliquable qui ouvre la Land sur la carte.
+     On ne masque plus que les colonnes secondaires P. loc. et Loyer. */
   #lands-tbl th:nth-child(3),
   #lands-tbl td:nth-child(3),
   #lands-tbl th:nth-child(6),
@@ -4036,7 +4036,7 @@ const I18N = {
     'lands.map.ranking'         : '🏆 Classement',
     'lands.map.finish'          : '✓ Terminer',
     'lands.my.title'            : 'Mes <span class="hl">Lands</span>',
-    'lands.col.land'            : 'Land',
+    'lands.col.land'            : 'ID',
     'lands.col.status'          : 'Statut',
     'lands.col.locP'            : 'P. loc.',
     'lands.col.stars'           : 'Étoiles',
@@ -4807,7 +4807,7 @@ const I18N = {
     'lands.map.ranking'         : '🏆 Ranking',
     'lands.map.finish'          : '✓ Finish',
     'lands.my.title'            : 'My <span class="hl">Lands</span>',
-    'lands.col.land'            : 'Land',
+    'lands.col.land'            : 'ID',
     'lands.col.status'          : 'Status',
     'lands.col.locP'            : 'Rent pts',
     'lands.col.stars'           : 'Stars',
@@ -10677,7 +10677,11 @@ async function renderMyLands(page){
       pagEl.innerHTML=pagHtml;
     }
   }
-  tbody.innerHTML=pageLands.map(function(l){
+  tbody.innerHTML=pageLands.map(function(l,_i){
+    // Numéro d'affichage continu sur l'ensemble des pages (1..N). C'est juste
+    // un repère lisible pour le RP — le vrai identifiant de la Land (hexagone H3)
+    // reste l'id stocké en base, utilisé pour toutes les actions/la carte.
+    var _landNum=pageStart+_i+1;
     var starsTxt=l.stars>0?('★'.repeat(l.stars)):'nue';
     var starsColor=l.stars>0?'#ffe050':'var(--muted)';
     var isOwned=(l.status==='owned');
@@ -10722,7 +10726,7 @@ async function renderMyLands(page){
       buyPrice='<span style="color:var(--green)">'+nyx+' NYX</span>';
     }
     return '<tr>'
-      +'<td style="font-family:Space Mono,monospace;font-size:.68rem;color:var(--muted2)">'+l.id.substring(0,10)+'…</td>'
+      +'<td '+clickAttr+'font-family:Space Mono,monospace;font-size:.82rem;color:var(--cyan);text-align:center;font-weight:700">'+_landNum+'</td>'
       +'<td>'+statusBadge+'</td>'
       +'<td style="font-size:.75rem;text-align:center">P'+(rp||0)+'</td>'
       +'<td style="color:'+starsColor+';font-size:.8rem;text-align:center">'+starsTxt+'</td>'
