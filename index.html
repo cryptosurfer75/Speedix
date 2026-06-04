@@ -3001,18 +3001,6 @@ function askConfirm(message, opts){
 </div>
 
 <!-- Modal Bonus de bienvenue (jour 1 uniquement) -->
-<!-- Onboarding -->
-<div class="modal" id="onboarding-modal">
-  <div class="modal-box" style="max-width:420px;text-align:center;padding:1.5rem">
-    <div id="onboarding-content"></div>
-    <div style="display:flex;justify-content:center;gap:.5rem;margin-top:1rem">
-      <button id="onboarding-prev" onclick="onboardingNav(-1)" style="padding:.4rem 1rem;border-radius:7px;border:1px solid rgba(74,144,255,.3);background:transparent;color:var(--muted2);font-size:.8rem;cursor:pointer;display:none">← Retour</button>
-      <button id="onboarding-next" onclick="onboardingNav(1)" style="padding:.4rem 1.5rem;border-radius:7px;border:none;background:linear-gradient(180deg,#5ecb62,#2d8a32);color:#fff;font-family:'Bebas Neue',sans-serif;font-size:1rem;letter-spacing:2px;cursor:pointer">SUIVANT →</button>
-    </div>
-    <div id="onboarding-dots" style="display:flex;justify-content:center;gap:6px;margin-top:.75rem"></div>
-  </div>
-</div>
-
 <div class="modal" id="welcome-bonus-modal">
   <div class="modal-box" style="max-width:400px;text-align:center;padding:2rem 1.5rem">
     <button class="modal-close" onclick="closeModal('welcome-bonus-modal')">✕</button>
@@ -15416,21 +15404,6 @@ function nav(page){
     }
   }
 }
-// ── Onboarding (première connexion) ──
-var _onboardingStep=0;
-// Onboarding PC (première connexion)
-var _onboardingSlides=[
-  {
-    emoji:'🏃',
-    title:'Bienvenue dans SPEEDIX League !',
-    text:'Tu viens de rejoindre la compétition de course à pied la plus fun.<br><br>Chaque course te rapporte des <strong style="color:var(--gold)">points</strong>. Les points déterminent ton classement dans ta <strong style="color:var(--text)">League</strong>.'
-  },
-  {
-    emoji:'☰',
-    title:'Navigue avec le menu',
-    text:'Clique sur le <strong style="color:var(--gold)">logo SPEEDIX</strong> en haut à gauche pour ouvrir le menu.<br><br>Tu y trouveras toutes les pages : League, Player Card, Teams, Points, Lands, Social…'
-  }
-];
 // Tuto PC contextuel — déclenché après la modale Streak du jour 1 phase 1, une
 // seule fois par RP (localStorage clé pc-tuto-done-<userId>). Affiche une bulle
 // d'explication ancrée sur chaque bouton principal (overlay sombre + spotlight
@@ -15577,45 +15550,6 @@ function _endContextualTuto(){
   _tutoState.steps=null;
 }
 
-function showOnboarding(customSlides){
-  if(customSlides) _onboardingSlides=customSlides;
-  _onboardingStep=0;
-  renderOnboardingStep();
-  openModal('onboarding-modal');
-}
-
-function renderOnboardingStep(){
-  var s=_onboardingSlides[_onboardingStep];
-  var el=document.getElementById('onboarding-content');
-  el.innerHTML='<div style="font-size:3rem;margin-bottom:.5rem">'+s.emoji+'</div>'
-    +'<div style="font-family:Bebas Neue,sans-serif;font-size:1.3rem;letter-spacing:2px;color:var(--gold);margin-bottom:.5rem">'+s.title+'</div>'
-    +'<div style="font-size:.8rem;color:var(--muted2);line-height:1.7">'+s.text+'</div>';
-  // Dots
-  var dots=document.getElementById('onboarding-dots');
-  dots.innerHTML=_onboardingSlides.map(function(_,i){
-    return '<div style="width:'+(i===_onboardingStep?'18px':'7px')+';height:7px;border-radius:4px;background:'+(i===_onboardingStep?'var(--gold)':'rgba(255,255,255,.15)')+';transition:all .2s"></div>';
-  }).join('');
-  // Boutons
-  document.getElementById('onboarding-prev').style.display=_onboardingStep>0?'':'none';
-  var nextBtn=document.getElementById('onboarding-next');
-  if(_onboardingStep===_onboardingSlides.length-1){
-    nextBtn.textContent='C\'EST PARTI !';
-  } else {
-    nextBtn.textContent='SUIVANT →';
-  }
-}
-
-function onboardingNav(dir){
-  _onboardingStep+=dir;
-  if(_onboardingStep>=_onboardingSlides.length){
-    closeModal('onboarding-modal');
-    if(currentUser) localStorage.setItem('onboarding-done-'+currentUser.id,'1');
-    if(window._onboardingCallback){window._onboardingCallback();window._onboardingCallback=null;}
-    return;
-  }
-  if(_onboardingStep<0) _onboardingStep=0;
-  renderOnboardingStep();
-}
 
 
 function getBlasonIdx(team){
