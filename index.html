@@ -3999,6 +3999,9 @@ const I18N = {
     'quizz.result.win'          : 'Tu gagnes <strong style="color:var(--gold)">+{rpc} RPC</strong>. Ta série passe à <strong>{streak}</strong>.',
     'quizz.result.win.halved'   : 'Gain divisé par 2 (joker 50/50)',
     'quizz.result.lose'         : 'La bonne réponse était : <strong style="color:var(--gold)">{ans}</strong>.<br>Ta série retombe {floor}.',
+    'quizz.result.win.pot'      : '<strong style="color:var(--gold)">+{rpc} RPC</strong> ajoutés à ta cagnotte. Ta série passe à <strong>{streak}</strong>.',
+    'quizz.result.lose.pot'     : 'Aïe ! Tu perds ta cagnotte de <strong style="color:#ff6b6b">{rpc} RPC</strong>.<br>La bonne réponse était : <strong style="color:var(--gold)">{ans}</strong>. Ta série retombe {floor}.',
+    'quizz.pot.banner'          : '💰 Cagnotte en jeu : {rpc} — 🔒 verrouille ta série pour l\'encaisser.',
     'quizz.result.floor.zero'   : 'à 0',
     'quizz.result.floor.lock'   : 'à <strong>J{n}</strong> (palier verrouillé)',
     'quizz.result.comeback'     : 'Reviens demain pour la prochaine question.',
@@ -4766,6 +4769,9 @@ const I18N = {
     'quizz.result.win'          : 'You earn <strong style="color:var(--gold)">+{rpc} RPC</strong>. Your streak moves to <strong>{streak}</strong>.',
     'quizz.result.win.halved'   : 'Reward halved (50/50 joker)',
     'quizz.result.lose'         : 'The correct answer was: <strong style="color:var(--gold)">{ans}</strong>.<br>Your streak falls back {floor}.',
+    'quizz.result.win.pot'      : '<strong style="color:var(--gold)">+{rpc} RPC</strong> added to your pot. Your streak moves to <strong>{streak}</strong>.',
+    'quizz.result.lose.pot'     : 'Ouch! You lose your <strong style="color:#ff6b6b">{rpc} RPC</strong> pot.<br>The correct answer was: <strong style="color:var(--gold)">{ans}</strong>. Your streak falls back {floor}.',
+    'quizz.pot.banner'          : '💰 Pot at stake: {rpc} — 🔒 lock your streak to bank it.',
     'quizz.result.floor.zero'   : 'to 0',
     'quizz.result.floor.lock'   : 'to <strong>D{n}</strong> (locked milestone)',
     'quizz.result.comeback'     : 'Come back tomorrow for the next question.',
@@ -5884,6 +5890,7 @@ async function onLoginSuccess(user, isNew){
     currentUser.quizz_jokers_used=pd.quizz_jokers_used||0;
     currentUser.quizz_answered_count=pd.quizz_answered_count||0;
     currentUser.quizz_answered_correct=pd.quizz_answered_correct||0;
+    currentUser.quizz_pending_rpc=pd.quizz_pending_rpc||0;
   }
   var {data:runs}=await supabaseClient.from('runs').select('points').eq('player_id',user.id).eq('period',0);
   if(window.__myPlayer){
@@ -23417,7 +23424,7 @@ function quizzPickIndex(dateStr){
 
 // Récompense RPC selon le palier de série (interpolation linéaire entre paliers du spec).
 function quizzReward(streak){
-  var tiers=[[1,50],[7,100],[15,150],[30,250],[60,400],[100,600],[200,900],[365,1500],[500,2000],[1000,3000]];
+  var tiers=[[1,150],[4,300],[8,500],[15,700],[30,1000],[60,1400],[100,1800],[200,2400],[365,3000],[1000,4000]];
   if(streak<=tiers[0][0]) return tiers[0][1];
   if(streak>=tiers[tiers.length-1][0]) return tiers[tiers.length-1][1];
   for(var i=0;i<tiers.length-1;i++){
@@ -23431,7 +23438,7 @@ function quizzReward(streak){
 }
 
 // Paliers de verrouillage NYX. Coût +4 NYX à chaque palier (2,4,8,12,16,20,24,28,32).
-var QUIZZ_LOCK_TIERS=[[8,2],[15,4],[24,8],[30,12],[40,16],[50,20],[60,24],[70,28],[80,32]];
+var QUIZZ_LOCK_TIERS=[[4,1],[8,2],[15,4],[24,8],[30,12],[40,16],[50,20],[60,24],[70,28],[80,32]];
 
 // Renvoie le coût NYX pour verrouiller à ce palier exact, ou 0 si pas un palier.
 function quizzLockCost(streak){
@@ -23536,7 +23543,7 @@ async function loadQuizzPlayerData(){
   try{
     var {data:pd}=await supabaseClient
       .from('players')
-      .select('username,quizz_streak,quizz_best_streak,quizz_last_answer_date,quizz_last_correct,quizz_total_rpc,quizz_correct_count,quizz_total_time_ms,quizz_locked_at,quizz_jokers_used,quizz_answered_count,quizz_answered_correct')
+      .select('username,quizz_streak,quizz_best_streak,quizz_last_answer_date,quizz_last_correct,quizz_total_rpc,quizz_correct_count,quizz_total_time_ms,quizz_locked_at,quizz_jokers_used,quizz_answered_count,quizz_answered_correct,quizz_pending_rpc')
       .eq('id',currentUser.id)
       .maybeSingle();
     if(!pd) return;
@@ -23552,6 +23559,7 @@ async function loadQuizzPlayerData(){
     currentUser.quizz_jokers_used=pd.quizz_jokers_used||0;
     currentUser.quizz_answered_count=pd.quizz_answered_count||0;
     currentUser.quizz_answered_correct=pd.quizz_answered_correct||0;
+    currentUser.quizz_pending_rpc=pd.quizz_pending_rpc||0;
   }catch(e){console.warn('loadQuizzPlayerData fail',e);}
 }
 
@@ -23761,7 +23769,12 @@ async function submitQuizzAnswer(dispIdx){
     if(s.fiftyUsed) rpcGained=Math.round(rpcGained/2);
   }
   var bestStreak=Math.max(currentUser.quizz_best_streak||0,newStreak);
-  var totalRpc=(currentUser.quizz_total_rpc||0)+rpcGained;
+  // Cagnotte EN ATTENTE : le gain n'est PAS crédité au solde tout de suite.
+  // Bonne réponse → cagnotte += gain. Mauvaise → cagnotte perdue (=0). Rien à
+  // débiter du solde (ça n'y était jamais). On n'encaisse QU'EN verrouillant.
+  var curPending=currentUser.quizz_pending_rpc||0;
+  var newPending=correct?(curPending+rpcGained):0;
+  var lostPending=correct?0:curPending;
 
   // Stat "Lucky Luke" : on n'incrémente le temps moyen que sur les bonnes réponses
   var elapsedMs=s.startTime?(Date.now()-s.startTime):0;
@@ -23787,7 +23800,7 @@ async function submitQuizzAnswer(dispIdx){
       quizz_best_streak:bestStreak,
       quizz_last_answer_date:today,
       quizz_last_correct:correct,
-      quizz_total_rpc:totalRpc,
+      quizz_pending_rpc:newPending,
       quizz_correct_count:newCorrectCount,
       quizz_total_time_ms:newTotalTimeMs,
       quizz_jokers_used:newJokersUsed,
@@ -23799,24 +23812,19 @@ async function submitQuizzAnswer(dispIdx){
     currentUser.quizz_best_streak=bestStreak;
     currentUser.quizz_last_answer_date=today;
     currentUser.quizz_last_correct=correct;
-    currentUser.quizz_total_rpc=totalRpc;
+    currentUser.quizz_pending_rpc=newPending;
     currentUser.quizz_correct_count=newCorrectCount;
     currentUser.quizz_total_time_ms=newTotalTimeMs;
     currentUser.quizz_jokers_used=newJokersUsed;
     currentUser.quizz_answered_count=newAnsweredCount;
     currentUser.quizz_answered_correct=newAnsweredCorrect;
 
-    if(rpcGained>0){
-      await supabaseClient.from('wallet_tx').insert({
-        player_id:currentUser.id,
-        rpc_delta:rpcGained,
-        nyx_delta:0,
-        reason:t('quizz.wallet.reason').replace('{n}',newStreak)+(s.fiftyUsed?t('quizz.lock.50'):'')
-      });
-    }
+    // Plus de crédit RPC ici : les gains restent EN CAGNOTTE jusqu'au verrou
+    // (encaissement dans buyQuizzLock). Une mauvaise réponse fait perdre la
+    // cagnotte sans toucher au solde — donc rien à reprendre.
   }catch(e){console.warn('quizz submit fail',e);}
 
-  renderQuizzResult(correct,rpcGained,newStreak);
+  renderQuizzResult(correct,correct?rpcGained:lostPending,newStreak);
   updateQuizzBadge();
   // Si bonne réponse ET palier de verrouillage atteint au-dessus du lock actuel → modale d'offre
   if(correct) maybeShowQuizzLockModal(newStreak);
@@ -23869,14 +23877,22 @@ async function buyQuizzLock(palier){
   if(cost<=0) return;
   var ok=await walletDebitNyx(cost,'Verrouillage série quizz J'+palier);
   if(!ok) return;
+  // Encaissement : la cagnotte EN ATTENTE devient du vrai RPC sur le solde.
+  var pending=currentUser.quizz_pending_rpc||0;
+  if(pending>0){
+    await walletCredit(pending,0,'Quizz — cagnotte encaissée (verrou J'+palier+')');
+  }
+  var newTotalRpc=(currentUser.quizz_total_rpc||0)+pending;
   try{
     await window.fetch(supabaseUrl+'/rest/v1/players?id=eq.'+encodeURIComponent(currentUser.id),{
       method:'PATCH',
       headers:{'apikey':supabaseKey,'Authorization':'Bearer '+supabaseKey,'Content-Type':'application/json'},
-      body:JSON.stringify({quizz_locked_at:palier})
+      body:JSON.stringify({quizz_locked_at:palier, quizz_pending_rpc:0, quizz_total_rpc:newTotalRpc})
     });
     currentUser.quizz_locked_at=palier;
-    if(typeof showToast==='function') showToast('🔒 Série verrouillée à J'+palier);
+    currentUser.quizz_pending_rpc=0;
+    currentUser.quizz_total_rpc=newTotalRpc;
+    if(typeof showToast==='function') showToast(pending>0?('🔒 Verrouillé — cagnotte encaissée : +'+pending.toLocaleString(SPEEDIX_LANG)+' RPC'):('🔒 Série verrouillée à J'+palier));
     // Rafraîchit l'écran résultat pour refléter le nouveau lock dans les stats
     if(document.getElementById('quizz-content')){
       renderQuizzResult(currentUser.quizz_last_correct,0,currentUser.quizz_streak||0,true);
@@ -23911,6 +23927,7 @@ function renderQuizzResult(correct,rpcGained,currentStreak,isReopen){
   var s=_quizzState;
   var best=currentUser.quizz_best_streak||0;
   var total=currentUser.quizz_total_rpc||0;
+  var pendingNow=currentUser.quizz_pending_rpc||0;
   var correctCount=currentUser.quizz_correct_count||0;
   var answeredCount=currentUser.quizz_answered_count||0;
   var answeredCorrect=currentUser.quizz_answered_correct||0;
@@ -23927,7 +23944,7 @@ function renderQuizzResult(correct,rpcGained,currentStreak,isReopen){
     if(isReopen){
       sub=t('quizz.result.again.good').replace('{streak}',streakTxt);
     } else {
-      sub=t('quizz.result.win').replace('{rpc}',rpcGained).replace('{streak}',streakTxt);
+      sub=t('quizz.result.win.pot').replace('{rpc}',Number(rpcGained).toLocaleString(SPEEDIX_LANG)).replace('{streak}',streakTxt);
       if(s && s.fiftyUsed) sub+='<div style="font-size:.7rem;color:var(--muted2);margin-top:.3rem">'+t('quizz.result.win.halved')+'</div>';
     }
   } else {
@@ -23939,7 +23956,9 @@ function renderQuizzResult(correct,rpcGained,currentStreak,isReopen){
       sub=t('quizz.result.again.bad').replace('{floor}',floorTxt);
     } else {
       var correctAnswer=(s && s.question)?s.question.a[s.question.c]:'';
-      sub=t('quizz.result.lose').replace('{ans}',escapeHtml(correctAnswer)).replace('{floor}',floorTxt);
+      sub=(rpcGained>0)
+        ? t('quizz.result.lose.pot').replace('{rpc}',Number(rpcGained).toLocaleString(SPEEDIX_LANG)).replace('{ans}',escapeHtml(correctAnswer)).replace('{floor}',floorTxt)
+        : t('quizz.result.lose').replace('{ans}',escapeHtml(correctAnswer)).replace('{floor}',floorTxt);
     }
   }
 
@@ -23957,6 +23976,7 @@ function renderQuizzResult(correct,rpcGained,currentStreak,isReopen){
     +   '<div style="font-size:.72rem;color:var(--muted2)">'+t('quizz.result.comeback')+'</div>'
     + '</div>'
     +'</div>'
+    + (pendingNow>0 ? '<div style="background:rgba(255,201,71,.10);border:1.5px solid rgba(255,201,71,.5);border-radius:10px;padding:.7rem .9rem;margin-bottom:1rem;text-align:center;font-size:.82rem;color:var(--gold);line-height:1.45">'+t('quizz.pot.banner').replace('{rpc}','<b>'+pendingNow.toLocaleString(SPEEDIX_LANG)+' RPC</b>')+'</div>' : '')
     +'<div style="background:rgba(10,20,50,.6);border:1.5px solid rgba(74,144,255,.45);border-radius:12px;padding:1rem;margin-bottom:1rem">'
     + '<div style="font-family:Bebas Neue,sans-serif;font-size:1.05rem;letter-spacing:2px;color:var(--text);margin-bottom:.6rem;text-align:center">'+t('quizz.stats.title')+'</div>'
     + ((currentUser.quizz_locked_at||0)>0
