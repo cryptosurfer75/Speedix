@@ -7341,7 +7341,7 @@ function computePts(km,spd,elv,boost,gel){
   const bonusV=Math.pow(spd/8,2);
   const B=(A/10)*(spd*bonusV);
   // C — Points dénivelé
-  const divD=12+4*(elv/(elv+1000));
+  const divD=12+8*(elv/(elv+1000));
   const C=(elv/d)*(A/divD);
   let res=A+B+C;
   // Malus marche : en dessous de 7 km/h, facteur progressif (spd/7)²
