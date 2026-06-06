@@ -3958,12 +3958,12 @@ const I18N = {
     'quizz.rules.r1'            : '1 question sport par jour.',
     'quizz.rules.r2'            : '4 propositions → une seule bonne réponse.',
     'quizz.rules.r3'            : '20 secondes pour répondre.',
-    'quizz.rules.r4'            : 'Bonne réponse → tes gains s\'ajoutent à ta <strong>cagnotte</strong> (en attente, pas encore encaissée).',
-    'quizz.rules.r5'            : 'Mauvaise réponse → tu perds ta cagnotte, ta série retombe.',
-    'quizz.rules.r6'            : 'Plus ta série est longue → plus les gains de la question sont élevés.',
-    'quizz.rules.r7'            : 'Joker <strong>50/50</strong> → élimine 2 mauvaises réponses = gain divisé par 2.',
-    'quizz.rules.r8'            : 'Une seule tentative par jour → pas de seconde chance.',
-    'quizz.rules.r9'            : 'Verrouille ta série et <strong>sécurise tes gains en RPC</strong>.',
+    'quizz.rules.r4'            : 'Bonne réponse → tes gains s\'ajoutent à ta <strong>cagnotte</strong> (en attente).',
+    'quizz.rules.r5'            : 'Mauvaise réponse → ta série retombe, tu perds ta cagnotte.',
+    'quizz.rules.r6'            : 'Verrouille ta série pour <strong>sécuriser et encaisser</strong> ta cagnotte.',
+    'quizz.rules.r7'            : 'Plus ta série est longue → plus les gains de la question sont élevés.',
+    'quizz.rules.r8'            : 'Joker <strong>50/50</strong> → élimine 2 mauvaises réponses = gain divisé par 2.',
+    'quizz.rules.r9'            : 'Une seule tentative par jour → pas de seconde chance.',
     'quizz.start'               : 'Lancer le quizz →',
     'quizz.joker'               : 'Joker 50/50',
     'quizz.joker.used'          : 'Joker 50/50 utilisé',
@@ -3989,7 +3989,16 @@ const I18N = {
     'quizz.result.lose'         : 'La bonne réponse était : <strong style="color:var(--gold)">{ans}</strong>.<br>Ta série retombe {floor}.',
     'quizz.result.win.pot'      : '<strong style="color:var(--gold)">+{rpc} RPC</strong> ajoutés à ta cagnotte. Ta série passe à <strong>{streak}</strong>.',
     'quizz.result.lose.pot'     : 'Aïe ! Tu perds ta cagnotte de <strong style="color:#ff6b6b">{rpc} RPC</strong>.<br>La bonne réponse était : <strong style="color:var(--gold)">{ans}</strong>. Ta série retombe {floor}.',
-    'quizz.pot.banner'          : '💰 Cagnotte en jeu : {rpc} <span style="color:var(--muted2)">(en attente)</span>',
+    'quizz.pot.banner'          : '💰 Cagnotte en jeu : {rpc}',
+    'quizz.cashout.btn'         : 'Encaisser',
+    'quizz.cashout.title'       : 'Encaisser ta cagnotte ?',
+    'quizz.cashout.confirm'     : '<strong style="color:var(--gold)">{rpc} RPC</strong> vont être ajoutés à ton solde.<br><span style="color:var(--muted2);font-size:.9em">Si tu encaisses, ta série retombe {floor}</span><br><br>Es-tu sûr de vouloir encaisser ?',
+    'quizz.cashout.floor.lock'  : 'à <strong>J{n}</strong>, dernier palier verrouillé !',
+    'quizz.cashout.floor.zero'  : 'à <strong>0</strong>.',
+    'quizz.cashout.ok'          : 'Valider',
+    'quizz.cashout.cancel'      : 'Annuler',
+    'quizz.cashout.done'        : '💰 +{rpc} RPC encaissés !',
+    'quizz.cashout.empty'       : 'Aucune cagnotte à encaisser.',
     'quizz.result.floor.zero'   : 'à 0',
     'quizz.result.floor.lock'   : 'à <strong>J{n}</strong> (palier verrouillé)',
     'quizz.result.comeback'     : 'Reviens demain pour la prochaine question.',
@@ -4729,12 +4738,12 @@ const I18N = {
     'quizz.rules.r1'            : '1 sport question per day.',
     'quizz.rules.r2'            : '4 options → only one correct answer.',
     'quizz.rules.r3'            : '20 seconds to answer.',
-    'quizz.rules.r4'            : 'Right answer → your reward goes into your <strong>pot</strong> (pending, not banked yet).',
-    'quizz.rules.r5'            : 'Wrong answer → you lose your pot, your streak drops.',
-    'quizz.rules.r6'            : 'The longer the streak → the higher the question rewards.',
-    'quizz.rules.r7'            : '<strong>50/50</strong> joker → removes 2 wrong answers = reward halved.',
-    'quizz.rules.r8'            : 'Only one attempt per day → no second chance.',
-    'quizz.rules.r9'            : 'Lock your streak and <strong>secure your RPC rewards</strong>.',
+    'quizz.rules.r4'            : 'Right answer → your reward goes into your <strong>pot</strong> (pending).',
+    'quizz.rules.r5'            : 'Wrong answer → your streak drops, you lose your pot.',
+    'quizz.rules.r6'            : 'Lock your streak to <strong>secure and bank</strong> your pot.',
+    'quizz.rules.r7'            : 'The longer the streak → the higher the question rewards.',
+    'quizz.rules.r8'            : '<strong>50/50</strong> joker → removes 2 wrong answers = reward halved.',
+    'quizz.rules.r9'            : 'Only one attempt per day → no second chance.',
     'quizz.start'               : 'Start the quiz →',
     'quizz.joker'               : '50/50 Joker',
     'quizz.joker.used'          : '50/50 Joker used',
@@ -4760,7 +4769,16 @@ const I18N = {
     'quizz.result.lose'         : 'The correct answer was: <strong style="color:var(--gold)">{ans}</strong>.<br>Your streak falls back {floor}.',
     'quizz.result.win.pot'      : '<strong style="color:var(--gold)">+{rpc} RPC</strong> added to your pot. Your streak moves to <strong>{streak}</strong>.',
     'quizz.result.lose.pot'     : 'Ouch! You lose your <strong style="color:#ff6b6b">{rpc} RPC</strong> pot.<br>The correct answer was: <strong style="color:var(--gold)">{ans}</strong>. Your streak falls back {floor}.',
-    'quizz.pot.banner'          : '💰 Pot at stake: {rpc} <span style="color:var(--muted2)">(pending)</span>',
+    'quizz.pot.banner'          : '💰 Pot at stake: {rpc}',
+    'quizz.cashout.btn'         : 'Cash out',
+    'quizz.cashout.title'       : 'Cash out your pot?',
+    'quizz.cashout.confirm'     : '<strong style="color:var(--gold)">{rpc} RPC</strong> will be added to your balance.<br><span style="color:var(--muted2);font-size:.9em">If you cash out, your streak drops {floor}</span><br><br>Are you sure you want to cash out?',
+    'quizz.cashout.floor.lock'  : 'to <strong>D{n}</strong>, your last locked milestone!',
+    'quizz.cashout.floor.zero'  : 'to <strong>0</strong>.',
+    'quizz.cashout.ok'          : 'Confirm',
+    'quizz.cashout.cancel'      : 'Cancel',
+    'quizz.cashout.done'        : '💰 +{rpc} RPC banked!',
+    'quizz.cashout.empty'       : 'No pot to cash out.',
     'quizz.result.floor.zero'   : 'to 0',
     'quizz.result.floor.lock'   : 'to <strong>D{n}</strong> (locked milestone)',
     'quizz.result.comeback'     : 'Come back tomorrow for the next question.',
@@ -23607,14 +23625,15 @@ function quizzReward(streak){
 }
 
 // Paliers de verrouillage NYX. Coût +4 NYX à chaque palier (2,4,8,12,16,20,24,28,32).
-var QUIZZ_LOCK_TIERS=[[4,1],[8,2],[15,4],[24,8],[30,12],[40,16],[50,20],[60,24],[70,28],[80,32]];
+var QUIZZ_LOCK_TIERS=[[4,1],[8,2],[15,4],[25,8],[40,12],[60,16],[80,18],[100,20],[120,22],[140,24]];
 
 // Renvoie le coût NYX pour verrouiller à ce palier exact, ou 0 si pas un palier.
 function quizzLockCost(streak){
   for(var i=0;i<QUIZZ_LOCK_TIERS.length;i++){
     if(QUIZZ_LOCK_TIERS[i][0]===streak) return QUIZZ_LOCK_TIERS[i][1];
   }
-  if(streak>300 && streak%50===0) return 32+((streak-300)/50)*4;
+  // Au-delà de J140 : paliers tous les 20 jours, coût +2 NYX par palier (J160=26, J180=28…).
+  if(streak>140 && (streak-140)%20===0) return 24+((streak-140)/20)*2;
   return 0;
 }
 
@@ -23626,8 +23645,38 @@ function quizzNextPalierAfter(streak){
   for(var i=0;i<QUIZZ_LOCK_TIERS.length;i++){
     if(QUIZZ_LOCK_TIERS[i][0]>streak) return QUIZZ_LOCK_TIERS[i][0];
   }
-  if(streak<350) return 350;
-  return Math.floor(streak/50)*50+50;
+  // Au-delà du dernier palier listé (J140) : prochain multiple de 20 strictement au-dessus.
+  return Math.floor(streak/20)*20+20;
+}
+
+// Renvoie le plus haut palier de verrouillage inférieur ou égal au streak (0 si aucun).
+function quizzPrevPalierAtOrBelow(streak){
+  streak=streak||0;
+  var best=0;
+  for(var i=0;i<QUIZZ_LOCK_TIERS.length;i++){
+    if(QUIZZ_LOCK_TIERS[i][0]<=streak && QUIZZ_LOCK_TIERS[i][0]>best) best=QUIZZ_LOCK_TIERS[i][0];
+  }
+  // Au-delà de J140 : paliers tous les 20 jours (160, 180, 200…).
+  var m=Math.floor(streak/20)*20;
+  if(m>=160 && m>best) best=m;
+  return best;
+}
+
+// État du verrou d'un RP pour l'affichage du classement quizz :
+//   'none'    → n'a jamais verrouillé, OU à découvert depuis +2 jours → aucun symbole
+//   'covered' → son verrou couvre encore sa série en cours → 🔐 (protégé)
+//   'exposed' → vient de franchir un palier sans le reverrouiller → 😨 (à découvert)
+// Le 😨 est une ALERTE COURTE : il ne s'affiche QUE le jour du franchissement du palier
+// + le lendemain (2 jours), puis disparaît. Verrou J60 → reste 🔐 jusqu'à J79, passe 😨
+// à J80 et J81, puis plus rien dès J82 (jusqu'au prochain palier franchi à J100).
+function quizzLockState(lockedAt,streak){
+  lockedAt=lockedAt||0; streak=streak||0;
+  if(lockedAt<=0) return 'none';
+  var prev=quizzPrevPalierAtOrBelow(streak);
+  // Verrou au niveau (ou au-dessus) du dernier palier atteint → encore protégé.
+  if(prev<=lockedAt) return 'covered';
+  // À découvert : 😨 seulement les 2 premiers jours après le franchissement, sinon rien.
+  return (streak-prev<=1)?'exposed':'none';
 }
 
 // YYYY-MM-DD du jour (heure locale du device)
@@ -23837,7 +23886,8 @@ function renderQuizzIntro(){
     +   '<li>'+t('quizz.rules.r9')+'</li>'
     + '</ul>'
     +'</div>'
-    +'<button onclick="renderQuizzQuestion()" style="display:block;width:100%;padding:.9rem;border-radius:10px;border:1.5px solid rgba(45,219,128,.6);background:rgba(45,219,128,.15);color:#2ddb80;font-family:Bebas Neue,sans-serif;font-size:1.25rem;letter-spacing:3px;cursor:pointer">'+t('quizz.start')+'</button>';
+    +'<button onclick="renderQuizzQuestion()" style="display:block;width:100%;padding:.9rem;border-radius:10px;border:1.5px solid rgba(45,219,128,.6);background:rgba(45,219,128,.15);color:#2ddb80;font-family:Bebas Neue,sans-serif;font-size:1.25rem;letter-spacing:3px;cursor:pointer">'+t('quizz.start')+'</button>'
+    + quizzPotBlockHtml();
 }
 
 // Rend la vue principale : timer + énoncé + 4 boutons + joker
@@ -24067,6 +24117,50 @@ async function buyQuizzLock(palier){
       renderQuizzResult(currentUser.quizz_last_correct,0,currentUser.quizz_streak||0,true);
     }
   }catch(e){console.warn('quizz lock save fail',e);}
+}
+
+// Bloc "cagnotte en jeu + bouton Encaisser", réutilisé sur l'intro (AVANT de
+// répondre) ET sur l'écran résultat. Vide tant qu'il n'y a pas de cagnotte.
+function quizzPotBlockHtml(){
+  var pending=currentUser?(currentUser.quizz_pending_rpc||0):0;
+  if(pending<=0) return '';
+  return '<div style="background:rgba(255,201,71,.10);border:1.5px solid rgba(255,201,71,.5);border-radius:10px;padding:.7rem .9rem;margin-top:1.4rem;margin-bottom:1rem;text-align:center">'
+    + '<div style="font-size:.82rem;color:var(--gold);line-height:1.45;margin-bottom:.6rem">'+t('quizz.pot.banner').replace('{rpc}','<b>'+pending.toLocaleString(SPEEDIX_LANG)+' RPC</b>')+'</div>'
+    + '<button onclick="cashOutQuizzPot()" style="display:inline-flex;align-items:center;gap:.4rem;padding:.5rem 1.2rem;border-radius:8px;border:1.5px solid rgba(45,219,128,.6);background:rgba(45,219,128,.15);color:#2ddb80;font-family:Bebas Neue,sans-serif;font-size:1.05rem;letter-spacing:1.5px;cursor:pointer">💰 '+t('quizz.cashout.btn')+'</button>'
+    +'</div>';
+}
+
+// Encaissement GRATUIT de la cagnotte quizz (sans NYX). Verse la cagnotte sur le
+// solde RPC mais REMET la série à la dernière position verrouillée (0 si jamais
+// verrouillé). C'est la porte de sortie pour qui ne veut pas payer de verrou :
+// « je prends mes gains et je recommence ». Le verrou NYX, lui, encaisse SANS
+// casser la série + pose un filet — il garde donc tout son intérêt.
+async function cashOutQuizzPot(){
+  if(!currentUser) return;
+  var pending=currentUser.quizz_pending_rpc||0;
+  if(pending<=0){ if(typeof showToast==='function') showToast(t('quizz.cashout.empty')); return; }
+  var floor=currentUser.quizz_locked_at||0;
+  var floorTxt=floor>0?t('quizz.cashout.floor.lock').replace('{n}',floor):t('quizz.cashout.floor.zero');
+  var ok=await askConfirm(
+    t('quizz.cashout.confirm').replace('{rpc}',pending.toLocaleString(SPEEDIX_LANG)).replace('{floor}',floorTxt),
+    {title:t('quizz.cashout.title'),emoji:'💰',okLabel:t('quizz.cashout.ok'),cancelLabel:t('quizz.cashout.cancel'),success:true}
+  );
+  if(!ok) return;
+  await walletCredit(pending,0,'Quizz — cagnotte encaissée (sans verrou)');
+  var newTotalRpc=(currentUser.quizz_total_rpc||0)+pending;
+  try{
+    await window.fetch(supabaseUrl+'/rest/v1/players?id=eq.'+encodeURIComponent(currentUser.id),{
+      method:'PATCH',
+      headers:{'apikey':supabaseKey,'Authorization':'Bearer '+supabaseKey,'Content-Type':'application/json'},
+      body:JSON.stringify({quizz_pending_rpc:0, quizz_total_rpc:newTotalRpc, quizz_streak:floor})
+    });
+    currentUser.quizz_pending_rpc=0;
+    currentUser.quizz_total_rpc=newTotalRpc;
+    currentUser.quizz_streak=floor;
+    if(typeof showToast==='function') showToast(t('quizz.cashout.done').replace('{rpc}',pending.toLocaleString(SPEEDIX_LANG)));
+    // Re-rend l'écran adapté (nuit / intro / résultat) via le point d'entrée unique.
+    if(typeof openQuizzPage==='function') openQuizzPage();
+  }catch(e){console.warn('quizz cashout fail',e);}
 }
 
 // Titre de niveau basé sur la SÉRIE EN COURS (quizz_streak). Pas de %, car une
@@ -24299,9 +24393,17 @@ function _renderQuizzRanking(){
     var cellCore='background:'+bg+';border-top:'+border+';border-bottom:'+border+';padding:.5rem .4rem';
     var first=cellCore+';border-left:'+border+';border-top-left-radius:8px;border-bottom-left-radius:8px';
     var last=cellCore+';border-right:'+border+';border-top-right-radius:8px;border-bottom-right-radius:8px';
+    // Symbole de verrou : 🔐 si le verrou couvre encore la série, 😨 si le RP a
+    // franchi le palier suivant sans reverrouiller (à découvert), rien sinon.
+    var lockState=quizzLockState(p.quizz_locked_at,p.quizz_streak);
+    var lockBadge = lockState==='covered'
+      ? ' <span title="Série protégée par un verrou" style="font-size:.72em;opacity:.85;vertical-align:baseline">🔐</span>'
+      : lockState==='exposed'
+        ? ' <span title="A dépassé son verrou sans le renouveler — série à découvert" style="font-size:.72em;opacity:.85;vertical-align:baseline">😨</span>'
+        : '';
     return '<tr>'
       +'<td style="'+first+';font-family:Bebas Neue,sans-serif;font-size:1.02rem;letter-spacing:1px;color:var(--text);text-align:center">'+rankDisplay+'</td>'
-      +'<td style="'+cellCore+';color:'+nameColor+';font-size:.85rem;font-weight:'+nameWeight+';overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:0">'+escapeHtml(p.username||'RP')+((p.quizz_locked_at||0)>0?' <span title="Série verrouillée" style="font-size:.72em;opacity:.7;vertical-align:baseline">🔒</span>':'')+'</td>'
+      +'<td style="'+cellCore+';color:'+nameColor+';font-size:.85rem;font-weight:'+nameWeight+';overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:0">'+escapeHtml(p.username||'RP')+lockBadge+'</td>'
       +'<td style="'+cellCore+';font-family:Space Mono,monospace;font-size:.85rem;font-weight:700;color:#4ac8ff;text-align:center">'+p.quizz_streak+'</td>'
       +'<td style="'+cellCore+';font-family:Space Mono,monospace;font-size:.8rem;font-weight:700;color:#ffb84a;text-align:center">'+jokers+'</td>'
       +'<td style="'+last+';font-family:Space Mono,monospace;font-size:.78rem;font-weight:700;color:#a96dff;text-align:center">'+avgSec+'</td>'
