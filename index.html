@@ -3969,6 +3969,9 @@ function askConfirm(message, opts){
 
   <!-- ÉCRAN ACCUEIL -->
   <section id="s-start" class="screen on">
+    <header>
+      <button class="gear" onclick="nav('dashboard')" title="Quitter Cash Run" style="margin-left:auto">✕</button>
+    </header>
     <div class="center">
       <div class="logo" id="t-title">CASH <span class="hl">RUN</span></div>
       <div class="rulescard">
@@ -4007,7 +4010,7 @@ function askConfirm(message, opts){
   <!-- ÉCRAN FIN -->
   <section id="s-end" class="screen">
     <header>
-      <button class="gear" onclick="CR.goHome()" title="Accueil" style="margin-left:auto">✕</button>
+      <button class="gear" onclick="nav('dashboard')" title="Quitter Cash Run" style="margin-left:auto">✕</button>
     </header>
     <div class="center">
       <div class="big" id="e-title">FIN DE PARTIE</div>
