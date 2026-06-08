@@ -1018,43 +1018,43 @@ tr.skin-bruxelles{
   #cr-app .popcard .amount{font-size:clamp(34px,7vw,54px);margin-bottom:18px}
   #cr-app /* ===== STATS & CLASSEMENT ===== */
   .statcard{flex:none;background:rgba(10,20,50,.6);border:1.5px solid rgba(74,144,255,.45);border-radius:16px;
-    box-shadow:0 0 16px rgba(74,144,255,.16);padding:16px;margin-bottom:14px}
-  #cr-app .stattitle{font-family:'Bebas Neue';font-size:24px;letter-spacing:2px;text-align:center;color:var(--text);
-    padding-bottom:11px;margin-bottom:12px;border-bottom:1px solid rgba(74,144,255,.3)}
-  #cr-app .statgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-  #cr-app .tile{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px 14px}
-  #cr-app .tile .v{font-family:'Space Mono';font-weight:700;font-size:24px;line-height:1;color:var(--text)}
-  #cr-app .tile .v small{font-size:13px;font-weight:700;opacity:.85;margin-left:2px}
-  #cr-app .tile .l{font-family:'Rajdhani';font-weight:700;font-size:12px;letter-spacing:1.5px;text-transform:uppercase;
-    color:var(--muted);margin-top:7px}
+    box-shadow:0 0 16px rgba(74,144,255,.16);padding:13px;margin-bottom:11px}
+  #cr-app .stattitle{font-family:'Bebas Neue';font-size:19px;letter-spacing:2px;text-align:center;color:var(--text);
+    padding-bottom:9px;margin-bottom:10px;border-bottom:1px solid rgba(74,144,255,.3)}
+  #cr-app .statgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  #cr-app .tile{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:9px 11px}
+  #cr-app .tile .v{font-family:'Space Mono';font-weight:700;font-size:19px;line-height:1;color:var(--text)}
+  #cr-app .tile .v small{font-size:11px;font-weight:700;opacity:.85;margin-left:2px}
+  #cr-app .tile .l{font-family:'Rajdhani';font-weight:700;font-size:10px;letter-spacing:1px;text-transform:uppercase;
+    color:var(--muted);margin-top:5px}
   #cr-app .tile.gold .v{color:var(--gold)} #cr-app .tile.cyan .v{color:var(--cyan)} #cr-app .tile.green .v{color:var(--green)}
   #cr-app .tile.orange .v{color:#ff8a3d} #cr-app .tile.blue .v{color:#5aa0ff} #cr-app .tile.violet .v{color:#b07bff}
-  #cr-app .tile.lvl .v{font-family:'Bebas Neue';font-size:26px;letter-spacing:1px;color:var(--green)}
+  #cr-app .tile.lvl .v{font-family:'Bebas Neue';font-size:20px;letter-spacing:1px;color:var(--green)}
   #cr-app /* carte classement (style app) */
   .lbcard{flex:1;min-height:0;display:flex;flex-direction:column;
     background:rgba(10,20,50,.6);border:1.5px solid rgba(74,144,255,.45);border-radius:16px;
     box-shadow:0 0 16px rgba(74,144,255,.16);
     padding:16px 16px 12px}
-  #cr-app .lbtitle{font-family:'Bebas Neue';font-size:26px;letter-spacing:2px;text-align:center;color:var(--text);
-    padding-bottom:12px;margin-bottom:10px;border-bottom:1px solid rgba(74,144,255,.3)}
-  #cr-app .lbtabs{display:flex;gap:6px;width:fit-content;margin:0 auto 12px;
+  #cr-app .lbtitle{font-family:'Bebas Neue';font-size:20px;letter-spacing:2px;text-align:center;color:var(--text);
+    padding-bottom:10px;margin-bottom:9px;border-bottom:1px solid rgba(74,144,255,.3)}
+  #cr-app .lbtabs{display:flex;gap:6px;width:fit-content;margin:0 auto 11px;
     background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:4px}
-  #cr-app .lbtabs button{font-family:'Rajdhani';font-weight:700;font-size:14px;letter-spacing:.5px;padding:7px 22px;border-radius:7px;
+  #cr-app .lbtabs button{font-family:'Rajdhani';font-weight:700;font-size:12px;letter-spacing:.5px;padding:6px 16px;border-radius:7px;
     cursor:pointer;border:1px solid transparent;background:transparent;color:var(--muted2);transition:.15s}
   #cr-app .lbtabs button.on{color:var(--blue);border-color:var(--blue);background:rgba(74,144,255,.12)}
   #cr-app .lbcols, #cr-app .lbrow{display:flex;align-items:center;gap:12px}
-  #cr-app .lbcols{padding:6px 12px 10px;font-family:'Rajdhani';font-weight:700;font-size:14px;letter-spacing:2px;color:var(--muted)}
-  #cr-app .lbcols .rk, #cr-app .lbrow .rk{flex:0 0 36px;text-align:center}
+  #cr-app .lbcols{padding:5px 11px 8px;font-family:'Rajdhani';font-weight:700;font-size:11px;letter-spacing:2px;color:var(--muted)}
+  #cr-app .lbcols .rk, #cr-app .lbrow .rk{flex:0 0 32px;text-align:center}
   #cr-app .lbcols .nm, #cr-app .lbrow .nm{flex:1}
-  #cr-app .lbcols .tr, #cr-app .lbrow .tr{flex:0 0 46px;text-align:center}
-  #cr-app .lbrow .tr{font-family:'Space Mono';font-weight:700;font-size:14px;color:var(--green)}
-  #cr-app .lbcols .pts, #cr-app .lbrow .pts{flex:0 0 82px;text-align:right}
-  #cr-app .lblist{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:7px;padding-right:4px}
-  #cr-app .lbrow{padding:10px 12px;border-radius:12px;font-weight:600;
+  #cr-app .lbcols .tr, #cr-app .lbrow .tr{flex:0 0 42px;text-align:center}
+  #cr-app .lbrow .tr{font-family:'Space Mono';font-weight:700;font-size:12px;color:var(--green)}
+  #cr-app .lbcols .pts, #cr-app .lbrow .pts{flex:0 0 76px;text-align:right}
+  #cr-app .lblist{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:6px;padding-right:4px}
+  #cr-app .lbrow{padding:8px 11px;border-radius:12px;font-weight:600;
     background:var(--card);border:1px solid var(--border)}
-  #cr-app .lbrow .rk{font-family:'Bebas Neue';font-size:21px;color:var(--muted)}
-  #cr-app .lbrow .nm{font-size:17px;color:var(--text)}
-  #cr-app .lbrow .pts{font-family:'Space Mono';font-weight:700;font-size:15px;color:var(--gold)}
+  #cr-app .lbrow .rk{font-family:'Bebas Neue';font-size:16px;color:var(--muted)}
+  #cr-app .lbrow .nm{font-size:14px;color:var(--text)}
+  #cr-app .lbrow .pts{font-family:'Space Mono';font-weight:700;font-size:13px;color:var(--gold)}
   #cr-app .lbrow.me{background:rgba(245,200,66,.10);border-color:var(--gold);box-shadow:0 0 14px rgba(245,200,66,.3)}
   #cr-app .lbrow.me .nm, #cr-app .lbrow.me .pts{color:var(--gold)}
   #cr-app .lbrow.top1 .pts{color:var(--gold)}
