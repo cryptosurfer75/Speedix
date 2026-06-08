@@ -6247,6 +6247,10 @@ async function onLoginSuccess(user, isNew){
     if(exi>=0)PLAYERS[exi]=window.__myPlayer;
   }
   showApp();
+  // Cash Run : remonter la date de dernière partie sur currentUser pour piloter
+  // la pastille "nouvelle partie dispo" du bouton de la carte joueur dès le login.
+  if(currentUser && pd) currentUser.cashrun_last_played_at = pd.cashrun_last_played_at || null;
+  if(window.CR && typeof CR.refreshBadge==='function') CR.refreshBadge();
   // Tunnel de conversion Strava pour les RP non-liés (J1 = 2 essais, J2+ = mur).
   // Le garde-fou interne ignore les comptes liés et l'admin → no-op pour eux.
   if(typeof _maybeShowStravaPrompt==='function') _maybeShowStravaPrompt(pd);
@@ -27008,7 +27012,19 @@ const LEVELS = [
 
 function todayStr(){ const d=nowDate(); return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate(); }
 function getPlays(){ const t=CU().cashrun_last_played_at; return {last: t ? new Date(t).getTime() : 0}; }
-function savePlays(p){ const iso=new Date(p.last).toISOString(); CU().cashrun_last_played_at=iso; crPatch({cashrun_last_played_at:iso}); }
+function savePlays(p){ const iso=new Date(p.last).toISOString(); CU().cashrun_last_played_at=iso; crPatch({cashrun_last_played_at:iso}); updateBadge(); }
+// Pastille verte sur le bouton Cash Run de la carte joueur : visible dès qu'une
+// nouvelle partie est dispo (cooldown écoulé ou jamais joué), masquée sinon.
+function updateBadge(){
+  try{
+    const el=document.getElementById('cashrun-badge');
+    if(!el) return;
+    if(!CU().id){ el.style.display='none'; return; }
+    const last=getPlays().last;
+    const available = !last || (now() >= last + cooldownMs());
+    el.style.display = available ? 'block' : 'none';
+  }catch(e){}
+}
 
 // ---- Stats à vie + classement mensuel ----
 function periodStr(){ const d=nowDate(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'); }
@@ -27413,7 +27429,11 @@ function setLb(mode){ lbMode=mode; paintStats(); }
 
 // ----- Pont SPEEDIX : entrée = CR.open() (appelée par nav). Le reste reste privé. -----
 function __crOpen(){ lang=(typeof SPEEDIX_LANG!=='undefined'?SPEEDIX_LANG:'fr'); loadCashrunData().then(function(){ paintStart(); show('s-start'); }); }
-window.CR={startRound,openStats,abandon,doBank,goHome,setLb,closeWin,open:__crOpen};
+window.CR={startRound,openStats,abandon,doBank,goHome,setLb,closeWin,open:__crOpen,refreshBadge:updateBadge};
+
+// Re-vérifie la dispo toutes les minutes : la pastille apparaît d'elle-même
+// quand le cooldown s'écoule pendant que l'app reste ouverte.
+try{ setInterval(updateBadge, 60000); }catch(e){}
 
 })();
 </script>
