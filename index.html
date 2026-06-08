@@ -6202,7 +6202,7 @@ async function onLoginSuccess(user, isNew){
       id:1, _uuid:user.id, name:pd.username||user.email.split('@')[0], nat:pd.nat||'🏳️',
       grade:pd.grade||'starter', leagueKey:(pd.league||'starter').toLowerCase(),
       pts:0, ptsCum:0, km:0, courses:0, source:'strava',
-      trend:pd.trend||0, avatar:pd.avatar||null, parrain:null,
+      trend:pd.trend||0, leagueRefRank:(typeof pd.league_ref_rank==='number'?pd.league_ref_rank:null), leagueRefLg:(pd.league_ref_lg||null), avatar:pd.avatar||null, parrain:null,
       rtwId:rtwId, competitive:pd.competitive||false,
       premium:pd.premium||false, premiumUntil:pd.premium_until||null, premiumTrial:pd.premium_trial||false,
       boostActiveUntil:pd?(pd.boost_active_until||null):null,
@@ -6445,7 +6445,7 @@ async function loadPlayersFromSupabase(){
   // 1. Charger tous les joueurs
   const { data: playersData, error: playersErr } = await supabaseClient
     .from('players')
-    .select('id,username,league,nat,grade,trend,avatar,competitive,buyin_debt,frozen,rtw_id,premium,premium_until,premium_trial,infirmerie_until,is_visible,consecutive_zero_periods,pts_cumulated,boost_active_until,gel_active_until,active_skin,skin_free_until,skin_buy_until');
+    .select('id,username,league,nat,grade,trend,avatar,competitive,buyin_debt,frozen,rtw_id,premium,premium_until,premium_trial,infirmerie_until,is_visible,consecutive_zero_periods,pts_cumulated,boost_active_until,gel_active_until,active_skin,skin_free_until,skin_buy_until,league_ref_rank,league_ref_lg');
 
   // Collection permanente des skins par joueur (table player_skins).
   // Utilisée pour : afficher le skin sur la PC d'un RP qui l'a acheté (même
@@ -6523,6 +6523,8 @@ async function loadPlayersFromSupabase(){
       courses  : courses || Math.max(1, Math.round(pts / 400)),
       source   : 'strava',
       trend    : typeof p.trend === 'number' ? p.trend : 0,
+      leagueRefRank: (typeof p.league_ref_rank === 'number' ? p.league_ref_rank : null),  // position figée à minuit (photo serveur)
+      leagueRefLg  : (p.league_ref_lg || null),                                           // ligue au moment de la photo (pour ne comparer que si pas de changement de ligue)
       avatar   : p.avatar || null,
       parrain  : null,
       competitive: p.competitive || false,
@@ -8600,7 +8602,7 @@ function renderLeaguePanel(){
     // Fantôme invisible (is_visible=false) : caché à tous sauf à lui-même
     if(p.is_visible===false && p._uuid!==_myUid) return false;
     return true;
-  }).sort(function(a,b){return b.pts-a.pts;});
+  }).sort(function(a,b){return (b.pts-a.pts) || (a._uuid<b._uuid?-1:(a._uuid>b._uuid?1:0));});  // départage final STABLE par _uuid → ordre identique à la photo serveur (league_ref_rank)
   const isMine=(activeLeagueKey==='l4');
   // L1 Or = nouveau plafond pendant la beta (L Elite fermée). Suffix "et +"
   // pour indiquer qu'on y reste sans cap supérieur.
@@ -8683,14 +8685,16 @@ function renderLeaguePanel(){
       :'';
     // (Couronne champion quizz retirée avec le quizz — 2026-06-08)
     var crownBadge='';
-    var trend=p.trend||0;
+    // Tendance League = position de référence (photo de minuit, league_ref_rank) − rang actuel.
+    // On ne compare QUE si la ligue n'a pas changé depuis la photo (sinon une promotion/relégation
+    // en calibrage afficherait une fausse flèche). Pas de mouvement → rien (pas de "=" partout).
+    var trend=(p.leagueRefRank!=null && p.leagueRefLg===p.leagueKey)?(p.leagueRefRank-rankNum):0;
     var totalInLeague=players.length;
     if(rankNum===1 && trend<0) trend=0;
     if(rankNum===totalInLeague && trend>0) trend=0;
     var trendHtml='';
     if(trend>0) trendHtml='<span style="font-size:.6rem;color:var(--green);font-weight:700">▲'+trend+'</span>';
     else if(trend<0) trendHtml='<span style="font-size:.6rem;color:var(--red);font-weight:700">▼'+Math.abs(trend)+'</span>';
-    else trendHtml='<span style="font-size:.6rem;color:var(--muted);letter-spacing:-.5px">=</span>';
     // Badge place payée — emoji bourse (compétitifs seulement, basé sur compRank)
     var isPaid=(!isStarter)&&(!isReleg)&&(!isCalib)&&(!p.buyin_debt)&&paidRanks&&medalRank<=paidRanks;
     var paidBadge=isPaid
