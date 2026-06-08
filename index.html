@@ -1034,7 +1034,7 @@ tr.skin-bruxelles{
   .lbcard{flex:1;min-height:0;display:flex;flex-direction:column;
     background:rgba(10,20,50,.6);border:1.5px solid rgba(74,144,255,.45);border-radius:16px;
     box-shadow:0 0 16px rgba(74,144,255,.16);
-    padding:16px 16px 12px}
+    padding:16px 11px 12px}
   #cr-app .lbtitle{font-family:'Bebas Neue';font-size:19px;letter-spacing:2px;text-align:center;color:var(--text);
     padding-bottom:10px;margin-bottom:9px;border-bottom:1px solid rgba(74,144,255,.3)}
   #cr-app .lbtabs{display:flex;gap:6px;width:fit-content;margin:0 auto 11px;
@@ -1042,15 +1042,16 @@ tr.skin-bruxelles{
   #cr-app .lbtabs button{font-family:'Rajdhani';font-weight:700;font-size:12px;letter-spacing:.5px;padding:6px 16px;border-radius:7px;
     cursor:pointer;border:1px solid transparent;background:transparent;color:var(--muted2);transition:.15s}
   #cr-app .lbtabs button.on{color:var(--blue);border-color:var(--blue);background:rgba(74,144,255,.12)}
-  #cr-app .lbcols, #cr-app .lbrow{display:flex;align-items:center;gap:12px}
-  #cr-app .lbcols{padding:5px 11px 8px;font-family:'Rajdhani';font-weight:700;font-size:11px;letter-spacing:2px;color:var(--muted)}
-  #cr-app .lbcols .rk, #cr-app .lbrow .rk{flex:0 0 32px;text-align:center}
-  #cr-app .lbcols .nm, #cr-app .lbrow .nm{flex:1}
-  #cr-app .lbcols .tr, #cr-app .lbrow .tr{flex:0 0 42px;text-align:center}
+  #cr-app .lbcols, #cr-app .lbrow{display:flex;align-items:center;gap:7px}
+  #cr-app .lbcols{padding:5px 8px 8px;font-family:'Rajdhani';font-weight:700;font-size:11px;letter-spacing:2px;color:var(--muted)}
+  /* # collé à gauche, 💎 + RPC collés à droite → le pseudo récupère toute la largeur du milieu */
+  #cr-app .lbcols .rk, #cr-app .lbrow .rk{flex:0 0 22px;text-align:center}
+  #cr-app .lbcols .nm, #cr-app .lbrow .nm{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #cr-app .lbcols .tr, #cr-app .lbrow .tr{flex:0 0 30px;text-align:center}
   #cr-app .lbrow .tr{font-family:'Space Mono';font-weight:700;font-size:12px;color:var(--green)}
-  #cr-app .lbcols .pts, #cr-app .lbrow .pts{flex:0 0 76px;text-align:right}
+  #cr-app .lbcols .pts, #cr-app .lbrow .pts{flex:0 0 62px;text-align:right}
   #cr-app .lblist{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:6px;padding-right:4px}
-  #cr-app .lbrow{padding:8px 11px;border-radius:12px;font-weight:600;
+  #cr-app .lbrow{padding:8px 8px;border-radius:12px;font-weight:600;
     background:var(--card);border:1px solid var(--border)}
   #cr-app .lbrow .rk{font-family:'Bebas Neue';font-size:16px;color:var(--muted)}
   #cr-app .lbrow .nm{font-size:14px;color:var(--text)}
