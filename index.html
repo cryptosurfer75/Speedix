@@ -9845,7 +9845,7 @@ async function loadLandsOnMap(){
   // Toutes les lands du jeu (paginé pour dépasser le plafond serveur de 1000).
   // TODO V1.0 : filtrage par viewport (charger uniquement les lands visibles
   // ±5km) pour scaler quand la base deviendra très grosse.
-  var lands=await _fetchAllLands('id,hex_col,hex_row,owner_id,tenant_id,status,stars,free_until,sponsor_name,sponsor_logo_url');
+  var lands=await _fetchAllLands('id,hex_col,hex_row,owner_id,tenant_id,status,stars,free_until,sponsor_name,sponsor_logo_url,is_hq');
   // Charger les ventes actives
   var {data:sales}=await supabaseClient.from('land_sales').select('land_id,price_nyx').eq('status','active').limit(10000);
   var salesMap={};
@@ -9867,12 +9867,14 @@ async function loadLandsOnMap(){
   //           1ère couleur libre dans la palette de fallback (15 couleurs)
   // Garantit qu'aucune teinte sur la carte ne se confond avec la mienne.
   var rpUsernameMap={};
+  var rpRtwMap={}; // id RP -> matricule SL (pour l'étiquette "QG 0001")
   if(rpIds.length){
-    var {data:rpColors}=await supabaseClient.from('players').select('id,map_color,username').in('id',rpIds);
+    var {data:rpColors}=await supabaseClient.from('players').select('id,map_color,username,rtw_id').in('id',rpIds);
     var preferredColors={};
     (rpColors||[]).forEach(function(p){
       if(p.map_color) preferredColors[p.id]=p.map_color;
       if(p.username) rpUsernameMap[p.id]=p.username;
+      if(p.rtw_id) rpRtwMap[p.id]=p.rtw_id;
     });
 
     // ── Helpers HSL pour détecter les couleurs visuellement proches ──
@@ -10162,6 +10164,15 @@ async function loadLandsOnMap(){
       var fillOpacity=(isNewExplored||isMyPassage)?0.12:isMineOwned?1:(land.status==='owned'?0.9:isMineRented?0.3:land.status!=='free'?0.25:(isSponsored?0.25:0.08));
       var weight=isNewExplored?2:(isSponsored?2:1);
       var borderCol=color;
+      // QG du RP : "quartier général" permanent. Le mien s'affiche en doré vif,
+      // ceux des autres gardent leur couleur de territoire mais avec un contour
+      // doré épais + un cœur au centre (cf. plus bas) pour le repérer.
+      var isHq=!!land.is_hq;
+      if(isHq){
+        if(isMineOwned){ color='#f5c842'; fillOpacity=0.85; }
+        borderCol='#ffd700';
+        weight=3;
+      }
       var poly=L.polygon(latlngs,{
         color:borderCol,fillColor:color,fillOpacity:fillOpacity,
         weight:weight,opacity:isNewExplored?0.9:(land.status==='owned'?1:0.6)
@@ -10173,7 +10184,15 @@ async function loadLandsOnMap(){
         var sponsorLabel=land.sponsor_name?(escapeHtml(land.sponsor_name)+' '):'';
         statusTxt+=' · <span style="color:#f5c842">⭐ '+sponsorLabel+'jusqu\'au '+fuStr+'</span>';
       }
-      poly.bindTooltip('<strong>'+land.id.substring(0,8)+'…</strong>'+starsTxt+'<br>'+statusTxt,{className:'hex-tt'});
+      // Infobulle : pour un QG, une seule ligne "❤️ QG 0001 ★★".
+      if(isHq){
+        var hqRtw=isMineOwned?(window.__myPlayer&&window.__myPlayer.rtwId):rpRtwMap[otherPid];
+        poly.bindTooltip('<strong>❤️ '+_qgLabel(hqRtw)+'</strong><span style="color:#ffe050">'+starsTxt+'</span>',{className:'hex-tt'});
+      } else {
+        poly.bindTooltip('<strong>'+land.id.substring(0,8)+'…</strong>'+starsTxt+'<br>'+statusTxt,{className:'hex-tt'});
+      }
+      // (Le cœur du QG est dessiné plus bas, en coordonnées géographiques —
+      //  comme les étoiles — pour qu'il scale correctement avec le zoom.)
       // Logo du sponsor au centre de la land sponsorisée. La taille est gérée en CSS
       // par paliers de zoom (.hex-sponsor-logo img) — caché en vue large, scale au plus près.
       if(isSponsored && land.sponsor_logo_url){
@@ -10199,7 +10218,7 @@ async function loadLandsOnMap(){
       // Skip l'initiale si :
       //  - 1+ étoile(s) : étoile au centre se confond avec la lettre
       //  - land est le totem du RP : la pastille blanche du totem cache la lettre
-      if(!isMineOwned && !isMineRented && !isNewExplored && !isMyPassage && land.status!=='free' && otherPid && (land.stars||0)<1 && !_totemLandIds.has(land.id)){
+      if(!isMineOwned && !isMineRented && !isNewExplored && !isMyPassage && land.status!=='free' && otherPid && (land.stars||0)<1 && !_totemLandIds.has(land.id) && !isHq){
         var ownerNm=rpUsernameMap[otherPid];
         if(ownerNm){
           var initial=escapeHtml(ownerNm.charAt(0).toUpperCase());
@@ -10215,8 +10234,10 @@ async function loadLandsOnMap(){
           }).addTo(_landsHexLayer);
         }
       }
-      // Afficher les étoiles (polygones 5 branches qui scalent avec la carte)
-      if(land.stars>0&&land.status!=='free'){
+      // Afficher les étoiles (polygones 5 branches qui scalent avec la carte).
+      // Sur un QG : AUCUNE étoile sur la carte (seulement le cœur + l'anneau).
+      // Le nombre d'étoiles reste visible au survol/au clic (infobulle + fiche).
+      if(land.stars>0&&land.status!=='free'&&!isHq){
         var center=h3.cellToLatLng(land.id);
         for(var si=0;si<land.stars;si++){
           var offsetLng=(si-(land.stars-1)/2)*0.00038;
@@ -10236,6 +10257,44 @@ async function loadLandsOnMap(){
             weight:1,opacity:1,interactive:false
           }).addTo(_landsHexLayer);
         }
+      }
+      // Cœur du QG — dessiné en coordonnées géographiques (même principe que les
+      // étoiles) pour qu'il grossisse/rétrécisse proprement avec le zoom au lieu
+      // de rester en taille pixel fixe. Doré pour le mien, couleur du RP sinon.
+      // Tracé en dernier → toujours au-dessus des étoiles si le QG en a.
+      if(isHq){
+        try{
+          var hCtr=h3.cellToLatLng(land.id);
+          var hcy=hCtr[0], hcx=hCtr[1];
+          // Cercle rouge autour du cœur (même esprit que les anciens totems,
+          // qui sont désormais retirés — le QG sert de repère de territoire).
+          L.circle([hcy,hcx],{
+            radius:44,color:'#ff2d2d',fillColor:'#ff2d2d',
+            fillOpacity:0.10,weight:3.5,opacity:0.95,interactive:false
+          }).addTo(_landsHexLayer);
+          var hScale=0.0000150;                 // cœur ~ taille des anciens ronds
+          var hLngRatio=1/Math.cos(hcy*Math.PI/180);
+          var hpN=44, hRawX=[], hRawY=[], hMinY=1e9, hMaxY=-1e9;
+          for(var hp=0;hp<hpN;hp++){
+            var ht=(hp/hpN)*Math.PI*2;
+            var hx=16*Math.pow(Math.sin(ht),3);
+            var hy=13*Math.cos(ht)-5*Math.cos(2*ht)-2*Math.cos(3*ht)-Math.cos(4*ht);
+            hRawX.push(hx); hRawY.push(hy);
+            if(hy<hMinY) hMinY=hy; if(hy>hMaxY) hMaxY=hy;
+          }
+          var hMidY=(hMinY+hMaxY)/2; // recentrer verticalement dans l'hexagone
+          var heartPts=[];
+          for(var hp2=0;hp2<hpN;hp2++){
+            heartPts.push([hcy+(hRawY[hp2]-hMidY)*hScale, hcx+hRawX[hp2]*hScale*hLngRatio]);
+          }
+          // Cœur ROUGE pour qu'il claque sur n'importe quel fond (notamment le
+          // doré du QG, où un cœur doré disparaissait). Liseré sombre pour le
+          // détacher du fond.
+          L.polygon(heartPts,{
+            color:'rgba(0,0,0,.55)',fillColor:'#ff2d2d',
+            fillOpacity:1,weight:1,opacity:1,interactive:false
+          }).addTo(_landsHexLayer);
+        }catch(e){}
       }
     }catch(e){}
   });
@@ -10350,9 +10409,16 @@ async function showLandDetail(landId){
   var rpcPerPassage=[3,6,9,12][land.stars||0];
   var statusLabel=land.status==='owned'?'Propriété':land.status==='rented'?'Location':'Libre';
   // Charger le nom du tenant/owner
-  var tenantName='—',ownerName='—';
+  var tenantName='—',ownerName='—',ownerRtw=null;
   if(land.tenant_id){var {data:t}=await supabaseClient.from('players').select('username').eq('id',land.tenant_id).single();if(t)tenantName=t.username;}
-  if(land.owner_id){var {data:o}=await supabaseClient.from('players').select('username').eq('id',land.owner_id).single();if(o)ownerName=o.username;}
+  if(land.owner_id){var {data:o}=await supabaseClient.from('players').select('username,rtw_id').eq('id',land.owner_id).single();if(o){ownerName=o.username;ownerRtw=o.rtw_id;}}
+  // QG : un seul par RP. On regarde si J'AI déjà un QG (pour proposer "choisir"
+  // vs "déménager") et si CETTE case est mon QG (pour masquer loyer/vente).
+  var _isHq=!!land.is_hq;
+  var _myHqId=myId?(await _fetchMyHq()):null;
+  var _iHaveHq=!!_myHqId;
+  var _thisIsMyHq=(_isHq && land.owner_id===myId);
+  if(_isHq && land.owner_id===myId && !ownerRtw){ ownerRtw=(window.__myPlayer&&window.__myPlayer.rtwId)||null; }
   // Vérifier si en vente (via XHR direct pour contourner RLS)
   var activeSale=null;
   try{
@@ -10398,8 +10464,11 @@ async function showLandDetail(landId){
       var _rentedDate=new Date(land.rented_at);
       if(_rentedDate>_firstOfMonth) _cutoffMonth=_rentedDate;
     }
-    var _cutoffTotal=land.rented_at?new Date(land.rented_at):new Date('2000-01-01');
-    var _cutoffTotalStr=parisDayStr(_cutoffTotal);
+    // "Total" = TOUT l'historique de la case : tous les passages depuis toujours,
+    // quel que soit le propriétaire/locataire successif. On NE borne PLUS par
+    // rented_at, sinon le total repart à 1 dès qu'un RP (re)prend la case ou à
+    // chaque rotation de période (bug constaté le 2026-06-11).
+    var _cutoffTotalStr=parisDayStr(new Date('2000-01-01'));
     var _passResp=await window.fetch(supabaseUrl+'/rest/v1/land_passages?land_id=eq.'+encodeURIComponent(landId)+'&passage_date=gte.'+_cutoffTotalStr+'&select=passage_date,rpc_earned',{
       headers:{'apikey':supabaseKey,'Authorization':'Bearer '+supabaseKey,'Accept':'application/json','Prefer':'count=exact'}
     });
@@ -10527,7 +10596,7 @@ async function showLandDetail(landId){
       body+='<button onclick="buyLand(\''+landId+'\')" style="padding:.3rem .8rem;border-radius:6px;border:1.5px solid var(--green);background:rgba(45,219,128,.12);color:var(--green);font-weight:700;font-size:.72rem;cursor:pointer">🏠 Acheter — '+buyPrice+' NYX</button>';
     } else if(isMineRentedOnly&&!canBuyLands()){
       body+='<span style="font-size:.65rem;color:var(--muted2)">🔒 Droit d\'acquisition requis pour acheter</span>';
-    } else if(isMineOwned2){
+    } else if(isMineOwned2 && !_isHq){
       if(activeSale){
         body+='<span style="font-size:.65rem;color:var(--cyan)">🏷️ En vente — '+activeSale.price_nyx+' NYX</span>';
       } else {
@@ -10542,8 +10611,22 @@ async function showLandDetail(landId){
     }
     body+='</div>';
   }
-  document.getElementById('lm-title').textContent='🗺️ Land '+landId.substring(0,8)+'…';
-  document.getElementById('lm-sub').textContent='Détail de la Land';
+  // Bouton QG : choisir (offert) si je n'en ai pas, sinon déménager (payant).
+  // Disponible sur une case libre OU sur une de mes cases, hors sponsorisée/QG.
+  if(!_isHq && !_isSponsored && (land.status==='free' || isMine)){
+    if(!_iHaveHq){
+      body+='<button onclick="claimHq(\''+landId+'\')" style="margin-top:.6rem;width:100%;padding:.5rem .9rem;border-radius:8px;border:1.5px solid #f5c842;background:rgba(245,200,66,.1);color:#f5c842;font-weight:700;font-size:.8rem;cursor:pointer">❤️ En faire mon QG (offert, permanent)</button>';
+    } else {
+      body+='<button onclick="moveHq(\''+landId+'\')" style="margin-top:.6rem;width:100%;padding:.5rem .9rem;border-radius:8px;border:1.5px solid #f5c842;background:rgba(245,200,66,.06);color:#f5c842;font-weight:700;font-size:.78rem;cursor:pointer">❤️ Déménager mon QG ici ('+QG_MOVE_COST_NYX+' NYX)</button>';
+    }
+  }
+  if(_isHq){
+    document.getElementById('lm-title').innerHTML='❤️ <span style="color:#fff">'+_qgLabel(ownerRtw)+'</span>';
+    document.getElementById('lm-sub').textContent='';
+  } else {
+    document.getElementById('lm-title').textContent='🗺️ Land '+landId.substring(0,8)+'…';
+    document.getElementById('lm-sub').textContent='Détail de la Land';
+  }
   document.getElementById('lm-body').innerHTML=body;
   openModal('land-modal');
 }
@@ -10562,7 +10645,8 @@ async function showLandPassersList(landId, mode){
     // Deux modes :
     // - 'month' (défaut) : depuis MAX(1er du mois, rented_at) — passages
     //   "comptables" pour le tenant courant sur le mois en cours.
-    // - 'total' : depuis rented_at — cumul depuis l'acquisition.
+    // - 'total' : TOUT l'historique de la case (depuis toujours, peu importe
+    //   le propriétaire successif). Cohérent avec la fiche Land.
     var _cutoff;
     var landRow=null;
     try{
@@ -10570,7 +10654,7 @@ async function showLandPassersList(landId, mode){
       landRow=resLR.data;
     }catch(e){}
     if(_isTotal){
-      _cutoff=(landRow && landRow.rented_at) ? new Date(landRow.rented_at) : new Date('2000-01-01');
+      _cutoff=new Date('2000-01-01');
     } else {
       var _now=new Date();
       var _firstOfMonth=new Date(_now.getFullYear(), _now.getMonth(), 1);
@@ -10612,6 +10696,136 @@ async function showLandPassersList(landId, mode){
   }catch(e){
     showToast('⚠️ Erreur chargement');
   }
+}
+
+// ====================== QG (quartier général) ======================
+// Le QG est la "maison" permanente du RP : une case offerte, possédée à vie,
+// sans loyer, ni vendable ni perdable. Un seul QG par RP. Affiché en doré avec
+// un ❤️ sur la carte. Étiquette = "QG " + matricule SL (ex. QG 0001).
+// - claimHq  : choix volontaire d'un QG (gratuit) quand on n'en a pas encore.
+//              Sert aux nouveaux (1ère case) ET aux anciens (désigner plus tard).
+// - moveHq   : déménager son QG sur une autre case (payant, 50 NYX, acte rare).
+var QG_MOVE_COST_NYX=100;
+
+function _qgLabel(rtwId){
+  var n=parseInt(rtwId,10)||0;
+  return 'QG '+String(n).padStart(4,'0');
+}
+
+async function _fetchMyHq(){
+  if(!currentUser) return null;
+  try{
+    var {data}=await supabaseClient.from('lands').select('id').eq('owner_id',currentUser.id).eq('is_hq',true).maybeSingle();
+    return (data&&data.id)?data.id:null;
+  }catch(e){ return null; }
+}
+
+// Vérifie que la case cible n'est pas déjà prise par un AUTRE RP.
+function _hqTargetBlocked(existing){
+  if(!existing) return false;
+  if(existing.owner_id && existing.owner_id!==currentUser.id) return '⚠️ Cette case appartient déjà à un autre RP';
+  if(existing.tenant_id && existing.tenant_id!==currentUser.id) return '⚠️ Cette case est louée par un autre RP';
+  return false;
+}
+
+async function claimHq(landId){
+  if(!currentUser){showToast('⚠️ Connecte-toi');return;}
+  if(await _fetchMyHq()){showToast('⚠️ Tu as déjà un QG (tu peux le déménager)');return;}
+  var rtw=(window.__myPlayer&&window.__myPlayer.rtwId)||null;
+  var dName=_qgLabel(rtw);
+  var {data:existing}=await supabaseClient.from('lands').select('status,owner_id,tenant_id,rented_at').eq('id',landId).maybeSingle();
+  var blocked=_hqTargetBlocked(existing);
+  if(blocked){showToast(blocked);return;}
+  // La case était-elle DÉJÀ à moi (louée ou possédée) ? Si oui, ce n'est pas
+  // un cadeau : je reste propriétaire même si je déménage le QG plus tard.
+  // Si non (case libre), c'est la case offerte → abandonnée au déménagement.
+  var wasMine=!!(existing && (existing.owner_id===currentUser.id || existing.tenant_id===currentUser.id));
+  var gifted=!wasMine;
+  var _confirmMsg=wasMine
+    ? 'Faire de cette case (déjà à toi) ton <strong style="color:#f5c842">'+dName+'</strong> ?<br><br>Elle devient ta <strong>propriété permanente, sans loyer</strong>. Tu la <strong>gardes</strong> même si tu déménages ton QG plus tard.'
+    : 'Faire de cette case ton <strong style="color:#f5c842">'+dName+'</strong> ?<br><br>Elle devient ta <strong>propriété permanente</strong>, <strong>offerte</strong> et <strong>sans loyer</strong>. Tu ne pourras plus la perdre.';
+  if(!await askConfirm(_confirmMsg,{title:'❤️ Choisir mon QG',emoji:'❤️',success:true,okLabel:'Oui, c\'est mon QG'})) return;
+  var nowIso=new Date().toISOString();
+  var period=_periodData.period||1;
+  if(existing){
+    var {error}=await supabaseClient.from('lands').update({
+      owner_id:currentUser.id, tenant_id:currentUser.id, status:'owned',
+      is_hq:true, hq_gifted:gifted, rented_at:existing.rented_at||nowIso
+    }).eq('id',landId);
+    if(error){showToast('⚠️ '+error.message);return;}
+  } else {
+    var ll=h3.cellToLatLng(landId);
+    var {error}=await supabaseClient.from('lands').insert({
+      id:landId, hex_col:Math.round(ll[1]*10000), hex_row:Math.round(ll[0]*10000),
+      status:'owned', stars:0, owner_id:currentUser.id, tenant_id:currentUser.id,
+      is_hq:true, hq_gifted:gifted, rent_start_period:period, rent_periods:1, rented_at:nowIso
+    });
+    if(error){showToast('⚠️ '+error.message);return;}
+  }
+  if(typeof _removeFromPendingExploration==='function') _removeFromPendingExploration(landId);
+  closeModal('land-modal');
+  showToast('❤️ '+dName+' fondé ! Cette case est à toi pour toujours.');
+  loadLandsOnMap(); renderMyLands();
+  if(typeof updatePlayerGrade==='function') updatePlayerGrade(currentUser.id);
+}
+
+async function moveHq(landId){
+  if(!currentUser){showToast('⚠️ Connecte-toi');return;}
+  // On a besoin de savoir si le QG actuel était un cadeau (case offerte) ou
+  // une case qui m'appartenait déjà → ça change ce qu'il devient au départ.
+  var {data:curHqRow}=await supabaseClient.from('lands').select('id,hq_gifted').eq('owner_id',currentUser.id).eq('is_hq',true).maybeSingle();
+  var curHq=(curHqRow&&curHqRow.id)?curHqRow.id:null;
+  if(!curHq){showToast('⚠️ Tu n\'as pas encore de QG');return;}
+  if(curHq===landId){showToast('✓ C\'est déjà ton QG');return;}
+  var oldWasGift=!!(curHqRow&&curHqRow.hq_gifted);
+  var w=window.__wallet||{nyx:0};
+  if((w.nyx||0)<QG_MOVE_COST_NYX){showToast('⚠️ Solde insuffisant ('+QG_MOVE_COST_NYX+' NYX requis)');return;}
+  var rtw=(window.__myPlayer&&window.__myPlayer.rtwId)||null;
+  var dName=_qgLabel(rtw);
+  // Le message d'avertissement dépend du sort de l'ancienne case.
+  var _oldFate=oldWasGift
+    ? '<strong style="color:var(--red)">⚠️ Ta case de départ (offerte) sera abandonnée</strong> et repartira dans le jeu. Tu ne la récupères pas.'
+    : 'Ton ancienne case <strong>reste ta propriété</strong> (elle perd juste le statut de QG).';
+  if(!await askConfirm('Déménager ton <strong style="color:#f5c842">'+dName+'</strong> sur cette case ?<br><br>Coût : <strong style="color:var(--gold)">'+QG_MOVE_COST_NYX+' NYX</strong>.<br>'+_oldFate,{title:'❤️ Déménager mon QG',emoji:'❤️',success:true,okLabel:'Déménager ('+QG_MOVE_COST_NYX+' NYX)'})) return;
+  var {data:existing}=await supabaseClient.from('lands').select('status,owner_id,tenant_id,rented_at').eq('id',landId).maybeSingle();
+  var blocked=_hqTargetBlocked(existing);
+  if(blocked){showToast(blocked);return;}
+  var ok=await walletDebitNyx(QG_MOVE_COST_NYX,'Déménagement QG');
+  if(!ok) return;
+  var nowIso=new Date().toISOString();
+  var period=_periodData.period||1;
+  // 1) Sort de l'ancienne case :
+  //    - si c'était la case OFFERTE → abandonnée (passages + row supprimés,
+  //      mêmes règles que releaseLand : une land libre n'existe plus en DB) ;
+  //    - sinon (case que je possédais déjà) → je la GARDE en propriété, elle
+  //      perd seulement le statut de QG.
+  if(oldWasGift){
+    await supabaseClient.from('land_passages').delete().eq('land_id',curHq);
+    await supabaseClient.from('lands').delete().eq('id',curHq);
+  } else {
+    await supabaseClient.from('lands').update({is_hq:false,hq_gifted:false}).eq('id',curHq);
+  }
+  // 2) la nouvelle case devient le QG. Cadeau seulement si elle n'était pas
+  //    déjà à moi (sinon je la garderais lors d'un futur déménagement).
+  var newWasMine=!!(existing && (existing.owner_id===currentUser.id || existing.tenant_id===currentUser.id));
+  var newGifted=!newWasMine;
+  if(existing){
+    await supabaseClient.from('lands').update({
+      owner_id:currentUser.id, tenant_id:currentUser.id, status:'owned',
+      is_hq:true, hq_gifted:newGifted, rented_at:existing.rented_at||nowIso
+    }).eq('id',landId);
+  } else {
+    var ll=h3.cellToLatLng(landId);
+    await supabaseClient.from('lands').insert({
+      id:landId, hex_col:Math.round(ll[1]*10000), hex_row:Math.round(ll[0]*10000),
+      status:'owned', stars:0, owner_id:currentUser.id, tenant_id:currentUser.id,
+      is_hq:true, hq_gifted:newGifted, rent_start_period:period, rent_periods:1, rented_at:nowIso
+    });
+  }
+  if(typeof _removeFromPendingExploration==='function') _removeFromPendingExploration(landId);
+  closeModal('land-modal');
+  showToast('❤️ '+dName+' déménagé ici !');
+  loadLandsOnMap(); renderMyLands();
 }
 
 async function rentLand(landId){
@@ -10850,7 +11064,12 @@ async function buyLand(landId){
   },300);
 }
 
-function openSellModal(landId){
+async function openSellModal(landId){
+  // Garde-fou : un QG est une propriété permanente, jamais vendable.
+  try{
+    var {data:_lchk}=await supabaseClient.from('lands').select('is_hq').eq('id',landId).maybeSingle();
+    if(_lchk && _lchk.is_hq){showToast('❤️ Ton QG ne peut pas être mis en vente');return;}
+  }catch(e){}
   document.getElementById('lm-title').textContent=t('lands.sell.modal.title');
   document.getElementById('lm-sub').textContent=landId.substring(0,10)+'…';
   document.getElementById('lm-body').innerHTML='<div style="display:flex;flex-direction:column;gap:.6rem">'
@@ -10870,8 +11089,10 @@ async function confirmSellLand(landId){
   var price=parseInt(priceInput?priceInput.value:0)||0;
   if(price<1){showToast('⚠️ Entre un prix valide');return;}
   // Vérifier que c'est bien ma propriété
-  var {data:land}=await supabaseClient.from('lands').select('owner_id').eq('id',landId).single();
+  var {data:land}=await supabaseClient.from('lands').select('owner_id,is_hq').eq('id',landId).single();
   if(!land||land.owner_id!==currentUser.id){showToast('⚠️ Cette Land ne t\'appartient pas');return;}
+  // Un QG ne se vend jamais (propriété permanente du RP).
+  if(land.is_hq){showToast('❤️ Ton QG ne peut pas être mis en vente');return;}
   // Annuler toute vente active existante pour cette land
   await window.fetch(supabaseUrl+'/rest/v1/land_sales?land_id=eq.'+encodeURIComponent(landId)+'&status=eq.active',{
     method:'PATCH',
@@ -11011,14 +11232,14 @@ async function renderMyLands(page){
       ? 'Lands <span class="hl">de '+(window.__viewedPlayer.name||'RP')+'</span>'
       : 'Mes <span class="hl">Lands</span>';
   }
-  var {data:myLands}=await supabaseClient.from('lands').select('id,status,stars,rent_periods,rent_start_period,monthly_revenue,owner_id,tenant_id,free_until,rented_at,sponsor_name,sponsor_logo_url,sponsor_url,sponsor_message')
+  var {data:myLands}=await supabaseClient.from('lands').select('id,status,stars,rent_periods,rent_start_period,monthly_revenue,owner_id,tenant_id,free_until,rented_at,sponsor_name,sponsor_logo_url,sponsor_url,sponsor_message,is_hq')
     .or('tenant_id.eq.'+_lTargetUuid+',owner_id.eq.'+_lTargetUuid)
     .order('status');
   // Admin uniquement (consulte ses propres lands) : on ajoute les lands sponsorisées
   // (sponsor_name renseigné, free_until futur, libres). Elles n'appartiennent à personne
   // mais c'est l'admin qui les gère.
   if(!_lIsOther && typeof isAdmin==='function' && isAdmin()){
-    var {data:spLands}=await supabaseClient.from('lands').select('id,status,stars,rent_periods,rent_start_period,monthly_revenue,owner_id,tenant_id,free_until,rented_at,sponsor_name,sponsor_logo_url,sponsor_url,sponsor_message')
+    var {data:spLands}=await supabaseClient.from('lands').select('id,status,stars,rent_periods,rent_start_period,monthly_revenue,owner_id,tenant_id,free_until,rented_at,sponsor_name,sponsor_logo_url,sponsor_url,sponsor_message,is_hq')
       .not('sponsor_name','is',null)
       .gt('free_until',new Date().toISOString());
     if(spLands && spLands.length){
@@ -11122,7 +11343,9 @@ async function renderMyLands(page){
       var fuD=new Date(l.free_until);
       freeUntilTxt=fuD.toLocaleDateString(SPEEDIX_LANG,{day:'2-digit',month:'short'});
     }
-    var statusBadge=isOwned
+    var statusBadge=l.is_hq
+      ?'<span class="badge" '+clickAttr+'font-size:.55rem;background:rgba(245,200,66,.15);border:1px solid #f5c842;color:#f5c842" title="Ton QG — propriété permanente">❤️ QG</span>'
+      :isOwned
       ?(isForSale
         ?'<span class="badge" '+clickAttr+'font-size:.55rem;background:rgba(32,208,224,.12);border:1px solid rgba(32,208,224,.4);color:var(--cyan)">À vendre · '+activeSaleSet[l.id]+' NYX</span>'
         :'<span class="badge g-confirme" '+clickAttr+'font-size:.55rem">Propriété</span>')
@@ -11157,6 +11380,8 @@ async function renderMyLands(page){
       +'<td style="font-family:Space Mono,monospace;font-size:.72rem;text-align:center">'+loyerCell+'</td>'
       +'<td style="text-align:center"><button onclick="showLandDetail(\''+l.id+'\')" style="padding:.2rem .5rem;border-radius:4px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.06);color:var(--muted2);font-size:.6rem;cursor:pointer">Infos</button></td>'
       +'<td style="text-align:center;font-size:.65rem">'+(function(){
+        // Un QG ne se vend pas → aucun bouton de vente sur sa ligne.
+        if(l.is_hq){ return '<span style="color:var(--muted2)">—</span>'; }
         if(isOwned){
           return '<button onclick="openSellModal(\''+l.id+'\')" style="padding:.15rem .35rem;border-radius:3px;border:1px solid var(--cyan);background:rgba(32,208,224,.08);color:var(--cyan);font-size:.58rem;font-weight:700;cursor:pointer">V</button>';
         }
@@ -11858,7 +12083,12 @@ async function finishExploration(){
 
 async function addTotems(){
   if(!_landsMap) return;
-  if(_totemLayer){_landsMap.removeLayer(_totemLayer);}
+  // Les pastilles "centre de territoire" sont retirées : le QG (cœur rouge
+  // cerclé, dessiné dans loadLandsOnMap) sert désormais de repère. On vide
+  // quand même le calque pour effacer d'éventuels totems d'un ancien rendu.
+  if(_totemLayer){_landsMap.removeLayer(_totemLayer);_totemLayer=null;}
+  return;
+  // eslint-disable-next-line no-unreachable
   _totemLayer=L.layerGroup().addTo(_landsMap);
 
   // Charger toutes les lands occupées
@@ -25664,6 +25894,57 @@ const Q_FACILE = [
   {cat:'boules', q:"Quelle petite boule vise-t-on à la pétanque ?", a:["Le cochonnet","Le ballon","La quille","Le palet"], q_en:"What small ball do you aim at in pétanque?", a_en:["The jack (cochonnet)","The ball","The pin","The puck"], c:0},
   {cat:'boules', q:"En quoi sont faites les boules de pétanque ?", a:["En métal","En plastique mou","En bois léger","En caoutchouc"], q_en:"What are pétanque balls made of?", a_en:["Metal","Soft plastic","Light wood","Rubber"], c:0},
   {cat:'badminton', q:"Que renvoie-t-on par-dessus le filet au badminton ?", a:["Un volant","Une balle de tennis","Un ballon","Un palet"], q_en:"What do you hit over the net in badminton?", a_en:["A shuttlecock","A tennis ball","A football","A puck"], c:0},
+  // — 50 questions faciles ajoutées le 2026-06-11 —
+  {cat:'foot', q:"Combien de minutes dure le temps réglementaire d'un match de football ?", a:["60","75","90","120"], q_en:"How many minutes does regulation time in a football match last?", a_en:["60","75","90","120"], c:2},
+  {cat:'foot', q:"De quelle couleur est le carton qui exclut un joueur ?", a:["Rouge","Jaune","Vert","Bleu"], q_en:"What colour is the card that sends a player off?", a_en:["Red","Yellow","Green","Blue"], c:0},
+  {cat:'foot', q:"Quel pays a organisé la Coupe du Monde de football 1998 ?", a:["France","Italie","Allemagne","Espagne"], q_en:"Which country hosted the 1998 football World Cup?", a_en:["France","Italy","Germany","Spain"], c:0},
+  {cat:'foot', q:"Combien de points rapporte une victoire en championnat de football ?", a:["1","2","3","4"], q_en:"How many points does a win earn in a football league?", a_en:["1","2","3","4"], c:2},
+  {cat:'foot', q:"Quel club espagnol joue au stade du Camp Nou ?", a:["FC Barcelone","Real Madrid","Atlético Madrid","Valence"], q_en:"Which Spanish club plays at the Camp Nou stadium?", a_en:["FC Barcelona","Real Madrid","Atlético Madrid","Valencia"], c:0},
+  {cat:'foot', q:"De quel pays Lionel Messi est-il originaire ?", a:["Argentine","Brésil","Espagne","Uruguay"], q_en:"Which country is Lionel Messi from?", a_en:["Argentina","Brazil","Spain","Uruguay"], c:0},
+  {cat:'foot', q:"Quelle partie du corps un joueur de champ ne peut pas utiliser ?", a:["Les mains","Les pieds","La tête","La poitrine"], q_en:"Which body part may an outfield player not use?", a_en:["The hands","The feet","The head","The chest"], c:0},
+  {cat:'foot', q:"Que signifie le sigle « PSG » ?", a:["Paris Saint-Germain","Paris Sport Géant","Provence Sud Gironde","Paris Stade Général"], q_en:"What does the abbreviation 'PSG' stand for?", a_en:["Paris Saint-Germain","Paris Sport Giant","Provence Sud Gironde","Paris General Stadium"], c:0},
+  {cat:'foot', q:"Comment appelle-t-on l'arbitre qui dirige un match de football ?", a:["L'arbitre central","Le capitaine","Le sélectionneur","Le commentateur"], q_en:"What do you call the official who runs a football match?", a_en:["The referee","The captain","The manager","The commentator"], c:0},
+  {cat:'foot', q:"Dans quel sport marque-t-on un « but » dans des cages avec un filet ?", a:["Football","Tennis","Golf","Cyclisme"], q_en:"In which sport do you score a 'goal' in a net?", a_en:["Football","Tennis","Golf","Cycling"], c:0},
+  {cat:'tennis', q:"Sur quelle surface se joue le tournoi de Roland-Garros ?", a:["Terre battue","Gazon","Dur","Moquette"], q_en:"On which surface is the Roland-Garros tournament played?", a_en:["Clay","Grass","Hard court","Carpet"], c:0},
+  {cat:'tennis', q:"Combien de tournois du Grand Chelem y a-t-il dans une saison ?", a:["4","2","3","5"], q_en:"How many Grand Slam tournaments are there in a season?", a_en:["4","2","3","5"], c:0},
+  {cat:'tennis', q:"Quel tournoi du Grand Chelem se joue sur gazon ?", a:["Wimbledon","US Open","Open d'Australie","Roland-Garros"], q_en:"Which Grand Slam is played on grass?", a_en:["Wimbledon","US Open","Australian Open","Roland-Garros"], c:0},
+  {cat:'tennis', q:"Combien de joueurs s'affrontent dans un match de tennis en simple ?", a:["2","1","3","4"], q_en:"How many players face off in a singles tennis match?", a_en:["2","1","3","4"], c:0},
+  {cat:'tennis', q:"Quel objet frappe-t-on avec la raquette au tennis ?", a:["Une balle","Un volant","Un palet","Un ballon"], q_en:"What do you hit with the racket in tennis?", a_en:["A ball","A shuttlecock","A puck","A football"], c:0},
+  {cat:'basket', q:"Combien de points vaut un panier marqué derrière la ligne à trois points ?", a:["3","1","2","4"], q_en:"How many points is a basket made behind the three-point line worth?", a_en:["3","1","2","4"], c:0},
+  {cat:'basket', q:"Combien de joueurs par équipe sont sur le terrain au basket-ball ?", a:["5","6","7","11"], q_en:"How many players per team are on the court in basketball?", a_en:["5","6","7","11"], c:0},
+  {cat:'basket', q:"Dans quelle ligue nord-américaine joue LeBron James ?", a:["NBA","NFL","MLB","NHL"], q_en:"In which North American league does LeBron James play?", a_en:["NBA","NFL","MLB","NHL"], c:0},
+  {cat:'basket', q:"Que doit faire un joueur de basket en se déplaçant avec le ballon ?", a:["Le dribbler","Le porter","Le frapper du pied","Le cacher"], q_en:"What must a basketball player do while moving with the ball?", a_en:["Dribble it","Carry it","Kick it","Hide it"], c:0},
+  {cat:'jo', q:"Quelle couleur de médaille récompense la première place aux Jeux Olympiques ?", a:["Or","Argent","Bronze","Platine"], q_en:"Which medal colour rewards first place at the Olympics?", a_en:["Gold","Silver","Bronze","Platinum"], c:0},
+  {cat:'jo', q:"Dans quel pays la flamme olympique est-elle traditionnellement allumée ?", a:["Grèce","Italie","Égypte","France"], q_en:"In which country is the Olympic flame traditionally lit?", a_en:["Greece","Italy","Egypt","France"], c:0},
+  {cat:'jo', q:"À qui sont destinés les Jeux Paralympiques ?", a:["Aux athlètes en situation de handicap","Aux enfants","Aux vétérans","Aux amateurs"], q_en:"Who are the Paralympic Games for?", a_en:["Athletes with disabilities","Children","Veterans","Amateurs"], c:0},
+  {cat:'jo', q:"Les Jeux Olympiques d'hiver regroupent surtout des sports de…", a:["Neige et glace","Plage","Désert","Eau chaude"], q_en:"The Winter Olympics mainly feature sports on…", a_en:["Snow and ice","Beach","Desert","Warm water"], c:0},
+  {cat:'athle', q:"Quelle est la distance approximative d'un marathon ?", a:["42 km","10 km","21 km","100 km"], q_en:"What is the approximate distance of a marathon?", a_en:["42 km","10 km","21 km","100 km"], c:0},
+  {cat:'athle', q:"Quel engin pointu lance-t-on en athlétisme ?", a:["Le javelot","La raquette","Le volant","Le ballon"], q_en:"Which pointed implement is thrown in athletics?", a_en:["The javelin","The racket","The shuttlecock","The ball"], c:0},
+  {cat:'athle', q:"Combien de couloirs compte généralement une piste d'athlétisme ?", a:["8","4","6","12"], q_en:"How many lanes does an athletics track usually have?", a_en:["8","4","6","12"], c:0},
+  {cat:'cyclisme', q:"Quel maillot porte le leader du classement général du Tour de France ?", a:["Le maillot jaune","Le maillot vert","Le maillot rouge","Le maillot bleu"], q_en:"Which jersey does the overall leader of the Tour de France wear?", a_en:["The yellow jersey","The green jersey","The red jersey","The blue jersey"], c:0},
+  {cat:'cyclisme', q:"Dans quel pays se déroule majoritairement le Tour de France ?", a:["France","Italie","Espagne","Belgique"], q_en:"In which country does the Tour de France mostly take place?", a_en:["France","Italy","Spain","Belgium"], c:0},
+  {cat:'cyclisme', q:"Combien de roues possède un vélo de course classique ?", a:["2","1","3","4"], q_en:"How many wheels does a classic racing bike have?", a_en:["2","1","3","4"], c:0},
+  {cat:'rugby', q:"Combien de points vaut un essai au rugby à XV ?", a:["5","3","4","7"], q_en:"How many points is a try worth in rugby union (XV)?", a_en:["5","3","4","7"], c:0},
+  {cat:'rugby', q:"Combien de joueurs compte une équipe de rugby à XV sur le terrain ?", a:["15","11","13","18"], q_en:"How many players are on the field in a rugby union (XV) team?", a_en:["15","11","13","18"], c:0},
+  {cat:'rugby', q:"Dans quel sport marque-t-on un « essai » en aplatissant le ballon ?", a:["Rugby","Football","Tennis","Golf"], q_en:"In which sport do you score a 'try' by grounding the ball?", a_en:["Rugby","Football","Tennis","Golf"], c:0},
+  {cat:'natation', q:"Quelle nage se pratique allongé sur le dos ?", a:["Le dos","La brasse","Le papillon","Le crawl"], q_en:"Which stroke is swum lying on your back?", a_en:["Backstroke","Breaststroke","Butterfly","Front crawl"], c:0},
+  {cat:'natation', q:"Dans quel lieu se déroulent les épreuves de natation en compétition ?", a:["Une piscine","Un stade","Un ring","Un court"], q_en:"Where do competitive swimming events take place?", a_en:["A swimming pool","A stadium","A ring","A court"], c:0},
+  {cat:'natation', q:"Quel accessoire protège les yeux des nageurs dans l'eau ?", a:["Des lunettes de natation","Un masque de ski","Un casque de vélo","Des gants"], q_en:"Which accessory protects swimmers' eyes in the water?", a_en:["Swimming goggles","Ski goggles","A bike helmet","Gloves"], c:0},
+  {cat:'boxe', q:"Sur quel espace carré et cordé combattent les boxeurs ?", a:["Un ring","Un tatami","Un court","Une piste"], q_en:"On what square roped area do boxers fight?", a_en:["A ring","A tatami","A court","A track"], c:0},
+  {cat:'boxe', q:"Que portent les boxeurs aux mains pendant un combat ?", a:["Des gants","Des raquettes","Des bâtons","Des palmes"], q_en:"What do boxers wear on their hands during a fight?", a_en:["Gloves","Rackets","Sticks","Flippers"], c:0},
+  {cat:'golf', q:"Quel est le but principal au golf ?", a:["Mettre la balle dans le trou","Marquer un panier","Toucher le filet","Franchir la ligne"], q_en:"What is the main goal in golf?", a_en:["Get the ball in the hole","Score a basket","Touch the net","Cross the line"], c:0},
+  {cat:'golf', q:"Avec quel matériel frappe-t-on la balle au golf ?", a:["Un club","Une raquette","Une batte","Une crosse"], q_en:"With what equipment do you hit the ball in golf?", a_en:["A club","A racket","A bat","A stick"], c:0},
+  {cat:'handball', q:"Avec quelle partie du corps joue-t-on principalement au handball ?", a:["Les mains","Les pieds","La tête","Les genoux"], q_en:"Which body part is mainly used in handball?", a_en:["The hands","The feet","The head","The knees"], c:0},
+  {cat:'handball', q:"Quel pays européen a remporté plusieurs titres mondiaux en handball masculin ?", a:["France","Brésil","Italie","Canada"], q_en:"Which European country has won several men's handball world titles?", a_en:["France","Brazil","Italy","Canada"], c:0},
+  {cat:'volley', q:"Combien de joueurs par équipe sont sur le terrain au volley-ball ?", a:["6","5","7","8"], q_en:"How many players per team are on the court in volleyball?", a_en:["6","5","7","8"], c:0},
+  {cat:'volley', q:"Au volley-ball, que ne doit pas faire le ballon dans son propre camp ?", a:["Toucher le sol","Passer le filet","Être frappé","Monter haut"], q_en:"In volleyball, what must the ball not do in your own court?", a_en:["Touch the floor","Cross the net","Be hit","Go high"], c:0},
+  {cat:'ski', q:"Sur quelle surface pratique-t-on le ski alpin ?", a:["La neige","Le sable","L'eau","Le gazon"], q_en:"On what surface is alpine skiing practised?", a_en:["Snow","Sand","Water","Grass"], c:0},
+  {cat:'ski', q:"Quel équipement met-on aux pieds pour skier ?", a:["Des skis","Des patins","Des raquettes","Des palmes"], q_en:"What do you put on your feet to ski?", a_en:["Skis","Skates","Rackets","Flippers"], c:0},
+  {cat:'judo', q:"Quelle tenue traditionnelle porte-t-on pour pratiquer le judo ?", a:["Un kimono","Un short","Un maillot","Une combinaison"], q_en:"What traditional outfit is worn to practise judo?", a_en:["A kimono (judogi)","Shorts","A jersey","A wetsuit"], c:0},
+  {cat:'gym', q:"En gymnastique artistique, comment appelle-t-on la barre horizontale fixe ?", a:["La barre fixe","Le trampoline","Le tatami","Le ring"], q_en:"In artistic gymnastics, what is the fixed horizontal bar called?", a_en:["The horizontal bar","The trampoline","The tatami","The ring"], c:0},
+  {cat:'surf', q:"Sur quel équipement se tient un surfeur sur les vagues ?", a:["Une planche","Un ski","Un vélo","Un bateau"], q_en:"On what equipment does a surfer stand on the waves?", a_en:["A board","A ski","A bike","A boat"], c:0},
+  {cat:'pingpong', q:"Avec quel objet frappe-t-on la balle au tennis de table ?", a:["Une raquette","Une crosse","Une batte","Un club"], q_en:"With what object do you hit the ball in table tennis?", a_en:["A paddle","A stick","A bat","A club"], c:0},
+  {cat:'auto', q:"Comment s'appelle la catégorie reine de la course automobile sur circuit ?", a:["La Formule 1","Le Rallye","Le MotoGP","Le NASCAR"], q_en:"What is the premier category of circuit motor racing called?", a_en:["Formula 1","Rally","MotoGP","NASCAR"], c:0},
 ];
 const Q_MODEREE = [
   {cat:'foot', q:"Quel club anglais est surnommé « les Red Devils » ?", a:["Liverpool","Manchester United","Arsenal","Chelsea"], q_en:"Which English club is nicknamed 'the Red Devils'?", a_en:["Liverpool","Manchester United","Arsenal","Chelsea"], c:1},
