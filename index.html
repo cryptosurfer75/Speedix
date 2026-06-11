@@ -10621,7 +10621,7 @@ async function showLandDetail(landId){
   // Disponible sur une case libre OU sur une de mes cases, hors sponsorisée/QG.
   if(!_isHq && !_isSponsored && (land.status==='free' || isMine)){
     if(!_iHaveHq){
-      body+='<button onclick="claimHq(\''+landId+'\')" style="margin-top:.6rem;width:100%;padding:.5rem .9rem;border-radius:8px;border:1.5px solid #f5c842;background:rgba(245,200,66,.1);color:#f5c842;font-weight:700;font-size:.8rem;cursor:pointer">❤️ En faire mon QG (offert, permanent)</button>';
+      body+='<button onclick="claimHq(\''+landId+'\')" style="margin-top:.6rem;width:100%;padding:.5rem .9rem;border-radius:8px;border:1.5px solid #f5c842;background:rgba(245,200,66,.1);color:#f5c842;font-weight:700;font-size:.8rem;cursor:pointer">❤️ En faire mon QG</button>';
     } else {
       body+='<button onclick="moveHq(\''+landId+'\')" style="margin-top:.6rem;width:100%;padding:.5rem .9rem;border-radius:8px;border:1.5px solid #f5c842;background:rgba(245,200,66,.06);color:#f5c842;font-weight:700;font-size:.78rem;cursor:pointer">❤️ Déménager mon QG ici ('+QG_MOVE_COST_NYX+' NYX)</button>';
     }
@@ -10729,8 +10729,8 @@ async function _fetchMyHq(){
 // Vérifie que la case cible n'est pas déjà prise par un AUTRE RP.
 function _hqTargetBlocked(existing){
   if(!existing) return false;
-  if(existing.owner_id && existing.owner_id!==currentUser.id) return '⚠️ Cette case appartient déjà à un autre RP';
-  if(existing.tenant_id && existing.tenant_id!==currentUser.id) return '⚠️ Cette case est louée par un autre RP';
+  if(existing.owner_id && existing.owner_id!==currentUser.id) return '⚠️ Cette Land appartient déjà à un autre RP';
+  if(existing.tenant_id && existing.tenant_id!==currentUser.id) return '⚠️ Cette Land est louée par un autre RP';
   return false;
 }
 
@@ -10751,7 +10751,7 @@ async function claimHq(landId){
   // (propriété permanente / offerte / sans loyer / déjà à toi) a été retiré à la
   // demande — il alourdissait l'écran. La distinction cadeau/possédée reste gérée
   // côté code via `gifted`, juste plus affichée ici.
-  var _confirmMsg='Faire de cette case ton <strong style="color:#f5c842">'+dName+'</strong> ?';
+  var _confirmMsg='Faire de cette Land ton <strong style="color:#f5c842">'+dName+'</strong> ?';
   if(!await askConfirm(_confirmMsg,{title:'Choisir mon QG',emoji:'❤️',success:true,okLabel:'Valider mon QG'})) return;
   var nowIso=new Date().toISOString();
   var period=_periodData.period||1;
@@ -10772,7 +10772,7 @@ async function claimHq(landId){
   }
   if(typeof _removeFromPendingExploration==='function') _removeFromPendingExploration(landId);
   closeModal('land-modal');
-  showToast('❤️ '+dName+' fondé ! Cette case est à toi pour toujours.');
+  showToast('❤️ '+dName+' fondé ! Cette Land est à toi pour toujours.');
   loadLandsOnMap(); renderMyLands();
   if(typeof updatePlayerGrade==='function') updatePlayerGrade(currentUser.id);
 }
@@ -10792,9 +10792,9 @@ async function moveHq(landId){
   var dName=_qgLabel(rtw);
   // Le message d'avertissement dépend du sort de l'ancienne case.
   var _oldFate=oldWasGift
-    ? '<strong style="color:var(--red)">⚠️ Ta case de départ (offerte) sera abandonnée</strong> et repartira dans le jeu. Tu ne la récupères pas.'
-    : 'Ton ancienne case <strong>reste ta propriété</strong> (elle perd juste le statut de QG).';
-  if(!await askConfirm('Déménager ton <strong style="color:#f5c842">'+dName+'</strong> sur cette case ?<br><br>Coût : <strong style="color:var(--gold)">'+QG_MOVE_COST_NYX+' NYX</strong>.<br>'+_oldFate,{title:'Déménager mon QG',emoji:'❤️',success:true,okLabel:'Valider mon QG'})) return;
+    ? '<strong style="color:var(--red)">⚠️ Ta Land de départ (offerte) sera abandonnée</strong> et repartira dans le jeu. Tu ne la récupères pas.'
+    : 'Ton ancienne Land <strong>reste ta propriété</strong> (elle perd juste le statut de QG).';
+  if(!await askConfirm('Déménager ton <strong style="color:#f5c842">'+dName+'</strong> sur cette Land ?<br><br>Coût : <strong style="color:var(--gold)">'+QG_MOVE_COST_NYX+' NYX</strong>.<br>'+_oldFate,{title:'Déménager mon QG',emoji:'❤️',success:true,okLabel:'Valider mon QG'})) return;
   var {data:existing}=await supabaseClient.from('lands').select('status,owner_id,tenant_id,rented_at').eq('id',landId).maybeSingle();
   var blocked=_hqTargetBlocked(existing);
   if(blocked){showToast(blocked);return;}
