@@ -10623,7 +10623,7 @@ async function showLandDetail(landId){
     if(!_iHaveHq){
       body+='<button onclick="claimHq(\''+landId+'\')" style="margin-top:.6rem;width:100%;padding:.5rem .9rem;border-radius:8px;border:1.5px solid #f5c842;background:rgba(245,200,66,.1);color:#f5c842;font-weight:700;font-size:.8rem;cursor:pointer">❤️ En faire mon QG</button>';
     } else {
-      body+='<button onclick="moveHq(\''+landId+'\')" style="margin-top:.6rem;width:100%;padding:.5rem .9rem;border-radius:8px;border:1.5px solid #f5c842;background:rgba(245,200,66,.06);color:#f5c842;font-weight:700;font-size:.78rem;cursor:pointer">❤️ Déménager mon QG ici (<span style="color:var(--green)">'+QG_MOVE_COST_NYX+' NYX</span>)</button>';
+      body+='<button onclick="moveHq(\''+landId+'\')" style="margin-top:.6rem;width:100%;padding:.5rem .9rem;border-radius:8px;border:1.5px solid #f5c842;background:rgba(245,200,66,.06);color:#f5c842;font-weight:700;font-size:.78rem;cursor:pointer">❤️ Déménager mon QG <span style="color:var(--green)">('+QG_MOVE_COST_NYX+' NYX)</span></button>';
     }
   }
   if(_isHq){
