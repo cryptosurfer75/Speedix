@@ -10623,7 +10623,7 @@ async function showLandDetail(landId){
     if(!_iHaveHq){
       body+='<button onclick="claimHq(\''+landId+'\')" style="margin-top:.6rem;width:100%;padding:.5rem .9rem;border-radius:8px;border:1.5px solid #f5c842;background:rgba(245,200,66,.1);color:#f5c842;font-weight:700;font-size:.8rem;cursor:pointer">❤️ En faire mon QG</button>';
     } else {
-      body+='<button onclick="moveHq(\''+landId+'\')" style="margin-top:.6rem;width:100%;padding:.5rem .9rem;border-radius:8px;border:1.5px solid #f5c842;background:rgba(245,200,66,.06);color:#f5c842;font-weight:700;font-size:.78rem;cursor:pointer">❤️ Déménager mon QG ici ('+QG_MOVE_COST_NYX+' NYX)</button>';
+      body+='<button onclick="moveHq(\''+landId+'\')" style="margin-top:.6rem;width:100%;padding:.5rem .9rem;border-radius:8px;border:1.5px solid #f5c842;background:rgba(245,200,66,.06);color:#f5c842;font-weight:700;font-size:.78rem;cursor:pointer">❤️ Déménager mon QG ici (<span style="color:var(--green)">'+QG_MOVE_COST_NYX+' NYX</span>)</button>';
     }
   }
   if(_isHq){
@@ -10794,7 +10794,7 @@ async function moveHq(landId){
   var _oldFate=oldWasGift
     ? '<strong style="color:var(--red)">⚠️ Ta Land de départ (offerte) sera abandonnée</strong> et repartira dans le jeu. Tu ne la récupères pas.'
     : 'Ton ancienne Land <strong>reste ta propriété</strong> (elle perd juste le statut de QG).';
-  if(!await askConfirm('Déménager ton <strong style="color:#f5c842">'+dName+'</strong> sur cette Land ?<br><br>Coût : <strong style="color:var(--gold)">'+QG_MOVE_COST_NYX+' NYX</strong>.<br>'+_oldFate,{title:'Déménager mon QG',emoji:'❤️',success:true,okLabel:'Valider mon QG'})) return;
+  if(!await askConfirm('Déménager ton <strong style="color:#f5c842">'+dName+'</strong> sur cette Land ?<br><br>Coût : <strong style="color:var(--green)">'+QG_MOVE_COST_NYX+' NYX</strong>.<br>'+_oldFate,{title:'Déménager mon QG',emoji:'❤️',success:true,okLabel:'Valider mon QG'})) return;
   var {data:existing}=await supabaseClient.from('lands').select('status,owner_id,tenant_id,rented_at').eq('id',landId).maybeSingle();
   var blocked=_hqTargetBlocked(existing);
   if(blocked){showToast(blocked);return;}
