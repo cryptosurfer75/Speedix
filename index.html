@@ -15150,40 +15150,17 @@ async function adminCheckStarterPromotion(playerId, playerName){
 }
 
 async function adminCheckReferralMilestones(playerId, playerName){
-  // Charger le parrain du joueur
-  var {data:player}=await supabaseClient.from('players').select('referred_by').eq('id',playerId).single();
-  if(!player||!player.referred_by) return;
-  var parrainId=player.referred_by;
-  // Charger le total de points du joueur — TOUTES périodes confondues (pas
-  // seulement le mois courant), pour que les paliers se valident même si le
-  // filleul a accumulé ses points sur des périodes passées (cas du rattachement
-  // manuel d'un RP déjà actif depuis plusieurs mois).
-  var {data:runs}=await supabaseClient.from('runs').select('points').eq('player_id',playerId);
-  var totalPts=(runs||[]).reduce(function(s,r){return s+(r.points||0);},0);
-  var nbRuns=(runs||[]).length;
-  // Étape 1 : a déjà couru au moins une fois (≥1 course, pas exactement 1 :
-  // un filleul rattaché à la main peut déjà avoir plusieurs courses).
-  if(nbRuns>=1){
-    var {data:ex1}=await supabaseClient.from('referral_rewards').select('id')
-      .eq('parrain_id',parrainId).eq('filleul_id',playerId).eq('reward_type','first_run').maybeSingle();
-    if(!ex1){
-      await supabaseClient.from('referral_rewards').insert({
-        parrain_id:parrainId,filleul_id:playerId,reward_type:'first_run',rpc_amount:2000,nyx_amount:5,notified:false
-      });
-      await walletCreditOther(parrainId,2000,5,'Parrainage first_run: '+playerName);
-    }
-  }
-  // Étape 2 : dépasse 1000 pts
-  if(totalPts>=1000){
-    var {data:ex2}=await supabaseClient.from('referral_rewards').select('id')
-      .eq('parrain_id',parrainId).eq('filleul_id',playerId).eq('reward_type','1000_pts').maybeSingle();
-    if(!ex2){
-      await supabaseClient.from('referral_rewards').insert({
-        parrain_id:parrainId,filleul_id:playerId,reward_type:'1000_pts',rpc_amount:0,nyx_amount:5,notified:false
-      });
-      await walletCreditOther(parrainId,0,5,'Parrainage 1000_pts: '+playerName);
-    }
-  }
+  // SOURCE UNIQUE : on délègue à la recette base apply_referral_milestones, qui
+  // évalue les 4 paliers (first_run, 1000_pts, 3_periods via active_periods,
+  // same_team) de façon idempotente et crédite le parrain (credit_player).
+  // On NE recode PLUS 2 paliers sur 4 ici — cf doctrine anti-dérive (CLAUDE.md
+  // pt 4 + REGISTRE-REGLES-METIER.md). La voie course/team (checkReferralReward)
+  // et le trigger DB sur referred_by utilisent exactement la même règle.
+  try{
+    var {data:player}=await supabaseClient.from('players').select('referred_by').eq('id',playerId).single();
+    if(!player||!player.referred_by) return;
+    await supabaseClient.rpc('apply_referral_milestones',{p_parrain_id:player.referred_by,p_filleul_id:playerId});
+  }catch(e){ console.warn('adminCheckReferralMilestones (rpc) fail', e); }
 }
 
 async function adminLoadHistory(){
