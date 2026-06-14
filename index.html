@@ -28229,16 +28229,16 @@ function paintStart(){
   $('t-rulestitle').textContent = lang==='fr' ? 'RÈGLES DU JEU' : 'GAME RULES';
   const max = CONFIG.ladder[CONFIG.ladder.length-1];
   $('t-rules').innerHTML = lang==='fr'
-    ? `⏱ <b>${CONFIG.roundSeconds}s</b> au total<br>
+    ? `⏱ <b>${CONFIG.roundSeconds} sec</b> au total<br>
        ✅ Monte à chaque bonne réponse<br>
-       \u{1FA9C} <b>${CONFIG.questionsPerRound}</b> questions max pour gravir l'échelle<br>
-       \u{1F3E6} <b>Bank</b> pour sécuriser tes gains<br>
-       ❌ Mauvaise réponse retombe à zéro`
-    : `⏱ <b>${CONFIG.roundSeconds}s</b> total<br>
+       ❌ Mauvaise réponse retombe à zéro<br>
+       \u{1F3E6} Click sur <b>Bank</b> pour encaisser tes gains<br>
+       \u{1FA9C} <b>${CONFIG.questionsPerRound}</b> questions max pour gravir l'échelle`
+    : `⏱ <b>${CONFIG.roundSeconds} sec</b> total<br>
        ✅ Climbs with every correct answer<br>
-       \u{1FA9C} <b>${CONFIG.questionsPerRound}</b> questions max to climb the ladder<br>
-       \u{1F3E6} <b>Bank</b> to secure your winnings<br>
-       ❌ Wrong answer drops back to zero`;
+       ❌ Wrong answer drops back to zero<br>
+       \u{1F3E6} Click <b>Bank</b> to cash in your winnings<br>
+       \u{1FA9C} <b>${CONFIG.questionsPerRound}</b> questions max to climb the ladder`;
   $('t-play').textContent = T[lang].play;
   $('t-best').textContent = '';
   refreshAvail();
