@@ -17117,13 +17117,13 @@ async function checkReferralReward(rewardType){
 // Labels des types de récompenses
 var REWARD_LABELS={
   'first_run':'a fait sa première course',
-  '3_periods':'a atteint 3 périodes consécutives',
+  '3_periods':'a atteint 3 périodes complètes',
   '1000_pts':'a dépassé 1 000 points',
   'same_team':'a rejoint ta team'
 };
 var REWARD_LABELS_EN={
   'first_run':'completed their first run',
-  '3_periods':'reached 3 consecutive periods',
+  '3_periods':'reached 3 complete periods',
   '1000_pts':'passed 1,000 points',
   'same_team':'joined your team'
 };
@@ -19136,24 +19136,16 @@ async function saveCapturedRun(captured, runName){
     if(_refTotalPts>=1000 && typeof checkReferralReward==='function') checkReferralReward('1000_pts');
   }catch(e){console.warn('referral 1000_pts trigger fail',e);}
 
-  // 6c. Étape 3 du parrainage — filleul a couru sur au moins 3 périodes
-  //     consécutives (≥1 course par période) → parrain +5 NYX. Les runs
-  //     stockent period=0 pour la période courante et period=N (numéro réel)
-  //     pour les périodes archivées (cf. rotation §11). On normalise en
-  //     remplaçant 0 par le numéro courant pour comparer.
+  // 6c. Étape 3 du parrainage — le filleul a 3 PÉRIODES COMPLÈTES à son actif
+  //     → parrain +5 NYX. SOURCE UNIQUE = le compteur officiel
+  //     players.active_periods (le MÊME que la Player Card et le calcul de
+  //     grade), incrémenté uniquement à la rotation de fin de mois pour les RP
+  //     inscrits avant le 1er ET ayant fait ≥40 pts. On NE recompte PLUS les
+  //     runs.period : la période en cours (period=0) et les imports Strava
+  //     gonflaient faussement le total (3 marqueurs ≠ 3 périodes bouclées).
   try{
-    var {data:_myPeriodsRef}=await supabaseClient.from('runs').select('period').eq('player_id',currentUser.id);
-    if(_myPeriodsRef && _myPeriodsRef.length){
-      var _curP=(typeof _periodData!=='undefined' && _periodData && _periodData.period)||0;
-      var _pSet=new Set();
-      _myPeriodsRef.forEach(function(r){ _pSet.add((r.period===0||r.period==null)?_curP:r.period); });
-      var _pArr=Array.from(_pSet).filter(function(v){return typeof v==='number'&&v>0;}).sort(function(a,b){return a-b;});
-      var _has3consec=false;
-      for(var _i=0;_i<=_pArr.length-3;_i++){
-        if(_pArr[_i+1]===_pArr[_i]+1 && _pArr[_i+2]===_pArr[_i]+2){ _has3consec=true; break; }
-      }
-      if(_has3consec && typeof checkReferralReward==='function') checkReferralReward('3_periods');
-    }
+    var {data:_meAP}=await supabaseClient.from('players').select('active_periods').eq('id',currentUser.id).single();
+    if(_meAP && (_meAP.active_periods||0)>=3 && typeof checkReferralReward==='function') checkReferralReward('3_periods');
   }catch(e){console.warn('referral 3_periods trigger fail',e);}
 
   // 7. Recalcul grade : la course apporte des points qui peuvent déclencher
