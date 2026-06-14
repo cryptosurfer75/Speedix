@@ -15154,12 +15154,16 @@ async function adminCheckReferralMilestones(playerId, playerName){
   var {data:player}=await supabaseClient.from('players').select('referred_by').eq('id',playerId).single();
   if(!player||!player.referred_by) return;
   var parrainId=player.referred_by;
-  // Charger le total de points du joueur
-  var {data:runs}=await supabaseClient.from('runs').select('points').eq('player_id',playerId).eq('period',0);
+  // Charger le total de points du joueur — TOUTES périodes confondues (pas
+  // seulement le mois courant), pour que les paliers se valident même si le
+  // filleul a accumulé ses points sur des périodes passées (cas du rattachement
+  // manuel d'un RP déjà actif depuis plusieurs mois).
+  var {data:runs}=await supabaseClient.from('runs').select('points').eq('player_id',playerId);
   var totalPts=(runs||[]).reduce(function(s,r){return s+(r.points||0);},0);
   var nbRuns=(runs||[]).length;
-  // Étape 1 : première course
-  if(nbRuns===1){
+  // Étape 1 : a déjà couru au moins une fois (≥1 course, pas exactement 1 :
+  // un filleul rattaché à la main peut déjà avoir plusieurs courses).
+  if(nbRuns>=1){
     var {data:ex1}=await supabaseClient.from('referral_rewards').select('id')
       .eq('parrain_id',parrainId).eq('filleul_id',playerId).eq('reward_type','first_run').maybeSingle();
     if(!ex1){
@@ -19121,11 +19125,13 @@ async function saveCapturedRun(captured, runName){
     if(typeof checkReferralReward==='function') checkReferralReward('first_run');
   }catch(e){console.warn('referral first_run trigger fail',e);}
 
-  // 6b. Étape 2 du parrainage — filleul franchit 1 000 pts cumulés sur la
-  //     période courante → parrain +5 NYX. On somme côté client : un seul
+  // 6b. Étape 2 du parrainage — filleul franchit 1 000 pts cumulés TOUTES
+  //     périodes confondues → parrain +5 NYX. On somme côté client : un seul
   //     joueur, donc le plafond 1000 lignes PostgREST ne pose pas problème.
+  //     (On ne filtre PLUS sur period=0 : un filleul lent qui dépasse 1 000 pts
+  //     sur plusieurs mois doit aussi valider l'étape.)
   try{
-    var {data:_myRunsRef}=await supabaseClient.from('runs').select('points').eq('player_id',currentUser.id).eq('period',0);
+    var {data:_myRunsRef}=await supabaseClient.from('runs').select('points').eq('player_id',currentUser.id);
     var _refTotalPts=(_myRunsRef||[]).reduce(function(s,r){return s+(r.points||0);},0);
     if(_refTotalPts>=1000 && typeof checkReferralReward==='function') checkReferralReward('1000_pts');
   }catch(e){console.warn('referral 1000_pts trigger fail',e);}
