@@ -20699,24 +20699,54 @@ async function ensureOpenTeamExists(){
   }
 }
 
-// Vérifier si on doit créer une nouvelle Team Open
-// Règle : créer la suivante seulement si TOUTES les teams open ont >= 12 RP
+// Vérifier si on doit créer une nouvelle Team Open.
+// Règle : créer la suivante seulement si TOUTES les teams open ont >= 12 RP.
+// Ménage préalable (B) : la création d'une Open est à sens unique (une Open ne
+// se supprime jamais toute seule, contrairement aux teams privées). Après des
+// vagues de départs, on peut donc se retrouver avec des Open VIDES en trop
+// (ex. Open 3 vide alors qu'Open 2 est redescendue à 7). On supprime ces Open
+// vides en surplus pour ne garder qu'UNE seule team d'accueil disponible.
 async function checkOpenTeamCreation(){
   var {data:openTeams}=await supabaseClient
     .from('teams').select('id,name,team_members(count)')
     .eq('invite_code',OPEN_TEAM_MARKER).order('name');
   if(!openTeams||!openTeams.length) return;
 
-  var allAboveThreshold=true;
-  openTeams.forEach(function(t){
+  var list=openTeams.map(function(t){
     var nb=(t.team_members&&t.team_members[0])?t.team_members[0].count:0;
-    if(nb<OPEN_TEAM_THRESHOLD) allAboveThreshold=false;
+    return {id:t.id, name:t.name, nb:nb};
   });
 
+  // ── Ménage : supprimer les Open VIDES en surplus ──────────────────────────
+  // Une Open « disponible » = avec de la place (nb < TEAM_MAX_SLOTS). On ne
+  // touche JAMAIS à une team qui a des membres. Si une team déjà entamée
+  // (nb>0) reste disponible, toutes les Open vides sont redondantes → on les
+  // supprime ; sinon on garde une seule team vide comme point d'accueil.
+  var available=list.filter(function(t){return t.nb<TEAM_MAX_SLOTS;});
+  if(available.length>1){
+    var hasPartial=available.some(function(t){return t.nb>0;});
+    var emptyAvail=available.filter(function(t){return t.nb===0;});
+    var toDelete=emptyAvail.slice(hasPartial?0:1);
+    for(var i=0;i<toDelete.length;i++){
+      await supabaseClient.from('teams').delete().eq('id',toDelete[i].id);
+    }
+    if(toDelete.length){
+      var del={}; toDelete.forEach(function(t){del[t.id]=1;});
+      list=list.filter(function(t){return !del[t.id];});
+    }
+  }
+
+  // ── Création : seulement si TOUTES les Open restantes ont >= 12 RP ─────────
+  var allAboveThreshold=list.every(function(t){return t.nb>=OPEN_TEAM_THRESHOLD;});
   if(allAboveThreshold){
-    // Toutes >= 12 → créer la suivante
-    var nextNum=openTeams.length+1;
-    await createOpenTeam(nextNum);
+    // Numéro = max des numéros existants + 1 (robuste aux trous laissés par le
+    // ménage : ne réutilise pas un numéro encore présent).
+    var maxNum=0;
+    list.forEach(function(t){
+      var m=/(\d+)\s*$/.exec(t.name||'');
+      if(m){var n=parseInt(m[1],10); if(n>maxNum) maxNum=n;}
+    });
+    await createOpenTeam(maxNum+1);
   }
 }
 
@@ -22889,6 +22919,10 @@ async function loadTeamMembers(teamId, teamName){
     ?' · <span style="color:'+(_bonusPct>0?'var(--green)':'var(--muted2)')+';font-weight:700">+'+_bonusPct+'%</span>'
     :'';
   if(sub) sub.innerHTML=data.length+' membre'+(data.length>1?'s':'')+' · '+totalPts.toLocaleString(SPEEDIX_LANG)+' pts total'+_bonusHtml;
+  // Affichage : on classe les RP sur leurs POINTS RÉELS (la colonne affichée),
+  // pas sur _ptsForTeam (qui sert UNIQUEMENT au calcul du bonus ci-dessus et vaut
+  // 0 pour un RP arrivé en cours de période → ordre incohérent sinon).
+  data.sort(function(a,b){return (b._pts||0)-(a._pts||0);});
   tbody.innerHTML=data.map(function(m,i){
     var p=m.players||{};
     var isCap=m.role==='capitaine';
