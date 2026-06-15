@@ -28631,6 +28631,11 @@ function endRound(reason){
   const tr=T[lang];
   const total=S.bank;
   recordWinnings(total, S.bankNyx, reason==='done', S.asked, S.good);   // 'done' = échelle complète parfaite
+  // Filet de sécurité série : la journée est validée dès le LANCEMENT (startRound),
+  // mais si cet appel avait échoué (coupure réseau), on revalide ici en fin de partie.
+  // La fonction base est idempotente (même jour → diff=0 → ne change rien) : aucune
+  // double-incrémentation. Une partie tentée et PERDUE compte donc autant qu'une gagnée.
+  bumpStreak();
 
   if(reason==='done'){              // série PARFAITE (échelle complète sans encaisser) → pop-up jackpot
     $('wp-title').textContent = tr.winTitle;
