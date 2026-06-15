@@ -13632,7 +13632,7 @@ async function renderSocialFeed(){
   //  · friends → fenêtre 7 jours, période en cours, filtre player_id côté serveur
   //  · all     → fenêtre 7 jours, période en cours, jusqu'à 500 courses
   var query=supabaseClient.from('runs')
-    .select('id,player_id,points,distance,time,elevation,run_date,description,photo,period,polyline')
+    .select('id,player_id,points,distance,time,elevation,run_date,description,photo,period,polyline,featured_at')
     .order('run_date',{ascending:false});
   if(_feedMode==='me'){
     query=query.eq('player_id',currentUser.id).limit(1000);
@@ -13645,7 +13645,27 @@ async function renderSocialFeed(){
     }
   }
   var {data:runs}=await query;
-  if(!runs||!runs.length){
+  runs=runs||[];
+  // ── Courses « À LA UNE » (épinglées par l'admin) ──
+  // Récupérées À PART, sans le filtre période 0 / fenêtre 7 jours, pour qu'elles
+  // restent en haut du fil même anciennes (ou d'une autre période). Vitrine
+  // pour les nouveaux RP : on y épingle quelques belles courses avec photos
+  // pour montrer ce qu'on peut publier dans le Feed. Affichées dans
+  // « Tous les RP » et « Mes amis », jamais sur le mur perso « Moi ».
+  if(_feedMode!=='me'){
+    var {data:featRuns}=await supabaseClient.from('runs')
+      .select('id,player_id,points,distance,time,elevation,run_date,description,photo,period,polyline,featured_at')
+      .not('featured_at','is',null)
+      .order('featured_at',{ascending:false})
+      .limit(10);
+    if(featRuns&&featRuns.length){
+      var _featIds={};
+      featRuns.forEach(function(f){_featIds[f.id]=true;});
+      // épinglées d'abord, puis le fil normal débarrassé des doublons
+      runs=featRuns.concat(runs.filter(function(r){return !_featIds[r.id];}));
+    }
+  }
+  if(!runs.length){
     var emptyMsg;
     if(_feedMode==='me'){
       emptyMsg='Tu n\'as pas encore de course publiée sur cette période.<br>Synchronise Strava pour la voir apparaître ici !';
@@ -13810,8 +13830,17 @@ async function renderSocialFeed(){
       return '<div style="display:flex;align-items:center;gap:.4rem;padding:.3rem 0;border-top:1px solid rgba(30,37,53,.5)"><span style="font-weight:700;font-size:.7rem;color:var(--text);flex-shrink:0">'+escapeHtml(cp.username)+'</span><span style="font-size:.7rem;color:var(--muted2);flex:1">'+escapeHtml(c.content)+'</span>'+delBtn+'</div>';
     }).join('');
 
-    return '<div class="block" style="border-color:rgba(74,144,255,.32);box-shadow:0 2px 10px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.02)">'
+    // À la une : bandeau visible par tous + bouton admin épingler/retirer.
+    var isFeatured=!!r.featured_at;
+    var featuredRibbon=isFeatured
+      ?'<div style="display:flex;align-items:center;gap:.35rem;margin:0 0 .55rem;padding:.3rem .55rem;border-radius:7px;background:linear-gradient(90deg,rgba(245,200,66,.18),rgba(245,200,66,.03));border:1px solid rgba(245,200,66,.35)"><span style="font-size:.72rem">📌</span><span style="font-size:.62rem;font-weight:800;letter-spacing:.9px;color:var(--gold)">'+(SPEEDIX_LANG==='en'?'FEATURED':'À LA UNE')+'</span></div>'
+      :'';
+    var pinBtn=isAdmin()
+      ?'<button onclick="togglePinRun(\''+r.id+'\','+(isFeatured?'false':'true')+')" style="display:flex;align-items:center;gap:.2rem;padding:.25rem .5rem;border-radius:6px;border:1px solid '+(isFeatured?'rgba(245,200,66,.5)':'rgba(245,200,66,.22)')+';background:'+(isFeatured?'rgba(245,200,66,.14)':'transparent')+';color:var(--gold);font-size:.7rem;font-weight:700;cursor:pointer" title="'+(isFeatured?'Retirer de la une':'Mettre à la une')+'">📌 '+(isFeatured?(SPEEDIX_LANG==='en'?'Unpin':'Retirer'):(SPEEDIX_LANG==='en'?'Feature':'À la une'))+'</button>'
+      :'';
+    return '<div class="block" style="border-color:'+(isFeatured?'rgba(245,200,66,.55)':'rgba(74,144,255,.32)')+';box-shadow:0 2px 10px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.02)'+(isFeatured?',0 0 14px rgba(245,200,66,.12)':'')+'">'
       +'<div style="padding:.75rem .85rem">'
+      +featuredRibbon
       // Header: avatar + nom + date
       +'<div style="display:flex;align-items:center;gap:.6rem;margin-bottom:.5rem">'
       +avatarHtml
@@ -13834,11 +13863,12 @@ async function renderSocialFeed(){
       +''
       +photoHtml
       // Réactions
-      +'<div style="display:flex;gap:.4rem;margin-top:.4rem">'
+      +'<div style="display:flex;gap:.4rem;margin-top:.4rem;flex-wrap:wrap">'
       +rBtn('like','👍',reacts.like)
       +rBtn('heart','❤️',reacts.heart)
       +rBtn('flash','⚡',reacts.flash)
       +uploadBtn
+      +pinBtn
       +'<button onclick="shareRunCard(\''+r.id+'\')" style="margin-left:auto;display:flex;align-items:center;gap:.25rem;padding:.25rem .5rem;border-radius:6px;border:1px solid rgba(74,144,255,.15);background:transparent;color:var(--muted2);font-size:.75rem;cursor:pointer">📤 Partager</button>'
       +'</div>'
       // Commentaires
@@ -13879,6 +13909,25 @@ function removeRunDesc(runId){
   }).then(function(){
     showToast('Message supprimé');
     renderSocialFeed();
+  });
+}
+
+// Épingler / désépingler une course « À LA UNE » (admin seul).
+// On pose featured_at = maintenant (épinglé) ou null (retiré). L'ordre d'affichage
+// suit featured_at décroissant → la dernière course mise à la une passe tout en haut.
+function togglePinRun(runId,pin){
+  if(!currentUser||!isAdmin()) return;
+  window.fetch(supabaseUrl+'/rest/v1/runs?id=eq.'+encodeURIComponent(runId),{
+    method:'PATCH',
+    headers:{'apikey':supabaseKey,'Authorization':'Bearer '+supabaseKey,'Content-Type':'application/json'},
+    body:JSON.stringify({featured_at: pin ? new Date().toISOString() : null})
+  }).then(function(resp){
+    if(resp.ok){
+      showToast(pin?'📌 Course mise à la une':'Course retirée de la une');
+      renderSocialFeed();
+    } else {
+      showToast('⚠️ Action impossible');
+    }
   });
 }
 
