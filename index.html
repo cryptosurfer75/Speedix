@@ -28284,18 +28284,27 @@ function dayStartMs(){ const d=nowDate(); d.setHours(0,0,0,0); return d.getTime(
 // jour et cassait les séries à tort (bug réparé le 2026-06-09).
 function crDayStr(d){ const x=d||nowDate(); return x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0'); }
 function crDayMs(str){ if(!str) return 0; const a=String(str).slice(0,10).split('-'); return new Date(+a[0],+a[1]-1,+a[2]).getTime(); } // minuit LOCAL de la date stockée
-function bumpStreak(){                              // appelé au lancement d'une partie
-  const u=CU(), today=dayStartMs();
-  const last = crDayMs(u.cashrun_last_day);
-  const diff = last ? Math.round((today-last)/86400000) : null;
-  let st = u.cashrun_streak||0;
-  if(diff===0){}                                   // déjà joué aujourd'hui : rien
-  else if(diff===1) st++;                           // hier → on continue
-  else st=1;                                        // 1ère partie ou jour sauté → repart à 1
-  const best=Math.max(u.cashrun_best_streak||0, st);
-  const lastDayIso=crDayStr(nowDate());             // date LOCALE (pas UTC)
-  u.cashrun_streak=st; u.cashrun_best_streak=best; u.cashrun_last_day=lastDayIso;
-  crPatch({cashrun_streak:st, cashrun_best_streak:best, cashrun_last_day:lastDayIso});
+// Série de jours consécutifs — SOURCE UNIQUE = fonction Postgres `cashrun_bump_streak`.
+// Doctrine anti-dérive (CLAUDE.md §4) : la série est une DONNÉE D'ÉTAT → elle se décide
+// EN BASE, jamais en mémoire client. On ne calcule donc plus rien ici.
+// Pourquoi : avant, ce calcul faisait un read-modify-write sur currentUser. Or les colonnes
+// cashrun_* ne sont PAS chargées au login (seulement à l'ouverture du jeu via loadCashrunData) ;
+// au moindre accroc (mémoire perdue, lecture ratée), best_streak retombait à 0 en mémoire et
+// on réécrivait best=1 EN BASE → historique détruit pour de bon (bugs Laura/Nakamoto, juin 2026).
+// Désormais : la base lit/écrit de façon ATOMIQUE (verrou ligne) sur la vraie valeur. En cas
+// d'échec réseau on ne touche à RIEN (la série reste figée, jamais écrasée). On envoie la
+// date LOCALE du joueur (pas UTC) pour garder le bon découpage de journée.
+async function bumpStreak(){                        // appelé au lancement d'une partie
+  const u=CU(); if(!u.id) return;
+  try{
+    const {data,error}=await supabaseClient.rpc('cashrun_bump_streak',{p_today:crDayStr(nowDate())});
+    if(error) throw error;
+    if(data){
+      u.cashrun_streak=data.streak;
+      u.cashrun_best_streak=data.best_streak;
+      u.cashrun_last_day=data.last_day;
+    }
+  }catch(e){ console.warn('cashrun_bump_streak fail — série laissée intacte',e); }
 }
 function currentStreak(){                           // série affichée (cassée si dernier jour > hier)
   const u=CU(); if(!u.cashrun_last_day) return 0;
