@@ -1079,6 +1079,12 @@ tr.skin-odyssea{
   #cr-app .tile.gold .v{color:var(--gold)} #cr-app .tile.cyan .v{color:var(--cyan)} #cr-app .tile.green .v{color:var(--green)}
   #cr-app .tile.orange .v{color:#ff8a3d} #cr-app .tile.blue .v{color:#5aa0ff} #cr-app .tile.violet .v{color:#b07bff}
   #cr-app .tile.lvl .v{font-family:'Bebas Neue';font-size:20px;letter-spacing:1px;color:var(--green)}
+  #cr-app .podiumrow{margin-top:11px;padding-top:10px;border-top:1px solid rgba(74,144,255,.3)}
+  #cr-app .podtitle{font-family:'Bebas Neue';font-size:13px;letter-spacing:1.5px;text-align:center;color:var(--muted);margin-bottom:8px}
+  #cr-app .podmedals{display:flex;justify-content:center;gap:22px}
+  #cr-app .podm{display:flex;align-items:center;gap:6px}
+  #cr-app .pmico{font-size:22px;line-height:1}
+  #cr-app .pmn{font-family:'Space Mono';font-weight:700;font-size:16px;color:var(--text)}
   #cr-app /* classement SANS cadre (gagne de la place) — le cadre bleu reste uniquement sur les stats */
   /* marge négative : on tire les bandeaux RP vers les bords (au-delà de la marge 14px de #cr-app)
      pour ne laisser qu'un filet à gauche/droite → plus de largeur pour le pseudo = plus d'air sur la ligne */
@@ -4082,6 +4088,15 @@ function askConfirm(message, opts){
     <div class="statcard">
       <div class="stattitle" id="st-stattitle">STATISTIQUES</div>
       <div class="statgrid" id="st-grid"></div>
+      <!-- Podium mensuel Cash Run : top 3 figé chaque fin de mois (médailles permanentes) -->
+      <div class="podiumrow">
+        <div class="podtitle" id="st-podtitle">PODIUM MENSUEL</div>
+        <div class="podmedals">
+          <div class="podm" id="st-pod-gold"   title="1res places (mois)"><span class="pmico">🥇</span><span class="pmn" id="st-gold">×0</span></div>
+          <div class="podm" id="st-pod-silver" title="2es places (mois)"><span class="pmico">🥈</span><span class="pmn" id="st-silver">×0</span></div>
+          <div class="podm" id="st-pod-bronze" title="3es places (mois)"><span class="pmico">🥉</span><span class="pmn" id="st-bronze">×0</span></div>
+        </div>
+      </div>
     </div>
 
     <!-- Classement (mensuel / général) -->
@@ -28366,7 +28381,7 @@ async function loadCashrunData(){
   if(!CU().id) return;
   try{
     const {data}=await supabaseClient.from('players')
-      .select('cashrun_last_played_at,cashrun_total_rpc,cashrun_month_rpc,cashrun_month,cashrun_jackpots,cashrun_month_jackpots,cashrun_games,cashrun_q_asked,cashrun_q_good,cashrun_streak,cashrun_best_streak,cashrun_last_day')
+      .select('cashrun_last_played_at,cashrun_total_rpc,cashrun_month_rpc,cashrun_month,cashrun_jackpots,cashrun_month_jackpots,cashrun_games,cashrun_q_asked,cashrun_q_good,cashrun_streak,cashrun_best_streak,cashrun_last_day,cashrun_gold,cashrun_silver,cashrun_bronze')
       .eq('id',CU().id).maybeSingle();
     if(data) Object.assign(CU(), data);
   }catch(e){ console.warn('loadCashrunData fail',e); }
@@ -28427,7 +28442,8 @@ function getStats(){ const u=CU();
     totalNyx:u.cashrun_jackpots||0,                                   // case 💎 Jackpots = nb d'échelles complètes
     lastDay:u.cashrun_last_day?new Date(u.cashrun_last_day).setHours(0,0,0,0):0,
     streak:u.cashrun_streak||0,bestStreak:u.cashrun_best_streak||0,fullLadders:u.cashrun_jackpots||0,
-    gamesPlayed:u.cashrun_games||0,qAsked:u.cashrun_q_asked||0,qGood:u.cashrun_q_good||0}; }
+    gamesPlayed:u.cashrun_games||0,qAsked:u.cashrun_q_asked||0,qGood:u.cashrun_q_good||0,
+    gold:u.cashrun_gold||0,silver:u.cashrun_silver||0,bronze:u.cashrun_bronze||0}; }
 function dayStartMs(){ const d=nowDate(); d.setHours(0,0,0,0); return d.getTime(); }
 // Date du jour en LOCAL (YYYY-MM-DD). NE JAMAIS utiliser toISOString pour ça : il donne la date
 // UTC → pour un fuseau positif (Paris), minuit local = la veille en UTC → la date partait de -1
@@ -28845,6 +28861,11 @@ async function paintStats(){
     tile('🏆 '+fmt(s.bestStreak),'', fr?'Meilleure série':'Best streak','violet'),
     tile('🔥 '+cs,'', fr?'Série en cours':'Current streak','orange'),
   ].join('');
+  // Podium mensuel (médailles permanentes du top 3 de chaque mois écoulé)
+  $('st-podtitle').textContent = fr?'PODIUM MENSUEL':'MONTHLY PODIUM';
+  $('st-gold').textContent   = '×'+fmt(s.gold);
+  $('st-silver').textContent = '×'+fmt(s.silver);
+  $('st-bronze').textContent = '×'+fmt(s.bronze);
   const general = lbMode==='general';
   $('st-period').textContent = general
     ? (fr?'CLASSEMENT GÉNÉRAL':'OVERALL RANKING')
