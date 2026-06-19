@@ -4245,7 +4245,7 @@ const I18N = {
     'league.badge.debt.label'   : 'DETTE',
     'league.badge.inf'          : 'En infirmerie',
     'league.badge.paid'         : 'Place payée — gain RPC',
-    'league.badge.quizzchamp'   : 'Champion du quizz',
+    'league.badge.quizzchamp'   : 'Champion Cash Run du mois',
     'league.sep.up'             : '↑ MONTÉE',
     'league.sep.down'           : '↓ DESCENTE',
     'league.sep.upperFallback'  : 'League Supérieure',
@@ -5025,7 +5025,7 @@ const I18N = {
     'league.badge.debt.label'   : 'DEBT',
     'league.badge.inf'          : 'In infirmary',
     'league.badge.paid'         : 'Paid place — RPC reward',
-    'league.badge.quizzchamp'   : 'Quiz champion',
+    'league.badge.quizzchamp'   : 'Cash Run champion of the month',
     'league.sep.up'             : '↑ PROMOTION',
     'league.sep.down'           : '↓ RELEGATION',
     'league.sep.upperFallback'  : 'Upper League',
@@ -6609,9 +6609,31 @@ async function loadPlayersFromSupabase(){
   renderLeaguePP();
   renderLeaguePanel();
   if(typeof updateLeaguePickerLabel === 'function') updateLeaguePickerLabel();
-  // Champion du quizz (👑) : recalcul async → re-render du panel si le #1 a changé.
-  if(typeof loadQuizzChampion === 'function') loadQuizzChampion();
+  // Champion Cash Run du mois (👑) : recalcul async → re-render du panel si le #1 a changé.
+  loadCashrunChampion();
 
+}
+
+// Détermine le 1er du classement Cash Run DU MOIS (cashrun_month_rpc le plus haut
+// sur le mois en cours) et pose une couronne 👑 sur sa ligne de classement League.
+// Async : si le champion a changé depuis le dernier rendu, on redessine le panel.
+async function loadCashrunChampion(){
+  try {
+    var d=new Date();
+    var mk=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'); // ex "2026-06" (= crMonthKey du module Cash Run)
+    var { data } = await supabaseClient
+      .from('players')
+      .select('id,cashrun_month_rpc')
+      .eq('cashrun_month', mk)
+      .gt('cashrun_month_rpc', 0)
+      .order('cashrun_month_rpc', { ascending:false })
+      .limit(1);
+    var champ=(data && data.length)?data[0].id:null;
+    if(champ !== window.__crMonthChampUuid){
+      window.__crMonthChampUuid = champ;
+      if(typeof renderLeaguePanel === 'function') renderLeaguePanel();
+    }
+  } catch(e){ console.warn('[cashrun champion] failed', e); }
 }
 
 
@@ -7807,8 +7829,6 @@ function renderDashboard(){
       var _premActive=p.premium&&(!p.premiumUntil||new Date(p.premiumUntil)>new Date());
       _pcPrem.style.display=_premActive?'block':'none';
     }
-    // Bouton Quizz : 👑 si ce RP est le champion du quizz, sinon ?!
-    if(typeof updatePcQuizzCrown==='function') updatePcQuizzCrown();
     var flagEl=document.getElementById('pc-flag');
     if(flagEl){
       var _f=natFlag(p.nat);
@@ -8726,8 +8746,12 @@ function renderLeaguePanel(){
     var parrainBadge=p.parrain
       ?'<span title="'+(p.parrain==='A'?t('sponsor.rank.A'):p.parrain==='G'?t('sponsor.rank.G'):p.parrain==='E'?t('sponsor.rank.E'):t('sponsor.rank.F'))+'" style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:3px;background:'+parrainColors[p.parrain]+'22;border:1px solid '+parrainColors[p.parrain]+'88;font-family:\'Bebas Neue\',sans-serif;font-size:.65rem;font-weight:700;color:'+parrainColors[p.parrain]+';margin-left:.3rem;flex-shrink:0;line-height:1">'+p.parrain+'</span>'
       :'';
-    // (Couronne champion quizz retirée avec le quizz — 2026-06-08)
-    var crownBadge='';
+    // 👑 Champion Cash Run DU MOIS : le 1er du classement mensuel Cash Run
+    // (cashrun_month_rpc du mois en cours) porte la couronne sur sa ligne.
+    // L'UUID du champion est recalculé en async par loadCashrunChampion().
+    var crownBadge=(window.__crMonthChampUuid && p._uuid===window.__crMonthChampUuid)
+      ?'<span title="'+t('league.badge.quizzchamp')+'" style="margin-left:.3rem;font-size:.85rem;flex-shrink:0;line-height:1">👑</span>'
+      :'';
     // Tendance League = position de référence (photo de minuit, league_ref_rank) − rang actuel.
     // On ne compare QUE si la ligue n'a pas changé depuis la photo (sinon une promotion/relégation
     // en calibrage afficherait une fausse flèche). Pas de mouvement → "=" (comme la barre "ma position").
