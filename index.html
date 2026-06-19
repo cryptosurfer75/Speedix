@@ -3462,33 +3462,6 @@ function askConfirm(message, opts){
       </div>
     </div>
 
-    <!-- Historique rapide des dernières courses ajoutées -->
-    <div class="block" style="margin-top:1rem;border-color:rgba(74,144,255,.3)">
-      <div class="block-header" style="border-color:rgba(74,144,255,.15)">
-        <div class="block-title">📋 Dernières <span class="hl">courses</span> ajoutées</div>
-      </div>
-      <div class="block-body-sm">
-        <div id="admin-runs-history" style="font-size:.75rem;color:var(--muted2)">Chargement…</div>
-      </div>
-    </div>
-
-    <!-- Gestion Période -->
-    <div class="block" style="margin-top:1rem;border-color:rgba(74,144,255,.3)">
-      <div class="block-header" style="border-color:rgba(74,144,255,.15)">
-        <div class="block-title">⏱ Gestion <span class="hl">Période</span></div>
-      </div>
-      <div class="block-body-sm">
-        <div id="admin-period-info" style="font-size:.75rem;color:var(--muted2);margin-bottom:.6rem"></div>
-        <div style="display:flex;gap:.5rem;flex-wrap:wrap">
-          <button onclick="adminSimulateEndPeriod()" style="padding:.45rem .8rem;border-radius:6px;border:1.5px solid rgba(255,96,32,.6);background:rgba(255,96,32,.08);color:#ff8040;font-weight:700;font-size:.78rem;cursor:pointer">⚠️ Simuler fin de période</button>
-          <button onclick="adminSetPeriodEnd(5)" style="padding:.45rem .8rem;border-radius:6px;border:1px solid var(--orange);background:rgba(255,96,32,.08);color:var(--orange);font-weight:700;font-size:.72rem;cursor:pointer">⏩ Fin dans 5 min</button>
-          <button onclick="adminSetPeriodEnd(1)" style="padding:.45rem .8rem;border-radius:6px;border:1px solid var(--orange);background:rgba(255,96,32,.08);color:var(--orange);font-weight:700;font-size:.72rem;cursor:pointer">⏩ Fin dans 1 min</button>
-          <button onclick="adminTestPeriodRecap()" style="padding:.45rem .8rem;border-radius:6px;border:1px solid var(--gold);background:rgba(245,200,66,.08);color:var(--gold);font-weight:700;font-size:.72rem;cursor:pointer">🧪 Tester popup récap</button>
-        </div>
-        <div id="admin-period-msg" style="font-size:.72rem;margin-top:.4rem;min-height:1rem"></div>
-      </div>
-    </div>
-
     <!-- Wallet Admin -->
     <div class="block" style="margin-top:1rem;border-color:rgba(245,200,66,.3)">
       <div class="block-header" style="border-color:rgba(245,200,66,.15)">
@@ -3536,18 +3509,6 @@ function askConfirm(message, opts){
       </div>
     </div>
 
-    <!-- Simuler loyer mensuel -->
-    <div class="block" style="margin-top:1rem;border-color:rgba(245,200,66,.3)">
-      <div class="block-header" style="border-color:rgba(245,200,66,.15)">
-        <div class="block-title">🏠 Simuler <span class="hl">Loyer Mensuel</span></div>
-      </div>
-      <div class="block-body-sm">
-        <div style="font-size:.72rem;color:var(--muted2);margin-bottom:.5rem">Force le prélèvement du loyer pour toutes les lands en location, sans vérifier la date.</div>
-        <button onclick="adminForceRent()" style="padding:.45rem .8rem;border-radius:6px;border:1.5px solid var(--gold);background:rgba(245,200,66,.1);color:var(--gold);font-weight:700;font-size:.78rem;cursor:pointer">🏠 Forcer le loyer</button>
-        <div id="admin-rent-msg" style="font-size:.72rem;min-height:1rem;margin-top:.3rem"></div>
-      </div>
-    </div>
-
     <!-- Doublons par RP -->
     <div class="block" style="margin-top:1rem;border-color:rgba(255,68,68,.3)">
       <div class="block-header" style="border-color:rgba(255,68,68,.15)">
@@ -3560,26 +3521,6 @@ function askConfirm(message, opts){
           <button onclick="adminFindPlayerDuplicates()" style="padding:.4rem .8rem;border-radius:5px;border:1.5px solid var(--red);background:rgba(255,68,68,.08);color:var(--red);font-weight:700;font-size:.75rem;cursor:pointer">🔍 Chercher</button>
         </div>
         <div id="admin-dup-msg" style="font-size:.72rem;min-height:1rem;margin-top:.4rem"></div>
-      </div>
-    </div>
-
-    <!-- Régul prorata loyer (avril-mai 2026) -->
-    <div class="block" style="margin-top:1rem;border-color:rgba(32,208,224,.3)">
-      <div class="block-header" style="border-color:rgba(32,208,224,.15)">
-        <div class="block-title">💸 Régul <span class="hl">prorata loyer</span></div>
-      </div>
-      <div class="block-body-sm">
-        <div style="font-size:.72rem;color:var(--muted2);margin-bottom:.5rem">Audite les acquisitions facturées au tarif plein (5000 RPC) avant l'application du prorata, et rembourse le trop-payé. Filtre par mois (par défaut : avril + mai 2026). Le dry-run n'applique aucun crédit.</div>
-        <div style="display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;margin-bottom:.4rem">
-          <label style="font-size:.65rem;color:var(--muted2)">Du
-            <input id="admin-prorata-from" type="date" value="2026-04-01" style="margin-left:.3rem;padding:.3rem;border-radius:5px;border:1px solid var(--border2);background:var(--bg3);color:var(--text);font-size:.72rem">
-          </label>
-          <label style="font-size:.65rem;color:var(--muted2)">Au
-            <input id="admin-prorata-to" type="date" value="2026-06-01" style="margin-left:.3rem;padding:.3rem;border-radius:5px;border:1px solid var(--border2);background:var(--bg3);color:var(--text);font-size:.72rem">
-          </label>
-        </div>
-        <button onclick="adminAuditProrataRefunds(false)" style="padding:.45rem .8rem;border-radius:6px;border:1.5px solid var(--cyan,#20d0e0);background:rgba(32,208,224,.1);color:var(--cyan,#20d0e0);font-weight:700;font-size:.78rem;cursor:pointer">🔍 Dry-run</button>
-        <div id="admin-prorata-msg" style="font-size:.72rem;min-height:1rem;margin-top:.4rem"></div>
       </div>
     </div>
 
