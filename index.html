@@ -1080,11 +1080,13 @@ tr.skin-odyssea{
   #cr-app .tile.orange .v{color:#ff8a3d} #cr-app .tile.blue .v{color:#5aa0ff} #cr-app .tile.violet .v{color:#b07bff}
   #cr-app .tile.lvl .v{font-family:'Bebas Neue';font-size:20px;letter-spacing:1px;color:var(--green)}
   #cr-app .podiumrow{margin-top:11px;padding-top:10px;border-top:1px solid rgba(74,144,255,.3)}
-  #cr-app .podtitle{font-family:'Bebas Neue';font-size:13px;letter-spacing:1.5px;text-align:center;color:var(--muted);margin-bottom:8px}
-  #cr-app .podmedals{display:flex;justify-content:center;gap:22px}
+  #cr-app .podtitle{font-family:'Bebas Neue';font-size:13px;letter-spacing:1.5px;text-align:center;color:var(--muted);margin-bottom:10px}
+  #cr-app .podmedals{display:flex;justify-content:center;gap:20px}
   #cr-app .podm{display:flex;align-items:center;gap:6px}
-  #cr-app .pmico{font-size:22px;line-height:1}
-  #cr-app .pmn{font-family:'Space Mono';font-weight:700;font-size:16px;color:var(--text)}
+  #cr-app .podoct{position:relative;width:44px;height:44px;flex-shrink:0}
+  #cr-app .podoct svg{position:absolute;inset:0;width:44px;height:44px}
+  #cr-app .podnum{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:1.25rem;font-weight:900;color:#000}
+  #cr-app .pmn{font-family:'Bebas Neue',sans-serif;font-weight:700;font-size:1rem;letter-spacing:1px}
   #cr-app /* classement SANS cadre (gagne de la place) — le cadre bleu reste uniquement sur les stats */
   /* marge négative : on tire les bandeaux RP vers les bords (au-delà de la marge 14px de #cr-app)
      pour ne laisser qu'un filet à gauche/droite → plus de largeur pour le pseudo = plus d'air sur la ligne */
@@ -4088,13 +4090,44 @@ function askConfirm(message, opts){
     <div class="statcard">
       <div class="stattitle" id="st-stattitle">STATISTIQUES</div>
       <div class="statgrid" id="st-grid"></div>
-      <!-- Podium mensuel Cash Run : top 3 figé chaque fin de mois (médailles permanentes) -->
+      <!-- Podium mensuel Cash Run : top 3 figé chaque fin de mois (médailles permanentes).
+           Même design octogonal que les médailles League / Teams (cohérence visuelle). -->
       <div class="podiumrow">
         <div class="podtitle" id="st-podtitle">PODIUM MENSUEL</div>
         <div class="podmedals">
-          <div class="podm" id="st-pod-gold"   title="1res places (mois)"><span class="pmico">🥇</span><span class="pmn" id="st-gold">×0</span></div>
-          <div class="podm" id="st-pod-silver" title="2es places (mois)"><span class="pmico">🥈</span><span class="pmn" id="st-silver">×0</span></div>
-          <div class="podm" id="st-pod-bronze" title="3es places (mois)"><span class="pmico">🥉</span><span class="pmn" id="st-bronze">×0</span></div>
+          <div class="podm" title="1res places (mois)">
+            <div class="podoct">
+              <svg viewBox="0 0 62 62">
+                <defs>
+                  <linearGradient id="crOr" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#ffe566"/><stop offset="100%" stop-color="#a86800"/></linearGradient>
+                  <filter id="crGlO"><feGaussianBlur stdDeviation="2.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+                </defs>
+                <polygon points="18,4 44,4 58,18 58,44 44,58 18,58 4,44 4,18" fill="url(#crOr)" stroke="#ffd700" stroke-width="2" filter="url(#crGlO)"/>
+              </svg>
+              <span class="podnum">1</span>
+            </div>
+            <span class="pmn" id="st-gold" style="color:#ffd700;text-shadow:0 0 5px rgba(255,215,0,.5)">×0</span>
+          </div>
+          <div class="podm" title="2es places (mois)">
+            <div class="podoct">
+              <svg viewBox="0 0 62 62">
+                <defs><linearGradient id="crAr" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#efefef"/><stop offset="100%" stop-color="#606060"/></linearGradient></defs>
+                <polygon points="18,4 44,4 58,18 58,44 44,58 18,58 4,44 4,18" fill="url(#crAr)" stroke="#c0c0c0" stroke-width="1.8"/>
+              </svg>
+              <span class="podnum">2</span>
+            </div>
+            <span class="pmn" id="st-silver" style="color:#c0c0c0">×0</span>
+          </div>
+          <div class="podm" title="3es places (mois)">
+            <div class="podoct">
+              <svg viewBox="0 0 62 62">
+                <defs><linearGradient id="crBr" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#e8a060"/><stop offset="100%" stop-color="#6a2e08"/></linearGradient></defs>
+                <polygon points="18,4 44,4 58,18 58,44 44,58 18,58 4,44 4,18" fill="url(#crBr)" stroke="#cd7f32" stroke-width="1.8"/>
+              </svg>
+              <span class="podnum">3</span>
+            </div>
+            <span class="pmn" id="st-bronze" style="color:#cd7f32">×0</span>
+          </div>
         </div>
       </div>
     </div>
