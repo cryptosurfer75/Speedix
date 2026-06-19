@@ -6404,19 +6404,20 @@ async function onLoginSuccess(user, isNew){
       if(typeof showRunRecoveryBanner==='function') showRunRecoveryBanner();
     }, 1200);
   }
-  // ── Cadeau Premium 15 jours (campagne beta lancée 2026-05-09) ─────────
-  // 1. Si le RP n'est PAS Premium actif → on lui offre 15 jours et on flag trial
-  // 2. Si le RP est déjà en Premium trial et n'a jamais vu la modale → on l'affiche
-  // Tracking "vu" via localStorage (clé gift-premium-2026-05-seen) → 1 affichage / device.
-  // [2026-05-23] Modale festive temporairement DÉSACTIVÉE — surcharge l'accueil
-  // du nouveau RP. L'octroi en base reste actif (le RP est bien en trial), seule
-  // la pop-up d'annonce est retirée. À replacer ailleurs plus tard.
+  // ── Offre de lancement : Premium d'essai OFFERT jusqu'au 31 juillet 2026 ──
+  // (remplace l'ancien cadeau "15 jours glissants" de la campagne beta du 2026-05-09)
+  // Règle : tant qu'on est AVANT le 31/07/2026, tout RP non-Premium-actif est mis
+  // en Premium d'essai avec une fin FIXE au 31/07 (plus de renouvellement glissant).
+  // APRÈS le 31/07 : plus aucun octroi automatique → le Premium s'arrête vraiment
+  // (décision sur la suite — stores / abonnement — à prendre à cette date).
+  // Modale festive toujours désactivée (cf. 2026-05-23) — seul l'octroi en base joue.
   try {
     var _now=new Date();
+    var _offerEnd=new Date('2026-07-31T23:59:59+02:00'); // fin de l'offre de lancement
     var _premUntil=(pd && pd.premium_until)?new Date(pd.premium_until):null;
     var _isPremActive=(pd && pd.premium && _premUntil && _premUntil>_now);
-    if(!_isPremActive){
-      var _giftUntil=new Date(_now.getTime()+15*24*3600*1000);
+    if(!_isPremActive && _now < _offerEnd){
+      var _giftUntil=_offerEnd;
       await window.fetch(supabaseUrl+'/rest/v1/players?id=eq.'+encodeURIComponent(user.id),{
         method:'PATCH',
         headers:{'apikey':supabaseKey,'Authorization':'Bearer '+supabaseKey,'Content-Type':'application/json'},
