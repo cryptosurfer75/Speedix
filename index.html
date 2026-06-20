@@ -477,6 +477,51 @@ tr.skin-odyssea{
   border-color:rgba(255,120,190,.95) !important;
 }
 
+/* SKIN TERRE-LUNE (Jules Verne — De la Terre à la Lune, défi 10 km Amiens 28/06).
+   PC = image cosmos. Classement = un bandeau nébuleuse (skin-terre-lune-row.jpg),
+   uniforme, dans les tons de la PC. */
+.skin-terre-lune{
+  background-image:
+    linear-gradient(rgba(8,6,26,.20),rgba(4,3,16,.32)),
+    url('skin-terre-lune-pc-v2.jpg') !important;
+  background-size:cover,cover !important;
+  background-position:center,center !important;
+  background-repeat:no-repeat,no-repeat !important;
+}
+tr.skin-terre-lune{
+  background-image:
+    linear-gradient(rgba(8,6,26,.25),rgba(4,3,16,.36)),
+    url('skin-terre-lune-row.jpg') !important;
+  background-size:cover,cover !important;
+  background-position:center,center !important;
+  background-repeat:no-repeat,no-repeat !important;
+  box-shadow:inset 0 0 0 1.5px rgba(255,190,100,.55) !important;
+}
+/* Filigrane "SL" doré masqué (sinon il se perd sur le coeur lumineux). */
+.skin-terre-lune .pc-watermark-sl{ display:none !important; }
+.skin-terre-lune button,
+.skin-terre-lune [data-tuto-target="parrainage"]{
+  background:rgba(8,8,26,.72) !important;
+}
+.skin-terre-lune .pc-avatar-frame,
+.skin-terre-lune [data-tuto-target="feed"]{
+  background:#080814 !important;
+}
+.skin-terre-lune [data-tuto-target="pc"],
+.skin-terre-lune [data-tuto-target="races"],
+.skin-terre-lune [data-tuto-target="league"],
+.skin-terre-lune [data-tuto-target="lands"],
+.skin-terre-lune div:has(> div > #stat-cagnotte-rpc),
+.skin-terre-lune div:has(> div > #stat-cagnotte-nyx){
+  border:1.5px solid rgba(255,190,100,.5) !important;
+}
+.skin-terre-lune [data-tuto-target="pc"]:hover,
+.skin-terre-lune [data-tuto-target="races"]:hover,
+.skin-terre-lune [data-tuto-target="league"]:hover,
+.skin-terre-lune [data-tuto-target="lands"]:hover{
+  border-color:rgba(255,190,100,.95) !important;
+}
+
 /* ============================================================
    LEAGUE LEVELS
 ============================================================ */
@@ -23407,7 +23452,8 @@ function _renderSettingsAvailability(p){
 var SKIN_CATALOG = {
   'or-des-incas': { name: 'OR DES INCAS', price: 10000 },
   'bruxelles':    { name: '20 KM DE BRUXELLES', price: 10000 },
-  'odyssea':      { name: 'ODYSSEA', price: 10000 }
+  'odyssea':      { name: 'ODYSSEA', price: 10000 },
+  'terre-lune':   { name: 'DE LA TERRE À LA LUNE', price: 10000 }
 };
 
 // Section "Mes Skins" : liste tous les skins du RP (achetés + en cours d'éligibilité).
