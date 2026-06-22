@@ -7408,6 +7408,14 @@ const LEAGUES=[
   {key:'lelite',  name:'L Elite',  label:'Diamant',    emoji:'💎',  min:20001, max:null,  color:'#a0e0ff', buyin:25000},
 ];
 
+// Masse critique de compétiteurs pour qu'une league distribue son PALMARÈS (médailles).
+// En dessous, le buy-in et le prize pool RPC continuent normalement (décision produit
+// 2026-06-22) mais AUCUNE médaille n'est attribuée : un podium dans une league trop
+// peu peuplée n'a pas de valeur. Sert à 2 endroits qui DOIVENT rester synchro :
+//   1) la rotation (création des palmarès — source de vérité)
+//   2) le classement live (affichage 🥇🥈🥉 — simple miroir de la règle ci-dessus)
+const LEAGUE_MEDAL_MIN_COMPETITORS = 50;
+
 // ────────────────────────────────────────────────────────────────────
 // COLLAB_CHALLENGE_CATALOG — Catalogue V1 des défis collaboratifs entre voisins
 // ────────────────────────────────────────────────────────────────────
@@ -8788,8 +8796,13 @@ function renderLeaguePanel(){
     // compRank = rang parmi les compétitifs (pour médailles/places payées), 0 si calibrage
     var medalRank=isCalib?0:(compRank||rankNum);
     var rc=medalRank===1?'rank-1':medalRank===2?'rank-2':medalRank===3?'rank-3':'';
-    var rankDisplay=(!isStarter&&medalRank===1)?'🥇':(!isStarter&&medalRank===2)?'🥈':(!isStarter&&medalRank===3)?'🥉':'<div class="rank-num '+rc+'">'+rankNum+'</div>';
-    var rankCell=(!isStarter&&medalRank>=1&&medalRank<=3)?'<div style="font-size:1.45rem;line-height:1;text-align:center;width:36px;flex-shrink:0">'+rankDisplay+'</div>':'<div class="rank-num '+rc+'">'+rankNum+'</div>';
+    // MIROIR du seuil de palmarès : on n'affiche 🥇🥈🥉 que hors Starter ET si la
+    // league a atteint la masse critique de compétiteurs (_medalsActiveInLeague,
+    // calculé plus bas depuis competitivePlayers). Sous le seuil → on montre le rang.
+    // Le badge 💰 (place payée / prize pool) n'est PAS concerné et reste affiché.
+    var _medalEmojiOK=(!isStarter)&&_medalsActiveInLeague;
+    var rankDisplay=(_medalEmojiOK&&medalRank===1)?'🥇':(_medalEmojiOK&&medalRank===2)?'🥈':(_medalEmojiOK&&medalRank===3)?'🥉':'<div class="rank-num '+rc+'">'+rankNum+'</div>';
+    var rankCell=(_medalEmojiOK&&medalRank>=1&&medalRank<=3)?'<div style="font-size:1.45rem;line-height:1;text-align:center;width:36px;flex-shrink:0">'+rankDisplay+'</div>':'<div class="rank-num '+rc+'">'+rankNum+'</div>';
     var isMe=(p.id===1);
     var gc=GRADE_COLORS[p.grade]||'#8090b0';
     var initials=p.name.split(' ').map(function(w){return w[0];}).join('');
@@ -8891,6 +8904,10 @@ function renderLeaguePanel(){
   // Compute number of paid places from distribution
   // Ne compter que les RP compétitifs pour le prize pool (exclure calibrage)
   var competitivePlayers=players.filter(function(p){return p.competitive!==false;});
+  // Seuil de palmarès (MIROIR de la règle de rotation) : la league affiche des
+  // médailles 🥇🥈🥉 seulement si elle compte au moins LEAGUE_MEDAL_MIN_COMPETITORS
+  // vrais compétiteurs. Lu par buildRow via closure. Le prize pool, lui, reste actif.
+  var _medalsActiveInLeague=players.filter(function(p){return p.competitive===true;}).length>=LEAGUE_MEDAL_MIN_COMPETITORS;
   var ppPool=Math.round(competitivePlayers.length*(league?league.buyin:0)*0.7);
   var ppDist=getPrizeDistribution(competitivePlayers.length,ppPool,activeLeagueKey);
   var paidCount=0;
@@ -12794,6 +12811,10 @@ async function _processEndOfPeriodInner(){
     if(lk.toLowerCase()==='starter') continue; // Pas de médailles en Starter
     // Filtrer les compétitifs seulement pour les médailles
     var lg=byLeague[lk].filter(function(p){return p.competitive;});
+    // SEUIL DE MASSE CRITIQUE : pas de palmarès dans une league qui n'a pas atteint
+    // LEAGUE_MEDAL_MIN_COMPETITORS compétiteurs. Le buy-in et le prize pool RPC
+    // (§7/§8) continuent quand même — seules les médailles sont suspendues.
+    if(lg.length<LEAGUE_MEDAL_MIN_COMPETITORS) continue;
     for(var li=0;li<Math.min(3,lg.length);li++){
       await supabaseClient.from('palmares').insert({
         player_id:lg[li].id,
