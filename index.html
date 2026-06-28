@@ -6084,7 +6084,7 @@ function showLoginScreen(){
     // Boutons communauté — uniquement ici (sous SE CONNECTER) : Facebook au-dessus, Strava (club Speedy League) en dessous.
     '<div style="display:flex;flex-direction:row;justify-content:center;align-items:center;gap:16px;margin:14px 0 6px">'+
       '<a href="https://www.facebook.com/groups/906611848921910" target="_blank" rel="noopener noreferrer" aria-label="Communauté SPEEDIX sur Facebook" title="Communauté Facebook" style="display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;background:#1877F2;border-radius:50%;text-decoration:none;box-shadow:0 3px 10px rgba(0,0,0,.35);border:1.5px solid rgba(255,255,255,.85)"><svg width="20" height="20" viewBox="0 0 24 24" fill="#fff" aria-hidden="true"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg></a>'+
-      '<a href="https://www.strava.com/clubs/2101996" target="_blank" rel="noopener noreferrer" aria-label="Club Speedy League sur Strava" title="Club Strava Speedy League" style="display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;background:#FC4C02;border-radius:50%;text-decoration:none;box-shadow:0 3px 10px rgba(0,0,0,.35);border:1.5px solid rgba(255,255,255,.85)"><svg width="20" height="20" viewBox="0 0 24 24" fill="#fff" aria-hidden="true"><path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169"/></svg></a>'+
+      '<a href="https://www.strava.com/clubs/2101996" onclick="return openStravaClub(event,\'2101996\')" target="_blank" rel="noopener noreferrer" aria-label="Club Speedy League sur Strava" title="Club Strava Speedy League" style="display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;background:#FC4C02;border-radius:50%;text-decoration:none;box-shadow:0 3px 10px rgba(0,0,0,.35);border:1.5px solid rgba(255,255,255,.85)"><svg width="20" height="20" viewBox="0 0 24 24" fill="#fff" aria-hidden="true"><path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169"/></svg></a>'+
     '</div>'+
     '<button onclick="location.reload()" style="background:none;border:none;color:rgba(255,255,255,.25);font-size:.62rem;cursor:pointer;font-family:Space Mono,monospace;width:100%;text-align:center">'+t('login.back')+'</button>';
 }
@@ -9448,14 +9448,13 @@ async function renderHistory(page){
   }
 }
 
-// Ouvre une activité Strava. Sur mobile, on essaie d'abord l'app Strava NATIVE
-// (où l'utilisateur est connecté) via le schéma strava:// ; sans ça, le web ouvre
-// une page d'inscription inutile faute de session. Repli vers le lien https si
+// Ouvre un lien Strava (course OU club). Sur mobile, on essaie d'abord l'app Strava
+// NATIVE (où l'utilisateur est connecté) via le schéma strava:// ; sans ça, le web
+// ouvre une page d'inscription inutile faute de session. Repli vers le lien https si
 // l'app ne prend pas la main. Déclencheur via iframe cachée pour NE PAS casser la
 // vue de l'app si le schéma n'est pas géré (contrairement à intent:// en plein écran).
-function openStravaActivity(ev, actId){
+function openStravaDeepLink(ev, nativeUrl, webUrl){
   try{
-    var web='https://www.strava.com/activities/'+actId;
     var isMobile=/android|iphone|ipad|ipod/i.test(navigator.userAgent);
     if(isMobile){
       if(ev && ev.preventDefault) ev.preventDefault();
@@ -9464,17 +9463,23 @@ function openStravaActivity(ev, actId){
       document.addEventListener('visibilitychange',onHide);
       var ifr=document.createElement('iframe');
       ifr.style.display='none';
-      ifr.src='strava://activities/'+actId;
+      ifr.src=nativeUrl;
       document.body.appendChild(ifr);
       setTimeout(function(){
         document.removeEventListener('visibilitychange',onHide);
         try{ ifr.parentNode&&ifr.parentNode.removeChild(ifr); }catch(e){}
-        if(!opened) window.open(web,'_blank','noopener');
+        if(!opened) window.open(webUrl,'_blank','noopener');
       },1400);
       return false;
     }
   }catch(e){}
   return true; // desktop / PWA : on laisse le lien https s'ouvrir normalement
+}
+function openStravaActivity(ev, actId){
+  return openStravaDeepLink(ev, 'strava://activities/'+actId, 'https://www.strava.com/activities/'+actId);
+}
+function openStravaClub(ev, clubId){
+  return openStravaDeepLink(ev, 'strava://clubs/'+clubId, 'https://www.strava.com/clubs/'+clubId);
 }
 
 function showRunDetails(runId){
