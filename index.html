@@ -12891,6 +12891,18 @@ async function _processEndOfPeriodInner(){
     _compEnabled=(_compRow && (_compRow.value==='true' || _compRow.value===true));
   } catch(eCompFlag){ console.warn('[rotation] lecture competition_enabled :', eCompFlag); }
 
+  // GARDE-FOU ÉQUIPES (2026-06-29) : tout le volet compétition PAR ÉQUIPE
+  // (médailles d'équipe ET prize pool teams) est piloté par UN SEUL interrupteur
+  // = game_settings.teams_prize_pool_enabled. Tant qu'il n'est pas 'true', AUCUN
+  // podium d'équipe n'est créé — y compris pendant le calibrage (pas encore assez
+  // d'équipes/joueurs pour que la compétition par équipe ait du sens).
+  // (clé absente = volet équipes OFF par sécurité).
+  var _teamsCompEnabled=false;
+  try {
+    var {data:_teamsRow}=await supabaseClient.from('game_settings').select('value').eq('key','teams_prize_pool_enabled').maybeSingle();
+    _teamsCompEnabled=(_teamsRow && (_teamsRow.value==='true' || _teamsRow.value===true));
+  } catch(eTeamsFlag){ console.warn('[rotation] lecture teams_prize_pool_enabled :', eTeamsFlag); }
+
   // 5. Médailles teams + prize pool teams
   var {data:allTeams}=await supabaseClient.from('teams').select('id,name').order('name');
   var {data:allTM}=await supabaseClient.from('team_members').select('team_id,player_id');
@@ -12909,10 +12921,11 @@ async function _processEndOfPeriodInner(){
       return {id:t.id,name:t.name,score:Math.round(base*(1+extra*2/100))};
     }).filter(function(t){return t.score>0;}).sort(function(a,b){return b.score-a.score;});
 
-    // Médailles d'équipe distribuées SEULEMENT quand la compétition officielle est
-    // lancée (competition_enabled=true). En période de calibrage (compétition pas
-    // encore démarrée) on ne crée aucun palmarès teams.
-    if(_compEnabled){
+    // Médailles d'équipe distribuées SEULEMENT quand le volet compétition PAR
+    // ÉQUIPE est lancé (teams_prize_pool_enabled=true) ET la compétition globale
+    // active. Tant que le volet équipes est éteint, AUCUN palmarès teams n'est créé
+    // — y compris en calibrage ou si on n'est pas encore assez nombreux.
+    if(_compEnabled && _teamsCompEnabled){
       for(var ti=0;ti<Math.min(3,teamScores.length);ti++){
         await supabaseClient.from('palmares').insert({
           team_id:teamScores[ti].id,
@@ -12933,9 +12946,8 @@ async function _processEndOfPeriodInner(){
   //     NYX : 80 / 60 / 30 NYX par membre (montant fixe).
   try {
     if(teamScores.length > 0){
-      var {data:flagRow}=await supabaseClient.from('game_settings').select('value').eq('key','teams_prize_pool_enabled').maybeSingle();
-      var flagOn=(flagRow && (flagRow.value==='true' || flagRow.value===true));
-      if(flagOn){
+      // Même interrupteur unique que les médailles d'équipe (cf. GARDE-FOU ÉQUIPES plus haut).
+      if(_teamsCompEnabled){
         // RPC ET NYX divisés ÉQUITABLEMENT par le nombre de membres de la team
         // (calibré pour rester soutenable côté économie NYX vu les prix licences).
         var prizePoolRpc=[50000, 30000, 15000];
