@@ -22694,7 +22694,8 @@ function _badgeChallengeDescription(b){
     case 'capitals_eu':       return 'Courir au départ de <strong style="color:'+(b.color||'#f5c842')+'">'+v+' capitales</strong> européennes différentes';
     case 'night_runs':        return 'Faire <strong style="color:'+(b.color||'#f5c842')+'">'+v+' courses</strong> entre 22h et 4h';
     case 'morning_runs':      return 'Faire <strong style="color:'+(b.color||'#f5c842')+'">'+v+' courses</strong> entre 4h et 7h';
-    case 'event_run':         return 'Participer à l\'événement à la date prévue';
+    case 'event_run':         return v ? 'Courir <strong style="color:'+(b.color||'#f5c842')+'">'+fmt(v)+' km</strong> le jour de l\'événement'
+                                        : 'Participer à l\'événement à la date prévue';
     default:                  return '';
   }
 }
@@ -22734,6 +22735,7 @@ async function showBadgeDetail(badgeId){
     bodyHtml+=
        '  <div style="font-family:Bebas Neue,sans-serif;font-size:1.3rem;letter-spacing:2px;color:'+color+';margin-bottom:.4rem">FÉLICITATIONS !</div>'
       +'  <div style="font-size:.82rem;color:var(--text);line-height:1.5;margin-bottom:.5rem">Tu as gagné ce badge le <strong>'+dateStr+'</strong> pour avoir réalisé ce challenge.</div>'
+      +(challengeTxt?'<div style="font-size:.78rem;color:var(--muted2);margin-top:.2rem;margin-bottom:.5rem;padding:.55rem .7rem;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:8px;line-height:1.5">🎯 '+challengeTxt+'</div>':'')
       +(rewards.length?'<div style="font-family:Space Mono,monospace;font-size:.85rem;color:var(--gold);margin-top:.4rem">'+rewards.join(' · ')+'</div>':'');
   } else {
     // BADGE PAS ENCORE DÉBLOQUÉ : version objectif (description + reward + challenge)
