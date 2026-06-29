@@ -522,6 +522,51 @@ tr.skin-terre-lune{
   border-color:rgba(255,190,100,.95) !important;
 }
 
+/* SKIN LE TOUQUET (Semi du Touquet — Côte d'Opale, défi 21,1 km du 04/07).
+   PC = ciel coucher de soleil (portrait). Classement = bande dorée.
+   Image claire → voile chaud (prune/brun) RENFORCÉ pour la lisibilité du texte. */
+.skin-touquet{
+  background-image:
+    linear-gradient(rgba(54,22,30,.50),rgba(38,14,22,.66)),
+    url('skin-touquet-pc.jpg') !important;
+  background-size:cover,cover !important;
+  background-position:center,center !important;
+  background-repeat:no-repeat,no-repeat !important;
+}
+tr.skin-touquet{
+  background-image:
+    linear-gradient(rgba(48,18,26,.64),rgba(32,10,18,.78)),
+    url('skin-touquet.jpg') !important;
+  background-size:cover,cover !important;
+  background-position:center,center !important;
+  background-repeat:no-repeat,no-repeat !important;
+  box-shadow:inset 0 0 0 1.5px rgba(255,180,90,.6) !important;
+}
+/* Filigrane "SL" doré masqué (sinon il se perd sur le ciel clair). */
+.skin-touquet .pc-watermark-sl{ display:none !important; }
+.skin-touquet button,
+.skin-touquet [data-tuto-target="parrainage"]{
+  background:rgba(40,16,22,.72) !important;
+}
+.skin-touquet .pc-avatar-frame,
+.skin-touquet [data-tuto-target="feed"]{
+  background:#1a0a10 !important;
+}
+.skin-touquet [data-tuto-target="pc"],
+.skin-touquet [data-tuto-target="races"],
+.skin-touquet [data-tuto-target="league"],
+.skin-touquet [data-tuto-target="lands"],
+.skin-touquet div:has(> div > #stat-cagnotte-rpc),
+.skin-touquet div:has(> div > #stat-cagnotte-nyx){
+  border:1.5px solid rgba(255,180,90,.5) !important;
+}
+.skin-touquet [data-tuto-target="pc"]:hover,
+.skin-touquet [data-tuto-target="races"]:hover,
+.skin-touquet [data-tuto-target="league"]:hover,
+.skin-touquet [data-tuto-target="lands"]:hover{
+  border-color:rgba(255,180,90,.95) !important;
+}
+
 /* ============================================================
    LEAGUE LEVELS
 ============================================================ */
@@ -7158,6 +7203,16 @@ function _isStravaLinkedNow(){
 function _stravaDayKey(d){
   return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 }
+// Nombre de jours calendaires écoulés entre deux dates (heure ignorée).
+function _stravaDaysBetween(from,to){
+  var a=new Date(from.getFullYear(),from.getMonth(),from.getDate());
+  var b=new Date(to.getFullYear(),to.getMonth(),to.getDate());
+  return Math.round((b-a)/86400000);
+}
+// Période de grâce avant le mur Strava bloquant : on laisse le nouveau RP
+// explorer l'app pendant ses premiers jours (prompt doux, fermable) au lieu de
+// le bloquer dès sa 2ème connexion. Le mur n'apparaît qu'à partir du Nème jour.
+var _STRAVA_GRACE_DAYS=4;
 // Détecte tout ce qui peut "occuper" l'écran avant l'ouverture du prompt Strava :
 // modales classiques (.modal.open) sauf sync-modal lui-même, et overlay de tuto.
 function _stravaAnyBlockerOpen(){
@@ -7184,8 +7239,10 @@ function _maybeShowStravaPrompt(pd){
   if(window.__stravaPromptScheduled) return; // double-call protection (même session)
   window.__stravaPromptScheduled=true;
   var createdAt=pd.created_at?new Date(pd.created_at):new Date();
-  var isSignupDay=(_stravaDayKey(new Date())===_stravaDayKey(createdAt));
-  if(isSignupDay){ _stravaPromptJ1(); } else { _stravaPromptWall(); }
+  // Tant qu'on est dans la période de grâce → prompt doux (fermable).
+  // Au-delà → mur bloquant.
+  var daysSince=_stravaDaysBetween(createdAt,new Date());
+  if(daysSince<_STRAVA_GRACE_DAYS){ _stravaPromptJ1(); } else { _stravaPromptWall(); }
 }
 // 2ème tuto PC contextuel (Feed / Team / Parrainage) — déclenché le lendemain
 // (ou plus tard) de l'inscription pour les RP qui ont déjà connecté Strava.
@@ -7233,7 +7290,8 @@ function _stravaPromptJ1(){
     try{ localStorage.setItem(dayDoneKey,'1'); }catch(e){}
     _openStravaModalSoftLock(8000, function _afterFirstClose(){
       // 2ème (et dernière) ouverture du jour : 2 min après la fermeture de la 1ère.
-      // Si le RP a fermé l'app entre-temps, pas grave — on le rattrape au mur J+1.
+      // Si le RP a fermé l'app entre-temps, pas grave — on le relance le jour
+      // suivant (prompt doux pendant la période de grâce, puis mur ensuite).
       setTimeout(function(){
         if(_isStravaLinkedNow()) return;
         _openStravaModalSoftLock(8000, null);
@@ -23472,7 +23530,8 @@ var SKIN_CATALOG = {
   'or-des-incas': { name: 'OR DES INCAS', price: 10000 },
   'bruxelles':    { name: '20 KM DE BRUXELLES', price: 10000 },
   'odyssea':      { name: 'ODYSSEA', price: 10000 },
-  'terre-lune':   { name: 'DE LA TERRE À LA LUNE', price: 10000 }
+  'terre-lune':   { name: 'DE LA TERRE À LA LUNE', price: 10000 },
+  'touquet':      { name: 'LE TOUQUET', price: 10000 }
 };
 
 // Section "Mes Skins" : liste tous les skins du RP (achetés + en cours d'éligibilité).
