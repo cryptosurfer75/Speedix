@@ -12681,20 +12681,29 @@ async function loadPeriodSettings(){
     if(s.key==='period_start') _periodData.start=s.value;
     if(s.key==='period_end') _periodData.end=s.value;
   });
+  // === LIBELLÉ D'AFFICHAGE DES PÉRIODES (cosmétique — numéros internes & cumuls INCHANGÉS) ===
+  // La compétition officielle démarre à la période interne 4 (juillet) : on l'affiche
+  // « Période 1 » et on retire le suffixe « test » (calibrage). Base, statistiques cumulées
+  // et archivage des périodes continuent sur les numéros internes (rien ne change côté données).
+  var _LAUNCH_PERIOD=4;                                  // période interne du lancement officiel = "Période 1"
+  var _pLaunched=(_periodData.period>=_LAUNCH_PERIOD);
+  var _pNum=_pLaunched?(_periodData.period-_LAUNCH_PERIOD+1):_periodData.period;
+  var _pBadge=_pLaunched?('Période '+_pNum):('P'+_pNum+' test'); // badge/chip visibles par tous
+  var _pInfo=_pLaunched?String(_pNum):('P'+_pNum);              // valeur après t('period.label') (admin)
   // Afficher le badge
   var badge=document.getElementById('period-badge');
-  if(badge) badge.textContent='P'+_periodData.period+' test';
+  if(badge) badge.textContent=_pBadge;
   // Afficher dans la PC : même badge jaune que sur le classement ("P3 test"),
   // sans le nombre de jours restant (le chrono du classement fait déjà foi).
   var pcPeriod=document.getElementById('pc-period-info');
   if(pcPeriod){
-    pcPeriod.innerHTML='<span style="display:inline-block;font-family:\'Space Mono\',monospace;font-size:.72rem;font-weight:700;padding:.2rem .6rem;border-radius:4px;background:rgba(245,200,66,.1);border:1px solid rgba(245,200,66,.3);color:var(--gold)">P'+_periodData.period+' test</span>';
+    pcPeriod.innerHTML='<span style="display:inline-block;font-family:\'Space Mono\',monospace;font-size:.72rem;font-weight:700;padding:.2rem .6rem;border-radius:4px;background:rgba(245,200,66,.1);border:1px solid rgba(245,200,66,.3);color:var(--gold)">'+_pBadge+'</span>';
   }
   // Démarrer le timer
   startPeriodTimer();
   // Info admin
   var infoEl=document.getElementById('admin-period-info');
-  if(infoEl) infoEl.innerHTML=t('period.label')+' : <strong>P'+_periodData.period+'</strong> · '+t('period.end')+' '+new Date(_periodData.end).toLocaleString(SPEEDIX_LANG);
+  if(infoEl) infoEl.innerHTML=t('period.label')+' : <strong>'+_pInfo+'</strong> · '+t('period.end')+' '+new Date(_periodData.end).toLocaleString(SPEEDIX_LANG);
 }
 
 function getPeriodTimeLeft(){
