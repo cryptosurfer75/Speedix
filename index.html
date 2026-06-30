@@ -8828,7 +8828,7 @@ function renderLeaguePanel(){
     // Fantôme invisible (is_visible=false) : caché à tous sauf à lui-même
     if(p.is_visible===false && p._uuid!==_myUid) return false;
     return true;
-  }).sort(function(a,b){return (b.pts-a.pts) || (a._uuid<b._uuid?-1:(a._uuid>b._uuid?1:0));});  // départage final STABLE par _uuid → ordre identique à la photo serveur (league_ref_rank)
+  }).sort(function(a,b){return (b.pts-a.pts) || ((a.competitive===false?1:0)-(b.competitive===false?1:0)) || (a._uuid<b._uuid?-1:(a._uuid>b._uuid?1:0));});  // tri : points desc → puis COMPÉTITIFS avant calibrage (les « C » tombent en bas à points égaux, donc en bas en début de période) → puis _uuid stable. ⚠️ DOIT rester identique au tri de la photo serveur (cron league_ref_rank) sinon fausses flèches.
   const isMine=(activeLeagueKey==='l4');
   // L1 Or = nouveau plafond pendant la beta (L Elite fermée). Suffix "et +"
   // pour indiquer qu'on y reste sans cap supérieur.
@@ -13193,6 +13193,15 @@ async function _processEndOfPeriodInner(){
       await supabaseClient.from('players').update({rpc_balance:0,buyin_debt:true,frozen:true}).eq('id',brp.id);
     }
   }
+
+  // 8b. Flèches de tendance — RESET à la rotation : on efface la photo de référence
+  //     (trend + league_ref_rank + league_ref_lg) pour TOUT le monde. Sinon, en début
+  //     de nouvelle période, le rang actuel (points remis à 0) serait comparé aux
+  //     positions de la période PRÉCÉDENTE → flèches incohérentes (▲47, ▼1…). Photo à
+  //     null = l'app affiche « = » partout jusqu'à la prochaine photo de minuit. (2026-07-01)
+  try {
+    await supabaseClient.from('players').update({trend:0,league_ref_rank:null,league_ref_lg:null}).not('id','is',null);
+  } catch(eRefReset){ console.warn('[rotation] reset flèches tendance :', eRefReset); }
 
   // 9. Boost & Gel mensuels gratuits + récompenses Premium
   //    On ACCUMULE sur le stock existant — JAMAIS d'écrasement (bug 2026-06-01 :
