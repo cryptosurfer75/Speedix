@@ -13007,11 +13007,12 @@ async function _processEndOfPeriodInner(){
       // qui se termine (= _periodData.period avant incrémentation) est >= à
       // calibration_period, alors le calibrage est terminé → compétitif.
       if(cpCalibPeriod===null||cpCalibPeriod===undefined||cpCalibPeriod>_periodData.period) continue;
-      // Period complète terminée + pts >= seuil min de sa league → compétitif
-      var cpLg=LEAGUES.find(function(l){return l.key===(cp.league||'').toLowerCase();});
-      if(cpLg && cp.pts>=(cpLg.min||0)){
-        await supabaseClient.from('players').update({competitive:true,calibration_period:null}).eq('id',cp.id);
-      }
+      // Sortie de calibrage = période de calibrage complète révolue + hors Starter. POINT.
+      // AUCUN seuil de points ici : ce seuil n'existe QUE pour la promotion ENTRE
+      // leagues (try_promote), jamais pour sortir du calibrage. (Bug corrigé 2026-07-01 :
+      // l'ancienne garde `cp.pts>=cpLg.min` coinçait en calibrage tout RP qui n'avait pas
+      // assez couru sur la période qui se ferme, alors qu'il avait fait son mois complet.)
+      await supabaseClient.from('players').update({competitive:true,calibration_period:null}).eq('id',cp.id);
     }
   }
 
@@ -13149,59 +13150,43 @@ async function _processEndOfPeriodInner(){
     }
   }
 
-  // 8. Buy-in — débiter le RPC d'entrée pour la PROCHAINE période (compétitifs only)
-  for(var bri=0;bri<ranked.length;bri++){
-    var brp=ranked[bri];
-    if(!brp.competitive) continue;
-    var brLk=brp.league||'starter';
-    if(brLk.toLowerCase()==='starter') continue;
+  // 8. Buy-in — débiter le RPC d'entrée pour la PROCHAINE période.
+  //    On RELIT l'état réel des compétitifs EN BASE (competitive + league +
+  //    rpc_balance) APRÈS la bascule §5b et le reclassement §6 — JAMAIS la photo
+  //    `ranked` prise en début de rotation : elle ignore les RP tout juste promus
+  //    (bug 2026-07-01 : au lancement de la compétition, AUCUN buy-in n'était
+  //    prélevé car la photo voyait tout le monde encore en calibrage) et garde
+  //    l'ancienne league. Le buy-in dépend de la LEAGUE D'ARRIVÉE (colonne
+  //    `league`), jamais des points d'une seule période.
+  var {data:_compForBuyin}=await supabaseClient.from('players')
+    .select('id,league,rpc_balance,frozen,buyin_debt')
+    .eq('competitive',true).eq('is_bot',false);
+  for(var bri=0;bri<(_compForBuyin||[]).length;bri++){
+    var brp=_compForBuyin[bri];
+    var brLk=(brp.league||'starter').toLowerCase();
+    if(brLk==='starter') continue;
+    var brLg=LEAGUES.find(function(l){return l.key===brLk;});
+    var buyin=brLg?(brLg.buyin||0):0;
+    if(buyin<=0) continue;
+    var currentRpc=brp.rpc_balance||0;
 
-    var brPlayer=allPlayers.find(function(p){return p.id===brp.id;});
-    var wasFrozen=brPlayer&&brPlayer.frozen;
-
-    // Si gelé → vérifier s'il peut payer maintenant pour dégeler
-    if(wasFrozen){
-      var destLgF=LEAGUES.slice().reverse().find(function(l){return brp.pts>=l.min&&l.key!=='starter'&&l.key!=='lelite';});
-      var buyinF=destLgF?destLgF.buyin:0;
-      var rpcF=(brPlayer?brPlayer.rpc_balance:0)||0;
-      if(rpcF>=buyinF&&buyinF>0){
-        // Il peut payer → dégeler + débiter
-        await supabaseClient.from('players').update({rpc_balance:rpcF-buyinF,frozen:false,buyin_debt:false}).eq('id',brp.id);
-      } else {
-        // Toujours pas assez → reste gelé
+    // Gelé : ne dégèle QUE s'il peut payer son buy-in maintenant, sinon reste gelé.
+    if(brp.frozen){
+      if(currentRpc>=buyin){
+        await supabaseClient.from('players').update({rpc_balance:currentRpc-buyin,frozen:false,buyin_debt:false}).eq('id',brp.id);
       }
       continue;
     }
 
-    // Trouver la league de destination
-    var destLg=LEAGUES.slice().reverse().find(function(l){return brp.pts>=l.min&&l.key!=='starter'&&l.key!=='lelite';});
-    if(!destLg||!destLg.buyin) continue;
-    var buyin=destLg.buyin;
-    var currentRpc=(brPlayer?brPlayer.rpc_balance:0)||0;
-
     if(currentRpc>=buyin){
       // Assez de RPC → buy-in normal
       await supabaseClient.from('players').update({rpc_balance:currentRpc-buyin,buyin_debt:false}).eq('id',brp.id);
-
+    } else if(!brp.buyin_debt){
+      // 1ère période sans pouvoir payer → dette (joue mais exclu des récompenses)
+      await supabaseClient.from('players').update({rpc_balance:0,buyin_debt:true}).eq('id',brp.id);
     } else {
-      // Pas assez de RPC → tenter de liquider des lands en location
-      // TODO: quand les lands seront en DB, liquider les moins chères d'abord
-      // Pour l'instant : simuler avec 0 lands
-      var landsLiquidated=0; // montant RPC récupéré par liquidation de lands
-      var totalAvailable=currentRpc+landsLiquidated;
-
-      if(totalAvailable>=buyin){
-        // Lands liquidées suffisent
-        await supabaseClient.from('players').update({rpc_balance:totalAvailable-buyin,buyin_debt:false}).eq('id',brp.id);
-
-      } else if(brPlayer&&!brPlayer.buyin_debt){
-        // 1ère période sans payer → dette, exclu des récompenses mais joue
-        await supabaseClient.from('players').update({rpc_balance:0,buyin_debt:true}).eq('id',brp.id);
-
-      } else {
-        // 2ème période sans payer → compte gelé
-        await supabaseClient.from('players').update({rpc_balance:0,buyin_debt:true,frozen:true}).eq('id',brp.id);
-      }
+      // 2ème période consécutive sans payer → compte gelé
+      await supabaseClient.from('players').update({rpc_balance:0,buyin_debt:true,frozen:true}).eq('id',brp.id);
     }
   }
 
