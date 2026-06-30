@@ -8930,8 +8930,12 @@ function renderLeaguePanel(){
     if(trend>0) trendHtml='<span style="font-size:.6rem;color:var(--green);font-weight:700">▲'+trend+'</span>';
     else if(trend<0) trendHtml='<span style="font-size:.6rem;color:var(--red);font-weight:700">▼'+Math.abs(trend)+'</span>';
     else trendHtml='<span style="font-size:.6rem;color:var(--muted)">=</span>';
-    // Badge place payée — emoji bourse (compétitifs seulement, basé sur compRank)
-    var isPaid=(!isStarter)&&(!isReleg)&&(!isCalib)&&(!p.buyin_debt)&&paidRanks&&medalRank<=paidRanks;
+    // Badge place payée — emoji bourse (compétitifs seulement, basé sur compRank).
+    // On NE conditionne PAS à !isReleg : en début de période tout le monde est sous
+    // le minimum de sa league (0 pt) donc techniquement "en relégation" — le 💰 doit
+    // quand même marquer les places payées du podium compétitif, exactement comme les
+    // médailles 🥇🥈🥉 qui, elles, ignorent déjà la zone de relégation. (Corrigé 2026-07-01)
+    var isPaid=(!isStarter)&&(!isCalib)&&(!p.buyin_debt)&&paidRanks&&medalRank<=paidRanks;
     var paidBadge=isPaid
       ?'<span title="'+t('league.badge.paid')+'" style="font-size:.82rem;flex-shrink:0;line-height:1">💰</span>'
       :'';
