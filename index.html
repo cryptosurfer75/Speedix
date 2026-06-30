@@ -9252,85 +9252,47 @@ function getCap1(leagueKey){
 }
 
 function getPrizeDistribution(n,pool,leagueKey){
-  // Définir les libellés de rangs selon la taille du tableau
-  let labels;
-  if(n<=30)       labels=['1er','2ème','3ème'];
-  else if(n<=60)  labels=['1er','2ème','3ème','4ème','5ème','6ème'];
-  else if(n<=90)  labels=['1er','2ème','3ème','4ème','5ème','6ème','7ème','8ème','9ème','10ème'];
-  else if(n<=130) labels=['1er','2ème','3ème','4ème','5ème','6ème','7ème','8ème','9ème','10ème','11–13','14–16'];
-  else if(n<=200) labels=['1er','2ème','3ème','4ème','5ème','6ème','7ème','8ème','9ème','10ème','11–13','14–16','17–20'];
-  else if(n<=270) labels=['1er','2ème','3ème','4ème','5ème','6ème','7ème','8ème','9ème','10ème','11–13','14–16','17–20','21–30'];
-  else if(n<=400) labels=['1er','2ème','3ème','4ème','5ème','6ème','7ème','8ème','9ème','10ème','11–13','14–16','17–20','21–30','31–40'];
-  else if(n<=530) labels=['1er','2ème','3ème','4ème','5ème','6ème','7ème','8ème','9ème','10ème','11–13','14–16','17–20','21–30','31–40','41–60'];
-  else if(n<=650) labels=['1er','2ème','3ème','4ème','5ème','6ème','7ème','8ème','9ème','10ème','11–13','14–16','17–20','21–30','31–40','41–60','61–80'];
-  else if(n<=1000)labels=['1er','2ème','3ème','4ème','5ème','6ème','7ème','8ème','9ème','10ème','11–13','14–16','17–20','21–30','31–40','41–60','61–80','81–100'];
-  else if(n<=1350)labels=['1er','2ème','3ème','4ème','5ème','6ème','7ème','8ème','9ème','10ème','11–13','14–16','17–20','21–30','31–40','41–60','61–80','81–100','101–150'];
-  else if(n<=1650)labels=['1er','2ème','3ème','4ème','5ème','6ème','7ème','8ème','9ème','10ème','11–13','14–16','17–20','21–30','31–40','41–60','61–80','81–100','101–150','151–200'];
-  else            labels=['1er','2ème','3ème','4ème','5ème','6ème','7ème','8ème','9ème','10ème','11–13','14–16','17–20','21–30','31–40','41–60','61–80','81–100','101–150','151–200','201–250'];
-
-  const K=labels.length;
-
-  // Calculer le montant du 1er : min(pool × ratio_brut_1er, plafond)
-  // ratio brut du 1er selon taille (avant plafond)
-  const ratio1=[50,38,32,30,28,27,26,25,24,23,21,20,19.5];
-  const brackets=[30,60,90,130,200,270,400,530,650,1000,1350,1650,Infinity];
-  let bi=0; while(bi<brackets.length-1&&n>brackets[bi])bi++;
-  const pct1=ratio1[bi];
-
-  const cap=getCap1(leagueKey||'l3');
-  // Montant réel du 1er (plafonné si nécessaire)
-  const rpc1=pool>0?Math.min(Math.round(pool*pct1/100),cap):0;
-
-  // Construire les montants en cascade géométrique strictement décroissante
-  // à partir de rpc1, avec ratio ~0.62 entre rangs consécutifs
-  // On ajuste le ratio pour que la somme totale = pool
-  if(pool<=0) return labels.map(r=>({r,pct:0}));
-
-  // Ratio géométrique de base entre rangs unitaires
-  // On utilise ratio 0.60 pour les 10 premiers, puis 0.75 pour les groupes
-  const baseRatios=[1,0.60,0.42,0.32,0.26,0.21,0.17,0.13,0.10,0.08];
-  // Pour les groupes (rangs 10+), ratio plus doux car plusieurs joueurs partagent
-  const groupRatios=[0.065,0.052,0.042,0.032,0.024,0.018,0.013,0.010,0.008,0.007,0.006];
-
-  // Construire les montants bruts
-  let amounts=[];
-  for(let i=0;i<K;i++){
-    if(i<10) amounts.push(rpc1*(baseRatios[i]||0.06));
-    else     amounts.push(rpc1*(groupRatios[i-10]||0.005));
-  }
-  amounts[0]=rpc1; // forcer le 1er au montant plafonné
-
-  // Garantir que chaque rang < rang précédent
-  for(let i=1;i<K;i++){
-    if(amounts[i]>=amounts[i-1]) amounts[i]=amounts[i-1]*0.65;
-  }
-
-  // Normaliser pour que la somme = pool, PUIS réappliquer le plafond sur le 1er
-  const sum=amounts.reduce((a,b)=>a+b,0);
-  if(sum>0) amounts=amounts.map(v=>Math.round(v/sum*pool));
-
-  // Si après normalisation le 1er dépasse encore le plafond, on fixe à cap
-  // et on redistribue le surplus sur les rangs suivants en cascade décroissante
-  if(pool>0 && amounts[0]>cap){
-    const surplus=amounts[0]-cap;
-    amounts[0]=cap;
-    // Redistribuer le surplus proportionnellement aux rangs 2+, en préservant l'ordre
-    const restSum=amounts.slice(1).reduce((a,b)=>a+b,0);
-    if(restSum>0){
-      amounts=amounts.map((v,i)=>i===0?v:Math.round(v+surplus*(v/restSum)));
-    }
-    // Re-vérifier ordre décroissant après redistribution
-    for(let i=1;i<K;i++){
-      if(amounts[i]>=amounts[i-1]) amounts[i]=Math.round(amounts[i-1]*0.82);
-    }
-  }
-
-  // Recalculer les %
-  return labels.map((r,i)=>({
-    r,
-    pct:pool>0?Math.round(amounts[i]/pool*10000)/100:0,
-    rpc:amounts[i]
-  }));
+  // ── BARÈME OFFICIEL du Livre Blanc (répartition du prize pool en fin de période) ──
+  // Chaque ligne = [rangDébut, rangFin, % PAR JOUEUR de la cagnotte]. Pour un GROUPE
+  // (ex. 11–13), ce % est versé À CHACUN de ses membres. La somme (% × effectif de
+  // chaque ligne) fait exactement 100 % de la cagnotte. Source : SPEEDIX LEAGUE V2 —
+  // tableau « répartition du PP » (transcrit le 2026-07-01 ; remplace l'ancien algo
+  // « cascade géométrique maison » qui donnait 49,51/29,71/20,8 % au lieu de 50/30/20).
+  var PP_TABLE=[
+    {max:30,      r:[[1,1,50],[2,2,30],[3,3,20]]},
+    {max:60,      r:[[1,1,37],[2,2,22],[3,3,15],[4,4,11],[5,5,8],[6,6,7]]},
+    {max:70,      r:[[1,1,30],[2,2,20],[3,3,12],[4,4,10],[5,5,8],[6,6,6.5],[7,7,5.5],[8,8,4.5],[9,9,3.5]]},
+    {max:90,      r:[[1,1,29],[2,2,18.5],[3,3,12],[4,4,10],[5,5,8],[6,6,6.5],[7,7,5.5],[8,8,4.5],[9,9,3.5],[10,10,2.5]]},
+    {max:100,     r:[[1,1,28.5],[2,2,17.25],[3,3,11],[4,4,9.1],[5,5,7.6],[6,6,6.4],[7,7,5.4],[8,8,4.3],[9,9,3.3],[10,10,2.35],[11,13,1.6]]},
+    {max:130,     r:[[1,1,28],[2,2,17],[3,3,10.5],[4,4,8.25],[5,5,7.1],[6,6,6],[7,7,5],[8,8,4.1],[9,9,2.8],[10,10,2.25],[11,13,1.6],[14,16,1.4]]},
+    {max:200,     r:[[1,1,27.5],[2,2,16.6],[3,3,10.15],[4,4,7.9],[5,5,6.8],[6,6,5.8],[7,7,4.7],[8,8,3.7],[9,9,2.6],[10,10,2],[11,13,1.5],[14,16,1.25],[17,20,1]]},
+    {max:270,     r:[[1,1,27],[2,2,16.3],[3,3,9],[4,4,7.25],[5,5,6.25],[6,6,5.25],[7,7,4.25],[8,8,3.25],[9,9,2.25],[10,10,1.6],[11,13,1.3],[14,16,1.1],[17,20,0.85],[21,30,0.7]]},
+    {max:400,     r:[[1,1,26],[2,2,15.45],[3,3,8.75],[4,4,7],[5,5,6],[6,6,5],[7,7,4],[8,8,3],[9,9,2],[10,10,1.5],[11,13,1.2],[14,16,1],[17,20,0.8],[21,30,0.65],[31,40,0.5]]},
+    {max:530,     r:[[1,1,25],[2,2,14],[3,3,8.26],[4,4,6.35],[5,5,5.3],[6,6,4.25],[7,7,3.25],[8,8,2.25],[9,9,1.7],[10,10,1.3],[11,13,1.1],[14,16,0.9],[17,20,0.76],[21,30,0.63],[31,40,0.5],[41,60,0.4]]},
+    {max:650,     r:[[1,1,24],[2,2,13.15],[3,3,7.75],[4,4,6.1],[5,5,5.1],[6,6,4.1],[7,7,3.1],[8,8,2.2],[9,9,1.6],[10,10,1.2],[11,13,0.9],[14,16,0.8],[17,20,0.7],[21,30,0.57],[31,40,0.47],[41,60,0.37],[61,80,0.3]]},
+    {max:1000,    r:[[1,1,23.5],[2,2,13],[3,3,7.5],[4,4,6],[5,5,5],[6,6,4],[7,7,3],[8,8,2],[9,9,1.5],[10,10,1.1],[11,13,0.85],[14,16,0.75],[17,20,0.65],[21,30,0.55],[31,40,0.45],[41,60,0.35],[61,80,0.25],[81,100,0.2]]},
+    {max:1350,    r:[[1,1,21],[2,2,12],[3,3,7.25],[4,4,5.75],[5,5,4.75],[6,6,3.75],[7,7,2.85],[8,8,1.9],[9,9,1.45],[10,10,1],[11,13,0.82],[14,16,0.72],[17,20,0.62],[21,30,0.52],[31,40,0.42],[41,60,0.32],[61,80,0.2],[81,100,0.17],[101,150,0.16]]},
+    {max:1650,    r:[[1,1,20],[2,2,11],[3,3,6.9],[4,4,5.45],[5,5,4.6],[6,6,3.45],[7,7,2.65],[8,8,1.75],[9,9,1.35],[10,10,0.95],[11,13,0.8],[14,16,0.7],[17,20,0.6],[21,30,0.5],[31,40,0.4],[41,60,0.26],[61,80,0.18],[81,100,0.16],[101,150,0.15],[151,200,0.13]]},
+    {max:Infinity,r:[[1,1,19.5],[2,2,10.75],[3,3,6.8],[4,4,5.3],[5,5,4.3],[6,6,3.3],[7,7,2.55],[8,8,1.75],[9,9,1.3],[10,10,0.85],[11,13,0.74],[14,16,0.64],[17,20,0.54],[21,30,0.44],[31,40,0.34],[41,60,0.23],[61,80,0.17],[81,100,0.15],[101,150,0.14],[151,200,0.12],[201,250,0.11]]}
+  ];
+  var bracket=PP_TABLE.find(function(b){return n<=b.max;})||PP_TABLE[PP_TABLE.length-1];
+  var cap=getCap1(leagueKey||'l3');
+  function ord(k){return k===1?'1er':(k+'ème');}
+  // `rpc` = montant PAR JOUEUR de la ligne (la rotation crédite ce montant à chaque
+  //  membre du rang/groupe ; l'affichage montre ce que touche chaque joueur).
+  var out=[], prev=Infinity;
+  bracket.r.forEach(function(rg){
+    var from=rg[0], to=rg[1], pctPer=rg[2];
+    if(from>n) return;            // place non pourvue (pas assez de joueurs)
+    if(to>n) to=n;                // dernier groupe partiellement pourvu
+    var rpcPer=pool>0?Math.round(pool*pctPer/100):0;
+    if(from===1) rpcPer=Math.min(rpcPer,cap);   // plafond 1ère place : 75k (≤L3) / 90k (L2) / 150k (L1+Elite)
+    if(rpcPer>prev) rpcPer=prev;  // garde-fou : jamais plus que le rang du dessus (cas où le plafond du 1er mord fort)
+    prev=rpcPer;
+    var label=(from===to)?ord(from):(from+'–'+to);
+    out.push({r:label, pct:(pool>0?Math.round(rpcPer/pool*10000)/100:pctPer), rpc:rpcPer});
+  });
+  return out;
 }
 
 function renderLeaguePP(){
@@ -13136,15 +13098,17 @@ async function _processEndOfPeriodInner(){
     var ppRankCursor=1;
     for(var di=0;di<ppDist.length;di++){
       var row=ppDist[di];
-      var rpcAmount=row.pct||0;
-      if(rpcAmount<=0) continue;
-      // Parser le range (ex: "1er" → rank 1, "11–13" → ranks 11,12,13)
+      // `row.rpc` est DÉJÀ le montant par joueur (barème officiel) → on crédite tel quel
+      // à chaque membre du rang/groupe. (Avant : lisait `row.pct` = le %, bug latent qui
+      // aurait versé ~50 RPC au 1er au lieu de sa part réelle. Corrigé 2026-07-01.)
+      var perPlayer=row.rpc||0;
+      if(perPlayer<=0) continue;
+      // Parser le range (ex: "1er" → rang 1, "11–13" → rangs 11,12,13)
       var rangeMatch=row.r.match(/(\d+)[–\-](\d+)/);
       var startR,endR;
       if(rangeMatch){startR=parseInt(rangeMatch[1]);endR=parseInt(rangeMatch[2]);}
       else{startR=parseInt(row.r);endR=startR;}
       if(isNaN(startR)) continue;
-      var perPlayer=rangeMatch?Math.round(rpcAmount/(endR-startR+1)):rpcAmount;
       for(var ri=startR-1;ri<Math.min(endR,ppPlayers.length);ri++){
         var winner=ppPlayers[ri];
         if(winner){
