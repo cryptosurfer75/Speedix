@@ -28927,7 +28927,7 @@ async function recordWinnings(rpc,nyx,perfect,asked,good){
   // additionne sur la vérité DB, jamais sur une mémoire potentiellement vide.
   try{
     const {data:fresh}=await supabaseClient.from('players')
-      .select('cashrun_total_rpc,cashrun_month_rpc,cashrun_month,cashrun_jackpots,cashrun_month_jackpots,cashrun_games,cashrun_q_asked,cashrun_q_good')
+      .select('cashrun_total_rpc,cashrun_month_rpc,cashrun_month,cashrun_jackpots,cashrun_month_jackpots,cashrun_games,cashrun_month_games,cashrun_q_asked,cashrun_q_good')
       .eq('id',u.id).maybeSingle();
     if(fresh) Object.assign(u, fresh);
   }catch(e){ console.warn('recordWinnings refresh fail',e); }
@@ -28939,6 +28939,7 @@ async function recordWinnings(rpc,nyx,perfect,asked,good){
     cashrun_jackpots:(u.cashrun_jackpots||0)+(perfect?1:0),
     cashrun_month_jackpots:(sameMonth?(u.cashrun_month_jackpots||0):0)+(perfect?1:0),
     cashrun_games:(u.cashrun_games||0)+1,
+    cashrun_month_games:(sameMonth?(u.cashrun_month_games||0):0)+1,   // parties DU MOIS (reset auto à la rotation, comme les RPC)
     cashrun_q_asked:(u.cashrun_q_asked||0)+(asked||0),
     cashrun_q_good:(u.cashrun_q_good||0)+(good||0)
   };
@@ -28953,15 +28954,16 @@ async function leaderboard(mode){
   const general = (mode==='general');
   const col = general ? 'cashrun_total_rpc' : 'cashrun_month_rpc';
   const jk  = general ? 'cashrun_jackpots'  : 'cashrun_month_jackpots';
+  const gm  = general ? 'cashrun_games'      : 'cashrun_month_games';  // parties affichées/départage : à vie en général, DU MOIS en mensuel
   const ref = general ? 'cashrun_ref_rank_g' : 'cashrun_ref_rank_m';  // position figée à minuit (photo serveur)
   let list=[];
   // Tri principal : RPC décroissant. Départage des égalités (validé 2026-06-08) :
   //   1) à RPC égal, MOINS de parties jouées passe devant (plus efficace) → cashrun_games croissant
   //   2) si toujours égal, PLUS de séries parfaites (jackpots = échelles complètes) → jk décroissant
   function buildQ(withRef){
-    let q=supabaseClient.from('players').select('id,username,cashrun_games,'+col+','+jk+(withRef?(','+ref):''))
+    let q=supabaseClient.from('players').select('id,username,'+gm+','+col+','+jk+(withRef?(','+ref):''))
       .order(col,{ascending:false})
-      .order('cashrun_games',{ascending:true})
+      .order(gm,{ascending:true})
       .order(jk,{ascending:false})
       .order('id',{ascending:true})   // départage final STABLE (id) → ordre identique à la photo serveur, évite les fausses flèches sur les ex-aequo
       .limit(200);
@@ -28973,7 +28975,7 @@ async function leaderboard(mode){
     let {data,error}=await buildQ(true);
     if(error){ const r2=await buildQ(false); data=r2.data; }   // colonnes ref pas encore créées → repli sans flèche
     list=(data||[])
-      .map(p=>({id:p.id, name:p.username||'RP', rpc:p[col]||0, full:p[jk]||0, games:p.cashrun_games||0, refRank:(p[ref]!=null?p[ref]:null), me:(CU().id===p.id)}));
+      .map(p=>({id:p.id, name:p.username||'RP', rpc:p[col]||0, full:p[jk]||0, games:p[gm]||0, refRank:(p[ref]!=null?p[ref]:null), me:(CU().id===p.id)}));
   }catch(e){ console.warn('cashrun leaderboard fail',e); }
   return list;
 }
