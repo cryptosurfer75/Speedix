@@ -13162,9 +13162,11 @@ async function _processEndOfPeriodInner(){
   //    prélevé car la photo voyait tout le monde encore en calibrage) et garde
   //    l'ancienne league. Le buy-in dépend de la LEAGUE D'ARRIVÉE (colonne
   //    `league`), jamais des points d'une seule période.
+  //    Les BOTS compétitifs sont inclus (décision 2026-07-01 : un bot = un RP
+  //    comme un autre, il paie son buy-in et concourt pour la cagnotte).
   var {data:_compForBuyin}=await supabaseClient.from('players')
     .select('id,league,rpc_balance,frozen,buyin_debt')
-    .eq('competitive',true).eq('is_bot',false);
+    .eq('competitive',true);
   for(var bri=0;bri<(_compForBuyin||[]).length;bri++){
     var brp=_compForBuyin[bri];
     var brLk=(brp.league||'starter').toLowerCase();
