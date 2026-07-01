@@ -8863,7 +8863,13 @@ function renderLeaguePanel(){
     // la distribution permanente au palmarès (médailles Player Card), pas l'indicateur
     // de rang en direct dans le classement.
     var rankDisplay=(!isStarter&&medalRank===1)?'🥇':(!isStarter&&medalRank===2)?'🥈':(!isStarter&&medalRank===3)?'🥉':'<div class="rank-num '+rc+'">'+rankNum+'</div>';
-    var rankCell=(!isStarter&&medalRank>=1&&medalRank<=3)?'<div style="font-size:1.45rem;line-height:1;text-align:center;width:36px;flex-shrink:0">'+rankDisplay+'</div>':'<div class="rank-num '+rc+'">'+rankNum+'</div>';
+    // Un RP en calibrage n'a pas de médaille, mais il peut se glisser physiquement
+    // dans la zone podium — au-dessus OU intercalé ENTRE les 3 médaillés compétitifs
+    // (le classement est trié aux points, un « C » à gros score remonte). Son numéro
+    // (1/2/3/4…) ferait alors doublon visuel avec les médailles → on le remplace par
+    // un simple tiret tant qu'il est dans la bande des médailles (rang ≤ position du bronze).
+    var rankLabel=(!isStarter && isCalib && rankNum<=_medalBandEnd)?'–':rankNum;
+    var rankCell=(!isStarter&&medalRank>=1&&medalRank<=3)?'<div style="font-size:1.45rem;line-height:1;text-align:center;width:36px;flex-shrink:0">'+rankDisplay+'</div>':'<div class="rank-num '+rc+'">'+rankLabel+'</div>';
     var isMe=(p.id===1);
     var gc=GRADE_COLORS[p.grade]||'#8090b0';
     var initials=p.name.split(' ').map(function(w){return w[0];}).join('');
@@ -8968,6 +8974,15 @@ function renderLeaguePanel(){
 
   // Compute number of paid places from distribution
   // Ne compter que les RP compétitifs pour le prize pool (exclure calibrage)
+  // Position physique (rang affiché) du dernier médaillé = 3e compétitif, ou le
+  // dernier s'il y en a moins de 3. Délimite la « bande des médailles » : tout RP en
+  // calibrage intercalé dans cette bande voit son numéro remplacé par un tiret (cf. buildRow).
+  // On parcourt `players` dans l'ordre trié, identique à l'ordre d'affichage des lignes.
+  var _medalBandEnd=0, _seenComp=0;
+  for(var _mi=0; _mi<players.length; _mi++){
+    if(players[_mi].competitive!==false){ _seenComp++; _medalBandEnd=_mi+1; if(_seenComp>=3) break; }
+  }
+
   var competitivePlayers=players.filter(function(p){return p.competitive!==false;});
   var ppPool=Math.round(competitivePlayers.length*(league?league.buyin:0)*0.7);
   var ppDist=getPrizeDistribution(competitivePlayers.length,ppPool,activeLeagueKey);
