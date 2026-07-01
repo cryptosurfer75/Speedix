@@ -29346,6 +29346,13 @@ function amountHtml(total){
     + (S.bankNyx>0 ? ` <span class="nyx" style="font-size:.6em">+${S.bankNyx} NYX ◆</span>` : '');
 }
 function endRound(reason){
+  // ⚠️ GARDE ANTI-DOUBLE-CRÉDIT (bug Gaby34/Anna 2026-07-01) : endRound peut être appelé
+  // 2× quasi simultanément — course entre le tick() du chrono qui tombe à 0 et le
+  // setTimeout(feedbackMs) de answer()/nextQuestion(). Sans garde, recordWinnings tournait
+  // deux fois → RPC crédités en double ET parties comptées en double (cashrun_games /
+  // cashrun_month_games gonflés → faux « 3 parties » à peine la période lancée).
+  if(!S || S.ended) return;
+  S.ended = true;
   clearInterval(timerId);
   clearRound();                 // manche terminée → plus rien à reprendre (évite tout re-crédit)
   const tr=T[lang];
