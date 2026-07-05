@@ -21191,6 +21191,9 @@ function _badgeRibbonLabel(b){
     case 'capitals_eu':      return v+' 🇪🇺';
     case 'night_runs':       return '22→4h';
     case 'morning_runs':     return '4→7h';
+    case 'cashrun_jackpots': return v+' 🎰';
+    case 'collab_wins':      return v+' 🤝';
+    case 'account_age_days': return v+' j';
     default:                 return '';
   }
 }
@@ -21295,6 +21298,19 @@ async function renderChallenges(){
   var {data:rec}=await supabaseClient.from('lands').select('id,rented_at').eq('tenant_id',targetUuid).gte('rented_at',cutoff);
   var simultaneousLands=(rec||[]).length;
 
+  // 4bis. Profil joueur (Cash Run, anciennete) + defis collab gagnes
+  // MIROIR de checkBadges.ts (_shared) — garder synchro, NE PAS diverger.
+  var {data:pRow}=await supabaseClient.from('players').select('cashrun_jackpots,created_at').eq('id',targetUuid).single();
+  var cashrunJackpots=(pRow&&pRow.cashrun_jackpots)||0;
+  var accountAgeDays=(pRow&&pRow.created_at)?(Date.now()-new Date(pRow.created_at).getTime())/86400000:0;
+  var {data:myParts}=await supabaseClient.from('collab_challenge_participants').select('challenge_id').eq('player_id',targetUuid);
+  var myChallengeIds=(myParts||[]).map(function(p){return p.challenge_id;});
+  var collabWins=0;
+  if(myChallengeIds.length){
+    var {data:cWins}=await supabaseClient.from('collab_challenges').select('id').in('id',myChallengeIds).eq('status','success');
+    collabWins=(cWins||[]).length;
+  }
+
   // 5. Stats agrégées
   var stats={
     single_run_km:valid.reduce(function(m,r){return Math.max(m,r.distance||0);},0),
@@ -21307,7 +21323,10 @@ async function renderChallenges(){
     capitals_fr:_countCapitals(valid,FR_CAPITALS_CLIENT),
     capitals_eu:_countCapitals(valid,EU_CAPITALS_CLIENT),
     night_runs:_countTimeWindow(valid,22,4),
-    morning_runs:_countTimeWindow(valid,4,7)
+    morning_runs:_countTimeWindow(valid,4,7),
+    cashrun_jackpots:cashrunJackpots,
+    collab_wins:collabWins,
+    account_age_days:accountAgeDays
   };
 
   // 6. Tri : débloqués d'abord (récents en premier), puis verrouillés par progression
@@ -21439,6 +21458,7 @@ async function renderChallenges(){
       if(b.threshold_type==='cumul_km') progressTxt=current.toFixed(1)+' / '+target+' km';
       else if(b.threshold_type==='cumul_elv_m') progressTxt=Math.round(current)+' / '+target+' m';
       else if(b.threshold_type==='streak_days') progressTxt=current+' / '+target+' j';
+      else if(b.threshold_type==='account_age_days') progressTxt=Math.floor(current)+' / '+target+' j';
       else progressTxt=current+' / '+target;
     }
     var cardBorder=isUnlocked?(color+'55'):(isEvent?(color+'44'):'rgba(255,255,255,.06)');
@@ -22755,6 +22775,9 @@ function _badgeChallengeDescription(b){
     case 'morning_runs':      return 'Faire <strong style="color:'+(b.color||'#f5c842')+'">'+v+' courses</strong> entre 4h et 7h';
     case 'event_run':         return v ? 'Courir <strong style="color:'+(b.color||'#f5c842')+'">'+fmt(v)+' km</strong> le jour de l\'événement'
                                         : 'Participer à l\'événement à la date prévue';
+    case 'cashrun_jackpots':  return 'Gagner <strong style="color:'+(b.color||'#f5c842')+'">'+v+' jackpots</strong> à Cash Run';
+    case 'collab_wins':       return 'Réussir <strong style="color:'+(b.color||'#f5c842')+'">'+v+' défis collaboratifs</strong> entre voisins';
+    case 'account_age_days':  return 'Être inscrit depuis <strong style="color:'+(b.color||'#f5c842')+'">'+v+' jours</strong>';
     default:                  return '';
   }
 }
