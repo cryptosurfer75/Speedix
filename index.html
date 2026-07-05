@@ -7901,9 +7901,10 @@ function computePts(km,spd,elv,boost,gel){
   const A=d*coeffD;
   // B — Points vitesse
   // Exposant PROGRESSIF : part de 2 (pivot à 8 km/h, où le bonus vaut toujours 1)
-  // et monte de 0,04 par km/h au-delà de 8 → la performance « champion » accélère
-  // sans seuil ni rupture. MIROIR EXACT de compute_run_points (base) — garder synchro.
-  const bonusV=Math.pow(spd/8, 2+0.04*Math.max(0,spd-8));
+  // et monte de 0,025 par km/h au-delà de 8 → la performance « champion » accélère
+  // sans seuil ni rupture. Coefficient abaissé de 0,04 à 0,025 le 2026-07-05 (courbe
+  // jugée trop raide au-dessus de 17-18 km/h). MIROIR EXACT de compute_run_points (base) — garder synchro.
+  const bonusV=Math.pow(spd/8, 2+0.025*Math.max(0,spd-8));
   const B=(A/10)*(spd*bonusV);
   // C — Points dénivelé
   const divD=12+8*(elv/(elv+1000));
