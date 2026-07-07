@@ -8234,14 +8234,15 @@ function renderDashboard(){
     accessoriesColor:['3c4f5c','65c9ff','e6e6e6','929598','ff488e','262e33','f5c842','ff5c5c','5199e4','25557c','b1e2ff','a7ffc4','ffffff'],
     clothing:['blazerAndShirt','blazerAndSweater','collarAndSweater','graphicShirt','hoodie','overall','shirtCrewNeck','shirtScoopNeck','shirtVNeck'],
     clothesColor:['3c4f5c','65c9ff','5199e4','25557c','e6e6e6','929598','a7ffc4','ffdeb5','ffafb9','ff488e','262e33','ff5c5c','b1e2ff','ffffb1','ffffff'],
+    clothingGraphic:['bat','bear','cumbia','deer','diamond','hola','pizza','resist','skull','skullOutline'],
     eyes:['default','happy','squint','surprised','wink','side','hearts','closed','cry','eyeRoll','winkWacky','xDizzy'],
     eyebrows:['default','defaultNatural','raisedExcited','upDown','flatNatural','angryNatural','unibrowNatural','frownNatural','raisedExcitedNatural','sadConcernedNatural','upDownNatural','angry','sadConcerned'],
     mouth:['default','smile','twinkle','serious','tongue','grimace','concerned','disbelief','eating','sad','screamOpen'],
     facialHair:['blank','beardLight','beardMedium','beardMajestic','moustacheFancy','moustacheMagnum'],
     facialHairColor:['a55728','2c1b18','b58143','d6b370','724133','4a312c','c93305','e8e1e1','f59797','ecdcbf']
   };
-  var _avatarLabels={skinColor:'Peau',top:'Cheveux',hairColor:'Couleur cheveux',hatColor:'Chapeau',hatTint:'Couleur chapeau',accessories:'Lunettes',accessoriesColor:'Couleur lunettes',clothing:'Vêtement',clothesColor:'Couleur vêtement',eyes:'Yeux',eyebrows:'Sourcils',mouth:'Bouche',facialHair:'Barbe',facialHairColor:'Couleur barbe'};
-  var _avatarCurrent={skinColor:0,top:0,hairColor:0,hatColor:0,hatTint:0,accessories:0,accessoriesColor:0,clothing:0,clothesColor:0,eyes:0,eyebrows:0,mouth:0,facialHair:0,facialHairColor:0};
+  var _avatarLabels={skinColor:'Peau',top:'Cheveux',hairColor:'Couleur cheveux',hatColor:'Chapeau',hatTint:'Couleur chapeau',accessories:'Lunettes',accessoriesColor:'Couleur lunettes',clothing:'Vêtement',clothesColor:'Couleur vêtement',clothingGraphic:'Motif du t-shirt',eyes:'Yeux',eyebrows:'Sourcils',mouth:'Bouche',facialHair:'Barbe',facialHairColor:'Couleur barbe'};
+  var _avatarCurrent={skinColor:0,top:0,hairColor:0,hatColor:0,hatTint:0,accessories:0,accessoriesColor:0,clothing:0,clothesColor:0,clothingGraphic:0,eyes:0,eyebrows:0,mouth:0,facialHair:0,facialHairColor:0};
 
   // Casquette SPEEDIX (jaune SPEEDIX + "RP" noir) — superposée sur DiceBear
   // car DiceBear avataaars n'offre pas de casquette. Calée sur viewBox 0 0 280 280 (tête centrée x=140).
@@ -8297,8 +8298,12 @@ function renderDashboard(){
     }
     url+='&skinColor='+_avatarOpts.skinColor[_avatarCurrent.skinColor];
     url+='&hairColor='+_avatarOpts.hairColor[_avatarCurrent.hairColor];
-    url+='&clothing='+_avatarOpts.clothing[_avatarCurrent.clothing];
+    var clothingVal=_avatarOpts.clothing[_avatarCurrent.clothing];
+    url+='&clothing='+clothingVal;
     url+='&clothesColor='+_avatarOpts.clothesColor[_avatarCurrent.clothesColor];
+    if(clothingVal==='graphicShirt'){
+      url+='&clothingGraphic='+_avatarOpts.clothingGraphic[_avatarCurrent.clothingGraphic];
+    }
     url+='&eyes='+_avatarOpts.eyes[_avatarCurrent.eyes];
     url+='&eyebrows='+_avatarOpts.eyebrows[_avatarCurrent.eyebrows];
     url+='&mouth='+_avatarOpts.mouth[_avatarCurrent.mouth];
@@ -8398,11 +8403,21 @@ function renderDashboard(){
       _avatarCurrent.accessories=0;
       _avatarCurrent.facialHair=0;
     }
-    // Construire les sélecteurs
+    renderAvatarOptionsPanel();
+    updateAvatarPreview();
+    openModal('avatar-picker-modal');
+  };
+
+  // Construit les sélecteurs du créateur d'avatar. Extrait à part car le motif
+  // du t-shirt (clothingGraphic) ne doit apparaître que si le vêtement choisi
+  // est "t-shirt à motif" (graphicShirt) — donc le panneau doit se reconstruire
+  // quand on change de vêtement, pas juste se mettre à jour ligne par ligne.
+  function renderAvatarOptionsPanel(){
     var el=document.getElementById('avatar-builder-options');
     if(!el) return;
     el.innerHTML='';
     for(var key in _avatarOpts){
+      if(key==='clothingGraphic'&&_avatarOpts.clothing[_avatarCurrent.clothing]!=='graphicShirt') continue;
       var label=_avatarLabels[key]||key;
       var total=_avatarOpts[key].length;
       if(key==='skinColor'||key==='hairColor'){
@@ -8426,9 +8441,7 @@ function renderDashboard(){
           +'</div></div>';
       }
     }
-    updateAvatarPreview();
-    openModal('avatar-picker-modal');
-  };
+  }
 
   window.avatarNav=function(key,dir){
     if(key==='hatColor'){
@@ -8460,6 +8473,11 @@ function renderDashboard(){
       _avatarCurrent.hatColor=0;
       var hlbl2=document.getElementById('av-hatColor-label');
       if(hlbl2) hlbl2.textContent='Aucun';
+    }
+    // Le t-shirt à motif fait apparaître/disparaître la ligne « Motif du t-shirt » :
+    // reconstruire tout le panneau plutôt que de mettre à jour une seule ligne.
+    if(key==='clothing'){
+      renderAvatarOptionsPanel();
     }
     updateAvatarPreview();
   };
