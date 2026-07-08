@@ -6352,6 +6352,19 @@ async function onLoginSuccess(user, isNew){
     });
     pd.avatar=_retroAvatar;
   }
+  // RevenueCat : identifier ce joueur pour que ses achats (et le webhook
+  // grant-iap) retombent sur le bon compte via app_user_id=currentUser.id.
+  if(window.Capacitor && typeof window.Capacitor.isNativePlatform==='function' && window.Capacitor.isNativePlatform() && window.Capacitor.Plugins && window.Capacitor.Plugins.Purchases){
+    try{
+      var _rcKey=window.Capacitor.getPlatform()==='ios'?'appl_WLpZrjyrKnbRktANuWCpoygbDBx':'goog_QLvLFJSeinntiZJHIqfpaSpkgfv';
+      if(!window.__rcConfigured){
+        await window.Capacitor.Plugins.Purchases.configure({apiKey:_rcKey,appUserID:user.id});
+        window.__rcConfigured=true;
+      } else {
+        await window.Capacitor.Plugins.Purchases.logIn({appUserID:user.id});
+      }
+    }catch(e){}
+  }
   if(pd){
     // Générer RL ID séquentiel (par ordre d'inscription)
     var rtwId=pd.rtw_id;
@@ -16042,10 +16055,86 @@ function renderGrades(){
 // isPremium, _checkPremiumExpiration, _openPremiumExpireModal.
 // ████████████████████████████████████████████████████████████████████████████
 
+// ── RevenueCat : achats réels (IAP) ──
+// Garde défensive : le plugin natif n'existe que dans l'app buildée pour les
+// stores. Sans lui (web/PWA, ou APK sideloadé sans le plugin), on retombe
+// toujours sur le comportement "vitrine" existant — aucun joueur actuel n'est
+// impacté par ce branchement.
+var IAP_RPC_PRODUCTS={10000:'rpc_10k',50000:'rpc_50k',100000:'rpc_100k',500000:'rpc_500k'};
+var IAP_NYX_PRODUCTS={10:'nyx_10',50:'nyx_50',100:'nyx_100',500:'nyx_500'};
+
+function _hasRevenueCat(){
+  return !!(window.Capacitor
+    && typeof window.Capacitor.isNativePlatform==='function'
+    && window.Capacitor.isNativePlatform()
+    && window.Capacitor.Plugins
+    && window.Capacitor.Plugins.Purchases);
+}
+
+// Lance l'achat d'un produit RevenueCat et affiche le suivi dans land-modal.
+// Le crédit réel (wallet ou Premium) n'est JAMAIS fait ici : il arrive via le
+// webhook serveur grant-iap, seul habilité à valider un paiement auprès
+// d'Apple/Google. Ce flow ne fait qu'ouvrir le paiement natif et attendre.
+async function _purchaseProduct(productId, label, emoji, priceLabel, onSuccessPoll){
+  document.getElementById('lm-title').textContent=emoji+' '+label;
+  document.getElementById('lm-body').innerHTML=
+    '<div style="text-align:center;padding:1.5rem">'
+    +'<div style="font-size:2rem;margin-bottom:.5rem">⏳</div>'
+    +'<div style="font-size:.85rem;color:var(--muted2)">Ouverture du paiement...</div>'
+    +'</div>';
+  openModal('land-modal');
+  var Purchases=window.Capacitor.Plugins.Purchases;
+  try{
+    var got=await Purchases.getProducts({productIdentifiers:[productId]});
+    var product=got && got.products && got.products[0];
+    if(!product){
+      showToast('⚠️ Produit indisponible pour le moment');
+      closeModal('land-modal');
+      return;
+    }
+    await Purchases.purchaseStoreProduct({product:product});
+    document.getElementById('lm-body').innerHTML=
+      '<div style="text-align:center;padding:1.5rem">'
+      +'<div style="font-size:2rem;margin-bottom:.5rem">✅</div>'
+      +'<div style="font-size:.85rem;color:var(--text)">Paiement confirmé !<br>Crédit en cours...</div>'
+      +'</div>';
+    if(onSuccessPoll) onSuccessPoll();
+  }catch(e){
+    var userCancelled=!!(e && (e.userCancelled || (e.message&&e.message.toLowerCase().indexOf('cancel')>=0)));
+    if(!userCancelled) showToast('⚠️ Paiement annulé ou échoué');
+    closeModal('land-modal');
+  }
+}
+
+// Le crédit RPC/NYX arrive via webhook (asynchrone, ~quelques secondes) :
+// on relit le wallet à intervalles pour l'afficher dès qu'il est crédité.
+function _pollWalletCredit(){
+  [2000,5000,10000].forEach(function(delay){ setTimeout(walletLoad, delay); });
+}
+
+async function _refreshMyPlayerPremium(){
+  if(!currentUser) return;
+  var {data}=await supabaseClient.from('players').select('premium,premium_until,premium_trial').eq('id',currentUser.id).maybeSingle();
+  if(data && window.__myPlayer){
+    window.__myPlayer.premium=data.premium||false;
+    window.__myPlayer.premiumUntil=data.premium_until||null;
+    window.__myPlayer.premiumTrial=data.premium_trial||false;
+    updatePremiumUI();
+  }
+}
+function _pollPremiumActivation(){
+  [2000,5000,10000].forEach(function(delay){ setTimeout(_refreshMyPlayerPremium, delay); });
+}
+
 function buyPack(type, amount, price){
   if(!currentUser){showToast('⚠️ Connecte-toi d\'abord');return;}
   var label=type==='rpc'?amount.toLocaleString('de-DE')+' RPC':amount+' NYX';
   var emoji=type==='rpc'?'💰':'💎';
+  var productId=(type==='rpc'?IAP_RPC_PRODUCTS:IAP_NYX_PRODUCTS)[amount];
+  if(_hasRevenueCat() && productId){
+    _purchaseProduct(productId, label, emoji, price, _pollWalletCredit);
+    return;
+  }
   document.getElementById('lm-title').textContent=emoji+' Acheter '+label;
   document.getElementById('lm-body').innerHTML=
     '<div style="text-align:center;padding:1rem">'
@@ -16164,6 +16253,21 @@ function handlePremiumClick(){
     showToast('✓ Tu es déjà Premium !');
     return;
   }
+  if(_hasRevenueCat()){
+    document.getElementById('lm-title').textContent='⭐ Premium';
+    document.getElementById('lm-sub').textContent='';
+    document.getElementById('lm-body').innerHTML='<div style="text-align:center;padding:.5rem 0">'
+      +'<div style="font-size:2.5rem;margin-bottom:.5rem">⭐</div>'
+      +'<div style="font-family:Bebas Neue,sans-serif;font-size:1.3rem;letter-spacing:2px;color:var(--gold);margin-bottom:1rem">Choisis ta formule</div>'
+      +'<div style="display:flex;flex-direction:column;gap:.6rem;padding:0 .5rem">'
+      +'<button onclick="_buyPremium(\'premium_monthly\')" style="padding:.6rem 1rem;border-radius:8px;border:1.5px solid var(--gold);background:rgba(245,200,66,.12);color:var(--gold);font-weight:700;font-size:.85rem;cursor:pointer">Mensuel — 5,99€/mois</button>'
+      +'<button onclick="_buyPremium(\'premium_yearly\')" style="padding:.6rem 1rem;border-radius:8px;border:1.5px solid var(--gold);background:rgba(245,200,66,.12);color:var(--gold);font-weight:700;font-size:.85rem;cursor:pointer">Annuel — 59,99€/an</button>'
+      +'</div>'
+      +'<button onclick="closeModal(\'land-modal\')" style="margin-top:1rem;padding:.4rem 1.2rem;border-radius:7px;border:none;background:rgba(255,255,255,.08);color:var(--muted2);font-size:.75rem;cursor:pointer">Annuler</button>'
+      +'</div>';
+    openModal('land-modal');
+    return;
+  }
   document.getElementById('lm-title').textContent='⭐ Premium';
   document.getElementById('lm-sub').textContent='';
   document.getElementById('lm-body').innerHTML='<div style="text-align:center;padding:.5rem 0">'
@@ -16172,11 +16276,17 @@ function handlePremiumClick(){
     +'<div style="font-size:.8rem;color:var(--muted2);line-height:1.6;margin-bottom:1rem">'
     +'Le paiement en ligne arrive très bientôt !<br><br>'
     +'En attendant, contacte l\'administrateur pour activer ton abonnement Premium.<br><br>'
-    +'<strong style="color:var(--gold)">5,99€ / mois</strong> ou <strong style="color:var(--gold)">60€ / an</strong>'
+    +'<strong style="color:var(--gold)">5,99€ / mois</strong> ou <strong style="color:var(--gold)">59,99€ / an</strong>'
     +'</div>'
     +'<button onclick="closeModal(\'land-modal\')" style="padding:.45rem 1.5rem;border-radius:7px;border:1.5px solid var(--gold);background:rgba(245,200,66,.12);color:var(--gold);font-weight:700;font-size:.85rem;cursor:pointer">Compris</button>'
     +'</div>';
   openModal('land-modal');
+}
+
+async function _buyPremium(productId){
+  var label=productId==='premium_yearly'?'Premium Annuel':'Premium Mensuel';
+  var price=productId==='premium_yearly'?'59,99€/an':'5,99€/mois';
+  _purchaseProduct(productId, label, '⭐', price, _pollPremiumActivation);
 }
 
 function showTrialOffer(){
@@ -27448,6 +27558,107 @@ const Q_FACILE = [
   {cat:'teqball', q:"Au teqball, les joueurs n'ont pas le droit d'utiliser...", a:["Les pieds","Les mains","La tête","Les épaules"], q_en:"In teqball, players are not allowed to use their...", a_en:["Feet","Hands","Head","Shoulders"], c:1},
   {cat:'parkour', q:"Le parkour consiste à se déplacer efficacement dans un environnement urbain en franchissant les obstacles...", a:["En les évitant toujours","En les contournant en voiture","Directement, avec le corps (sauts, escalade...)","Uniquement en glissant"], q_en:"Parkour involves moving efficiently through an urban environment by getting past obstacles...", a_en:["Always avoiding them","Going around them by car","Directly, using the body (jumps, climbing...)","Only by sliding"], c:2},
   {cat:'parkour', q:"Le parkour est né dans quel pays ?", a:["Japon","Brésil","Canada","France"], q_en:"Which country did parkour originate in?", a_en:["Japan","Brazil","Canada","France"], c:3},
+  // — Lot du 2026-07-08 : 100 questions faciles, tous sports (50 nouvelles disciplines jamais couvertes) —
+  {cat:'beach-soccer', q:"Le beach soccer se joue sur quelle surface ?", a:["Le sable","La glace","Le gazon synthétique","Le parquet"], q_en:"What surface is beach soccer played on?", a_en:["Sand","Ice","Artificial turf","Wood floor"], c:0},
+  {cat:'beach-soccer', q:"Au beach soccer, un match se dispute en...", a:["90 minutes","3 périodes de 12 minutes","2 mi-temps de 45 minutes","60 minutes"], q_en:"A beach soccer match is played in...", a_en:["90 minutes","3 periods of 12 minutes","2 halves of 45 minutes","60 minutes"], c:1},
+  {cat:'racquetball', q:"Le racquetball se joue avec une raquette et une balle dans...", a:["Une piscine","Une salle fermée entourée de quatre murs","Un stade extérieur","Un court en terre battue"], q_en:"Racquetball is played with a racquet and a ball in...", a_en:["A pool","An enclosed room with four walls","An outdoor stadium","A clay court"], c:1},
+  {cat:'racquetball', q:"Le racquetball ressemble beaucoup à un autre sport de raquette en salle appelé...", a:["Le squash","Le tennis","Le badminton","Le tennis de table"], q_en:"Racquetball closely resembles another indoor racquet sport called...", a_en:["Squash","Tennis","Badminton","Table tennis"], c:0},
+  {cat:'jai-alai', q:"Au jaï alaï, sport basque très rapide, les joueurs lancent la balle avec un panier en osier attaché à...", a:["La tête","La main/le poignet","Le pied","La ceinture"], q_en:"In jai alai, a fast Basque sport, players throw the ball with a wicker basket attached to...", a_en:["The head","The hand/wrist","The foot","The belt"], c:1},
+  {cat:'jai-alai', q:"Le jaï alaï est réputé pour être l'un des sports où la balle atteint...", a:["Les vitesses les plus faibles","Des vitesses parmi les plus élevées au monde","Une vitesse toujours nulle","Une trajectoire uniquement verticale"], q_en:"Jai alai is known for being one of the sports where the ball reaches...", a_en:["Some of the slowest speeds","Some of the highest speeds in the world","Always zero speed","Only a vertical path"], c:1},
+  {cat:'triple-saut', q:"En athlétisme, le triple saut se compose d'une impulsion, d'une foulée bondissante et...", a:["D'un saut périlleux","D'un saut final en longueur","D'une chute libre","D'un demi-tour"], q_en:"In athletics, the triple jump consists of a hop, a bounding step and...", a_en:["A somersault","A final long jump","A free fall","A half-turn"], c:1},
+  {cat:'triple-saut', q:"Le triple saut fait partie de quelle famille d'épreuves d'athlétisme ?", a:["Les lancers","Les sauts","Les courses de haies","Les courses de fond"], q_en:"Which family of athletics events does the triple jump belong to?", a_en:["Throws","Jumps","Hurdles","Long-distance races"], c:1},
+  {cat:'lancer-disque', q:"Au lancer du disque, l'athlète lance l'engin depuis...", a:["Une piste droite","Un cercle","Un couloir","Un tremplin"], q_en:"In discus throw, the athlete throws from...", a_en:["A straight track","A circle","A lane","A springboard"], c:1},
+  {cat:'lancer-disque', q:"Le disque utilisé en athlétisme a la forme d'un...", a:["Une boule","Un palet plat et rond","Un cône","Une étoile"], q_en:"The discus used in athletics is shaped like a...", a_en:["Ball","Flat round disc","Cone","Star"], c:1},
+  {cat:'roller-hockey', q:"Le roller hockey se pratique en patins à roulettes avec une crosse et...", a:["Un ballon de foot","Une balle ou un palet","Un volant","Un frisbee"], q_en:"Roller hockey is played on roller skates with a stick and...", a_en:["A soccer ball","A ball or a puck","A shuttlecock","A frisbee"], c:1},
+  {cat:'roller-hockey', q:"Le roller hockey est souvent comparé à quel sport, mais sur roulettes ?", a:["Le hockey sur glace","Le basketball","Le tennis","Le volley-ball"], q_en:"Roller hockey is often compared to which sport, but on wheels?", a_en:["Ice hockey","Basketball","Tennis","Volleyball"], c:0},
+  {cat:'ski-freestyle', q:"Le ski freestyle inclut des épreuves de sauts et de...", a:["Bosses (moguls)","Courses de fond uniquement","Relais","Marathons"], q_en:"Freestyle skiing includes jump events and...", a_en:["Moguls","Cross-country races only","Relays","Marathons"], c:0},
+  {cat:'ski-freestyle', q:"En ski freestyle, le halfpipe est une structure en forme de...", a:["Cercle","Demi-tube creusé dans la neige","Pyramide","Ligne droite plate"], q_en:"In freestyle skiing, the halfpipe is a structure shaped like a...", a_en:["Circle","Half-pipe carved into the snow","Pyramid","Flat straight line"], c:1},
+  {cat:'alpinisme', q:"L'alpinisme consiste à gravir...", a:["Des collines uniquement","Des montagnes, souvent enneigées ou rocheuses","Des dunes de sable","Des falaises en bord de mer uniquement"], q_en:"Mountaineering involves climbing...", a_en:["Only hills","Mountains, often snowy or rocky","Sand dunes","Only seaside cliffs"], c:1},
+  {cat:'alpinisme', q:"Pour progresser en sécurité sur un glacier, les alpinistes s'attachent souvent avec...", a:["Une corde","Un élastique","Un filet","Rien du tout"], q_en:"To move safely on a glacier, mountaineers often rope up with...", a_en:["A rope","An elastic band","A net","Nothing at all"], c:0},
+  {cat:'rugby-a-13', q:"Le rugby à XIII se différencie surtout du rugby à XV par...", a:["Le nombre de joueurs par équipe (13 au lieu de 15)","La forme du ballon","La taille du terrain","L'absence d'arbitre"], q_en:"Rugby league (13-a-side) mainly differs from rugby union (15-a-side) by...", a_en:["The number of players per team (13 instead of 15)","The shape of the ball","The size of the field","Having no referee"], c:0},
+  {cat:'rugby-a-13', q:"Au rugby à XIII, une équipe qui garde le ballon dispose d'un nombre limité de...", a:["Mêlées","Placages (tacles) avant de devoir rendre le ballon","Touches","Cartons"], q_en:"In rugby league, a team keeping the ball has a limited number of...", a_en:["Scrums","Tackles before having to hand over the ball","Line-outs","Cards"], c:1},
+  {cat:'speedway', q:"Les motos de speedway roulent sans...", a:["Guidon","Freins","Roues","Moteur"], q_en:"Speedway motorcycles race without...", a_en:["Handlebars","Brakes","Wheels","An engine"], c:1},
+  {cat:'speedway', q:"Les courses de speedway se déroulent sur des pistes ovales en...", a:["Terre ou cendrée","Glace uniquement","Bitume lisse","Bois"], q_en:"Speedway races take place on oval tracks made of...", a_en:["Dirt or shale","Ice only","Smooth asphalt","Wood"], c:0},
+  {cat:'trial-moto', q:"En trial moto, l'objectif principal n'est pas la vitesse mais...", a:["Le nombre de tours","Le franchissement d'obstacles sans poser le pied au sol","La distance parcourue","Le poids du pilote"], q_en:"In motorcycle trial, the main goal is not speed but...", a_en:["The number of laps","Clearing obstacles without putting a foot down","The distance covered","The rider's weight"], c:1},
+  {cat:'trial-moto', q:"En trial, chaque fois qu'un pilote pose le pied au sol, il reçoit...", a:["Un bonus","Une pénalité en points","Une disqualification immédiate","Un carton"], q_en:"In trial, every time a rider puts a foot down, they receive...", a_en:["A bonus","A points penalty","An immediate disqualification","A card"], c:1},
+  {cat:'karting', q:"Le karting se pratique avec de petits véhicules appelés...", a:["Karts","Buggys","Quads","Sidecars"], q_en:"Karting is practiced with small vehicles called...", a_en:["Karts","Buggies","Quads","Sidecars"], c:0},
+  {cat:'karting', q:"Le karting est souvent considéré comme une discipline d'initiation vers...", a:["La moto tout-terrain","Le sport automobile de haut niveau (comme la F1)","Le vélo de route","Le motocross"], q_en:"Karting is often seen as an entry point into...", a_en:["Off-road motorcycling","Top-level motorsport (like F1)","Road cycling","Motocross"], c:1},
+  {cat:'kite-buggy', q:"Le kite-buggy consiste à se déplacer sur un petit véhicule à trois roues tracté par...", a:["Un moteur","Un cerf-volant","Un cheval","Un bateau"], q_en:"Kite buggying involves riding a small three-wheeled vehicle towed by...", a_en:["An engine","A kite","A horse","A boat"], c:1},
+  {cat:'kite-buggy', q:"Le kite-buggy se pratique le plus souvent sur...", a:["De la neige uniquement","De grandes plages ou zones plates et ventées","Une piscine","Une piste goudronnée en pente"], q_en:"Kite buggying is most often practiced on...", a_en:["Snow only","Large beaches or flat, windy areas","A swimming pool","A sloped paved track"], c:1},
+  {cat:'char-a-voile', q:"Le char à voile se pratique sur...", a:["L'eau","Le sable des plages","La glace","La neige uniquement"], q_en:"Land sailing (sand yachting) is practiced on...", a_en:["Water","Beach sand","Ice","Snow only"], c:1},
+  {cat:'char-a-voile', q:"Comme la planche à voile, le char à voile est propulsé par...", a:["Un moteur électrique","Le vent grâce à une voile","Des pédales","Des rames"], q_en:"Like windsurfing, land sailing is powered by...", a_en:["An electric motor","The wind through a sail","Pedals","Oars"], c:1},
+  {cat:'tchoukball', q:"Au tchoukball, les joueurs marquent des points en renvoyant la balle sur...", a:["Un panier","Un cadre incliné qui la fait rebondir","Un simple mur en béton","Une cible posée au sol"], q_en:"In tchoukball, players score points by bouncing the ball off...", a_en:["A basket","An angled frame that rebounds it","A plain concrete wall","A target placed on the ground"], c:1},
+  {cat:'tchoukball', q:"Le tchoukball a été inventé notamment pour réduire...", a:["Le nombre de joueurs","Les contacts violents et les blessures","La durée du match","Le coût du ballon"], q_en:"Tchoukball was invented partly to reduce...", a_en:["The number of players","Violent contact and injuries","The length of the match","The cost of the ball"], c:1},
+  {cat:'faustball', q:"Le faustball (balle au poing) se joue en frappant la balle avec...", a:["Les pieds","Le poing ou l'avant-bras","Une raquette","Une crosse"], q_en:"Fistball is played by hitting the ball with...", a_en:["The feet","The fist or forearm","A racquet","A stick"], c:1},
+  {cat:'faustball', q:"Le faustball est souvent comparé à un mélange de volley-ball et de...", a:["Tennis","Handball","Football","Ping-pong"], q_en:"Fistball is often compared to a mix of volleyball and...", a_en:["Tennis","Handball","Football","Table tennis"], c:0},
+  {cat:'cornhole', q:"Au cornhole, les joueurs lancent des sacs de maïs vers...", a:["Un panier de basket","Une planche inclinée percée d'un trou","Un cerceau suspendu","Un but de football"], q_en:"In cornhole, players toss corn-filled bags toward...", a_en:["A basketball hoop","An angled board with a hole","A hanging hoop","A soccer goal"], c:1},
+  {cat:'cornhole', q:"Le cornhole est très populaire lors des \"tailgates\", ces fêtes organisées avant les matchs de...", a:["Cricket","Football américain","Rugby","Curling"], q_en:"Cornhole is very popular at \"tailgates\", parties held before games of...", a_en:["Cricket","American football","Rugby","Curling"], c:1},
+  {cat:'footgolf', q:"Le footgolf combine les règles du golf avec des tirs effectués...", a:["À la main","Au pied, avec un ballon de football","Avec une crosse","Avec une raquette"], q_en:"Footgolf combines the rules of golf with shots taken...", a_en:["By hand","With the foot, using a football","With a stick","With a racquet"], c:1},
+  {cat:'footgolf', q:"Comme au golf classique, l'objectif du footgolf est de terminer un trou en...", a:["Un minimum de coups","Un temps minimum","Un maximum de passes","Un nombre fixe de joueurs"], q_en:"As in classic golf, the goal in footgolf is to finish a hole in...", a_en:["The fewest strokes","The shortest time","The most passes","A fixed number of players"], c:0},
+  {cat:'footbag', q:"Le footbag (proche du \"hacky sack\") consiste à garder en l'air une petite balle en utilisant...", a:["Les mains uniquement","Toutes les parties du corps sauf les mains","Une raquette","Un ballon de foot classique"], q_en:"Footbag (close to \"hacky sack\") involves keeping a small ball airborne using...", a_en:["Only the hands","Any body part except the hands","A racquet","A regular soccer ball"], c:1},
+  {cat:'footbag', q:"Le footbag freestyle met surtout en avant...", a:["La vitesse de course","Des figures et jongles techniques","La force de frappe","La distance de tir"], q_en:"Freestyle footbag mainly showcases...", a_en:["Running speed","Technical tricks and juggling","Striking power","Kicking distance"], c:1},
+  {cat:'bossaball', q:"Le bossaball se joue sur un terrain composé en partie de...", a:["Sable chaud","Trampolines gonflables","Glace","Eau"], q_en:"Bossaball is played on a court partly made of...", a_en:["Hot sand","Inflatable trampolines","Ice","Water"], c:1},
+  {cat:'bossaball', q:"Le bossaball mélange des éléments de volley-ball, de gymnastique et de...", a:["Football freestyle et capoeira","Judo","Curling","Bowling"], q_en:"Bossaball blends elements of volleyball, gymnastics and...", a_en:["Freestyle football and capoeira","Judo","Curling","Bowling"], c:0},
+  {cat:'vovinam', q:"Le vovinam est un art martial traditionnel originaire de...", a:["Chine","Vietnam","Corée du Sud","Thaïlande"], q_en:"Vovinam is a traditional martial art originating from...", a_en:["China","Vietnam","South Korea","Thailand"], c:1},
+  {cat:'vovinam', q:"Le vovinam combine des techniques de percussion avec des techniques de...", a:["Natation","Projections et clés articulaires","Escalade","Tir à l'arc"], q_en:"Vovinam combines striking techniques with...", a_en:["Swimming","Throws and joint locks","Climbing","Archery"], c:1},
+  {cat:'sambo', q:"Le sambo est un art martial et sport de combat originaire de...", a:["Russie","Japon","Brésil","Mongolie"], q_en:"Sambo is a martial art and combat sport originating from...", a_en:["Russia","Japan","Brazil","Mongolia"], c:0},
+  {cat:'sambo', q:"Le sambo combine notamment des techniques issues du judo et de...", a:["La boxe anglaise","La lutte libre","L'escrime","Le tir à l'arc"], q_en:"Sambo combines techniques from judo and...", a_en:["English boxing","Freestyle wrestling","Fencing","Archery"], c:1},
+  {cat:'krav-maga', q:"Le krav-maga, système d'autodéfense, a été développé en...", a:["France","Israël","Chine","Brésil"], q_en:"Krav Maga, a self-defense system, was developed in...", a_en:["France","Israel","China","Brazil"], c:1},
+  {cat:'krav-maga', q:"Le krav-maga est aujourd'hui utilisé notamment par...", a:["Uniquement des enfants","Des forces militaires et policières","Uniquement des danseurs","Des joueurs d'échecs"], q_en:"Krav Maga is today used notably by...", a_en:["Only children","Military and police forces","Only dancers","Chess players"], c:1},
+  {cat:'kyudo', q:"Le kyudo est l'art martial japonais du...", a:["Sabre","Tir à l'arc","Bâton","Poing"], q_en:"Kyudo is the Japanese martial art of...", a_en:["The sword","Archery","The staff","The fist"], c:1},
+  {cat:'kyudo', q:"En kyudo, l'accent est mis avant tout sur...", a:["La vitesse de tir","La précision technique et la posture","Le poids de l'arc","La distance maximale"], q_en:"In kyudo, the main focus is on...", a_en:["Shooting speed","Technical precision and posture","The weight of the bow","Maximum distance"], c:1},
+  {cat:'naginata', q:"La naginata est une arme traditionnelle japonaise en forme de...", a:["Sabre court","Lance à pointe simple","Bâton muni d'une lame courbée au bout","Marteau"], q_en:"The naginata is a traditional Japanese weapon shaped like a...", a_en:["A short sword","A plain-tipped spear","A pole with a curved blade at the end","A hammer"], c:2},
+  {cat:'naginata', q:"La pratique sportive moderne de la naginata (naginata-do) se rapproche par ses codes du...", a:["Kendo","Judo","Sumo","Aïkido"], q_en:"The modern sport practice of naginata (naginata-do) is close in its codes to...", a_en:["Kendo","Judo","Sumo","Aikido"], c:0},
+  {cat:'iaido', q:"L'iaido est un art martial japonais centré sur...", a:["Le tir à l'arc","La technique de dégainer et frapper rapidement avec un sabre","La lutte au sol","Les projections à mains nues"], q_en:"Iaido is a Japanese martial art centered on...", a_en:["Archery","The technique of quickly drawing and striking with a sword","Ground grappling","Bare-handed throws"], c:1},
+  {cat:'iaido', q:"En iaido, l'arme principalement utilisée est...", a:["Le bâton","Le sabre (katana)","L'arc","Le bouclier"], q_en:"In iaido, the weapon mainly used is...", a_en:["The staff","The sword (katana)","The bow","The shield"], c:1},
+  {cat:'camogie', q:"Le camogie est un sport traditionnel irlandais joué avec une crosse et une petite balle, principalement par...", a:["Des hommes uniquement","Des femmes","Des enfants avec un ballon rond","Des équipes mixtes de tennis"], q_en:"Camogie is a traditional Irish sport played with a stick and small ball, mainly by...", a_en:["Only men","Women","Children with a round ball","Mixed tennis teams"], c:1},
+  {cat:'camogie', q:"Le camogie est très proche d'un autre sport irlandais masculin appelé...", a:["Le rugby","Le hurling","Le football gaélique","Le cricket"], q_en:"Camogie is very close to another male Irish sport called...", a_en:["Rugby","Hurling","Gaelic football","Cricket"], c:1},
+  {cat:'shinty', q:"Le shinty, sport traditionnel écossais, se joue avec une crosse et une balle, un peu comme...", a:["Le hockey sur gazon","Le basketball","Le tennis","Le golf"], q_en:"Shinty, a traditional Scottish sport, is played with a stick and a ball, a bit like...", a_en:["Field hockey","Basketball","Tennis","Golf"], c:0},
+  {cat:'shinty', q:"Le shinty est principalement pratiqué en...", a:["Espagne","Écosse","Argentine","Australie"], q_en:"Shinty is mainly played in...", a_en:["Spain","Scotland","Argentina","Australia"], c:1},
+  {cat:'heptathlon', q:"L'heptathlon, épreuve combinée d'athlétisme, comprend combien d'épreuves ?", a:["5","7","10","12"], q_en:"The heptathlon, a combined athletics event, includes how many events?", a_en:["5","7","10","12"], c:1},
+  {cat:'heptathlon', q:"L'heptathlon est traditionnellement une épreuve combinée pratiquée principalement par...", a:["Les hommes","Les femmes","Les enfants","Les équipes de relais uniquement"], q_en:"The heptathlon is traditionally a combined event practiced mainly by...", a_en:["Men","Women","Children","Relay teams only"], c:1},
+  {cat:'steeple', q:"Le steeple, course d'athlétisme, comprend le franchissement de haies fixes et d'un obstacle rempli de...", a:["Sable","Eau","Terre","Gravier"], q_en:"The steeplechase, an athletics race, includes fixed hurdles and one obstacle filled with...", a_en:["Sand","Water","Dirt","Gravel"], c:1},
+  {cat:'steeple', q:"Le 3000 mètres steeple est une épreuve de...", a:["Sprint","Demi-fond/fond avec obstacles","Marche","Relais"], q_en:"The 3000m steeplechase is a...", a_en:["Sprint event","Middle/long-distance event with obstacles","Race walking event","Relay event"], c:1},
+  {cat:'raquette-neige', q:"La raquette à neige permet de...", a:["Skier plus vite","Marcher sur la neige sans trop s'enfoncer","Patiner sur la glace","Nager plus vite"], q_en:"Snowshoes allow you to...", a_en:["Ski faster","Walk on snow without sinking too much","Skate on ice","Swim faster"], c:1},
+  {cat:'raquette-neige', q:"Les courses de raquette à neige se déroulent sur des parcours...", a:["En intérieur","Enneigés, en montagne ou en plaine","Sur bitume","Sur sable"], q_en:"Snowshoe races take place on courses that are...", a_en:["Indoors","Snowy, in the mountains or on flat land","On asphalt","On sand"], c:1},
+  {cat:'hockey-subaquatique', q:"Le hockey subaquatique se joue au fond...", a:["D'un lac gelé","D'une piscine, en apnée","D'une patinoire","D'un terrain de sable"], q_en:"Underwater hockey is played at the bottom...", a_en:["Of a frozen lake","Of a pool, while holding your breath","Of an ice rink","Of a sand court"], c:1},
+  {cat:'hockey-subaquatique', q:"Au hockey subaquatique, les joueurs poussent le palet avec...", a:["Une crosse courte tenue dans une seule main","Les pieds uniquement","Une raquette","La tête"], q_en:"In underwater hockey, players push the puck with...", a_en:["A short stick held in one hand","Only the feet","A racquet","The head"], c:0},
+  {cat:'rugby-subaquatique', q:"Le rugby subaquatique se joue...", a:["À la surface d'une piscine","Entièrement sous l'eau, en apnée","Sur un terrain de sable mouillé","Sur glace"], q_en:"Underwater rugby is played...", a_en:["On the surface of a pool","Entirely underwater, while holding your breath","On wet sand","On ice"], c:1},
+  {cat:'rugby-subaquatique', q:"Au rugby subaquatique, le ballon utilisé est rempli...", a:["D'air comme un ballon classique","D'eau salée pour couler légèrement","De sable","De mousse flottante"], q_en:"In underwater rugby, the ball used is filled with...", a_en:["Air like a regular ball","Saltwater so it sinks slightly","Sand","Floating foam"], c:1},
+  {cat:'buzkashi', q:"Le buzkashi, sport traditionnel d'Asie centrale, se pratique à...", a:["Pied","Cheval","Vélo","Ski"], q_en:"Buzkashi, a traditional Central Asian sport, is played on...", a_en:["Foot","Horseback","Bicycle","Skis"], c:1},
+  {cat:'buzkashi', q:"Au buzkashi, les cavaliers s'affrontent pour saisir et transporter...", a:["Un ballon","Une carcasse (traditionnellement de chèvre)","Un drapeau","Une lance"], q_en:"In buzkashi, riders compete to grab and carry...", a_en:["A ball","A carcass (traditionally a goat)","A flag","A spear"], c:1},
+  {cat:'joute-nautique', q:"La joute nautique oppose deux jouteurs debout à l'arrière de bateaux, armés de...", a:["Épées","Lances","Filets","Boucliers uniquement"], q_en:"Water jousting pits two jousters standing at the back of boats, armed with...", a_en:["Swords","Lances","Nets","Shields only"], c:1},
+  {cat:'joute-nautique', q:"En joute nautique, un jouteur gagne l'assaut quand il fait tomber son adversaire dans...", a:["Un ring","L'eau","Un filet","Une zone interdite"], q_en:"In water jousting, a jouster wins the round by making their opponent fall into...", a_en:["A ring","The water","A net","A forbidden zone"], c:1},
+  {cat:'canne-combat', q:"La canne de combat est un art martial français qui se pratique avec...", a:["Un sabre","Un bâton léger, la canne","Les poings","Un fouet"], q_en:"French cane fighting is a martial art practiced with...", a_en:["A sword","A light stick, the cane","Bare fists","A whip"], c:1},
+  {cat:'canne-combat', q:"La canne de combat privilégie surtout...", a:["Les coups portés au corps à corps","Des frappes à distance avec la canne","La lutte au sol","Les projections uniquement"], q_en:"French cane fighting mainly favors...", a_en:["Close-contact strikes","Strikes at a distance with the cane","Ground grappling","Throws only"], c:1},
+  {cat:'hockey-luge', q:"Le hockey luge (para ice hockey) permet à des athlètes en situation de handicap de jouer au hockey assis sur...", a:["Un fauteuil roulant classique","Une luge basse équipée de patins","Un tapis","Une planche à roulettes"], q_en:"Sledge (para ice) hockey lets athletes with disabilities play hockey while sitting on...", a_en:["A regular wheelchair","A low sledge fitted with skate blades","A mat","A skateboard"], c:1},
+  {cat:'hockey-luge', q:"Au hockey luge, les joueurs frappent le palet à l'aide de...", a:["Crosses courtes munies de picots","Leurs mains uniquement","Leurs pieds","Une seule longue crosse tenue à deux mains"], q_en:"In sledge hockey, players hit the puck using...", a_en:["Short sticks fitted with picks","Only their hands","Their feet","One long stick held with both hands"], c:0},
+  {cat:'snowkite', q:"Le snowkite consiste à glisser sur la neige, tracté par...", a:["Un moteur","Un cerf-volant","Un chien de traîneau","Une motoneige"], q_en:"Snowkiting involves gliding on snow while towed by...", a_en:["An engine","A kite","A sled dog","A snowmobile"], c:1},
+  {cat:'snowkite', q:"Le snowkite se pratique généralement avec...", a:["Des skis ou un snowboard","Des patins à glace","Un vélo","Une planche à voile"], q_en:"Snowkiting is generally practiced with...", a_en:["Skis or a snowboard","Ice skates","A bicycle","A windsurf board"], c:0},
+  {cat:'ski-vitesse', q:"Le ski de vitesse (speed skiing) consiste à descendre une pente très raide pour...", a:["Réaliser des figures","Atteindre la vitesse la plus élevée possible en ligne droite","Slalomer entre des portes serrées","Sauter le plus loin possible"], q_en:"Speed skiing involves going down a very steep slope to...", a_en:["Perform tricks","Reach the highest possible speed in a straight line","Slalom through tight gates","Jump as far as possible"], c:1},
+  {cat:'ski-vitesse', q:"En ski de vitesse, les meilleurs skieurs peuvent dépasser...", a:["30 km/h","250 km/h","5 km/h","1000 km/h"], q_en:"In speed skiing, top skiers can exceed...", a_en:["30 km/h","250 km/h","5 km/h","1000 km/h"], c:1},
+  {cat:'aquabike', q:"En compétition, l'aquabike désigne des courses disputées avec...", a:["Des vélos de piscine","Des jet-skis (scooters des mers)","Des kayaks","Des planches à voile"], q_en:"In competition, aquabike refers to races held with...", a_en:["Pool exercise bikes","Jet skis","Kayaks","Windsurf boards"], c:1},
+  {cat:'aquabike', q:"Les courses d'aquabike se déroulent le plus souvent...", a:["Sur circuit fermé en mer ou sur un plan d'eau","Sur neige","Sur bitume","En piscine olympique"], q_en:"Aquabike races most often take place...", a_en:["On a closed circuit at sea or on a body of water","On snow","On asphalt","In an Olympic pool"], c:0},
+  {cat:'biribol', q:"Le biribol, populaire au Brésil, est une variante du volley-ball qui se joue...", a:["Sur sable","Dans une piscine","Sur glace","En salle sur parquet"], q_en:"Biribol, popular in Brazil, is a variant of volleyball played...", a_en:["On sand","In a swimming pool","On ice","Indoors on a wood floor"], c:1},
+  {cat:'biribol', q:"Comme au volley-ball classique, l'objectif au biribol est de faire toucher le sol (ou l'eau) du camp adverse par...", a:["Un palet","Le ballon","Une flèche","Un frisbee"], q_en:"As in classic volleyball, the goal in biribol is to make the ball touch the opponent's side by hitting...", a_en:["A puck","The ball","An arrow","A frisbee"], c:1},
+  {cat:'unicycle', q:"Le monocycle, utilisé en compétition, ne possède qu'une seule...", a:["Pédale","Roue","Poignée","Chaîne visible"], q_en:"The unicycle, used in competition, only has a single...", a_en:["Pedal","Wheel","Handle","Visible chain"], c:1},
+  {cat:'unicycle', q:"Il existe des compétitions de monocycle incluant des courses, du trial, et même...", a:["Du hockey en monocycle","De la natation","Du tir à l'arc","De la boxe"], q_en:"Unicycle competitions include races, trials, and even...", a_en:["Unicycle hockey","Swimming","Archery","Boxing"], c:0},
+  {cat:'char-glace', q:"Le char à glace (ice yachting) ressemble au char à voile mais se pratique sur...", a:["Le sable","Une surface gelée (lac ou étendue glacée)","Un tapis roulant","Une piste goudronnée"], q_en:"Ice yachting resembles land sailing but is practiced on...", a_en:["Sand","A frozen surface (lake or ice sheet)","A treadmill","A paved track"], c:1},
+  {cat:'char-glace', q:"Grâce au très faible frottement de la glace, le char à glace peut atteindre des vitesses...", a:["Très inférieures au vent","Bien supérieures à la vitesse du vent","Toujours nulles","Identiques à la marche à pied"], q_en:"Thanks to the very low friction of ice, ice yachts can reach speeds that are...", a_en:["Much lower than the wind","Well above the speed of the wind","Always zero","The same as walking pace"], c:1},
+  {cat:'bo-taoshi', q:"Le bo-taoshi, jeu japonais pratiqué notamment par des cadets militaires, oppose deux équipes qui doivent...", a:["Défendre un mât pendant que l'autre tente de le faire tomber","Marquer un but avec un ballon","Courir le plus vite possible","Lancer un disque le plus loin possible"], q_en:"Bo-taoshi, a Japanese game played notably by military cadets, pits two teams where one must...", a_en:["Defend a pole while the other tries to topple it","Score a goal with a ball","Run as fast as possible","Throw a disc as far as possible"], c:0},
+  {cat:'bo-taoshi', q:"Le bo-taoshi se joue traditionnellement avec de très grandes équipes, environ...", a:["2 joueurs","150 joueurs par équipe","5 joueurs","11 joueurs"], q_en:"Bo-taoshi is traditionally played with very large teams, around...", a_en:["2 players","150 players per team","5 players","11 players"], c:1},
+  {cat:'calcio-storico', q:"Le calcio storico, sport historique italien pratiqué à Florence, mélange football, rugby et...", a:["Boxe (les coups de poing sont autorisés)","Escrime","Natation","Tir à l'arc"], q_en:"Calcio storico, a historic Italian sport played in Florence, blends football, rugby and...", a_en:["Boxing (punches are allowed)","Fencing","Swimming","Archery"], c:0},
+  {cat:'calcio-storico', q:"Le calcio storico se joue traditionnellement sur...", a:["Un terrain de sable au centre-ville de Florence","Une patinoire","Un court de tennis","Une piscine"], q_en:"Calcio storico is traditionally played on...", a_en:["A sand pitch in downtown Florence","An ice rink","A tennis court","A swimming pool"], c:0},
+  {cat:'jorkyball', q:"Le jorkyball, populaire en France, est une variante du football en salle où l'on joue aussi avec...", a:["Des adversaires uniquement à distance","Les murs, qui font partie intégrante du jeu","Une cible fixe","Un panier de basket"], q_en:"Jorkyball, popular in France, is an indoor football variant where you also play with...", a_en:["Opponents only at a distance","The walls, which are part of the game","A fixed target","A basketball hoop"], c:1},
+  {cat:'jorkyball', q:"Au jorkyball, une équipe est le plus souvent composée de...", a:["11 joueurs","2 joueurs (souvent en 2 contre 2)","7 joueurs","15 joueurs"], q_en:"In jorkyball, a team is most often made up of...", a_en:["11 players","2 players (often 2 vs 2)","7 players","15 players"], c:1},
+  {cat:'hockey-fauteuil', q:"Le hockey en fauteuil roulant électrique permet à des joueurs en situation de handicap moteur de jouer en manœuvrant...", a:["Une luge","Un fauteuil roulant électrique équipé d'un pied de frappe","Un vélo adapté","Une planche à roulettes"], q_en:"Powerchair hockey lets players with physical disabilities play by maneuvering...", a_en:["A sledge","An electric wheelchair fitted with a foot striker","An adapted bicycle","A skateboard"], c:1},
+  {cat:'hockey-fauteuil', q:"Au hockey fauteuil, le ballon (ou palet) est poussé grâce à...", a:["Une crosse tenue à la main","Un pied de frappe fixé à l'avant du fauteuil","Les roues du fauteuil","Un souffleur d'air"], q_en:"In powerchair hockey, the ball (or puck) is pushed using...", a_en:["A stick held in the hand","A foot striker fixed to the front of the chair","The wheels of the chair","An air blower"], c:1},
+  {cat:'cyclo-cross', q:"Le cyclo-cross se pratique en vélo sur des parcours mêlant boue, herbe et obstacles, où les coureurs doivent parfois...", a:["Nager","Porter leur vélo à l'épaule pour franchir un obstacle","Changer de vélo à chaque tour","Rouler uniquement sur route"], q_en:"Cyclo-cross is raced on courses mixing mud, grass and obstacles, where riders sometimes have to...", a_en:["Swim","Shoulder their bike to clear an obstacle","Change bikes every lap","Ride only on the road"], c:1},
+  {cat:'cyclo-cross', q:"Le cyclo-cross se déroule traditionnellement en...", a:["Été uniquement","Automne et hiver","Printemps uniquement","Toute l'année sans exception"], q_en:"Cyclo-cross traditionally takes place in...", a_en:["Summer only","Autumn and winter","Spring only","All year round without exception"], c:1},
+  {cat:'skijoring', q:"Le skijoring consiste à se faire tracter en skis par...", a:["Un moteur","Un cheval, un chien ou une motoneige","Un cerf-volant","Un bateau"], q_en:"Skijoring involves being towed on skis by...", a_en:["An engine","A horse, a dog or a snowmobile","A kite","A boat"], c:1},
+  {cat:'skijoring', q:"D'origine scandinave, le skijoring est aussi pratiqué aujourd'hui dans des compétitions spectaculaires tractées par...", a:["Des chevaux au galop","Uniquement des humains","Uniquement des voitures","Des vélos"], q_en:"Of Scandinavian origin, skijoring is also practiced today in spectacular competitions towed by...", a_en:["Galloping horses","Only humans","Only cars","Bicycles"], c:0},
+  {cat:'drift', q:"En sport automobile, le drift consiste à négocier des virages en faisant volontairement...", a:["Freiner au maximum","Déraper la voiture de manière contrôlée","S'arrêter complètement","Rouler très lentement"], q_en:"In motorsport, drifting involves taking corners by deliberately...", a_en:["Braking as hard as possible","Sliding the car in a controlled way","Stopping completely","Driving very slowly"], c:1},
+  {cat:'drift', q:"En compétition de drift, les juges notent notamment l'angle de dérapage, la vitesse et...", a:["Le nombre de tours effectués","La trajectoire/ligne suivie","Le poids de la voiture","La couleur du véhicule"], q_en:"In drift competitions, judges score the drift angle, speed and...", a_en:["The number of laps completed","The line/trajectory followed","The weight of the car","The color of the vehicle"], c:1},
 ];
 const Q_MODEREE = [
   {cat:'foot', q:"Quel club anglais est surnommé « les Red Devils » ?", a:["Liverpool","Manchester United","Arsenal","Chelsea"], q_en:"Which English club is nicknamed 'the Red Devils'?", a_en:["Liverpool","Manchester United","Arsenal","Chelsea"], c:1},
