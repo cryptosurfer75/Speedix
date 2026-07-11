@@ -15010,15 +15010,21 @@ async function _drawStatsOverlay(cx,W,H,metrics,leagueName,textColor,haloColor){
   if(logoOk && logoImg.naturalWidth){
     var brandW=Math.round(brandH*(logoImg.naturalWidth/logoImg.naturalHeight));
     var ly=Math.round(hy-brandH/2);
-    cx.drawImage(logoImg, lx, ly, brandW, brandH);
-    // Le PNG source est blanc : on le reteinte à la couleur voulue (ex. noir sur
-    // fond clair) sans toucher au fichier, en ne peignant que là où il a de l'alpha.
     if(textColor!=='#fff'){
-      var prevOp=cx.globalCompositeOperation;
-      cx.globalCompositeOperation='source-atop';
-      cx.fillStyle=textColor;
-      cx.fillRect(lx, ly, brandW, brandH);
-      cx.globalCompositeOperation=prevOp;
+      // Le PNG source est blanc : on le reteinte à la couleur voulue (ex. noir
+      // sur fond clair de carte) SUR UN CANEVAS À PART, isolé du fond déjà
+      // dessiné en dessous. Sans cet isolement, "source-atop" se mélange à
+      // tout ce qu'il y a déjà sous le rectangle (la carte, opaque partout)
+      // et peint un carré plein au lieu de suivre le contour de l'hexagone.
+      var tmp=document.createElement('canvas'); tmp.width=brandW; tmp.height=brandH;
+      var tcx=tmp.getContext('2d');
+      tcx.drawImage(logoImg,0,0,brandW,brandH);
+      tcx.globalCompositeOperation='source-atop';
+      tcx.fillStyle=textColor;
+      tcx.fillRect(0,0,brandW,brandH);
+      cx.drawImage(tmp, lx, ly, brandW, brandH);
+    } else {
+      cx.drawImage(logoImg, lx, ly, brandW, brandH);
     }
     wordX=lx+brandW+Math.round(brandFont*0.4);
   } else {
