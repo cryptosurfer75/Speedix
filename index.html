@@ -14323,7 +14323,7 @@ function renderPolylineMapThumb(polyline){
           (function(tx,ty){
             var wrappedX=((tx%nTiles)+nTiles)%nTiles;
             var sub=subs[Math.abs(tx+ty)%4];
-            var url='https://'+sub+'.basemaps.cartocdn.com/light_all/'+zoom+'/'+wrappedX+'/'+ty+'.png';
+            var url='https://'+sub+'.basemaps.cartocdn.com/rastertiles/voyager/'+zoom+'/'+wrappedX+'/'+ty+'.png';
             var dx=tx*256-originX, dy=ty*256-originY;
             jobs.push(new Promise(function(res){
               var img=new Image();
