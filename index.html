@@ -18105,12 +18105,25 @@ async function checkAndClaimStreak(){
 
   var reward=getStreakReward(newPhase, newCount);
 
-  // Mettre à jour en DB (XHR direct pour RLS)
-  await window.fetch(supabaseUrl+'/rest/v1/players?id=eq.'+encodeURIComponent(currentUser.id),{
-    method:'PATCH',
-    headers:{'apikey':supabaseKey,'Authorization':'Bearer '+supabaseKey,'Content-Type':'application/json'},
-    body:JSON.stringify({streak_count:newCount,streak_last_date:today,streak_phase:newPhase,streak_misses:newMisses})
-  });
+  // Mettre à jour en DB (XHR direct pour RLS). Un simple aléa réseau au lancement
+  // de l'app (PWA en 4G/5G instable) faisait échouer ce PATCH en silence : la
+  // récompense du jour était quand même affichée/créditée, mais streak_last_date
+  // ne bougeait pas → le lendemain, l'appli croyait que ce jour n'avait jamais eu
+  // lieu et cassait la chaîne à tort. On vérifie donc la réussite du PATCH (avec
+  // une 2e tentative) et on ne crédite/affiche rien tant qu'il n'a pas abouti.
+  var patchOk=false;
+  for(var _try=0;_try<2 && !patchOk;_try++){
+    try{
+      var _patchResp=await window.fetch(supabaseUrl+'/rest/v1/players?id=eq.'+encodeURIComponent(currentUser.id),{
+        method:'PATCH',
+        headers:{'apikey':supabaseKey,'Authorization':'Bearer '+supabaseKey,'Content-Type':'application/json'},
+        body:JSON.stringify({streak_count:newCount,streak_last_date:today,streak_phase:newPhase,streak_misses:newMisses})
+      });
+      patchOk=_patchResp&&_patchResp.ok;
+    }catch(e){patchOk=false;}
+    if(!patchOk && _try===0) await new Promise(function(r){setTimeout(r,1200);});
+  }
+  if(!patchOk) return; // on retentera à la prochaine ouverture de l'app
 
   // Créditer les RPC via wallet
   if(reward>0){
