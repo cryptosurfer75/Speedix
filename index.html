@@ -2039,7 +2039,7 @@ select option{background:#040c1c}
     </div>
     <div style="flex-shrink:0;display:flex;flex-direction:column;gap:.4rem">
       <button onclick="openModal('sync-modal')" data-i18n-title="league.strava.connect" title="Connecter ton compte Strava" style="display:inline-flex;flex-direction:column;align-items:center;justify-content:center;gap:.15rem;padding:.35rem .7rem;border-radius:4px;border:none;background:#fc4c02;color:#fff;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0;line-height:1;text-align:center"><span style="font-size:.55rem;letter-spacing:.5px;opacity:.95;display:block;width:100%;text-align:center">⚡ POWERED BY</span><span style="font-size:.55rem;letter-spacing:.5px;display:block;width:100%;text-align:center">STRAVA</span></button>
-      <button onclick="openLeagueChat()" title="Chat de ta league" style="display:inline-flex;align-items:center;justify-content:center;gap:.3rem;padding:.35rem .7rem;border-radius:4px;border:1px solid rgba(245,200,66,.4);background:rgba(245,200,66,.1);color:var(--gold);font-weight:700;font-size:.65rem;letter-spacing:.5px;cursor:pointer;white-space:nowrap">💬 CHAT LEAGUE</button>
+      <button onclick="openLeagueChat()" title="Chat de ta league" style="display:inline-flex;align-items:center;justify-content:center;gap:.3rem;height:31px;padding:0 .7rem;border-radius:4px;border:1px solid rgba(45,219,128,.4);background:rgba(45,219,128,.1);color:var(--green);font-weight:700;font-size:.65rem;letter-spacing:.5px;cursor:pointer;white-space:nowrap;box-sizing:border-box">💬 CHAT LEAGUE</button>
     </div>
   </div>
 
@@ -2229,10 +2229,10 @@ select option{background:#040c1c}
 <div id="page-leaguechat" class="page">
 
   <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:1.25rem">
-    <button onclick="nav('league')" style="padding:.45rem .8rem;border-radius:6px;border:1px solid rgba(74,144,255,.25);background:rgba(74,144,255,.08);color:#4a90ff;font-size:.8rem;font-weight:700;cursor:pointer;flex-shrink:0">← Retour</button>
     <div style="font-family:'Bebas Neue',sans-serif;font-size:1.6rem;letter-spacing:2px;line-height:1">
       💬 Chat <span id="leaguechat-name" style="color:var(--gold)">League</span>
     </div>
+    <button onclick="nav('league')" title="Fermer" style="margin-left:auto;width:42px;height:42px;border-radius:50%;border:1px solid rgba(74,144,255,.25);background:rgba(255,255,255,.04);color:var(--muted2);font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0">✕</button>
   </div>
 
   <div class="block" style="padding:0;overflow:hidden">
@@ -13766,6 +13766,10 @@ var _leagueChatKey=null;
 var _leagueChatPollInterval=null;
 
 function canChatInLeague(key){
+  // Bypass admin : modération possible sur toutes les leagues, indépendamment
+  // du statut Premium (cf. convention CLAUDE.md — l'admin ne doit jamais
+  // dépendre d'un statut joueur pour ses pouvoirs de modération).
+  if(typeof isAdmin==='function' && isAdmin()) return true;
   if(isPremium()) return true;
   if(!window.__myPlayer) return false;
   return key===(window.__myPlayer.leagueKey||'starter');
@@ -14260,7 +14264,9 @@ async function renderSocialFeed(){
         renderPolylineMapThumb(item.polyline).then(function(dataUrl){
           if(!dataUrl) return;
           var el=document.getElementById('polymap-'+runId);
-          if(el) el.outerHTML='<div style="margin:.5rem 0"><img src="'+dataUrl+'" onclick="zoomPhoto(this.src)" style="width:100%;height:260px;object-fit:cover;border-radius:10px;border:1px solid rgba(74,144,255,.15);display:block;cursor:pointer" loading="lazy"></div>';
+          if(el) el.outerHTML='<div style="margin:.5rem 0;position:relative"><img src="'+dataUrl+'" onclick="zoomPhoto(this.src)" style="width:100%;height:260px;object-fit:cover;border-radius:10px;border:1px solid rgba(74,144,255,.15);display:block;cursor:pointer" loading="lazy">'
+            +'<span onclick="habillerMapThumb(\''+runId+'\')" style="position:absolute;bottom:6px;left:6px;padding:.2rem .5rem;border-radius:7px;background:rgba(0,0,0,.7);color:#fff;font-size:.62rem;font-weight:700;display:inline-flex;align-items:center;gap:.25rem;cursor:pointer;border:1px solid rgba(255,255,255,.2)" title="Habiller la carte avec tes stats">📊 Stats</span>'
+            +'</div>';
         });
       });
     },{rootMargin:'300px 0px'});
@@ -14278,8 +14284,10 @@ var _polylineThumbCache={};
 // Génère une vignette "carte + tracé" (tuiles CartoDB dark, mêmes tuiles que
 // la carte Lands et le run live) à partir d'un polyline Strava encodé.
 // Retourne une Promise<dataURL> (ou null si échec/pas de tracé exploitable).
-function renderPolylineMapThumb(polyline){
-  if(_polylineThumbCache[polyline]) return Promise.resolve(_polylineThumbCache[polyline]);
+function renderPolylineMapThumb(polyline,W,H){
+  W=W||640;H=H||280;
+  var cacheKey=polyline+'_'+W+'x'+H;
+  if(_polylineThumbCache[cacheKey]) return Promise.resolve(_polylineThumbCache[cacheKey]);
   return new Promise(function(resolve){
     try{
       var pts=decodePolyline(polyline);
@@ -14289,7 +14297,7 @@ function renderPolylineMapThumb(polyline){
         if(p[0]<minLat)minLat=p[0];if(p[0]>maxLat)maxLat=p[0];
         if(p[1]<minLng)minLng=p[1];if(p[1]>maxLng)maxLng=p[1];
       });
-      var W=640,H=280,pad=40;
+      var pad=40;
       function worldPx(lat,lng,z){
         var scale=256*Math.pow(2,z);
         var x=(lng+180)/360*scale;
@@ -14354,7 +14362,7 @@ function renderPolylineMapThumb(polyline){
         dot(pts[0][0],pts[0][1],'#2ddb80');
         dot(pts[pts.length-1][0],pts[pts.length-1][1],'#ff4444');
         var dataUrl=canvas.toDataURL('image/png');
-        _polylineThumbCache[polyline]=dataUrl;
+        _polylineThumbCache[cacheKey]=dataUrl;
         resolve(dataUrl);
       });
     }catch(e){ console.warn('renderPolylineMapThumb error:',e); resolve(null); }
@@ -14910,100 +14918,173 @@ async function habillerPhoto(runId,photoIdx){
       {l:'Points', v:(pts).toLocaleString(lang)}
     ];
 
-    // S'assurer que Rajdhani (police arrondie de l'app) est prête avant de
-    // dessiner du texte, sinon le canvas retombe sur la police système.
-    try{ if(document.fonts && document.fonts.ready) await document.fonts.ready; }catch(e){}
-
-    // Tailles proportionnelles à la largeur de la photo — compactes (façon Strava).
-    var margin=Math.round(W*0.05);
-    var valueFont=Math.max(15,Math.round(W/19));
-    var labelFont=Math.max(10,Math.round(valueFont*0.46));
-    var brandFont=Math.max(15,Math.round(W/16));
-
-    // Texte BLANC + ombre sombre diffuse : reste lisible sur fond clair comme
-    // sur fond foncé, sans pavé ni dégradé (look épuré type Strava/Garmin).
-    function halo(on){
-      if(on){ cx.shadowColor='rgba(0,0,0,.55)'; cx.shadowBlur=Math.round(valueFont*0.55); cx.shadowOffsetX=0; cx.shadowOffsetY=Math.round(valueFont*0.05); }
-      else { cx.shadowColor='transparent'; cx.shadowBlur=0; cx.shadowOffsetX=0; cx.shadowOffsetY=0; }
-    }
-
-    // ── Stats en bas, grille 2×2 (Distance/Temps puis D+/Points) ──────────
-    var col1=margin, col2=Math.round(W*0.52);
-    var labelGap=Math.round(valueFont*0.90);  // libellé au-dessus de sa valeur, petit espace pour bien le détacher
-    var rowH=Math.round(valueFont*1.55);       // espacement haut/bas resserré, avec un peu d'air entre les 2 lignes
-    var bottomPad=Math.round(W*0.06);
-    var v2=H-bottomPad;     // valeurs ligne du bas (D+, Points)
-    var v1=v2-rowH;         // valeurs ligne du haut (Distance, Temps)
-    cx.textAlign='left'; cx.textBaseline='alphabetic';
-    function cell(metric,x,vb){
-      halo(true);
-      cx.fillStyle='#fff';
-      // Libellé : petit, légèrement espacé, AU-DESSUS de la valeur
-      cx.font='600 '+labelFont+'px Rajdhani, sans-serif';
-      cx.letterSpacing=Math.max(1,Math.round(labelFont*0.08))+'px';
-      cx.fillText((metric.l||'').toUpperCase(), x, vb-labelGap);
-      cx.letterSpacing='0px';
-      // Valeur : grasse, arrondie (Rajdhani)
-      cx.font='700 '+valueFont+'px Rajdhani, sans-serif';
-      cx.fillText(metric.v, x, vb);
-      halo(false);
-    }
-    cell(metrics[0],col1,v1);
-    cell(metrics[1],col2,v1);
-    cell(metrics[2],col1,v2);
-    cell(metrics[3],col2,v2);
-
-    // ── Logo officiel (hexagone + 3 griffes) + « SPEEDIX » au-dessus des données ─
-    // On charge le vrai logo (PNG blanc détouré, fond transparent) et on le pose
-    // tel quel → fidèle au pixel. Repli sur un hexagone tracé si le PNG manque.
-    var brandH=Math.round(brandFont*1.6);                // hauteur du logo (un peu plus petit que le texte)
-    var dataTop=v1-labelGap-Math.round(labelFont*0.9);   // haut du libellé de la 1re ligne
-    var hy=Math.max(margin+brandH/2, dataTop-brandH/2-Math.round(brandFont*0.3));
-    var lx=margin;
-    var logoImg=new Image(); var logoOk=true;
-    try{
-      await new Promise(function(res,rej){ logoImg.onload=res; logoImg.onerror=function(){rej(new Error('logo'));}; logoImg.src='logo-mark-white.png'; });
-    }catch(e){ logoOk=false; }
-    halo(true);
-    var wordX;
-    if(logoOk && logoImg.naturalWidth){
-      var brandW=Math.round(brandH*(logoImg.naturalWidth/logoImg.naturalHeight));
-      cx.drawImage(logoImg, lx, Math.round(hy-brandH/2), brandW, brandH);
-      wordX=lx+brandW+Math.round(brandFont*0.4);
-    } else {
-      // Repli : hexagone tracé simple (si le PNG n'a pas chargé)
-      var hr=brandH*0.5, hx=lx+hr;
-      cx.lineJoin='round'; cx.lineCap='round';
-      cx.beginPath();
-      for(var i=0;i<6;i++){ var a=Math.PI/180*(60*i-90); var px=hx+hr*0.87*Math.cos(a), py=hy+hr*Math.sin(a); if(i===0)cx.moveTo(px,py); else cx.lineTo(px,py); }
-      cx.closePath();
-      cx.lineWidth=Math.max(2,Math.round(brandFont*0.1)); cx.strokeStyle='#fff'; cx.stroke();
-      wordX=hx+hr*0.87+Math.round(brandFont*0.45);
-    }
-    // Mot-marque « SPEEDIX » : Rajdhani 700, lettres espacées → sportif & arrondi.
-    // Bas du texte aligné sur le coin bas-droite de l'hexagone (vertex à hy+0.25·H).
-    cx.fillStyle='#fff'; cx.textAlign='left'; cx.textBaseline='alphabetic';
-    cx.font='700 '+brandFont+'px Rajdhani, sans-serif';
-    cx.letterSpacing=Math.max(1,Math.round(brandFont*0.1))+'px';
-    cx.fillText('SPEEDIX', wordX, Math.round(hy+brandH*0.25));
-    cx.letterSpacing='0px';
-    halo(false);
-
-    // ── League du RP, en haut à gauche (l'œil lit de gauche à droite) ─────
-    if(leagueName){
-      var lgFont=Math.round(valueFont*1.12);   // un poil plus grand que les stats
-      cx.textAlign='left'; cx.textBaseline='alphabetic';
-      halo(true);
-      cx.fillStyle='#fff';
-      cx.font='700 '+lgFont+'px Rajdhani, sans-serif';
-      cx.letterSpacing=Math.max(1,Math.round(lgFont*0.05))+'px';
-      cx.fillText(leagueName, margin, margin+Math.round(lgFont*0.92));
-      cx.letterSpacing='0px';
-      halo(false);
-    }
+    // Texte BLANC + ombre sombre diffuse : reste lisible sur une photo, claire ou foncée.
+    await _drawStatsOverlay(cx,W,H,metrics,leagueName,'#fff','rgba(0,0,0,.55)');
 
     cv.toBlob(function(blob){
       _showImageShareSheet(blob,'speedix-photo-'+km+'km.png',
+        (km).toLocaleString(lang)+' km · '+(pts).toLocaleString(lang)+' pts · SPEEDIX League — speedixleague.com',
+        'SPEEDIX League');
+    },'image/png');
+  }catch(e){
+    showToast(_en?'⚠️ Generation failed':'⚠️ Échec de la génération');
+  }
+}
+
+// Dessine les stats de course (grille 2×2 + logo/mot-marque SPEEDIX + league)
+// par-dessus un canvas déjà préparé (photo ou vignette carte). Partagée entre
+// habillerPhoto (texte blanc, halo sombre) et habillerMapThumb (texte noir,
+// halo clair — nécessaire car le fond de carte est pâle, du blanc y serait invisible).
+async function _drawStatsOverlay(cx,W,H,metrics,leagueName,textColor,haloColor){
+  // S'assurer que Rajdhani (police arrondie de l'app) est prête avant de
+  // dessiner du texte, sinon le canvas retombe sur la police système.
+  try{ if(document.fonts && document.fonts.ready) await document.fonts.ready; }catch(e){}
+
+  // Tailles proportionnelles à la largeur de l'image — compactes (façon Strava).
+  var margin=Math.round(W*0.05);
+  var valueFont=Math.max(15,Math.round(W/19));
+  var labelFont=Math.max(10,Math.round(valueFont*0.46));
+  var brandFont=Math.max(15,Math.round(W/16));
+
+  function halo(on){
+    if(on){ cx.shadowColor=haloColor; cx.shadowBlur=Math.round(valueFont*0.55); cx.shadowOffsetX=0; cx.shadowOffsetY=Math.round(valueFont*0.05); }
+    else { cx.shadowColor='transparent'; cx.shadowBlur=0; cx.shadowOffsetX=0; cx.shadowOffsetY=0; }
+  }
+
+  // ── Stats en bas, grille 2×2 (Distance/Temps puis D+/Points) ──────────
+  var col1=margin, col2=Math.round(W*0.52);
+  var labelGap=Math.round(valueFont*0.90);  // libellé au-dessus de sa valeur, petit espace pour bien le détacher
+  var rowH=Math.round(valueFont*1.55);       // espacement haut/bas resserré, avec un peu d'air entre les 2 lignes
+  var bottomPad=Math.round(W*0.06);
+  var v2=H-bottomPad;     // valeurs ligne du bas (D+, Points)
+  var v1=v2-rowH;         // valeurs ligne du haut (Distance, Temps)
+  cx.textAlign='left'; cx.textBaseline='alphabetic';
+  function cell(metric,x,vb){
+    halo(true);
+    cx.fillStyle=textColor;
+    // Libellé : petit, légèrement espacé, AU-DESSUS de la valeur
+    cx.font='600 '+labelFont+'px Rajdhani, sans-serif';
+    cx.letterSpacing=Math.max(1,Math.round(labelFont*0.08))+'px';
+    cx.fillText((metric.l||'').toUpperCase(), x, vb-labelGap);
+    cx.letterSpacing='0px';
+    // Valeur : grasse, arrondie (Rajdhani)
+    cx.font='700 '+valueFont+'px Rajdhani, sans-serif';
+    cx.fillText(metric.v, x, vb);
+    halo(false);
+  }
+  cell(metrics[0],col1,v1);
+  cell(metrics[1],col2,v1);
+  cell(metrics[2],col1,v2);
+  cell(metrics[3],col2,v2);
+
+  // ── Logo officiel (hexagone + 3 griffes) + « SPEEDIX » au-dessus des données ─
+  // On charge le vrai logo (PNG blanc détouré, fond transparent) et on le pose
+  // tel quel → fidèle au pixel. Repli sur un hexagone tracé si le PNG manque.
+  var brandH=Math.round(brandFont*1.6);                // hauteur du logo (un peu plus petit que le texte)
+  var dataTop=v1-labelGap-Math.round(labelFont*0.9);   // haut du libellé de la 1re ligne
+  var hy=Math.max(margin+brandH/2, dataTop-brandH/2-Math.round(brandFont*0.3));
+  var lx=margin;
+  var logoImg=new Image(); var logoOk=true;
+  try{
+    await new Promise(function(res,rej){ logoImg.onload=res; logoImg.onerror=function(){rej(new Error('logo'));}; logoImg.src='logo-mark-white.png'; });
+  }catch(e){ logoOk=false; }
+  halo(true);
+  var wordX;
+  if(logoOk && logoImg.naturalWidth){
+    var brandW=Math.round(brandH*(logoImg.naturalWidth/logoImg.naturalHeight));
+    var ly=Math.round(hy-brandH/2);
+    cx.drawImage(logoImg, lx, ly, brandW, brandH);
+    // Le PNG source est blanc : on le reteinte à la couleur voulue (ex. noir sur
+    // fond clair) sans toucher au fichier, en ne peignant que là où il a de l'alpha.
+    if(textColor!=='#fff'){
+      var prevOp=cx.globalCompositeOperation;
+      cx.globalCompositeOperation='source-atop';
+      cx.fillStyle=textColor;
+      cx.fillRect(lx, ly, brandW, brandH);
+      cx.globalCompositeOperation=prevOp;
+    }
+    wordX=lx+brandW+Math.round(brandFont*0.4);
+  } else {
+    // Repli : hexagone tracé simple (si le PNG n'a pas chargé)
+    var hr=brandH*0.5, hx=lx+hr;
+    cx.lineJoin='round'; cx.lineCap='round';
+    cx.beginPath();
+    for(var i=0;i<6;i++){ var a=Math.PI/180*(60*i-90); var px=hx+hr*0.87*Math.cos(a), py=hy+hr*Math.sin(a); if(i===0)cx.moveTo(px,py); else cx.lineTo(px,py); }
+    cx.closePath();
+    cx.lineWidth=Math.max(2,Math.round(brandFont*0.1)); cx.strokeStyle=textColor; cx.stroke();
+    wordX=hx+hr*0.87+Math.round(brandFont*0.45);
+  }
+  // Mot-marque « SPEEDIX » : Rajdhani 700, lettres espacées → sportif & arrondi.
+  // Bas du texte aligné sur le coin bas-droite de l'hexagone (vertex à hy+0.25·H).
+  cx.fillStyle=textColor; cx.textAlign='left'; cx.textBaseline='alphabetic';
+  cx.font='700 '+brandFont+'px Rajdhani, sans-serif';
+  cx.letterSpacing=Math.max(1,Math.round(brandFont*0.1))+'px';
+  cx.fillText('SPEEDIX', wordX, Math.round(hy+brandH*0.25));
+  cx.letterSpacing='0px';
+  halo(false);
+
+  // ── League du RP, en haut à gauche (l'œil lit de gauche à droite) ─────
+  if(leagueName){
+    var lgFont=Math.round(valueFont*1.12);   // un poil plus grand que les stats
+    cx.textAlign='left'; cx.textBaseline='alphabetic';
+    halo(true);
+    cx.fillStyle=textColor;
+    cx.font='700 '+lgFont+'px Rajdhani, sans-serif';
+    cx.letterSpacing=Math.max(1,Math.round(lgFont*0.05))+'px';
+    cx.fillText(leagueName, margin, margin+Math.round(lgFont*0.92));
+    cx.letterSpacing='0px';
+    halo(false);
+  }
+}
+
+// Habille la vignette carte du tracé (fallback quand le RP n'a pas de photo)
+// avec les mêmes stats que habillerPhoto, mais en texte NOIR + halo clair :
+// le fond de carte est pâle (style Voyager), du texte blanc y serait invisible.
+async function habillerMapThumb(runId){
+  if(!currentUser) return;
+  var _en=(typeof SPEEDIX_LANG!=='undefined' && SPEEDIX_LANG==='en');
+  var lang=(typeof SPEEDIX_LANG!=='undefined')?SPEEDIX_LANG:'fr-FR';
+  try{
+    var {data:run}=await supabaseClient.from('runs').select('distance,time,elevation,points,polyline,player_id').eq('id',runId).single();
+    if(!run || !run.polyline){ showToast(_en?'Route not found':'Tracé introuvable'); return; }
+    showToast(_en?'✨ Generating…':'✨ Génération…');
+    var leagueName='';
+    try{
+      var {data:pl}=await supabaseClient.from('players').select('league').eq('id',run.player_id).single();
+      if(pl && pl.league){
+        var lk=String(pl.league).toLowerCase();
+        if(typeof LEAGUE_DISPLAY!=='undefined' && LEAGUE_DISPLAY[lk]) leagueName=LEAGUE_DISPLAY[lk];
+        else if(typeof LEAGUES!=='undefined'){ var _f=LEAGUES.find(function(l){return l.key===lk;}); if(_f) leagueName=_f.name; }
+      }
+    }catch(e){}
+    // Vignette carte au format CARRÉ 1:1 (même format universel que les photos).
+    var side=1080;
+    var mapDataUrl=await renderPolylineMapThumb(run.polyline, side, side);
+    if(!mapDataUrl){ showToast(_en?'⚠️ Generation failed':'⚠️ Échec de la génération'); return; }
+    var baseImg=new Image();
+    await new Promise(function(res,rej){ baseImg.onload=res; baseImg.onerror=function(){rej(new Error('img'));}; baseImg.src=mapDataUrl; });
+    var W=side,H=side;
+    var cv=document.createElement('canvas'); cv.width=W; cv.height=H;
+    var cx=cv.getContext('2d');
+    cx.imageSmoothingEnabled=true; cx.imageSmoothingQuality='high';
+    cx.drawImage(baseImg,0,0,W,H);
+
+    var km=run.distance||0, timeMin=run.time||0, elv=run.elevation||0, pts=run.points||0;
+    function pad(n){return n<10?'0'+n:''+n;}
+    var timeStr;
+    if(timeMin<=0) timeStr='—';
+    else { var totalSec=Math.round(timeMin*60); var h=Math.floor(totalSec/3600); var m=Math.floor((totalSec-h*3600)/60); var s=totalSec-h*3600-m*60;
+      timeStr=(h>0)?(h+'h '+pad(m)+'min'):(m+'min '+pad(s)+'s'); }
+    var metrics=[
+      {l:'Distance', v:(km).toLocaleString(lang)+' km'},
+      {l:_en?'Time':'Temps', v:timeStr},
+      {l:'D+', v:(elv).toLocaleString(lang)+' m'},
+      {l:'Points', v:(pts).toLocaleString(lang)}
+    ];
+    await _drawStatsOverlay(cx,W,H,metrics,leagueName,'#0a1020','rgba(255,255,255,.85)');
+
+    cv.toBlob(function(blob){
+      _showImageShareSheet(blob,'speedix-carte-'+km+'km.png',
         (km).toLocaleString(lang)+' km · '+(pts).toLocaleString(lang)+' pts · SPEEDIX League — speedixleague.com',
         'SPEEDIX League');
     },'image/png');
