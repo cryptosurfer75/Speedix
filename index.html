@@ -6272,6 +6272,20 @@ async function doResetPassword(){
   }
 }
 
+// Anti-shouting sur le pseudo — SOURCE UNIQUE, appelée à l'inscription ET au
+// changement de pseudo (Paramètres). On autorise les majuscules (LucasRunner)
+// mais on bloque les usernames avec >60% de lettres en majuscule (ex: LUCASRUN)
+// pour préserver la lisibilité du classement. Retourne un message d'erreur
+// (string) ou null si le pseudo est valide.
+function usernameCasingError(username){
+  var _letters=(username||'').replace(/[^a-zA-Z]/g,'');
+  if(_letters.length>=3){
+    var _upRatio=_letters.replace(/[^A-Z]/g,'').length/_letters.length;
+    if(_upRatio>0.6) return 'Trop de majuscules — utilise un mix plus naturel (ex: LucasRunner)';
+  }
+  return null;
+}
+
 async function doRegister(){
   // Kill switch : si l'admin a fermé les inscriptions
   if(window.__appSettings && window.__appSettings.registration_disabled){
@@ -6286,12 +6300,9 @@ async function doRegister(){
   if(username.length<3){showHgoError('Username trop court (min 3 caractères)');return;}
   if(username.length>12){showHgoError('Username trop long (max 12 caractères)');return;}
   if(!/^[a-zA-Z0-9_-]+$/.test(username)){showHgoError('Username invalide — lettres, chiffres, tirets et underscores uniquement');return;}
-  // Anti-shouting : on autorise les majuscules (LucasRunner) mais on bloque les usernames
-  // qui ont >60% de lettres en majuscule (ex: LUCASRUN). Préserve la lisibilité du classement.
-  var _letters=username.replace(/[^a-zA-Z]/g,'');
-  if(_letters.length>=3){
-    var _upRatio=_letters.replace(/[^A-Z]/g,'').length/_letters.length;
-    if(_upRatio>0.6){showHgoError('Trop de majuscules — utilise un mix plus naturel (ex: LucasRunner)');return;}
+  {
+    var _casingErr=usernameCasingError(username);
+    if(_casingErr){showHgoError(_casingErr);return;}
   }
   // Vérifier doublon (insensible à la casse)
   var {data:existing}=await supabaseClient.from('players').select('id').ilike('username',username).maybeSingle();
@@ -7057,10 +7068,9 @@ async function hgo(s){
     if(!un||un.length<3){showHgoError('Username trop court (min 3 caractères)');return;}
     if(un.length>12){showHgoError('Username trop long (max 12 caractères)');return;}
     if(!/^[a-zA-Z0-9_-]+$/.test(un)){showHgoError('Username invalide — lettres, chiffres, tirets et underscores uniquement');return;}
-    var _letters=un.replace(/[^a-zA-Z]/g,'');
-    if(_letters.length>=3){
-      var _upRatio=_letters.replace(/[^A-Z]/g,'').length/_letters.length;
-      if(_upRatio>0.6){showHgoError('Trop de majuscules — utilise un mix plus naturel (ex: LucasRunner)');return;}
+    {
+      var _casingErr=usernameCasingError(un);
+      if(_casingErr){showHgoError(_casingErr);return;}
     }
     var {data:_existing}=await supabaseClient.from('players').select('id').ilike('username',un).maybeSingle();
     if(_existing){showHgoError('Ce username est déjà pris — choisis-en un autre');return;}
@@ -24401,11 +24411,13 @@ async function editSettingsField(field){
   switch(field){
     case 'username':
       label='Nouveau nom de RP'; placeholder='SpeedyJoe'; current=p.username||'';
-      // Même règle qu'à l'inscription : pas d'emoji ni de caractère exotique.
+      // Même règle qu'à l'inscription (source unique : usernameCasingError) —
+      // le check anti-majuscules manquait ici, ce qui permettait de renommer
+      // un pseudo valide en tout-majuscule après coup (ex: LOPEZCLAUDE).
       validate=function(v){
         if(!v || v.length<3 || v.length>12) return 'Entre 3 et 12 caractères';
         if(!/^[a-zA-Z0-9_-]+$/.test(v)) return 'Lettres, chiffres, tirets et underscores uniquement';
-        return null;
+        return usernameCasingError(v);
       };
       break;
     case 'nat':
