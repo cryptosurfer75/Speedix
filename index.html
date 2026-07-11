@@ -2039,7 +2039,7 @@ select option{background:#040c1c}
     </div>
     <div style="flex-shrink:0;display:flex;flex-direction:column;gap:.4rem">
       <button onclick="openModal('sync-modal')" data-i18n-title="league.strava.connect" title="Connecter ton compte Strava" style="display:inline-flex;flex-direction:column;align-items:center;justify-content:center;gap:.15rem;padding:.35rem .7rem;border-radius:4px;border:none;background:#fc4c02;color:#fff;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0;line-height:1;text-align:center"><span style="font-size:.55rem;letter-spacing:.5px;opacity:.95;display:block;width:100%;text-align:center">⚡ POWERED BY</span><span style="font-size:.55rem;letter-spacing:.5px;display:block;width:100%;text-align:center">STRAVA</span></button>
-      <button onclick="openLeagueChat()" title="Chat de ta league" style="display:inline-flex;align-items:center;justify-content:center;gap:.3rem;height:31px;padding:0 .7rem;border-radius:4px;border:1px solid rgba(45,219,128,.4);background:rgba(45,219,128,.1);color:var(--green);font-weight:700;font-size:.65rem;letter-spacing:.5px;cursor:pointer;white-space:nowrap;box-sizing:border-box">💬 CHAT LEAGUE</button>
+      <button onclick="openLeagueChat()" title="Chat de ta league" style="position:relative;display:inline-flex;align-items:center;justify-content:center;gap:.3rem;height:31px;padding:0 .7rem;border-radius:4px;border:1px solid rgba(45,219,128,.4);background:rgba(45,219,128,.1);color:var(--green);font-weight:700;font-size:.65rem;letter-spacing:.5px;cursor:pointer;white-space:nowrap;box-sizing:border-box">💬 CHAT LEAGUE<span id="leaguechat-notif-badge" style="display:none;position:absolute;top:-4px;right:-4px;width:14px;height:14px;border-radius:50%;background:#ff4444;border:2px solid #020408"></span></button>
     </div>
   </div>
 
@@ -13807,9 +13807,31 @@ function openLeagueChat(){
   var meta=LEAGUES.find(function(l){return l.key===key;})||{emoji:'',name:key,label:''};
   var nameEl=document.getElementById('leaguechat-name');
   if(nameEl) nameEl.textContent=meta.emoji+' '+meta.name+' — '+meta.label;
+  // Marquer vu + éteindre la pastille SEULEMENT si c'est le chat de SA propre
+  // league (celle que surveille la pastille) — pas quand un Premium va juste
+  // consulter le chat d'une autre league.
+  if(currentUser && window.__myPlayer && key===(window.__myPlayer.leagueKey||'starter')){
+    localStorage.setItem('leaguechat-seen-'+key+'-'+currentUser.id,new Date().toISOString());
+    var badge=document.getElementById('leaguechat-notif-badge');
+    if(badge) badge.style.display='none';
+  }
   nav('leaguechat');
   loadLeagueChat(key);
   startLeagueChatPoll(key);
+}
+
+// Pastille rouge sur le bouton "Chat League" : nouveaux messages (d'autres RP)
+// dans SA PROPRE league depuis la dernière visite de ce chat précis.
+function checkLeagueChatNotifs(){
+  if(!currentUser||!window.__myPlayer) return;
+  var key=window.__myPlayer.leagueKey||'starter';
+  var lastSeen=localStorage.getItem('leaguechat-seen-'+key+'-'+currentUser.id)||'2000-01-01';
+  window.fetch(supabaseUrl+'/rest/v1/league_messages?league=eq.'+encodeURIComponent(key)+'&player_id=neq.'+encodeURIComponent(currentUser.id)+'&created_at=gt.'+encodeURIComponent(lastSeen)+'&select=id',{
+    headers:{'apikey':supabaseKey,'Authorization':'Bearer '+supabaseKey,'Accept':'application/json'}
+  }).then(function(r){return r.json();}).then(function(rows){
+    var badge=document.getElementById('leaguechat-notif-badge');
+    if(badge) badge.style.display=(rows&&rows.length>0)?'block':'none';
+  }).catch(function(){});
 }
 
 function startLeagueChatPoll(key){
@@ -16939,6 +16961,7 @@ function nav(page){
   if(page==='league'){
     if(typeof loadPlayersFromSupabase==='function') loadPlayersFromSupabase();
     if(typeof syncChatLeagueBtnHeight==='function') syncChatLeagueBtnHeight();
+    if(typeof checkLeagueChatNotifs==='function') checkLeagueChatNotifs();
   }
   if(page==='teams'){
     if(typeof renderTeams==='function') renderTeams();
