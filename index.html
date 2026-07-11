@@ -2037,8 +2037,9 @@ select option{background:#040c1c}
         <div id="period-timer" style="font-family:'Space Mono',monospace;font-size:.72rem;color:var(--muted2)">—</div>
       </div>
     </div>
-    <div style="flex-shrink:0">
+    <div style="flex-shrink:0;display:flex;flex-direction:column;gap:.4rem">
       <button onclick="openModal('sync-modal')" data-i18n-title="league.strava.connect" title="Connecter ton compte Strava" style="display:inline-flex;flex-direction:column;align-items:center;justify-content:center;gap:.15rem;padding:.35rem .7rem;border-radius:4px;border:none;background:#fc4c02;color:#fff;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0;line-height:1;text-align:center"><span style="font-size:.55rem;letter-spacing:.5px;opacity:.95;display:block;width:100%;text-align:center">⚡ POWERED BY</span><span style="font-size:.55rem;letter-spacing:.5px;display:block;width:100%;text-align:center">STRAVA</span></button>
+      <button onclick="openLeagueChat()" title="Chat de ta league" style="display:inline-flex;align-items:center;justify-content:center;gap:.3rem;padding:.35rem .7rem;border-radius:4px;border:1px solid rgba(245,200,66,.4);background:rgba(245,200,66,.1);color:var(--gold);font-weight:700;font-size:.65rem;letter-spacing:.5px;cursor:pointer;white-space:nowrap">💬 CHAT LEAGUE</button>
     </div>
   </div>
 
@@ -2218,6 +2219,27 @@ select option{background:#040c1c}
         </div>
 
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==========================================
+     PAGE : LEAGUE CHAT
+=========================================== -->
+<div id="page-leaguechat" class="page">
+
+  <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:1.25rem">
+    <button onclick="nav('league')" style="padding:.45rem .8rem;border-radius:6px;border:1px solid rgba(74,144,255,.25);background:rgba(74,144,255,.08);color:#4a90ff;font-size:.8rem;font-weight:700;cursor:pointer;flex-shrink:0">← Retour</button>
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:1.6rem;letter-spacing:2px;line-height:1">
+      💬 Chat <span id="leaguechat-name" style="color:var(--gold)">League</span>
+    </div>
+  </div>
+
+  <div class="block" style="padding:0;overflow:hidden">
+    <div id="leaguechat-messages" style="height:60vh;min-height:320px;overflow-y:auto;display:flex;flex-direction:column;gap:.4rem;padding:1rem;scrollbar-width:thin;scrollbar-color:rgba(74,144,255,.2) transparent"></div>
+    <div style="display:flex;gap:.5rem;padding:.75rem 1rem;border-top:1px solid rgba(30,37,53,.6)">
+      <input id="leaguechat-input" type="text" placeholder="Message…" maxlength="300" style="flex:1;padding:.7rem .8rem;border-radius:8px;border:1px solid rgba(74,144,255,.15);background:rgba(4,12,28,.5);color:var(--text);font-size:.95rem;outline:none" onkeydown="if(event.key==='Enter')sendLeagueMessage()">
+      <button onclick="sendLeagueMessage()" style="padding:.55rem 1.1rem;border-radius:8px;border:1px solid rgba(74,144,255,.25);background:rgba(74,144,255,.08);color:#4a90ff;font-size:.85rem;font-weight:700;cursor:pointer">→</button>
     </div>
   </div>
 </div>
@@ -3429,6 +3451,17 @@ function askConfirm(message, opts){
     <div data-i18n="streak.daily.hint" style="font-size:.72rem;color:var(--muted2);line-height:1.5;margin-bottom:.6rem">Connecte toi tous les jours pour récupérer tes bonus quotidien.</div>
     <div id="streak-modal-info" style="font-size:.7rem;color:var(--muted2);line-height:1.6"></div>
     <button id="streak-modal-btn" data-i18n="streak.btn" onclick="closeModal('streak-modal')" style="margin-top:1rem;padding:.5rem 2rem;border-radius:8px;border:1.5px solid var(--green);background:linear-gradient(135deg,rgba(45,219,128,.15),rgba(32,180,100,.08));color:var(--green);font-weight:700;font-size:.85rem;cursor:pointer;letter-spacing:.5px">C'est parti ! 🚀</button>
+  </div>
+</div>
+
+<!-- Modal Notifs sociales (likes/commentaires reçus) à l'ouverture -->
+<div class="modal" id="social-notif-modal">
+  <div class="modal-box" style="max-width:380px;text-align:center;padding:1.75rem 1.5rem">
+    <button class="modal-close" onclick="closeModal('social-notif-modal')">✕</button>
+    <div style="font-size:2.5rem;margin-bottom:.5rem">🔔</div>
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:1.5rem;letter-spacing:2px;color:var(--gold);margin-bottom:.75rem">Ça bouge sur tes courses !</div>
+    <div id="social-notif-modal-body" style="text-align:left"></div>
+    <button onclick="closeModal('social-notif-modal');nav('social')" style="margin-top:.75rem;padding:.5rem 2rem;border-radius:8px;border:1.5px solid var(--green);background:linear-gradient(135deg,rgba(45,219,128,.15),rgba(32,180,100,.08));color:var(--green);font-weight:700;font-size:.85rem;cursor:pointer;letter-spacing:.5px">Voir le Feed 🏃</button>
   </div>
 </div>
 
@@ -13724,6 +13757,119 @@ async function deleteTeamMessage(msgId){
 }
 
 /* ============================================================
+   CHAT LEAGUE — un salon par league. Premium : accès à toutes les
+   leagues. Free : accès uniquement à sa propre league (règle stricte,
+   contrairement à canAccessLeague() qui tolère ±1 league pour la
+   consultation du classement).
+============================================================ */
+var _leagueChatKey=null;
+var _leagueChatPollInterval=null;
+
+function canChatInLeague(key){
+  if(isPremium()) return true;
+  if(!window.__myPlayer) return false;
+  return key===(window.__myPlayer.leagueKey||'starter');
+}
+
+function openLeagueChat(){
+  var key=activeLeagueKey;
+  if(!canChatInLeague(key)){
+    if(!window.__premiumLeagueGateSeen){
+      window.__premiumLeagueGateSeen=true;
+      showPremiumGate(t('league.premium.gate'));
+    } else {
+      showToast(t('league.premium.toast'));
+    }
+    return;
+  }
+  _leagueChatKey=key;
+  var meta=LEAGUES.find(function(l){return l.key===key;})||{emoji:'',name:key,label:''};
+  var nameEl=document.getElementById('leaguechat-name');
+  if(nameEl) nameEl.textContent=meta.emoji+' '+meta.name+' — '+meta.label;
+  nav('leaguechat');
+  loadLeagueChat(key);
+  startLeagueChatPoll(key);
+}
+
+function startLeagueChatPoll(key){
+  if(_leagueChatPollInterval) clearInterval(_leagueChatPollInterval);
+  _leagueChatPollInterval=setInterval(function(){
+    if(_leagueChatKey) loadLeagueChat(_leagueChatKey);
+  },3000);
+}
+
+async function loadLeagueChat(key){
+  if(!currentUser){
+    if(_leagueChatPollInterval){clearInterval(_leagueChatPollInterval);_leagueChatPollInterval=null;}
+    return;
+  }
+  var el=document.getElementById('leaguechat-messages');
+  if(!el||!key) return;
+  var resp=await window.fetch(supabaseUrl+'/rest/v1/league_messages?league=eq.'+encodeURIComponent(key)+'&select=id,player_id,content,created_at&order=created_at.desc&limit=100',{
+    headers:{'apikey':supabaseKey,'Authorization':'Bearer '+supabaseKey,'Accept':'application/json'}
+  });
+  var msgs=await resp.json();
+  if(!msgs||!msgs.length){
+    el.innerHTML='<div style="text-align:center;padding:1.5rem;color:var(--muted2);font-size:.85rem">Aucun message. Sois le premier à lancer la discussion !</div>';
+    return;
+  }
+  var pids=[...new Set(msgs.map(function(m){return m.player_id;}))];
+  var {data:players}=await supabaseClient.from('players').select('id,username,avatar').in('id',pids);
+  var pMap={};
+  (players||[]).forEach(function(p){pMap[p.id]=p;});
+  if(!currentUser){
+    if(_leagueChatPollInterval){clearInterval(_leagueChatPollInterval);_leagueChatPollInterval=null;}
+    return;
+  }
+  msgs.reverse();
+  var _myUid=currentUser.id;
+  el.innerHTML=msgs.map(function(m){
+    var p=pMap[m.player_id]||{username:'?',avatar:null};
+    var isMe=m.player_id===_myUid;
+    var canDel=isMe||isAdmin();
+    var time=m.created_at?new Date(m.created_at).toLocaleTimeString('fr',{hour:'2-digit',minute:'2-digit'}):'';
+    var date=m.created_at?new Date(m.created_at).toLocaleDateString(SPEEDIX_LANG,{day:'2-digit',month:'2-digit'}):'';
+    return '<div style="display:flex;gap:.5rem;align-items:flex-start'+(isMe?';flex-direction:row-reverse':'')+'">'
+      +(p.avatar?'<img src="'+escapeHtml(p.avatar)+'" style="width:34px;height:34px;border-radius:8px;object-fit:cover;flex-shrink:0">':'<div style="width:34px;height:34px;border-radius:8px;background:rgba(74,144,255,.15);display:flex;align-items:center;justify-content:center;font-size:.8rem;font-weight:700;color:var(--muted2);flex-shrink:0">'+escapeHtml(p.username.charAt(0).toUpperCase())+'</div>')
+      +'<div style="max-width:75%;padding:.5rem .75rem;border-radius:10px;background:'+(isMe?'rgba(74,144,255,.12)':'rgba(30,37,53,.6)')+';border:1px solid '+(isMe?'rgba(74,144,255,.2)':'rgba(30,37,53,.8)')+'">'
+      +'<div style="display:flex;align-items:center;gap:.4rem;margin-bottom:.2rem">'
+      +'<span style="font-size:.8rem;font-weight:700;color:'+(isMe?'#4a90ff':'var(--text)')+'">'+escapeHtml(p.username)+'</span>'
+      +'<span style="font-size:.68rem;color:var(--muted)">'+date+' '+time+'</span>'
+      +(canDel?'<span onclick="deleteLeagueMessage(\''+m.id+'\')" style="margin-left:auto;color:#ff4444;cursor:pointer;font-size:.75rem;padding:0 .2rem" title="Supprimer">✕</span>':'')
+      +'</div>'
+      +'<div style="font-size:.95rem;color:var(--text);line-height:1.45;word-break:break-word">'+escapeHtml(m.content)+'</div>'
+      +'</div></div>';
+  }).join('');
+  el.scrollTop=el.scrollHeight;
+}
+
+async function sendLeagueMessage(){
+  if(!currentUser||!_leagueChatKey) return;
+  if(!canChatInLeague(_leagueChatKey)){ showPremiumGate(t('league.premium.gate')); return; }
+  var input=document.getElementById('leaguechat-input');
+  if(!input) return;
+  var content=input.value.trim();
+  if(!content) return;
+  await window.fetch(supabaseUrl+'/rest/v1/league_messages',{
+    method:'POST',
+    headers:{'apikey':supabaseKey,'Authorization':'Bearer '+supabaseKey,'Content-Type':'application/json','Prefer':'return=minimal'},
+    body:JSON.stringify({league:_leagueChatKey,player_id:currentUser.id,content:content})
+  });
+  input.value='';
+  loadLeagueChat(_leagueChatKey);
+}
+
+async function deleteLeagueMessage(msgId){
+  if(!currentUser) return;
+  var filter=isAdmin()?'id=eq.'+encodeURIComponent(msgId):'id=eq.'+encodeURIComponent(msgId)+'&player_id=eq.'+encodeURIComponent(currentUser.id);
+  await window.fetch(supabaseUrl+'/rest/v1/league_messages?'+filter,{
+    method:'DELETE',
+    headers:{'apikey':supabaseKey,'Authorization':'Bearer '+supabaseKey}
+  });
+  loadLeagueChat(_leagueChatKey);
+}
+
+/* ============================================================
    SOCIAL FEED
 ============================================================ */
 var _feedMode='all';
@@ -13930,6 +14076,9 @@ async function renderSocialFeed(){
   // Cache global pour showReactionsList (modal liste des RPs qui ont liké)
   window._feedReactsCache = reactMap;
   window._feedPlayersCache = pMap;
+  // Courses sans photo mais avec un tracé GPS : on génère une vignette carte
+  // (tuiles + tracé) en fallback, remplie après coup car async (cf. plus bas).
+  var _pendingMapThumbs=[];
   feed.innerHTML=runs.map(function(r){
     var p=pMap[r.player_id]||{username:'Joueur',nat:'🏳️',grade:'starter',avatar:null};
     var gc=GRADE_COLORS[p.grade]||'#8090b0';
@@ -13971,6 +14120,13 @@ async function renderSocialFeed(){
     var isMyRun=r.player_id===currentUser.id;
     var photos=[];
     try{photos=r.photo?JSON.parse(r.photo):[];}catch(e){if(r.photo)photos=[r.photo];}
+    // Vignette carte du tracé : toujours affichée en premier quand la course a
+    // un tracé GPS (avant les photos éventuelles du RP, façon Strava).
+    var mapThumbHtml='';
+    if(r.polyline){
+      mapThumbHtml='<div id="polymap-'+r.id+'" style="margin:.5rem 0;width:100%;height:260px;border-radius:10px;overflow:hidden;background:#e9e7e0;display:flex;align-items:center;justify-content:center;color:#8a8a8a;font-size:.7rem">🗺️ Chargement du tracé…</div>';
+      _pendingMapThumbs.push({id:r.id,polyline:r.polyline});
+    }
     // Grille photo intelligente : 1 photo = full width XL, 2 photos = 2 colonnes,
     // 3-4 photos = grille 2x2. Hauteur fixée pour rester cohérent visuellement.
     var photoHtml='';
@@ -14072,12 +14228,11 @@ async function renderSocialFeed(){
       +'</div>'
       +descHtml
       +''
+      +mapThumbHtml
       +photoHtml
       // Réactions
       +'<div style="display:flex;gap:.4rem;margin-top:.4rem;flex-wrap:wrap">'
       +rBtn('like','👍',reacts.like)
-      +rBtn('heart','❤️',reacts.heart)
-      +rBtn('flash','⚡',reacts.flash)
       +uploadBtn
       +pinBtn
       +'<button onclick="shareRunCard(\''+r.id+'\')" style="margin-left:auto;display:flex;align-items:center;gap:.25rem;padding:.25rem .5rem;border-radius:6px;border:1px solid rgba(74,144,255,.15);background:transparent;color:var(--muted2);font-size:.75rem;cursor:pointer">📤 Partager</button>'
@@ -14091,6 +14246,119 @@ async function renderSocialFeed(){
       +'</div>'
       +'</div></div>';
   }).join('');
+  // Génération PARESSEUSE des vignettes carte : le feed peut afficher jusqu'à
+  // 500 courses d'un coup, donc on ne télécharge les tuiles que pour celles qui
+  // entrent réellement dans la zone visible (+ marge de 300px), pas tout le lot.
+  if(_pendingMapThumbs.length){
+    var _mapThumbObserver=new IntersectionObserver(function(entries,obs){
+      entries.forEach(function(entry){
+        if(!entry.isIntersecting) return;
+        obs.unobserve(entry.target);
+        var runId=entry.target.id.replace('polymap-','');
+        var item=_pendingMapThumbs.find(function(x){return x.id===runId;});
+        if(!item) return;
+        renderPolylineMapThumb(item.polyline).then(function(dataUrl){
+          if(!dataUrl) return;
+          var el=document.getElementById('polymap-'+runId);
+          if(el) el.outerHTML='<div style="margin:.5rem 0"><img src="'+dataUrl+'" onclick="zoomPhoto(this.src)" style="width:100%;height:260px;object-fit:cover;border-radius:10px;border:1px solid rgba(74,144,255,.15);display:block;cursor:pointer" loading="lazy"></div>';
+        });
+      });
+    },{rootMargin:'300px 0px'});
+    _pendingMapThumbs.forEach(function(item){
+      var el=document.getElementById('polymap-'+item.id);
+      if(el) _mapThumbObserver.observe(el);
+    });
+  }
+}
+
+// Cache des vignettes carte déjà générées (évite de re-télécharger les tuiles
+// à chaque re-rendu du feed pour la même course).
+var _polylineThumbCache={};
+
+// Génère une vignette "carte + tracé" (tuiles CartoDB dark, mêmes tuiles que
+// la carte Lands et le run live) à partir d'un polyline Strava encodé.
+// Retourne une Promise<dataURL> (ou null si échec/pas de tracé exploitable).
+function renderPolylineMapThumb(polyline){
+  if(_polylineThumbCache[polyline]) return Promise.resolve(_polylineThumbCache[polyline]);
+  return new Promise(function(resolve){
+    try{
+      var pts=decodePolyline(polyline);
+      if(!pts||pts.length<2){resolve(null);return;}
+      var minLat=Infinity,maxLat=-Infinity,minLng=Infinity,maxLng=-Infinity;
+      pts.forEach(function(p){
+        if(p[0]<minLat)minLat=p[0];if(p[0]>maxLat)maxLat=p[0];
+        if(p[1]<minLng)minLng=p[1];if(p[1]>maxLng)maxLng=p[1];
+      });
+      var W=640,H=280,pad=40;
+      function worldPx(lat,lng,z){
+        var scale=256*Math.pow(2,z);
+        var x=(lng+180)/360*scale;
+        var s=Math.sin(lat*Math.PI/180);
+        var y=(0.5-Math.log((1+s)/(1-s))/(4*Math.PI))*scale;
+        return [x,y];
+      }
+      // Zoom le plus élevé qui fait tenir tout le tracé dans le cadre (avec marge).
+      var zoom=17;
+      for(;zoom>=2;zoom--){
+        var a=worldPx(maxLat,minLng,zoom), b=worldPx(minLat,maxLng,zoom);
+        if(Math.abs(b[0]-a[0])<=(W-pad*2) && Math.abs(b[1]-a[1])<=(H-pad*2)) break;
+      }
+      var c=worldPx((minLat+maxLat)/2,(minLng+maxLng)/2,zoom);
+      // Origine arrondie au pixel entier : sinon chaque tuile se dessine à un
+      // décalage sub-pixel légèrement différent → flou/dédoublement visible
+      // sur le fond de carte (texte des noms de ville notamment).
+      var originX=Math.round(c[0]-W/2), originY=Math.round(c[1]-H/2);
+      var tileMinX=Math.floor(originX/256), tileMinY=Math.floor(originY/256);
+      var tileMaxX=Math.floor((originX+W)/256), tileMaxY=Math.floor((originY+H)/256);
+      var nTiles=Math.pow(2,zoom);
+      var canvas=document.createElement('canvas');
+      canvas.width=W;canvas.height=H;
+      var cx=canvas.getContext('2d');
+      cx.fillStyle='#e9e7e0';cx.fillRect(0,0,W,H);
+      var subs=['a','b','c','d'];
+      var jobs=[];
+      for(var tx=tileMinX;tx<=tileMaxX;tx++){
+        for(var ty=tileMinY;ty<=tileMaxY;ty++){
+          if(ty<0||ty>=nTiles) continue;
+          (function(tx,ty){
+            var wrappedX=((tx%nTiles)+nTiles)%nTiles;
+            var sub=subs[Math.abs(tx+ty)%4];
+            var url='https://'+sub+'.basemaps.cartocdn.com/light_all/'+zoom+'/'+wrappedX+'/'+ty+'.png';
+            var dx=tx*256-originX, dy=ty*256-originY;
+            jobs.push(new Promise(function(res){
+              var img=new Image();
+              img.crossOrigin='anonymous';
+              img.onload=function(){ cx.drawImage(img,dx,dy,256,256); res(); };
+              img.onerror=function(){ res(); };
+              img.src=url;
+            }));
+          })(tx,ty);
+        }
+      }
+      Promise.all(jobs).then(function(){
+        // Tracé : ligne cerclée sombre + centre doré (contraste sur fond de carte clair).
+        cx.beginPath();
+        pts.forEach(function(p,i){
+          var wp=worldPx(p[0],p[1],zoom);
+          var x=wp[0]-originX, y=wp[1]-originY;
+          if(i===0)cx.moveTo(x,y);else cx.lineTo(x,y);
+        });
+        cx.strokeStyle='rgba(10,16,32,.55)';cx.lineWidth=7;cx.lineCap='round';cx.lineJoin='round';cx.stroke();
+        cx.strokeStyle='#f5c842';cx.lineWidth=3.2;cx.stroke();
+        function dot(lat,lng,color){
+          var wp=worldPx(lat,lng,zoom);
+          var x=wp[0]-originX,y=wp[1]-originY;
+          cx.fillStyle='#0a1020';cx.beginPath();cx.arc(x,y,6,0,Math.PI*2);cx.fill();
+          cx.fillStyle=color;cx.beginPath();cx.arc(x,y,4.5,0,Math.PI*2);cx.fill();
+        }
+        dot(pts[0][0],pts[0][1],'#2ddb80');
+        dot(pts[pts.length-1][0],pts[pts.length-1][1],'#ff4444');
+        var dataUrl=canvas.toDataURL('image/png');
+        _polylineThumbCache[polyline]=dataUrl;
+        resolve(dataUrl);
+      });
+    }catch(e){ console.warn('renderPolylineMapThumb error:',e); resolve(null); }
+  });
 }
 
 function publishRunDesc(runId){
@@ -14800,12 +15068,12 @@ async function checkSocialNotifs(){
   if(!myRuns||!myRuns.length){return;}
   var ids=myRuns.map(function(r){return r.id;});
   // Réactions récentes sur mes courses (pas les miennes)
-  var reactResp=await window.fetch(supabaseUrl+'/rest/v1/run_reactions?run_id=in.('+ids.join(',')+')'+'&player_id=neq.'+encodeURIComponent(currentUser.id)+'&created_at=gt.'+encodeURIComponent(lastSeen)+'&select=id',{
+  var reactResp=await window.fetch(supabaseUrl+'/rest/v1/run_reactions?run_id=in.('+ids.join(',')+')'+'&player_id=neq.'+encodeURIComponent(currentUser.id)+'&created_at=gt.'+encodeURIComponent(lastSeen)+'&select=id,player_id&order=created_at.desc',{
     headers:{'apikey':supabaseKey,'Authorization':'Bearer '+supabaseKey,'Accept':'application/json'}
   });
   var reacts=await reactResp.json();
   // Commentaires récents sur mes courses (pas les miens)
-  var commResp=await window.fetch(supabaseUrl+'/rest/v1/run_comments?run_id=in.('+ids.join(',')+')'+'&player_id=neq.'+encodeURIComponent(currentUser.id)+'&created_at=gt.'+encodeURIComponent(lastSeen)+'&select=id',{
+  var commResp=await window.fetch(supabaseUrl+'/rest/v1/run_comments?run_id=in.('+ids.join(',')+')'+'&player_id=neq.'+encodeURIComponent(currentUser.id)+'&created_at=gt.'+encodeURIComponent(lastSeen)+'&select=id,player_id,content&order=created_at.desc',{
     headers:{'apikey':supabaseKey,'Authorization':'Bearer '+supabaseKey,'Accept':'application/json'}
   });
   var comms=await commResp.json();
@@ -14819,6 +15087,29 @@ async function checkSocialNotifs(){
       badge.style.display='none';
     }
   }
+  // Petite fenêtre à l'ouverture résumant les nouveaux likes/commentaires.
+  // Ne touche PAS à 'social-seen-' : la pastille rouge reste allumée tant que
+  // le RP n'a pas réellement ouvert le Feed (cf nav('social')).
+  if(total>0) showSocialNotifPopup(reacts||[],comms||[]);
+}
+
+async function showSocialNotifPopup(reacts,comms){
+  var uids=[...new Set(reacts.map(function(r){return r.player_id;}).concat(comms.map(function(c){return c.player_id;})))];
+  var {data:players}=await supabaseClient.from('players').select('id,username').in('id',uids);
+  var nameOf=function(uid){var p=(players||[]).find(function(x){return x.id===uid;});return p?p.username:'Quelqu\'un';};
+  var lines=[];
+  if(reacts.length){
+    var reactNames=[...new Set(reacts.map(function(r){return nameOf(r.player_id);}))];
+    var shown=reactNames.slice(0,2).join(', ');
+    var rest=reactNames.length-2;
+    lines.push('👍 <strong>'+escapeHtml(shown)+'</strong>'+(rest>0?' +'+rest+' autre'+(rest>1?'s':''):'')+' '+(reactNames.length>1?'ont':'a')+' aimé '+(reacts.length>1?'tes courses':'ta course'));
+  }
+  comms.slice(0,3).forEach(function(c){
+    lines.push('💬 <strong>'+escapeHtml(nameOf(c.player_id))+'</strong> : « '+escapeHtml((c.content||'').slice(0,80))+' »');
+  });
+  if(comms.length>3) lines.push('+ '+(comms.length-3)+' autre'+(comms.length-3>1?'s':'')+' commentaire'+(comms.length-3>1?'s':''));
+  document.getElementById('social-notif-modal-body').innerHTML=lines.map(function(l){return '<div style="margin-bottom:.5rem;font-size:.82rem;line-height:1.5;color:var(--text)">'+l+'</div>';}).join('');
+  openModal('social-notif-modal');
 }
 
 // Marquer les notifs comme vues quand on ouvre la page social
@@ -16623,6 +16914,8 @@ function nav(page){
   }
   // Arrêter le polling chat si on quitte Teams
   if(page!=='teams'&&_chatPollInterval){clearInterval(_chatPollInterval);_chatPollInterval=null;}
+  // Arrêter le polling du chat league si on quitte sa page
+  if(page!=='leaguechat'&&_leagueChatPollInterval){clearInterval(_leagueChatPollInterval);_leagueChatPollInterval=null;}
   // Masquer le badge team quand on ouvre Teams
   if(page==='teams'){
     var tbadge=document.getElementById('team-notif-badge');
