@@ -14034,7 +14034,13 @@ async function renderSocialFeed(){
     if(searchWrap) searchWrap.style.display='';
   }
   if(!currentUser){feed.innerHTML='<div style="text-align:center;padding:2rem;color:var(--muted2);font-size:.82rem">Connecte-toi pour voir le fil social</div>';return;}
-  feed.innerHTML='<div style="text-align:center;padding:2rem;color:var(--muted2);font-size:.82rem">Chargement…</div>';
+  // Sur un re-render (le feed a déjà des cartes, ex: après un like), on ne
+  // remplace PAS par le placeholder "Chargement…" : ça effondrerait la hauteur
+  // du conteneur pendant les fetchs et ferait clamper le scroll de la page en
+  // haut. On ne montre le placeholder qu'au tout premier chargement.
+  if(!feed.children.length){
+    feed.innerHTML='<div style="text-align:center;padding:2rem;color:var(--muted2);font-size:.82rem">Chargement…</div>';
+  }
   // Charger les follows
   await loadMyFollowing();
   // Stratégie de fetch selon le mode :
