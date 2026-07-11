@@ -13775,6 +13775,23 @@ function canChatInLeague(key){
   return key===(window.__myPlayer.leagueKey||'starter');
 }
 
+// Aligne EXACTEMENT la hauteur du bouton "Chat League" sur celle du bouton
+// Strava juste à côté — plutôt qu'une valeur fixe devinée, on copie la vraie
+// hauteur rendue (fiable quelle que soit la police/le device/le navigateur).
+function syncChatLeagueBtnHeight(){
+  var strava=document.querySelector('#page-league button[title="Connecter ton compte Strava"]');
+  var chatBtn=document.querySelector('#page-league button[title="Chat de ta league"]');
+  if(!strava||!chatBtn) return;
+  function apply(){
+    var h=strava.getBoundingClientRect().height;
+    if(h>0) chatBtn.style.height=h+'px';
+  }
+  apply();
+  // Refaire la mesure une fois les polices chargées (peut légèrement changer
+  // la hauteur des 2 lignes du bouton Strava au tout premier rendu).
+  try{ if(document.fonts && document.fonts.ready) document.fonts.ready.then(apply); }catch(e){}
+}
+
 function openLeagueChat(){
   var key=activeLeagueKey;
   if(!canChatInLeague(key)){
@@ -16915,6 +16932,7 @@ function nav(page){
   // Rafraîchir les données selon la page
   if(page==='league'){
     if(typeof loadPlayersFromSupabase==='function') loadPlayersFromSupabase();
+    if(typeof syncChatLeagueBtnHeight==='function') syncChatLeagueBtnHeight();
   }
   if(page==='teams'){
     if(typeof renderTeams==='function') renderTeams();
