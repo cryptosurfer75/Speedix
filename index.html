@@ -9983,7 +9983,7 @@ async function centerMapOnLatestRun(){
   if(!_landsMap||!currentUser) return;
   try {
     var {data:runs}=await supabaseClient
-      .from('runs')
+      .from('runs_public')
       .select('polyline,run_date')
       .eq('player_id',currentUser.id)
       .not('polyline','is',null)
@@ -10296,7 +10296,7 @@ async function loadLandsOnMap(){
     // on décode les polylines de ses runs du jour et on en extrait les hexes.
     try {
       var startOfDay=new Date();startOfDay.setHours(0,0,0,0);
-      var {data:todayRuns}=await supabaseClient.from('runs')
+      var {data:todayRuns}=await supabaseClient.from('runs_public')
         .select('polyline').eq('player_id',myId).gte('run_date',startOfDay.toISOString());
       if(todayRuns && typeof h3!=='undefined'){
         var hexAccum=new Set(window._myPassageLandIds);
@@ -12179,7 +12179,7 @@ async function _recoverMissingExploration(){
   // Cutoff = max(date du dernier "Terminer", début de période, J-30 fallback)
   var periodStart=(_periodData && _periodData.start)?_periodData.start:null;
   var cutoff=dismissedAt||periodStart||new Date(Date.now()-30*86400000).toISOString();
-  var {data:runs}=await supabaseClient.from('runs')
+  var {data:runs}=await supabaseClient.from('runs_public')
     .select('polyline,run_date')
     .eq('player_id',currentUser.id)
     .gt('run_date',cutoff)
@@ -14019,7 +14019,7 @@ async function renderSocialFeed(){
   //  · me      → mur perso : toutes les courses du RP, toutes périodes, limit haute (1000)
   //  · friends → fenêtre 7 jours, période en cours, filtre player_id côté serveur
   //  · all     → fenêtre 7 jours, période en cours, jusqu'à 500 courses
-  var query=supabaseClient.from('runs')
+  var query=supabaseClient.from('runs_public')
     .select('id,player_id,points,distance,time,elevation,run_date,description,photo,period,polyline,featured_at')
     .order('run_date',{ascending:false});
   if(_feedMode==='me'){
@@ -14041,7 +14041,7 @@ async function renderSocialFeed(){
   // pour montrer ce qu'on peut publier dans le Feed. Affichées dans
   // « Tous les RP » et « Mes amis », jamais sur le mur perso « Moi ».
   if(_feedMode!=='me'){
-    var {data:featRuns}=await supabaseClient.from('runs')
+    var {data:featRuns}=await supabaseClient.from('runs_public')
       .select('id,player_id,points,distance,time,elevation,run_date,description,photo,period,polyline,featured_at')
       .not('featured_at','is',null)
       .order('featured_at',{ascending:false})
@@ -14530,7 +14530,7 @@ function removeRunPhoto(runId,index){
 async function shareRunCard(runId){
   if(!currentUser) return;
   // Charger la course
-  var {data:run}=await supabaseClient.from('runs').select('*').eq('id',runId).single();
+  var {data:run}=await supabaseClient.from('runs_public').select('*').eq('id',runId).single();
   if(!run) return;
   var {data:player}=await supabaseClient.from('players').select('username,nat,grade,avatar,rtw_id').eq('id',run.player_id).single();
   if(!player) return;
@@ -15086,7 +15086,7 @@ async function renderMapThumbWithStats(runId,W,H){
   if(_mapStatsThumbCache[cacheKey]) return _mapStatsThumbCache[cacheKey];
   var _en=(typeof SPEEDIX_LANG!=='undefined' && SPEEDIX_LANG==='en');
   var lang=(typeof SPEEDIX_LANG!=='undefined')?SPEEDIX_LANG:'fr-FR';
-  var {data:run}=await supabaseClient.from('runs').select('distance,time,elevation,points,polyline,player_id').eq('id',runId).single();
+  var {data:run}=await supabaseClient.from('runs_public').select('distance,time,elevation,points,polyline,player_id').eq('id',runId).single();
   if(!run || !run.polyline) return null;
   var leagueName='';
   try{
@@ -19034,6 +19034,7 @@ async function syncStravaActivities(silent){
       var spd=timeMin>0?(km/(timeMin/60)):0;
       var elv=a.total_elevation_gain||0;
       var polyline=a.map?a.map.summary_polyline:null;
+      var isPrivate=a.private===true||(typeof a.visibility==='string'&&a.visibility!=='everyone');
 
       // ── ANTI-TRICHE ──────────────────────────────
       // 1. Activité manuelle (pas de montre/téléphone) → rejetée
@@ -19176,7 +19177,7 @@ async function syncStravaActivities(silent){
       var _insertResp=await window.fetch(supabaseUrl+'/rest/v1/runs',{
         method:'POST',
         headers:{'apikey':supabaseKey,'Authorization':'Bearer '+supabaseKey,'Content-Type':'application/json','Prefer':'return=minimal'},
-        body:JSON.stringify({player_id:currentUser.id,points:pts,distance:Math.round(km*100)/100,time:Math.round(timeMin*10)/10,elevation:Math.round(elv),run_date:runDateFull,period:0,name:a.name||null,avg_hr:a.average_heartrate?Math.round(a.average_heartrate):null,max_hr:a.max_heartrate?Math.round(a.max_heartrate):null,calories:a.kilojoules?Math.round(a.kilojoules*0.239):a.calories||null,avg_cadence:a.average_cadence||null,flagged:_accelFlag,strava_activity_id:a.id||null,polyline:polyline||null})
+        body:JSON.stringify({player_id:currentUser.id,points:pts,distance:Math.round(km*100)/100,time:Math.round(timeMin*10)/10,elevation:Math.round(elv),run_date:runDateFull,period:0,name:a.name||null,avg_hr:a.average_heartrate?Math.round(a.average_heartrate):null,max_hr:a.max_heartrate?Math.round(a.max_heartrate):null,calories:a.kilojoules?Math.round(a.kilojoules*0.239):a.calories||null,avg_cadence:a.average_cadence||null,flagged:_accelFlag,strava_activity_id:a.id||null,polyline:polyline||null,is_private:isPrivate})
       });
       if(!_insertResp.ok){
         // Insert rejeté (probable contrainte d'unicité runs_player_strava_unique après
@@ -20759,7 +20760,7 @@ async function renderChallenges(){
   // bloquer la progression du joueur (compteur Player Card et badges restent
   // cohérents). Le seuil anti-triche à 35 km/h est large mais pas parfait,
   // donc on évite de pénaliser silencieusement.
-  var {data:runs}=await supabaseClient.from('runs').select('distance,time,elevation,run_date,polyline,flagged').eq('player_id',targetUuid);
+  var {data:runs}=await supabaseClient.from('runs_public').select('distance,time,elevation,run_date,polyline,flagged').eq('player_id',targetUuid);
   var valid=(runs||[]);
 
   // 4. Lands louées 60min
