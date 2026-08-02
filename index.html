@@ -2278,7 +2278,7 @@ select option{background:#040c1c}
       <div id="challenges-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(125px,1fr));gap:.6rem"></div>
       <!-- Sous-onglets pour Voisins (collab) : En cours / Historique — même structure que Défis/Challenges -->
       <div id="challenges-collab-subtabs" style="display:none;gap:.3rem;margin-bottom:.7rem">
-        <button id="challenges-subtab-collab-current" onclick="switchCollabSubtab('current')" style="flex:1;padding:.28rem .5rem;border-radius:5px;border:1px solid var(--gold);background:rgba(245,200,66,.12);color:var(--gold);font-family:'Bebas Neue',sans-serif;font-size:.7rem;letter-spacing:1px;font-weight:700;cursor:pointer">🤜🤛 EN COURS</button>
+        <button id="challenges-subtab-collab-current" onclick="switchCollabSubtab('current')" style="flex:1;padding:.28rem .5rem;border-radius:5px;border:1px solid var(--gold);background:rgba(245,200,66,.12);color:var(--gold);font-family:'Bebas Neue',sans-serif;font-size:.7rem;letter-spacing:1px;font-weight:700;cursor:pointer">🎯 EN COURS</button>
         <button id="challenges-subtab-collab-history" onclick="switchCollabSubtab('history')" style="flex:1;padding:.28rem .5rem;border-radius:5px;border:1px solid var(--border2);background:transparent;color:var(--muted2);font-family:'Bebas Neue',sans-serif;font-size:.7rem;letter-spacing:1px;font-weight:700;cursor:pointer">🏆 HISTORIQUE</button>
       </div>
       <!-- Zone défis collaboratifs (cachée par défaut) -->
@@ -3850,7 +3850,7 @@ function askConfirm(message, opts){
         Choisis ta durée — décision <strong style="color:var(--red)">DÉFINITIVE</strong> (pas de reprise anticipée).<br><br>
         <strong style="color:var(--gold)">Pendant l'infirmerie :</strong><br>
         • Aucune course ne peut être enregistrée<br>
-        • Ta league est <strong style="color:var(--text)">figée</strong> (pas de relégation)<br>
+        • Ta league est <strong style="color:var(--text)">figée tant que l'infirmerie est active</strong> (pas de relégation) — <strong style="color:var(--text)">mais</strong> si elle se termine avant la fin de la période, tu redeviens évaluable normalement sur tes points de la période (relégation possible si le compte n'y est pas, à cause des jours manqués)<br>
         • Tes loyers : <strong style="color:var(--text)">15j</strong> plein tarif · <strong style="color:var(--text)">30j</strong> demi-tarif · <strong style="color:var(--text)">45/60j</strong> suspendus<br>
         • Tu gardes tes récompenses<br>
         • Ta chaîne de connexion <strong style="color:var(--text)">n'est pas gelée</strong> : continue à te connecter chaque jour (même blessé) pour la garder, sinon elle se casse<br><br>
@@ -4717,7 +4717,7 @@ const I18N = {
     'rules.lands.body'          : 'La carte est divisée en hexagones — les <strong style="color:var(--text)">Lands</strong>.<br>Loue une Land (loyer mensuel en RPC) et gagne 3 RPC à chaque passage d\'un RP.<br><strong style="color:var(--gold)">Loyer dégressif</strong> : <strong style="color:var(--text)">mois 1→3</strong> 5 000 RPC/mois · <strong style="color:var(--text)">mois 4→8</strong> 4 800 RPC · <strong style="color:var(--text)">mois 9→12</strong> 4 600 RPC.<br>Le 1er mois est au prorata (165 RPC par jour restant). Après <strong style="color:var(--text)">12 mois</strong>, tu dois l\'<strong style="color:var(--text)">acheter</strong> en NYX, sinon la Land repart dans le jeu.<br>Ajoute des <strong style="color:var(--gold)">Étoiles</strong> : ★ 6 · ★★ 9 · ★★★ 12 RPC par passage.<br>Plafond de <strong style="color:var(--gold)">8 000 RPC / mois / Land</strong>.',
     // — Bloc Infirmerie
     'rules.inf.title'           : '🏥 <span class="hl">Infirmerie</span>',
-    'rules.inf.body'            : 'En cas de blessure ou indisponibilité, déclare-toi en infirmerie depuis ta Player Card.<br>Choisis ta durée — décision <strong style="color:var(--red)">DÉFINITIVE</strong> (pas de reprise anticipée).<br><br><strong style="color:var(--gold)">Pendant l\'infirmerie :</strong><br>• Aucune course ne peut être enregistrée<br>• Ta league est <strong style="color:var(--text)">figée</strong> (pas de relégation)<br>• Tes loyers : <strong style="color:var(--text)">15j</strong> plein tarif · <strong style="color:var(--text)">30j</strong> demi-tarif · <strong style="color:var(--text)">45/60j</strong> suspendus<br>• Tu gardes tes récompenses<br>• Ta chaîne de connexion <strong style="color:var(--text)">n\'est pas gelée</strong> : continue à te connecter chaque jour (même blessé) pour la garder, sinon elle se casse<br><br><strong style="color:var(--gold)">Reprise :</strong> tu reprends en statut <strong>R</strong> (Reprise) jusqu\'à la fin de la période en cours. Si tes points sont supérieurs au seuil de ta league, tu redeviens compétitif. Sinon tu restes une période supplémentaire en reprise.<br><br><strong style="color:var(--gold)">Plafond :</strong> 2 activations par période de 12 mois.',
+    'rules.inf.body'            : 'En cas de blessure ou indisponibilité, déclare-toi en infirmerie depuis ta Player Card.<br>Choisis ta durée — décision <strong style="color:var(--red)">DÉFINITIVE</strong> (pas de reprise anticipée).<br><br><strong style="color:var(--gold)">Pendant l\'infirmerie :</strong><br>• Aucune course ne peut être enregistrée<br>• Ta league est <strong style="color:var(--text)">figée tant que l\'infirmerie est active</strong> (pas de relégation) — <strong style="color:var(--text)">mais</strong> si elle se termine avant la fin de la période, tu redeviens évaluable normalement sur tes points de la période (relégation possible si le compte n\'y est pas, à cause des jours manqués)<br>• Tes loyers : <strong style="color:var(--text)">15j</strong> plein tarif · <strong style="color:var(--text)">30j</strong> demi-tarif · <strong style="color:var(--text)">45/60j</strong> suspendus<br>• Tu gardes tes récompenses<br>• Ta chaîne de connexion <strong style="color:var(--text)">n\'est pas gelée</strong> : continue à te connecter chaque jour (même blessé) pour la garder, sinon elle se casse<br><br><strong style="color:var(--gold)">Reprise :</strong> tu reprends en statut <strong>R</strong> (Reprise) jusqu\'à la fin de la période en cours. Si tes points sont supérieurs au seuil de ta league, tu redeviens compétitif. Sinon tu restes une période supplémentaire en reprise.<br><br><strong style="color:var(--gold)">Plafond :</strong> 2 activations par période de 12 mois.',
     // — Bloc Activité & relégation
     'rules.releg.title'         : '📉 <span class="hl">Activité &amp; relégation</span>',
     'rules.releg.body'          : '<strong style="color:var(--gold)">🏆 40 pts minimum / période</strong> — Pour rester actif sportivement et faire profiter ta team de ton bonus de 2%, fait au moins 40 pts par période.<br><br><strong style="color:var(--gold)">Descente protégée :</strong> au rollover, un RP ne peut descendre que d\'<strong style="color:var(--text)">une league</strong> par période.<br><br><strong style="color:var(--gold)">RP fantôme (0 pt) :</strong> descente 1 league + devient <strong style="color:var(--text)">invisible</strong> dans le classement. 2ème période consécutive à 0 pt → retour au <strong style="color:var(--text)">départ du jeu, Zone Starter et calibrage</strong>.',
@@ -5475,7 +5475,7 @@ const I18N = {
     'rules.lands.body'          : 'The map is divided into hexagons — the <strong style="color:var(--text)">Lands</strong>.<br>Rent a Land (monthly RPC rent) and earn 3 RPC every time an RP crosses it.<br><strong style="color:var(--gold)">Declining rent</strong>: <strong style="color:var(--text)">months 1→3</strong> 5,000 RPC/month · <strong style="color:var(--text)">months 4→8</strong> 4,800 RPC · <strong style="color:var(--text)">months 9→12</strong> 4,600 RPC.<br>Month 1 is pro-rated (165 RPC per remaining day). After <strong style="color:var(--text)">12 months</strong>, you must <strong style="color:var(--text)">buy</strong> it in NYX, otherwise the Land goes back into play.<br>Add <strong style="color:var(--gold)">Stars</strong>: ★ 6 · ★★ 9 · ★★★ 12 RPC per crossing.<br>Cap of <strong style="color:var(--gold)">8,000 RPC / month / Land</strong>.',
     // — Infirmary block
     'rules.inf.title'           : '🏥 <span class="hl">Infirmary</span>',
-    'rules.inf.body'            : 'If you\'re injured or unavailable, check into the infirmary from your Player Card.<br>Choose your duration — decision is <strong style="color:var(--red)">FINAL</strong> (no early return).<br><br><strong style="color:var(--gold)">While in the infirmary:</strong><br>• No runs can be recorded<br>• Your league is <strong style="color:var(--text)">frozen</strong> (no relegation)<br>• Your rent: <strong style="color:var(--text)">15d</strong> full price · <strong style="color:var(--text)">30d</strong> half price · <strong style="color:var(--text)">45/60d</strong> suspended<br>• You keep your rewards<br>• Your login streak <strong style="color:var(--text)">is not frozen</strong>: keep logging in every day (even injured) to keep it, otherwise it breaks<br><br><strong style="color:var(--gold)">Return:</strong> you come back in <strong>R</strong> (Return) status until the end of the current period. If your points exceed your league threshold, you become competitive again. Otherwise you stay one more period in return mode.<br><br><strong style="color:var(--gold)">Cap:</strong> 2 activations per 12-month period.',
+    'rules.inf.body'            : 'If you\'re injured or unavailable, check into the infirmary from your Player Card.<br>Choose your duration — decision is <strong style="color:var(--red)">FINAL</strong> (no early return).<br><br><strong style="color:var(--gold)">While in the infirmary:</strong><br>• No runs can be recorded<br>• Your league is <strong style="color:var(--text)">frozen while the infirmary is active</strong> (no relegation) — <strong style="color:var(--text)">but</strong> if it ends before the period is over, you become normally evaluable again on your period points (relegation possible if they fall short because of the missed days)<br>• Your rent: <strong style="color:var(--text)">15d</strong> full price · <strong style="color:var(--text)">30d</strong> half price · <strong style="color:var(--text)">45/60d</strong> suspended<br>• You keep your rewards<br>• Your login streak <strong style="color:var(--text)">is not frozen</strong>: keep logging in every day (even injured) to keep it, otherwise it breaks<br><br><strong style="color:var(--gold)">Return:</strong> you come back in <strong>R</strong> (Return) status until the end of the current period. If your points exceed your league threshold, you become competitive again. Otherwise you stay one more period in return mode.<br><br><strong style="color:var(--gold)">Cap:</strong> 2 activations per 12-month period.',
     // — Relegation block
     'rules.releg.title'         : '📉 <span class="hl">Activity &amp; relegation</span>',
     'rules.releg.body'          : '<strong style="color:var(--gold)">🏆 40 pts minimum / period</strong> — To stay sportively active and let your team benefit from your 2% bonus, earn at least 40 pts per period.<br><br><strong style="color:var(--gold)">Protected drop:</strong> at rollover, an RP can only drop <strong style="color:var(--text)">one league</strong> per period.<br><br><strong style="color:var(--gold)">Ghost RP (0 pt):</strong> 1-league drop + becomes <strong style="color:var(--text)">invisible</strong> in the ranking. 2nd consecutive period at 0 pt → back to <strong style="color:var(--text)">game start, Starter Zone and calibration</strong>.',
@@ -7685,10 +7685,10 @@ var AVATAR_LIBRARY=[
 function computeGrade(periods, ptsCum, landsLoc, landsProp){
   for(var i=GRADES_DATA.length-1;i>=1;i--){
     var g=GRADES_DATA[i];
-    var okPeriods = (g.minPeriods===0) || (periods>g.minPeriods);
-    var okPts     = (g.minPts===0)     || (ptsCum>g.minPts);
-    var okLoc     = (g.minLoc===0)     || (landsLoc>g.minLoc);
-    var okProp    = (g.minProp===0)    || (landsProp>g.minProp);
+    var okPeriods = (g.minPeriods===0) || (periods>=g.minPeriods);
+    var okPts     = (g.minPts===0)     || (ptsCum>=g.minPts);
+    var okLoc     = (g.minLoc===0)     || (landsLoc>=g.minLoc);
+    var okProp    = (g.minProp===0)    || (landsProp>=g.minProp);
     if(okPeriods && okPts && okLoc && okProp) return g.cls;
   }
   return 'starter';
@@ -7864,10 +7864,10 @@ const TEAMS=[];
 const GRADES_DATA=[
   {name:'STARTER', cls:'starter', color:'var(--starter)', minPeriods:0,  minPts:0,      minLoc:0,  minProp:0,  rpcReward:0,     nyxReward:0  },
   {name:'DÉBUTANT',cls:'debutant',color:'var(--debutant)',minPeriods:0,  minPts:500,    minLoc:0,  minProp:0,  rpcReward:2000,  nyxReward:10 },
-  {name:'CONFIRMÉ',cls:'confirme',color:'var(--confirme)',minPeriods:2,  minPts:2000,   minLoc:5,  minProp:0,  rpcReward:5000,  nyxReward:20 },
-  {name:'EXPERT',  cls:'expert',  color:'var(--expert)',  minPeriods:6,  minPts:50000,  minLoc:40, minProp:6,  rpcReward:15000, nyxReward:45 },
-  {name:'PRO',     cls:'pro',     color:'var(--pro)',     minPeriods:12, minPts:100000, minLoc:60, minProp:12, rpcReward:30000, nyxReward:90 },
-  {name:'ELITE',   cls:'elite',   color:'var(--elite)',   minPeriods:18, minPts:150000, minLoc:80, minProp:18, rpcReward:50000, nyxReward:150},
+  {name:'CONFIRMÉ',cls:'confirme',color:'var(--confirme)',minPeriods:2,  minPts:5000,   minLoc:5,  minProp:0,  rpcReward:5000,  nyxReward:20 },
+  {name:'EXPERT',  cls:'expert',  color:'var(--expert)',  minPeriods:5,  minPts:30000,  minLoc:8,  minProp:2,  rpcReward:15000, nyxReward:45 },
+  {name:'PRO',     cls:'pro',     color:'var(--pro)',     minPeriods:10, minPts:60000,  minLoc:10, minProp:4,  rpcReward:30000, nyxReward:90 },
+  {name:'ELITE',   cls:'elite',   color:'var(--elite)',   minPeriods:15, minPts:100000, minLoc:12, minProp:6,  rpcReward:50000, nyxReward:150},
 ];
 const FP_DATA=[
   {key:'fp.league',       f:'Participation à la League',     free:true, prem:true},
@@ -11116,7 +11116,7 @@ async function rentLand(landId){
   renderMyLands();
   // Déclenche la vérif du badge PROSPECTEUR (fenêtre 60 min)
   if(typeof triggerBadgeCheck==='function') triggerBadgeCheck();
-  // Recalcul grade : 5+ locations = condition CONFIRMÉ
+  // Recalcul grade (condition Lands en location, cf GRADES_DATA)
   if(typeof updatePlayerGrade==='function') updatePlayerGrade(currentUser.id);
 }
 
@@ -11261,7 +11261,7 @@ async function buyLand(landId){
   closeModal('land-modal');
   loadLandsOnMap();
   renderMyLands();
-  // Recalcul grade : 12+ propriétés = condition EXPERT, etc.
+  // Recalcul grade (condition Lands possédées, cf GRADES_DATA)
   if(typeof updatePlayerGrade==='function') updatePlayerGrade(currentUser.id);
   // Compter les propriétés du joueur pour adapter le message
   var {data:ownedLands}=await supabaseClient.from('lands').select('id').eq('owner_id',currentUser.id).eq('status','owned');
@@ -17292,7 +17292,7 @@ document.addEventListener('click',function(e){
   }
 });
 function openModal(id){document.getElementById(id).classList.add('open')}
-function closeModal(id){document.getElementById(id).classList.remove('open')}
+function closeModal(id){document.getElementById(id).classList.remove('open');if(id==='land-modal'&&typeof _resetBadgeModalFrame==='function')_resetBadgeModalFrame();}
 
 // Affiche la liste des RPs qui ont réagi à une course donnée. Données lues depuis
 // le cache module-scope rempli par renderFeed (évite de re-fetch Supabase à chaque clic).
@@ -17719,56 +17719,35 @@ async function showNyxBreakdown(){
 
 async function walletCredit(rpc, nyx, reason){
   if(!currentUser) return false;
-  var w=window.__wallet||{rpc:0,nyx:0};
-  var newRpc=w.rpc+(rpc||0);
-  var newNyx=w.nyx+(nyx||0);
-  // rpc_cumulated : on incrémente uniquement sur les crédits positifs
-  var payload={rpc_balance:newRpc, nyx_balance:newNyx};
-  if((rpc||0)>0){
-    var oldCum=(window.__wallet&&window.__wallet.rpcCum)||0;
-    payload.rpc_cumulated=oldCum+rpc;
-  }
-  var resp=await window.fetch(supabaseUrl+'/rest/v1/players?id=eq.'+encodeURIComponent(currentUser.id),{
-    method:'PATCH',
-    headers:{'apikey':supabaseKey,'Authorization':'Bearer '+supabaseKey,'Content-Type':'application/json'},
-    body:JSON.stringify(payload)
+  // Crédit ATOMIQUE côté base (fonction credit_player, SOURCE UNIQUE — cf strava-webhook).
+  // ⚠️ NE JAMAIS calculer newRpc/newNyx à partir de window.__wallet (cache local
+  // potentiellement périmé si l'appli reste ouverte longtemps) puis réécrire un total
+  // absolu : ça écrase silencieusement tout changement de solde survenu entretemps
+  // côté serveur (ex. correction admin) — bug vécu par Jopoinpoin (2026-07-29/30,
+  // corrigé 2026-08-01). credit_player fait un `rpc_balance = rpc_balance + delta`
+  // directement en base, sans lecture préalable, donc pas de course possible, et
+  // journalise lui-même dans wallet_tx (ne pas dupliquer l'insert ici).
+  var {error}=await supabaseClient.rpc('credit_player',{
+    p_player_id:currentUser.id, p_rpc:rpc||0, p_nyx:nyx||0, p_reason:reason||null
   });
-  if(!resp.ok){return false;}
-  window.__wallet={rpc:newRpc,nyx:newNyx,rpcCum:payload.rpc_cumulated||(window.__wallet&&window.__wallet.rpcCum)||0};
-  walletRefreshUI();
-  // Audit log (fire-and-forget) — RLS autorise l'insert sur ses propres lignes
-  try{
-    if((rpc||0)!==0||(nyx||0)!==0){
-      supabaseClient.from('wallet_tx').insert({
-        player_id:currentUser.id, rpc_delta:rpc||0, nyx_delta:nyx||0, reason:reason||null
-      }).then(function(){}).catch(function(){});
-    }
-  }catch(e){}
+  if(error) return false;
+  await walletLoad(); // resynchronise le cache local + l'affichage sur la vraie valeur en base
   return true;
 }
 
 // Débiter NYX (vérification solde)
 async function walletDebitNyx(amount, reason){
   if(!currentUser) return false;
-  var w=window.__wallet||{rpc:0,nyx:0};
-  if(w.nyx<amount){showToast('⚠️ Solde insuffisant en NYX');return false;}
-  var newNyx=w.nyx-amount;
-  var resp=await window.fetch(supabaseUrl+'/rest/v1/players?id=eq.'+encodeURIComponent(currentUser.id),{
-    method:'PATCH',
-    headers:{'apikey':supabaseKey,'Authorization':'Bearer '+supabaseKey,'Content-Type':'application/json'},
-    body:JSON.stringify({nyx_balance:newNyx})
+  // Débit ATOMIQUE + gardé côté base (fonction debit_player_nyx) : le check de solde
+  // suffisant ET la décrémentation se font dans la même requête SQL, donc pas de
+  // course possible avec window.__wallet (cache local potentiellement périmé —
+  // même classe de bug que walletCredit, cf commentaire ci-dessus). La fonction
+  // journalise elle-même dans wallet_tx et refuse (false) si le solde est insuffisant.
+  var {data:ok,error}=await supabaseClient.rpc('debit_player_nyx',{
+    p_player_id:currentUser.id, p_nyx:amount, p_reason:reason||null
   });
-  if(!resp.ok){return false;}
-  window.__wallet.nyx=newNyx;
-  walletRefreshUI();
-  // Audit log (fire-and-forget)
-  try{
-    if(amount>0){
-      supabaseClient.from('wallet_tx').insert({
-        player_id:currentUser.id, rpc_delta:0, nyx_delta:-amount, reason:reason||null
-      }).then(function(){}).catch(function(){});
-    }
-  }catch(e){}
+  if(error||!ok){showToast('⚠️ Solde insuffisant en NYX');return false;}
+  await walletLoad();
   return true;
 }
 
@@ -17857,30 +17836,16 @@ function renderLicenceBuyButtons(){
   });
 }
 
-// Créditer le wallet d'un AUTRE joueur (parrainage)
+// Créditer le wallet d'un AUTRE joueur (parrainage, courses admin...)
+// Atomique via credit_player — cf commentaire dans walletCredit ci-dessus pour le
+// pourquoi (même classe de bug, ici avec une fenêtre de course plus courte puisque
+// l'ancien code relisait le solde juste avant, mais toujours pas atomique).
 async function walletCreditOther(playerId, rpc, nyx, reason){
-  var {data}=await supabaseClient.from('players').select('rpc_balance,nyx_balance,rpc_cumulated').eq('id',playerId).single();
-  if(!data) return false;
-  var newRpc=(data.rpc_balance||0)+(rpc||0);
-  var newNyx=(data.nyx_balance||0)+(nyx||0);
-  // rpc_cumulated : incrémenté uniquement sur les crédits positifs
-  var payload={rpc_balance:newRpc,nyx_balance:newNyx};
-  if((rpc||0)>0) payload.rpc_cumulated=(data.rpc_cumulated||0)+rpc;
-  var resp=await window.fetch(supabaseUrl+'/rest/v1/players?id=eq.'+encodeURIComponent(playerId),{
-    method:'PATCH',
-    headers:{'apikey':supabaseKey,'Authorization':'Bearer '+supabaseKey,'Content-Type':'application/json'},
-    body:JSON.stringify(payload)
+  if(!playerId) return false;
+  var {error}=await supabaseClient.rpc('credit_player',{
+    p_player_id:playerId, p_rpc:rpc||0, p_nyx:nyx||0, p_reason:reason||null
   });
-  if(!resp.ok){return false;}
-  // Audit log (fire-and-forget) — RLS permet à tout user authentifié d'insérer
-  try{
-    if((rpc||0)!==0||(nyx||0)!==0){
-      supabaseClient.from('wallet_tx').insert({
-        player_id:playerId, rpc_delta:rpc||0, nyx_delta:nyx||0, reason:reason||null
-      }).then(function(){}).catch(function(){});
-    }
-  }catch(e){}
-  return true;
+  return !error;
 }
 
 // Vérifier les récompenses de parrainage pour le joueur connecté
@@ -18280,8 +18245,19 @@ async function loadInfirmerieData(){
       // (competitive=false) et clear infirmerie_until pour ne pas re-trigger.
       // Historique préservé via infirmerie_activations.
       if(p.infirmerie_until && new Date(p.infirmerie_until)<=new Date()){
+        // calibration_period = période en cours : la logique de rotation (§4) exige
+        // ce champ non-null pour réévaluer un RP non-compétitif et le sortir du
+        // statut Reprise (sinon il reste bloqué en Reprise indéfiniment — bug vécu
+        // avec Dedel, corrigé 2026-08-01). On vise "jusqu'à la fin de la période en
+        // cours" : la valeur pointe donc sur la période EN COURS (pas +1), pour que
+        // la toute prochaine rotation (qui clôture cette période) le réévalue.
+        // _periodData a une valeur par défaut (1) tant que loadPeriodSettings n'a pas
+        // tourné (ordre d'appel au login, cf ~ligne 6513-6515) : on ne peut pas s'y fier
+        // ici, on relit toujours la valeur fraîche en base.
+        var {data:gs}=await supabaseClient.from('game_settings').select('value').eq('key','current_period').maybeSingle();
+        var _curPeriod=gs?(parseInt(gs.value)||1):1;
         await supabaseClient.from('players').update({
-          infirmerie_until:null, competitive:false
+          infirmerie_until:null, competitive:false, calibration_period:_curPeriod
         }).eq('id',currentUser.id);
         window.__infirmerie.until=null;
         if(window.__myPlayer) window.__myPlayer.competitive=false;
@@ -22724,10 +22700,40 @@ async function showBadgeDetail(badgeId){
       +(challengeTxt?'<div style="font-size:.78rem;color:var(--muted2);margin-top:.6rem;padding:.55rem .7rem;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:8px;line-height:1.5">🎯 '+challengeTxt+'</div>':'')
       +(rewards.length?'<div style="font-family:Space Mono,monospace;font-size:.82rem;color:var(--gold);margin-top:.6rem">Récompense : '+rewards.join(' · ')+'</div>':'');
   }
-  bodyHtml+='  <button onclick="closeModal(\'land-modal\')" style="margin-top:1rem;padding:.45rem 1.2rem;border-radius:7px;border:1.5px solid '+color+';background:'+color+'20;color:'+color+';font-weight:700;font-size:.78rem;cursor:pointer">Fermer</button>'
-    +'</div>';
+  bodyHtml+='</div>';
   document.getElementById('lm-body').innerHTML=bodyHtml;
+  _applyBadgeModalFrame(color);
   openModal('land-modal');
+}
+
+// Cadre biseauté coloré (technique double-couche, cf. reference_speedix_bevel_technique)
+// appliqué UNIQUEMENT à la modale land-modal quand elle affiche un défi/challenge
+// (showBadgeDetail) — les autres usages de land-modal gardent l'apparence par
+// défaut. _resetBadgeModalFrame() est appelé par closeModal('land-modal') pour
+// ne jamais laisser ce style teinté "fuiter" sur le prochain contenu affiché.
+function _applyBadgeModalFrame(color){
+  var box=document.querySelector('#land-modal .modal-box');
+  if(!box) return;
+  _resetBadgeModalFrame();
+  box.style.position='relative';
+  box.style.zIndex='0';
+  box.style.background='transparent';
+  box.style.border='none';
+  box.style.borderRadius='0';
+  box.insertAdjacentHTML('afterbegin',
+     '<span id="lm-bevel-outer" style="position:absolute;inset:0;z-index:-2;pointer-events:none;clip-path:polygon(16px 0,calc(100% - 16px) 0,100% 16px,100% calc(100% - 16px),calc(100% - 16px) 100%,16px 100%,0 calc(100% - 16px),0 16px);background:'+color+'"></span>'
+    +'<span id="lm-bevel-inner" style="position:absolute;inset:1.5px;z-index:-1;pointer-events:none;clip-path:polygon(15px 0,calc(100% - 15px) 0,100% 15px,100% calc(100% - 15px),calc(100% - 15px) 100%,15px 100%,0 calc(100% - 15px),0 15px);background:var(--bg3)"></span>'
+  );
+}
+function _resetBadgeModalFrame(){
+  var box=document.querySelector('#land-modal .modal-box');
+  if(!box) return;
+  var outer=document.getElementById('lm-bevel-outer'); if(outer) outer.remove();
+  var inner=document.getElementById('lm-bevel-inner'); if(inner) inner.remove();
+  box.style.background='';
+  box.style.border='';
+  box.style.borderRadius='';
+  box.style.zIndex='';
 }
 
 // ============================================================
