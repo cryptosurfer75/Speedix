@@ -11770,7 +11770,12 @@ var _exploreSelection={lands:[],playerId:null};
 //    (donc plus aucune action possible : louer/acheter/vendre/étoiles/exploration)
 //  - processMonthlyRent() ne fait plus rien (ni la fenêtre de validation 5-10, ni
 //    l'encaissement forcé après le 10) — voir le early-return juste après sa déclaration.
-// Les données (Lands louées/possédées) restent INTACTES en base, rien n'est touché.
+//  - loadPendingExploration() ne fait plus rien non plus (2026-08-04, ajouté après
+//    coup — elle se déclenche au login ET après chaque sync Strava, INDÉPENDAMMENT
+//    de nav('lands'), et aurait quand même ouvert la popup "tu as exploré N Lands !"
+//    par-dessus l'écran en cours si on ne l'avait pas explicitement gardée aussi).
+// Les données (Lands louées/possédées, hexes explorés en attente) restent INTACTES
+// en base, rien n'est touché — juste pas affiché tant que la pause dure.
 // Les défis collaboratifs entre voisins continuent normalement (système séparé).
 // ⚠️ Repasser à false (ou supprimer le flag) au moment de la bascule SPEEDIX Tour.
 var LANDS_PAUSED = true;
@@ -12235,6 +12240,14 @@ async function _recoverMissingExploration(){
 }
 
 async function loadPendingExploration(){
+  // Page Lands en pause (2026-08-04, cf LANDS_PAUSED) : même piège que
+  // processMonthlyRent — cette fonction se déclenche automatiquement au login
+  // ET après une sync, INDÉPENDAMMENT de la page Lands. Sans cette garde, elle
+  // appellerait quand même nav('lands') (bloqué, sans effet) PUIS continuerait
+  // à ouvrir la modale "tu as exploré N Lands !" par-dessus la page courante.
+  // Les hexes explorés restent intacts dans players.pending_exploration (rien
+  // n'est perdu, juste pas affiché tant que la pause dure).
+  if(typeof LANDS_PAUSED!=='undefined' && LANDS_PAUSED) return;
   if(!currentUser) return;
   var {data:player}=await supabaseClient.from('players').select('pending_exploration').eq('id',currentUser.id).single();
   // Si vide → tenter une recovery (cas import webhook sans clic Sync user)
