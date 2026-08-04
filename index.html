@@ -343,300 +343,6 @@ tr.my-row-enter{
 .pc-league-name{font-family:'Bebas Neue',sans-serif;font-size:1rem;letter-spacing:2px}
 
 /* ============================================================
-   SKIN — OR DES INCAS (défi 10 km du Pérou)
-   Test local. Voile sombre par-dessus l'image pour préserver
-   la lisibilité du texte et des cartouches.
-============================================================ */
-.skin-or-des-incas{
-  background-image:
-    linear-gradient(rgba(5,8,15,.55),rgba(5,8,15,.65)),
-    url('skin-or-des-incas.png') !important;
-  background-size:cover,cover !important;
-  background-position:center,center !important;
-  background-repeat:no-repeat,no-repeat !important;
-}
-tr.skin-or-des-incas{
-  background-image:
-    linear-gradient(rgba(5,8,15,.5),rgba(5,8,15,.6)),
-    url('skin-or-des-incas.png') !important;
-  background-size:cover,cover !important;
-  background-position:center,center !important;
-  background-repeat:no-repeat,no-repeat !important;
-  box-shadow:inset 0 0 0 1.5px rgba(245,200,66,.6) !important;
-}
-/* Sur le skin, durcir le fond des boutons du haut de la PC pour qu'ils
-   ne soient pas noyés sous la dorure — même opacité que les cartouches stats. */
-.skin-or-des-incas button,
-.skin-or-des-incas [data-tuto-target="parrainage"]{
-  background:rgba(10,20,50,.72) !important;
-}
-/* Fond noir derrière l'avatar central et le carré du feed (sinon la dorure
-   transparaît dans les zones transparentes de l'avatar / autour du pictogramme). */
-.skin-or-des-incas .pc-avatar-frame,
-.skin-or-des-incas [data-tuto-target="feed"]{
-  background:#0a0d18 !important;
-}
-/* Aligner le contour de PLAYER CARD / Races / League / Lands ainsi que les
-   cartouches Cagnotte RPC + NYX sur le bleu des stats (1.5px, opacité 50%).
-   Team et Feed ont leur propre couleur (vert / violet) gérée par leur style
-   inline — elles ne sont volontairement PAS dans cette règle pour conserver
-   leur identité visuelle même avec le skin actif. */
-.skin-or-des-incas [data-tuto-target="pc"],
-.skin-or-des-incas [data-tuto-target="races"],
-.skin-or-des-incas [data-tuto-target="league"],
-.skin-or-des-incas [data-tuto-target="lands"],
-.skin-or-des-incas div:has(> div > #stat-cagnotte-rpc),
-.skin-or-des-incas div:has(> div > #stat-cagnotte-nyx){
-  border:1.5px solid rgba(74,144,255,.5) !important;
-}
-/* Hover : illumination du contour bleu (override l'inline style JS qui est
-   bloqué par les !important ci-dessus). */
-.skin-or-des-incas [data-tuto-target="pc"]:hover,
-.skin-or-des-incas [data-tuto-target="races"]:hover,
-.skin-or-des-incas [data-tuto-target="league"]:hover,
-.skin-or-des-incas [data-tuto-target="lands"]:hover{
-  border-color:rgba(74,144,255,.95) !important;
-}
-
-/* ============================================================
-   SKIN — 20 KM DE BRUXELLES (défi du 31/05/2026)
-   Même mécanique que Or des Incas : image de fond posée sur la
-   Player Card + la ligne de classement, voile sombre pour la
-   lisibilité. Seule l'image change, le reste est identique.
-============================================================ */
-.skin-bruxelles{
-  /* FICHE JOUEUR = image "sport" (V2), semi-transparente posée sur le fond
-     normal de la carte → motif coloré discret, sans assombrir. */
-  background-image:
-    url('skin-bruxelles-v2-soft-d.png'),
-    linear-gradient(160deg,#14203f 0%,#1b2a52 45%,#243663 100%) !important;
-  background-size:cover,cover !important;
-  background-position:center,center !important;
-  background-repeat:no-repeat,no-repeat !important;
-}
-tr.skin-bruxelles{
-  /* Bande horizontale dédiée (motif décentré, pas de répétition symétrique),
-     posée discrètement sur le fond bleu normal de la carte. Couvre toute la
-     largeur, jusqu'au bout de la ligne. */
-  background-image:
-    url('skin-bruxelles-row-v5.png'),
-    linear-gradient(160deg,#3a5490,#4c6cae) !important;
-  background-size:cover,cover !important;
-  background-position:left center,center !important;
-  background-repeat:no-repeat,no-repeat !important;
-  box-shadow:inset 0 0 0 1.5px rgba(245,200,66,.6) !important;
-}
-/* Le filigrane "SL" (doré 4%) devient visible sur le fond clair du skin :
-   on le masque quand le skin Bruxelles est actif. */
-.skin-bruxelles .pc-watermark-sl{ display:none !important; }
-.skin-bruxelles button,
-.skin-bruxelles [data-tuto-target="parrainage"]{
-  background:rgba(10,20,50,.72) !important;
-}
-.skin-bruxelles .pc-avatar-frame,
-.skin-bruxelles [data-tuto-target="feed"]{
-  background:#0a0d18 !important;
-}
-.skin-bruxelles [data-tuto-target="pc"],
-.skin-bruxelles [data-tuto-target="races"],
-.skin-bruxelles [data-tuto-target="league"],
-.skin-bruxelles [data-tuto-target="lands"],
-.skin-bruxelles div:has(> div > #stat-cagnotte-rpc),
-.skin-bruxelles div:has(> div > #stat-cagnotte-nyx){
-  border:1.5px solid rgba(74,144,255,.5) !important;
-}
-.skin-bruxelles [data-tuto-target="pc"]:hover,
-.skin-bruxelles [data-tuto-target="races"]:hover,
-.skin-bruxelles [data-tuto-target="league"]:hover,
-.skin-bruxelles [data-tuto-target="lands"]:hover{
-  border-color:rgba(74,144,255,.95) !important;
-}
-
-/* ============================================================
-   SKIN — ODYSSEA (course rose 10 km, dimanche)
-   Même mécanique qu'Or des Incas / Bruxelles. Le motif rose étant
-   très clair, on pose un voile prune/rose sombre PAR-DESSUS l'image
-   (listé en premier) pour garder le texte blanc/doré lisible tout en
-   conservant l'identité rose. Accents de contour en rose (ruban Odyssea).
-============================================================ */
-.skin-odyssea{
-  background-image:
-    linear-gradient(rgba(58,10,42,.42),rgba(40,6,30,.54)),
-    url('skin-odyssea-pc-v2.jpg') !important;
-  background-size:cover,cover !important;
-  background-position:center,center !important;
-  background-repeat:no-repeat,no-repeat !important;
-}
-tr.skin-odyssea{
-  background-image:
-    linear-gradient(rgba(58,10,42,.62),rgba(40,6,30,.72)),
-    url('skin-odyssea.jpg') !important;
-  background-size:cover,cover !important;
-  background-position:center,center !important;
-  background-repeat:no-repeat,no-repeat !important;
-  box-shadow:inset 0 0 0 1.5px rgba(255,120,190,.6) !important;
-}
-/* Filigrane "SL" doré masqué (sinon il ressort sur le fond rose). */
-.skin-odyssea .pc-watermark-sl{ display:none !important; }
-.skin-odyssea button,
-.skin-odyssea [data-tuto-target="parrainage"]{
-  background:rgba(40,10,32,.72) !important;
-}
-.skin-odyssea .pc-avatar-frame,
-.skin-odyssea [data-tuto-target="feed"]{
-  background:#160510 !important;
-}
-.skin-odyssea [data-tuto-target="pc"],
-.skin-odyssea [data-tuto-target="races"],
-.skin-odyssea [data-tuto-target="league"],
-.skin-odyssea [data-tuto-target="lands"],
-.skin-odyssea div:has(> div > #stat-cagnotte-rpc),
-.skin-odyssea div:has(> div > #stat-cagnotte-nyx){
-  border:1.5px solid rgba(255,120,190,.5) !important;
-}
-.skin-odyssea [data-tuto-target="pc"]:hover,
-.skin-odyssea [data-tuto-target="races"]:hover,
-.skin-odyssea [data-tuto-target="league"]:hover,
-.skin-odyssea [data-tuto-target="lands"]:hover{
-  border-color:rgba(255,120,190,.95) !important;
-}
-
-/* SKIN TERRE-LUNE (Jules Verne — De la Terre à la Lune, défi 10 km Amiens 28/06).
-   PC = image cosmos. Classement = un bandeau nébuleuse (skin-terre-lune-row.jpg),
-   uniforme, dans les tons de la PC. */
-.skin-terre-lune{
-  background-image:
-    linear-gradient(rgba(8,6,26,.20),rgba(4,3,16,.32)),
-    url('skin-terre-lune-pc-v2.jpg') !important;
-  background-size:cover,cover !important;
-  background-position:center,center !important;
-  background-repeat:no-repeat,no-repeat !important;
-}
-tr.skin-terre-lune{
-  background-image:
-    linear-gradient(rgba(8,6,26,.25),rgba(4,3,16,.36)),
-    url('skin-terre-lune-row.jpg') !important;
-  background-size:cover,cover !important;
-  background-position:center,center !important;
-  background-repeat:no-repeat,no-repeat !important;
-  box-shadow:inset 0 0 0 1.5px rgba(255,190,100,.55) !important;
-}
-/* Filigrane "SL" doré masqué (sinon il se perd sur le coeur lumineux). */
-.skin-terre-lune .pc-watermark-sl{ display:none !important; }
-.skin-terre-lune button,
-.skin-terre-lune [data-tuto-target="parrainage"]{
-  background:rgba(8,8,26,.72) !important;
-}
-.skin-terre-lune .pc-avatar-frame,
-.skin-terre-lune [data-tuto-target="feed"]{
-  background:#080814 !important;
-}
-.skin-terre-lune [data-tuto-target="pc"],
-.skin-terre-lune [data-tuto-target="races"],
-.skin-terre-lune [data-tuto-target="league"],
-.skin-terre-lune [data-tuto-target="lands"],
-.skin-terre-lune div:has(> div > #stat-cagnotte-rpc),
-.skin-terre-lune div:has(> div > #stat-cagnotte-nyx){
-  border:1.5px solid rgba(255,190,100,.5) !important;
-}
-.skin-terre-lune [data-tuto-target="pc"]:hover,
-.skin-terre-lune [data-tuto-target="races"]:hover,
-.skin-terre-lune [data-tuto-target="league"]:hover,
-.skin-terre-lune [data-tuto-target="lands"]:hover{
-  border-color:rgba(255,190,100,.95) !important;
-}
-
-/* SKIN LE TOUQUET (Semi du Touquet — Côte d'Opale, défi 21,1 km du 04/07).
-   PC = ciel coucher de soleil (portrait). Classement = bande dorée.
-   Image claire → voile chaud (prune/brun) RENFORCÉ pour la lisibilité du texte. */
-.skin-touquet{
-  background-image:
-    linear-gradient(rgba(16,14,38,.30),rgba(8,8,26,.50)),
-    url('skin-touquet-pc-v3.jpg') !important;
-  background-size:cover,cover !important;
-  background-position:center,center !important;
-  background-repeat:no-repeat,no-repeat !important;
-}
-tr.skin-touquet{
-  background-image:
-    linear-gradient(rgba(14,12,34,.50),rgba(6,6,22,.66)),
-    url('skin-touquet-row.jpg') !important;
-  background-size:cover,cover !important;
-  background-position:center,center !important;
-  background-repeat:no-repeat,no-repeat !important;
-  box-shadow:inset 0 0 0 1.5px rgba(255,180,90,.6) !important;
-}
-/* Filigrane "SL" doré masqué (sinon il se perd sur le ciel). */
-.skin-touquet .pc-watermark-sl{ display:none !important; }
-.skin-touquet button,
-.skin-touquet [data-tuto-target="parrainage"]{
-  background:rgba(14,14,34,.72) !important;
-}
-.skin-touquet .pc-avatar-frame,
-.skin-touquet [data-tuto-target="feed"]{
-  background:#0c0c1e !important;
-}
-.skin-touquet [data-tuto-target="pc"],
-.skin-touquet [data-tuto-target="races"],
-.skin-touquet [data-tuto-target="league"],
-.skin-touquet [data-tuto-target="lands"],
-.skin-touquet div:has(> div > #stat-cagnotte-rpc),
-.skin-touquet div:has(> div > #stat-cagnotte-nyx){
-  border:1.5px solid rgba(255,180,90,.5) !important;
-}
-.skin-touquet [data-tuto-target="pc"]:hover,
-.skin-touquet [data-tuto-target="races"]:hover,
-.skin-touquet [data-tuto-target="league"]:hover,
-.skin-touquet [data-tuto-target="lands"]:hover{
-  border-color:rgba(255,180,90,.95) !important;
-}
-
-/* SKIN FLEUR DU ROY (Trail de la Fleur du Roy, défi 14 km du 14/07).
-   Motif couronnes + éclats dessinés à la main, orange sur rouge profond.
-   Fond déjà sombre → voile léger, accents dorés/orangés (thème royal). */
-.skin-fleur-du-roy{
-  background-image:
-    linear-gradient(rgba(25,6,6,.35),rgba(15,4,4,.48)),
-    url('skin-fleur-du-roy-pc.jpg') !important;
-  background-size:cover,cover !important;
-  background-position:center,center !important;
-  background-repeat:no-repeat,no-repeat !important;
-}
-tr.skin-fleur-du-roy{
-  background-image:
-    linear-gradient(rgba(25,6,6,.55),rgba(15,4,4,.65)),
-    url('skin-fleur-du-roy-row.jpg') !important;
-  background-size:cover,cover !important;
-  background-position:center,center !important;
-  background-repeat:no-repeat,no-repeat !important;
-  box-shadow:inset 0 0 0 1.5px rgba(255,150,60,.6) !important;
-}
-/* Filigrane "SL" doré masqué (sinon il se perd dans le motif orangé). */
-.skin-fleur-du-roy .pc-watermark-sl{ display:none !important; }
-.skin-fleur-du-roy button,
-.skin-fleur-du-roy [data-tuto-target="parrainage"]{
-  background:rgba(40,8,10,.72) !important;
-}
-.skin-fleur-du-roy .pc-avatar-frame,
-.skin-fleur-du-roy [data-tuto-target="feed"]{
-  background:#180808 !important;
-}
-.skin-fleur-du-roy [data-tuto-target="pc"],
-.skin-fleur-du-roy [data-tuto-target="races"],
-.skin-fleur-du-roy [data-tuto-target="league"],
-.skin-fleur-du-roy [data-tuto-target="lands"],
-.skin-fleur-du-roy div:has(> div > #stat-cagnotte-rpc),
-.skin-fleur-du-roy div:has(> div > #stat-cagnotte-nyx){
-  border:1.5px solid rgba(255,150,60,.5) !important;
-}
-.skin-fleur-du-roy [data-tuto-target="pc"]:hover,
-.skin-fleur-du-roy [data-tuto-target="races"]:hover,
-.skin-fleur-du-roy [data-tuto-target="league"]:hover,
-.skin-fleur-du-roy [data-tuto-target="lands"]:hover{
-  border-color:rgba(255,150,60,.95) !important;
-}
-
-/* ============================================================
    LEAGUE LEVELS
 ============================================================ */
 .league-nav{display:flex;flex-direction:column;gap:.3rem}
@@ -4150,12 +3856,6 @@ function askConfirm(message, opts){
       <div class="block-body-sm" id="settings-sport"></div>
     </div>
 
-    <!-- ── Mes Skins ───────────────────────────────────── -->
-    <div class="block" style="margin-bottom:1rem">
-      <div class="block-header"><div class="block-title" data-i18n-html="settings.skins.title">🎨 Mes <span class="hl">Skins</span></div></div>
-      <div class="block-body-sm" id="settings-skins"></div>
-    </div>
-
     <!-- ── Compte ───────────────────────────────────── -->
     <div class="block" style="margin-bottom:1rem">
       <div class="block-header"><div class="block-title" data-i18n-html="settings.account.title">🔐 <span class="hl">Compte</span></div></div>
@@ -4411,7 +4111,6 @@ const I18N = {
     'settings.photo.change'     : 'Changer la photo',
     'settings.identity.title'   : '👤 <span class="hl">Identité</span>',
     'settings.sport.title'      : '🏃 Profil <span class="hl">sportif</span>',
-    'settings.skins.title'      : '🎨 Mes <span class="hl">Skins</span>',
     'settings.account.title'    : '🔐 <span class="hl">Compte</span>',
     'settings.sub.title'        : '⭐ <span class="hl">Abonnement</span>',
     'settings.avail.title'      : '🏥 <span class="hl">Disponibilité</span>',
@@ -4450,10 +4149,6 @@ const I18N = {
     'avail.in.manage'           : 'Gérer mon infirmerie',
     'avail.off.desc'            : 'En cas de blessure ou indisponibilité, déclare-toi en infirmerie. Ta league reste figée et tu n\'apparais plus dans les classements pendant la durée choisie.',
     'avail.off.declare'         : '🏥 Me déclarer en infirmerie',
-    // — Skins
-    'skins.intro'               : 'Choisis le skin que tu veux afficher sur ta <strong>Player Card</strong>. Tes skins sont à retrouver ici. Un skin <strong>acheté</strong> apparait uniquement sur ta Player Card.',
-    'skins.empty'               : 'Pas encore de skin disponible — participe à un défi événementiel pour en débloquer.',
-    'skins.none'                : 'Aucun',
     'edit.tooltip'              : 'Modifier',
     // — Page Classement League (page-league HTML statique)
     'league.page.title'         : 'Classement <span style="color:var(--gold)">League</span>',
@@ -5169,7 +4864,6 @@ const I18N = {
     'settings.photo.change'     : 'Change photo',
     'settings.identity.title'   : '👤 <span class="hl">Identity</span>',
     'settings.sport.title'      : '🏃 Athletic <span class="hl">profile</span>',
-    'settings.skins.title'      : '🎨 My <span class="hl">Skins</span>',
     'settings.account.title'    : '🔐 <span class="hl">Account</span>',
     'settings.sub.title'        : '⭐ <span class="hl">Subscription</span>',
     'settings.avail.title'      : '🏥 <span class="hl">Availability</span>',
@@ -5208,10 +4902,6 @@ const I18N = {
     'avail.in.manage'           : 'Manage my infirmary',
     'avail.off.desc'            : 'If injured or unavailable, check into the infirmary. Your league stays frozen and you don\'t appear in rankings for the chosen duration.',
     'avail.off.declare'         : '🏥 Check into infirmary',
-    // — Skins
-    'skins.intro'               : 'Pick the skin to show on your <strong>Player Card</strong>. Your skins live here. A <strong>purchased</strong> skin only appears on your Player Card.',
-    'skins.empty'               : 'No skin available yet — take part in a special event challenge to unlock one.',
-    'skins.none'                : 'None',
     'edit.tooltip'              : 'Edit',
     // — League ranking page (page-league static HTML)
     'league.page.title'         : '<span style="color:var(--gold)">League</span> ranking',
@@ -6448,11 +6138,7 @@ async function onLoginSuccess(user, isNew){
       rtwId:rtwId, competitive:pd.competitive||false,
       premium:pd.premium||false, premiumUntil:pd.premium_until||null, premiumTrial:pd.premium_trial||false,
       boostActiveUntil:pd?(pd.boost_active_until||null):null,
-      gelActiveUntil:pd?(pd.gel_active_until||null):null,
-      // Skin éphémère (Livraison 1)
-      activeSkin: pd?(pd.active_skin||null):null,
-      skinFreeUntil: pd?(pd.skin_free_until||null):null,
-      skinBuyUntil: pd?(pd.skin_buy_until||null):null
+      gelActiveUntil:pd?(pd.gel_active_until||null):null
     };
     var exi=PLAYERS.findIndex(function(p){return p.id===1;});
     if(exi>=0)PLAYERS[exi]=window.__myPlayer; else PLAYERS.unshift(window.__myPlayer);
@@ -6647,21 +6333,7 @@ async function loadPlayersFromSupabase(){
   // 1. Charger tous les joueurs
   const { data: playersData, error: playersErr } = await supabaseClient
     .from('players')
-    .select('id,username,league,nat,grade,trend,avatar,competitive,buyin_debt,frozen,rtw_id,premium,premium_until,premium_trial,infirmerie_until,is_visible,consecutive_zero_periods,pts_cumulated,boost_active_until,gel_active_until,active_skin,skin_free_until,skin_buy_until,league_ref_rank,league_ref_lg');
-
-  // Collection permanente des skins par joueur (table player_skins).
-  // Utilisée pour : afficher le skin sur la PC d'un RP qui l'a acheté (même
-  // après expiration de la fenêtre gratuite). Le classement, lui, n'affiche
-  // QUE le skin en fenêtre gratuite (jamais le skin acheté).
-  try {
-    const { data: skinsData } = await supabaseClient
-      .from('player_skins').select('player_id,skin_id');
-    window.__playerSkinsMap = {};
-    (skinsData || []).forEach(function(s){
-      if(!window.__playerSkinsMap[s.player_id]) window.__playerSkinsMap[s.player_id] = [];
-      window.__playerSkinsMap[s.player_id].push(s.skin_id);
-    });
-  } catch(e){ window.__playerSkinsMap = window.__playerSkinsMap || {}; }
+    .select('id,username,league,nat,grade,trend,avatar,competitive,buyin_debt,frozen,rtw_id,premium,premium_until,premium_trial,infirmerie_until,is_visible,consecutive_zero_periods,pts_cumulated,boost_active_until,gel_active_until,league_ref_rank,league_ref_lg');
 
   if(playersErr){
     if(panel) panel.innerHTML = '<div style="padding:1.5rem;text-align:center;color:var(--red);font-size:.8rem">⚠️ Erreur players : ' + playersErr.message + '</div>';
@@ -6741,10 +6413,6 @@ async function loadPlayersFromSupabase(){
       consecutive_zero_periods: p.consecutive_zero_periods || 0,
       boostActiveUntil: p.boost_active_until || null,
       gelActiveUntil: p.gel_active_until || null,
-      // Skin éphémère (Livraison 1) : nom + bornes des fenêtres gratuite + achat
-      activeSkin: p.active_skin || null,
-      skinFreeUntil: p.skin_free_until || null,
-      skinBuyUntil: p.skin_buy_until || null,
     };
   });
 
@@ -7985,21 +7653,6 @@ function renderDashboard(){
     var _parrUid=p._uuid||(isOwn&&currentUser?currentUser.id:null);
     if(_parrUid&&typeof loadParrainageData==='function') loadParrainageData(_parrUid);
     var set=function(id,val){var el=document.getElementById(id);if(el)el.textContent=val;};
-    // Skin : applique skin-<nom> sur la PC si le joueur affiché a un skin actif
-    // ET (en fenêtre gratuite J0→J+7 OU dans sa collection achetée).
-    // Sur le classement, seule la fenêtre gratuite compte (skin acheté = PC seulement).
-    var _pcFrame=document.getElementById('pc-frame');
-    if(_pcFrame){
-      _pcFrame.className=(_pcFrame.className||'').split(/\s+/).filter(function(c){return c.indexOf('skin-')!==0;}).join(' ');
-      if(p.activeSkin){
-        var _inFree=p.skinFreeUntil && new Date(p.skinFreeUntil)>new Date();
-        var _ownedList=(window.__playerSkinsMap||{})[p._uuid]||[];
-        var _owned=_ownedList.indexOf(p.activeSkin)>=0;
-        if(_inFree || _owned){
-          _pcFrame.classList.add('skin-'+p.activeSkin);
-        }
-      }
-    }
     // Identité
     set('pc-name', p.name||'Joueur');
     var _rid=p.rtwId||p.id||'00000';
@@ -8929,22 +8582,11 @@ function renderLeaguePanel(){
     var initials=p.name.split(' ').map(function(w){return w[0];}).join('');
     var rowBg=isReleg?'background:rgba(255,68,68,.04);':isPromo?'background:rgba(45,219,128,.04);':(isMe?'background:rgba(4,12,35,.85);':'');
     var rowStyle=isMe?'box-shadow:inset 0 0 0 1.5px rgba(74,144,255,.65);':'';
-    // Skin éphémère sur la ligne classement : visible UNIQUEMENT pendant la
-    // fenêtre gratuite (J0 → J+7). Après expiration, la ligne redevient
-    // classique. Livraison 2 : le skin acheté ne s'affichera PLUS dans le
-    // classement (uniquement sur la PC) pour éviter l'effet sapin de Noël.
-    // Un skin POSSÉDÉ (acheté) ne s'affiche jamais au classement (PC uniquement, cf. Livraison 2
-    // ci-dessus). On le montre sur la ligne SEULEMENT pendant sa fenêtre gratuite ET tant qu'il
-    // n'est pas acheté. Sans le test "pas acheté", la fenêtre d'un AUTRE skin (skin_free_until est
-    // une colonne unique partagée) faisait réapparaître un skin acheté au classement (bug 2026-06-01).
-    var _ownedRow=((window.__playerSkinsMap||{})[p._uuid]||[]).indexOf(p.activeSkin)>=0;
-    var _hasActiveSkin=p.activeSkin && p.skinFreeUntil && new Date(p.skinFreeUntil)>new Date() && !_ownedRow;
     // Reveal (balayage + contour) : uniquement MA ligne, en continu tant que je
     // suis sur la page (animation CSS infinie — s'arrête toute seule en quittant
     // la page puisque la ligne n'existe plus, cf. keyframes myRowShine/myRowGlowPulse).
     var _revealCls=isMe?'my-row-enter':'';
-    var _rowClasses=[(_hasActiveSkin?'skin-'+p.activeSkin:''),_revealCls].filter(Boolean).join(' ');
-    var rowSkinClass=_rowClasses?(' class="'+_rowClasses+'"'):'';
+    var rowSkinClass=_revealCls?(' class="'+_revealCls+'"'):'';
     // Rouge UNIQUEMENT si en zone de rétrogradation ET qu'il reste 7 jours ou
     // moins avant la fin de la période (= alarme tardive, 2026-07-21 : avant
     // J-10, jugé trop stressant pour les retardataires). Sinon doré comme tout le monde.
@@ -17494,7 +17136,6 @@ const TOAST_I18N_EN = {
   '⚠️ Sélectionne au moins 1 land':'⚠️ Select at least 1 land',
   '⚠️ Seul le capitaine peut acheter des licences':'⚠️ Only the captain can buy licenses',
   '⚠️ Seul le capitaine peut expulser':'⚠️ Only the captain can kick',
-  '✓ Skin mis à jour':'✓ Skin updated',
   '⚠️ Solde insuffisant':'⚠️ Insufficient balance',
   '⚠️ Solde insuffisant en NYX':'⚠️ Insufficient NYX balance',
   '🔓 Sponsorisation libérée':'🔓 Sponsorship released',
@@ -23555,8 +23196,6 @@ async function renderSettingsPage(){
   _renderSettingsSubscription(p);
   // Disponibilité (infirmerie)
   _renderSettingsAvailability(p);
-  // Mes Skins
-  _renderSettingsSkins(p);
   // Préférences
   _renderSettingsPrefs(p);
 }
@@ -23577,162 +23216,6 @@ function _renderSettingsAvailability(p){
       +'<div style="font-size:.72rem;color:var(--muted2);margin-bottom:.7rem;line-height:1.5">'+t('avail.off.desc')+'</div>'
       +'<button onclick="openInfirmerieModal()" style="width:100%;padding:.55rem;border-radius:6px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);color:var(--text);font-weight:700;font-size:.78rem;cursor:pointer">'+t('avail.off.declare')+'</button>';
   }
-}
-
-// Catalogue des skins disponibles (à enrichir quand on ajoute de nouveaux skins).
-// L'image du skin est posée par la classe CSS skin-<id> (déjà définie pour or-des-incas).
-var SKIN_CATALOG = {
-  'or-des-incas': { name: 'OR DES INCAS', price: 10000 },
-  'bruxelles':    { name: '20 KM DE BRUXELLES', price: 10000 },
-  'odyssea':      { name: 'ODYSSEA', price: 10000 },
-  'terre-lune':   { name: 'DE LA TERRE À LA LUNE', price: 10000 },
-  'touquet':      { name: 'LE TOUQUET', price: 10000 },
-  'fleur-du-roy': { name: 'FLEUR DU ROY', price: 10000 }
-};
-
-// Section "Mes Skins" : liste tous les skins du RP (achetés + en cours d'éligibilité).
-// - Phase gratuite (J0→J+5) : juste le nom + sélecteur on/off, AUCUN prix affiché.
-// - Phase achat (J+5→J+7) : nom + prix + bouton "Acheter · 10 000 RPC".
-// - Acheté : nom seul, pas de prix, plus de bouton.
-// - Expiré sans achat : le skin disparait définitivement de la liste.
-// L'éligibilité (liste des skins) vient de player_badges (donc indépendante du
-// toggle). Les fenêtres (free/buy) sont lues sur players (posées par le trigger,
-// modifiables pour tester).
-async function _renderSettingsSkins(p){
-  var el=document.getElementById('settings-skins'); if(!el) return;
-  var now=new Date();
-  var ownedList=((window.__playerSkinsMap||{})[currentUser.id])||[];
-  var selected=p.active_skin||null;
-
-  // Fenêtres : on lit directement les colonnes du joueur (posées par le trigger
-  // à la validation, modifiables ponctuellement pour tester).
-  var freeUntil=p.skin_free_until?new Date(p.skin_free_until):null;
-  var buyUntil=p.skin_buy_until?new Date(p.skin_buy_until):null;
-  var inFreePhase=freeUntil && freeUntil>now;
-  var inBuyWindow=!inFreePhase && buyUntil && buyUntil>now;
-
-  // Liste des skins éligibles depuis les défis validés (player_badges)
-  var eligibleIds=[];
-  try {
-    var {data:rows}=await supabaseClient
-      .from('player_badges')
-      .select('badges(skin_reward)')
-      .eq('player_id',currentUser.id);
-    (rows||[]).forEach(function(r){
-      if(r.badges && r.badges.skin_reward && eligibleIds.indexOf(r.badges.skin_reward)<0){
-        eligibleIds.push(r.badges.skin_reward);
-      }
-    });
-  } catch(e){}
-
-  // Construire les lignes : Aucun + chaque skin (acheté OU encore dans une fenêtre active)
-  var lines=[{id:null,label:t('skins.none')}];
-  eligibleIds.forEach(function(sid){
-    var owned=ownedList.indexOf(sid)>=0;
-    var st;
-    if(owned) st='owned';
-    else if(inFreePhase) st='free';
-    else if(inBuyWindow) st='buy';
-    else st='expired'; // expiré sans achat → on n'affiche plus
-    if(st==='expired') return;
-    var meta=SKIN_CATALOG[sid]||{name:sid.toUpperCase(),price:10000};
-    lines.push({id:sid,label:meta.name,price:meta.price,state:st});
-  });
-
-  // Phrase d'intro
-  var html='<div style="font-size:.68rem;color:var(--muted2);margin-bottom:.75rem;line-height:1.55">'+t('skins.intro')+'</div>';
-
-  if(lines.length===1){
-    html+='<div style="font-size:.65rem;color:var(--muted2);padding:.55rem .2rem;text-align:center;font-style:italic">'+t('skins.empty')+'</div>';
-    el.innerHTML=html; return;
-  }
-
-  lines.forEach(function(r){
-    var isSel=(selected===r.id) || (selected==null && r.id==null);
-    // Bouton inline "10 000 RPC" visible pendant la phase gratuite ET la fenêtre
-    // d'achat (le RP peut acheter à tout moment pour conserver le skin à vie).
-    // Au-delà (skin expiré sans achat) ou pour un skin acheté → pas de bouton.
-    var rightSide='';
-    if(r.state==='free' || r.state==='buy'){
-      // Compte à rebours UNIQUEMENT pendant les 48h finales (state='buy') pour
-      // signaler "dernière chance avant disparition définitive". Pas pendant
-      // la phase gratuite — pas de stress nécessaire à ce stade.
-      var timerBadge='';
-      if(r.state==='buy' && buyUntil){
-        var hLeft=Math.max(0,Math.ceil((buyUntil-now)/3600000));
-        var urgent=hLeft<=12; // < 12h restantes = rouge plus marqué
-        var clr=urgent?'#ff6020':'#ff8c2a';
-        var bgc=urgent?'rgba(255,96,32,.12)':'rgba(255,140,42,.1)';
-        timerBadge='<span style="font-family:\'Space Mono\',monospace;font-size:.65rem;font-weight:700;color:'+clr+';background:'+bgc+';border:1px solid '+clr+'66;border-radius:5px;padding:.28rem .45rem;white-space:nowrap;letter-spacing:.2px;display:inline-flex;align-items:center;gap:.2rem">⏱️ '+hLeft+'h</span>';
-      }
-      var buyBtn='<button onclick="event.stopPropagation();buyMySkin(\''+r.id+'\')" style="font-family:\'Space Mono\',monospace;font-size:.7rem;font-weight:700;color:var(--gold);background:rgba(245,200,66,.08);border:1.5px solid rgba(245,200,66,.45);border-radius:5px;padding:.32rem .6rem;cursor:pointer;white-space:nowrap;transition:all .15s;letter-spacing:.3px" onmouseover="this.style.background=\'rgba(245,200,66,.22)\';this.style.borderColor=\'var(--gold)\'" onmouseout="this.style.background=\'rgba(245,200,66,.08)\';this.style.borderColor=\'rgba(245,200,66,.45)\'">'+r.price.toLocaleString(SPEEDIX_LANG)+' RPC</button>';
-      rightSide='<div style="display:flex;align-items:center;gap:.4rem">'+timerBadge+buyBtn+'</div>';
-    }
-    var bgCol=isSel?'rgba(245,200,66,.06)':'rgba(10,20,50,.4)';
-    var brCol=isSel?'rgba(245,200,66,.55)':'rgba(74,144,255,.2)';
-    html+='<div onclick="selectMySkin('+(r.id===null?'null':"'"+r.id+"'")+')" style="background:'+bgCol+';border:1.5px solid '+brCol+';border-radius:8px;padding:.6rem .75rem;margin-bottom:.45rem;cursor:pointer;transition:all .15s">'+
-      '<div style="display:flex;align-items:center;gap:.55rem;justify-content:space-between">'+
-        '<div style="display:flex;align-items:center;gap:.6rem;min-width:0;flex:1">'+
-          '<span style="display:inline-block;width:14px;height:14px;border-radius:50%;border:2px solid '+(isSel?'var(--gold)':'rgba(255,255,255,.25)')+';background:'+(isSel?'var(--gold)':'transparent')+';flex-shrink:0"></span>'+
-          '<div style="font-family:\'Bebas Neue\',sans-serif;font-size:.9rem;letter-spacing:1.5px;color:'+(isSel?'var(--gold)':'var(--text)')+'">'+escapeHtml(r.label)+'</div>'+
-        '</div>'+
-        (rightSide?'<div style="flex-shrink:0">'+rightSide+'</div>':'')+
-      '</div>'+
-    '</div>';
-  });
-  el.innerHTML=html;
-}
-
-// Sélectionner un skin (ou "Aucun" = null) : update direct la colonne players.active_skin.
-async function selectMySkin(skinId){
-  if(!currentUser) return;
-  try {
-    await supabaseClient.from('players').update({active_skin:skinId}).eq('id',currentUser.id);
-    if(window.__myPlayer) window.__myPlayer.activeSkin=skinId;
-    if(window.__settingsPlayer) window.__settingsPlayer.active_skin=skinId;
-    if(typeof renderSettingsPage==='function') renderSettingsPage();
-    if(typeof renderDashboard==='function') renderDashboard();
-    if(typeof renderLeaguePanel==='function') renderLeaguePanel();
-    showToast('✓ Skin mis à jour');
-  } catch(e){ showToast('⚠️ '+(e.message||'Erreur')); }
-}
-
-// Acheter le skin : toute la logique est en base (purchase_skin).
-// Possible à tout moment pendant la fenêtre gratuite (J0→J+5) et la fenêtre
-// d'achat (J+5→J+7). Au-delà, le skin disparait définitivement.
-async function buyMySkin(skinId){
-  if(!currentUser) return;
-  var meta=SKIN_CATALOG[skinId]||{name:skinId.toUpperCase()};
-  var ok=await askConfirm(
-    'Tu as gagné ce skin, il est gratuit pendant 5 jours. À la fin, si tu souhaites le conserver tu peux l\'acheter pour <strong style="color:var(--gold)">10 000 RPC</strong> (achat disponible seulement pendant 48h).<br><br>Veux-tu l\'acheter de suite ?',
-    {title:escapeHtml(meta.name),emoji:'🎁',okLabel:'Valider',success:true}
-  );
-  if(!ok) return;
-  try {
-    var resp=await supabaseClient.rpc('purchase_skin',{p_skin_id:skinId});
-    var data=resp.data, err=resp.error;
-    if(err){ showToast('⚠️ '+err.message); return; }
-    if(!data || !data.ok){
-      var errMap={
-        skin_not_yours:'Tu n\'as pas validé le défi associé à ce skin.',
-        already_owned:'Tu possèdes déjà ce skin.',
-        free_window_still_open:'La fenêtre gratuite est encore ouverte — patiente.',
-        buy_window_closed:'Trop tard, la fenêtre de 48h est fermée.',
-        insufficient_rpc:'Solde RPC insuffisant : il te faut 10 000 RPC.',
-        not_authenticated:'Reconnecte-toi.'
-      };
-      showToast('⚠️ '+(errMap[data && data.error]||'Achat refusé'));
-      return;
-    }
-    // Succès : ajout local de la collection + refresh
-    if(!window.__playerSkinsMap) window.__playerSkinsMap={};
-    if(!window.__playerSkinsMap[currentUser.id]) window.__playerSkinsMap[currentUser.id]=[];
-    if(window.__playerSkinsMap[currentUser.id].indexOf(skinId)<0) window.__playerSkinsMap[currentUser.id].push(skinId);
-    showToast('🎁 Skin '+meta.name+' ajouté à ta collection !');
-    if(typeof renderSettingsPage==='function') renderSettingsPage();
-    if(typeof renderDashboard==='function') renderDashboard();
-    if(typeof walletLoad==='function') walletLoad();
-  } catch(e){ showToast('⚠️ Erreur achat : '+(e.message||'')); }
 }
 
 function _refreshSettingsPhoto(url){
