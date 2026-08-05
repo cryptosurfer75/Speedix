@@ -6,7 +6,7 @@
 //   SKIP_WAITING, et recharge automatiquement dès que le nouveau prend le
 //   contrôle — les utilisateurs ont ainsi la nouvelle version sans refresh manuel.
 
-const CACHE_VERSION = 'speedix-v659';
+const CACHE_VERSION = 'speedix-v823';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -16,7 +16,8 @@ const STATIC_ASSETS = [
   '/icon-180.png',
   '/logo-speedix.png',
   '/logo-speedix-hd.png',
-  '/logo-speedix-sm.png'
+  '/logo-speedix-sm.png',
+  '/hero-cover-new.png'
 ];
 
 // ── Install : pré-cache les assets essentiels ────────────────────────────
