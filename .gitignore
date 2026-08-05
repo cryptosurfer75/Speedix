@@ -30,3 +30,4 @@ supabase/
 
 # Outils locaux bots RP (scripts d'admin, .env avec service_role, etc.)
 bots/
+.secrets/
