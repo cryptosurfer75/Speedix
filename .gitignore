@@ -31,3 +31,17 @@ supabase/
 # Outils locaux bots RP (scripts d'admin, .env avec service_role, etc.)
 bots/
 .secrets/
+
+# Coque native Capacitor (projet à part, jamais servi par GitHub Pages)
+capacitor-wrap/
+
+# Assets non référencés par index.html (brouillons/exploration)
+blasons/
+medals/
+flags/
+land-card-preview/
+
+# Pages de test/aperçu autonomes (jamais déployées)
+test-medaille-reze.html
+top100-loyer-landes.html
+skin-odyssea-preview.html
