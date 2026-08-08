@@ -25521,9 +25521,15 @@ async function dropQuest(badgeId,badgeName){
   // Retiré = retour direct en "🔒 Non choisi", ligne supprimée.
   var b=(_badgesCatalog||[]).find(function(x){return x.id===badgeId;});
   var isOneShot=b && _QUEST_MAX_TYPES[b.threshold_type];
-  if(!confirm(isOneShot
+  // Fenêtre de confirmation du jeu (2026-08-08, signalé par l'user — "c'est un
+  // texte basique via Google", càd le confirm() natif du navigateur/téléphone,
+  // pas une fenêtre du jeu) : askConfirm() remplace confirm() partout ailleurs
+  // dans l'app, ce point-là avait été oublié.
+  var _ok=await askConfirm(isOneShot
     ? 'Retirer ce défi ? Il redevient disponible pour être choisi plus tard.'
-    : 'Mettre ce défi en pause ? Ta progression est conservée, elle reprendra lorsque tu le sélectionneras à nouveau.')) return;
+    : 'Mettre ce défi en pause ? Ta progression est conservée, elle reprendra lorsque tu le sélectionneras à nouveau.',
+    {title:isOneShot?'Retirer ce défi':'Mettre en pause',emoji:'🔄',okLabel:isOneShot?'Retirer':'Mettre en pause'});
+  if(!_ok) return;
   try {
     if(isOneShot){
       await supabaseClient.from('player_active_quests').delete()
