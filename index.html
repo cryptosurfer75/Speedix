@@ -246,13 +246,90 @@ body::after{
    inspiration Higow — appliqué en continu tant qu'on est sur la page (pas de
    minuterie JS : la ligne est reconstruite à chaque rendu tant qu'on est sur
    la page League, cf. buildRow ; l'animation s'arrête toute seule dès qu'on
-   quitte la page puisque la ligne n'existe plus). Un seul balayage lent
-   (3s) par cycle de 6s → ~3s de pause avant le suivant, en boucle infinie.
-   background-size 200%/positions ±200% (recette standard "shine sweep") pour
-   un départ net hors du bord gauche, pas de coupe en plein milieu. */
+   quitte la page puisque la ligne n'existe plus). Un seul balayage par cycle
+   → pause avant le suivant, en boucle infinie. background-size 200%/positions
+   ±200% (recette standard "shine sweep") pour un départ net hors du bord
+   gauche, pas de coupe en plein milieu. Vitesse du balayage calée (2026-08-08,
+   demande explicite -- "calle la vitesse du halo de tous les jours avec celui
+   du challenge") sur .mrt-shine-bar (skin Challenge) : 5.5s de balayage, donc
+   durée totale 11s (le balayage occupe toujours 50% du cycle, 5%->55%). */
 @keyframes myRowShine{
   0%,5%{background-position:200% 0}
   55%,100%{background-position:-200% 0}
+}
+/* Barre lumineuse Player Card (2026-08-08, skin "gagnant de Challenge") :
+   ex-pcCardShine (qui balayait via background-position DANS le fond de
+   #pc-frame, rendu trop fondu/délavé -- remplacé par une vraie barre blanche
+   séparée, cf #pc-shine-bar) -- anime `left` plutôt que background-position.
+   PLUS de boucle infinie (2026-08-08, demande explicite -- "on va pas
+   répéter le cycle en continu car ça fatigue, on fait un cycle, on laisse
+   6s, on refait un cycle") : cette keyframe ne couvre plus QUE la partie
+   active (4s : 0%->65% = 2.6s pluie de paillettes seule, barre hors-cadre à
+   gauche ; 65%->100% = 1.4s la barre balaie EN ACCÉLÉRANT via
+   animation-timing-function ease-in posé sur le keyframe de départ du
+   segment). Jouée en 1 seule itération (animation-iteration-count:1), la
+   pause entre 2 cycles est maintenant gérée côté JS (_pcRunCycle,
+   setInterval 12000ms = 4s actif + 8s silence, espacement ajusté à 8s sur
+   demande explicite), PAS dans la keyframe. */
+@keyframes pcShineBarSweep{
+  0%{left:-40%}
+  65%{left:-40%;animation-timing-function:ease-in}
+  100%{left:130%}
+}
+/* Ligne "moi" du classement (2026-08-08, demande explicite -- "tu peux
+   répéter le passage un peu plus rapproché et tu le ralentis juste un petit
+   peu") : keyframe DÉDIÉE, séparée de pcShineBarSweep ci-dessus -- ce
+   dernier réserve ses 65 premiers % à la phase "pluie de paillettes" de la
+   Player Card (qui n'existe pas sur la ligne du classement), donc le
+   réutiliser tel quel pour la ligne ne faisait QUE ralentir en ajoutant un
+   temps mort, pas ralentir le balayage lui-même. Ici : balayage pur du
+   début à la fin, vitesse réglée uniquement par la durée posée en JS
+   (cf window._mrtSweep), espacement des répétitions géré par le
+   setInterval JS (pause raccourcie, indépendante de la Player Card). */
+@keyframes pcShineBarSweepRow{
+  0%{left:-40%;animation-timing-function:ease-in}
+  100%{left:130%}
+}
+/* Pluie de paillettes Player Card (2026-08-08, skin "gagnant de Challenge",
+   demande explicite user -- "faire tomber comme une pluie de scintillement du
+   haut vers le bas de la carte comme si on s'poudrait un gâteau") : remplace
+   l'ancien système "flicker sur place" (gardé en mémoire au cas où, cf
+   historique de cette session). Chaque paillette tombe une seule fois par
+   cycle (pas de boucle infinie sur l'élément lui-même -- animation-fill-mode
+   both + 1 itération), démarrée en même temps que la phase scintillement de
+   pcCardShine (0%->44% du cycle 5s) via _pcRespawnSparkles en JS, donc finie
+   avant que le reflet ne démarre. La distance de chute est PROPRE à chaque
+   paillette (variable CSS --fall posée en JS = hauteur du "couloir" libre
+   trouvé à sa position horizontale, cf JS) puisque translateY en % se base
+   sur la hauteur de l'élément lui-même (~3px), inutilisable pour une vraie
+   chute. */
+@keyframes pcSparkleFall{
+  0%{opacity:0;transform:translateY(0) scale(.5)}
+  15%{opacity:1;transform:translateY(calc(var(--fall) * .12)) scale(1)}
+  80%{opacity:1;transform:translateY(calc(var(--fall) * .8)) scale(1)}
+  100%{opacity:0;transform:translateY(var(--fall)) scale(.6)}
+}
+.pc-sparkle{
+  /* z-index négatif (2026-08-08, demande explicite -- "les faire passer par
+     derrière et continuer leur chemin") : au lieu de s'arrêter au premier
+     élément rencontré, la paillette tombe sur TOUTE la hauteur/largeur de la
+     carte mais reste sous les tuiles/l'avatar/le texte (qui, eux, sont soit
+     non positionnés soit en z-index:auto -- donc toujours au-dessus d'un
+     z-index négatif dans le contexte d'empilement isolé de #pc-frame, cf
+     isolation:isolate ci-dessus). Résultat : visible sur le fond dégradé,
+     occultée quand elle passe derrière un élément opaque, sans logique
+     d'évitement à calculer en JS. */
+  position:absolute;z-index:-1;border-radius:50%;background:#fff;pointer-events:none;
+  box-shadow:0 0 6px 2px rgba(255,255,255,1),0 0 14px 4px rgba(255,224,138,.8);
+  /* linear, pas ease-in (2026-08-08, corrigé -- "on a l'impression qu'elles
+     ralentissent tous au moment où elle passe la ligne des boutons du haut") :
+     ease-in appliqué à CHAQUE segment entre 2 keyframes (0%->15%->80%->100%)
+     relance une accélération à chaque étape plutôt qu'une seule fois sur tout
+     le trajet -- ça créait un "ralenti" artificiel à chaque frontière de
+     keyframe, dont une tombait pile visuellement sur la ligne des boutons du
+     haut. linear = vitesse constante sur tout le trajet, plus de à-coup. */
+  animation-name:pcSparkleFall;animation-timing-function:linear;
+  animation-iteration-count:1;animation-fill-mode:both;
 }
 @keyframes myRowGlowPulse{
   0%,5%{background:#e454ff;box-shadow:0 0 4px rgba(228,84,255,.35)}
@@ -266,7 +343,7 @@ body::after{
    table-layout:fixed (bug vécu 2026-07-26 — largeurs des td totalement corrompues) : la ligne
    "moi" utilise donc un <td colspan="3"> contenant une vraie div (.my-row-tile), jamais un tr stylé
    directement. */
-.my-row-tile{position:relative;z-index:0}
+.my-row-tile{position:relative;z-index:0;overflow:hidden;isolation:isolate}
 .my-row-tile .mrt-border{
   content:'';position:absolute;inset:0;z-index:-2;
   clip-path:polygon(9px 0,calc(100% - 9px) 0,100% 9px,100% calc(100% - 9px),calc(100% - 9px) 100%,9px 100%,0 calc(100% - 9px),0 9px);
@@ -285,7 +362,23 @@ body::after{
     linear-gradient(315deg, var(--medal-c2,transparent) 0%, transparent 60%);
   background-size:200% 100%, 100% 100%, 100% 100%;
   background-repeat:no-repeat;
-  animation:myRowShine 6s linear infinite;
+  animation:myRowShine 11s linear infinite;
+}
+/* Barre lumineuse skin "gagnant de Challenge" sur la ligne "moi" du classement
+   (2026-08-08, demande explicite -- "essaie de me faire le même bandeau sur la
+   ligne du classement") : MÊME technique que #pc-shine-bar sur la Player Card
+   (vrai élément blanc séparé, pas mélangé dans le background-image comme le
+   reste de .mrt-fill ci-dessus qui reste inchangé/toujours actif pour tout le
+   monde) -- réutilise directement la keyframe pcShineBarSweep (générique,
+   n'anime que `left`). Ajoutée en HTML UNIQUEMENT si TEST_MEDAL_BG (cf
+   buildRow), jamais présente sinon donc aucun impact sur les autres RP. */
+.mrt-shine-bar{
+  position:absolute;top:-25%;left:-40%;width:28%;height:150%;z-index:-1;pointer-events:none;
+  /* Bande blanche encore élargie (2026-08-08, demande explicite -- "la bande
+     blanche au milieu la plus large") : plateau à pleine opacité 35%-65%
+     (était 42%-58%). */
+  background:linear-gradient(100deg,transparent 0%,rgba(255,255,255,.3) 15%,rgba(255,255,255,.95) 35%,rgba(255,255,255,.95) 65%,rgba(255,255,255,.3) 85%,transparent 100%);
+  transform:rotate(-14deg);
 }
 
 /* Two-column layout: sidebar + main */
@@ -2445,21 +2538,38 @@ select option{background:#040c1c}
     padding:1.5px;
     box-shadow:0 0 30px rgba(228,84,255,.15),0 0 60px rgba(228,84,255,.06);
   ">
+  <!-- isolation:isolate (2026-08-08, skin "gagnant de Challenge", demande explicite --
+       "les faire passer par derrière [les éléments] et continuer leur chemin") : crée
+       un contexte d'empilement propre à #pc-frame pour que les paillettes de pluie
+       (z-index négatif, cf .pc-sparkle) restent bien CONTENUES ici -- sans ça, un
+       enfant en z-index négatif remonterait chercher le contexte d'empilement du
+       PARENT (position:relative seul n'en crée pas), risque de passer derrière la
+       modale entière au lieu de juste derrière les tuiles de la carte. -->
   <div id="pc-frame" style="
     background:linear-gradient(160deg,#05080f 0%,#080b14 45%,#0a0d18 100%);
     clip-path:polygon(10px 0,calc(100% - 10px) 0,100% 10px,100% calc(100% - 10px),calc(100% - 10px) 100%,10px 100%,0 calc(100% - 10px),0 10px);padding:.75rem;
-    position:relative;overflow:hidden;
+    position:relative;overflow:hidden;isolation:isolate;
   ">
+  <!-- Barre lumineuse skin "gagnant de Challenge" (2026-08-08, demande explicite --
+       "on va essayer dans l'autre sens, tu vas me faire passer une bande diagonale
+       blanche en diagonale") : remplace l'ancien système (reflet mélangé DANS le
+       background-image de #pc-frame, rendu trop délavé/fondu dans le dégradé
+       doré) par un vrai élément séparé, blanc franc, qui balaie par-dessus le
+       dégradé -- z-index négatif comme les paillettes (reste sous les tuiles/
+       l'avatar/le texte, cf isolation:isolate ci-dessus). Vide/caché par défaut,
+       activé en JS uniquement pour isOwn && TEST_MEDAL_BG. -->
+  <div id="pc-shine-bar" style="position:absolute;top:-25%;left:-40%;width:20%;height:150%;z-index:-1;pointer-events:none;display:none;background:linear-gradient(100deg,transparent 0%,rgba(255,255,255,.24) 28%,rgba(255,255,255,.95) 50%,rgba(255,255,255,.24) 72%,transparent 100%);transform:rotate(-14deg)"></div>
 
     <!-- Titre PLAYER CARD = bouton + carré parrainage + flèches classement, dans le cadre PNG dédié -->
     <div style="margin-bottom:.9rem;display:flex;align-items:flex-end;gap:0">
       <!-- Flèche GAUCHE (descendre le classement = moins de points), à l'extérieur du cadre.
            TEST 2026-07-28 : bouton image fourni par l'user (octogone violet + triangle or), remplace le biseau CSS + caractère ▼. -->
-      <button onclick="navPcRank(1)" data-i18n-title="dash.pc.nav.lower" title="Classement inférieur" style="
-        width:42px;height:42px;flex-shrink:0;border:none;background:transparent;padding:0;cursor:pointer;
+      <button id="pc-arrow-left" onclick="navPcRank(1)" data-i18n-title="dash.pc.nav.lower" title="Classement inférieur" style="
+        position:relative;width:42px;height:42px;flex-shrink:0;border:none;background:transparent;padding:0;cursor:pointer;
         display:flex;align-items:center;justify-content:center;transition:transform .15s;
       " onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">
-        <img src="pc-nav-arrow.png" alt="" style="width:100%;height:100%;object-fit:contain;transform:scaleX(-1);pointer-events:none;user-select:none">
+        <div id="pc-arrow-left-fill" style="display:none;position:absolute;width:65%;height:65%;top:48%;left:50%;transform:translate(-50%,-50%);clip-path:polygon(4px 0,calc(100% - 4px) 0,100% 4px,100% calc(100% - 4px),calc(100% - 4px) 100%,4px 100%,0 calc(100% - 4px),0 4px);pointer-events:none"></div>
+        <img src="pc-nav-arrow.png" alt="" style="width:100%;height:100%;object-fit:contain;transform:scaleX(-1);pointer-events:none;user-select:none;position:relative">
       </button>
       <div style="position:relative;flex:1;min-width:0">
         <!-- Titre "PLAYER CARD" retiré (2026-08-04, doublon avec le titre de la page
@@ -2474,7 +2584,7 @@ select option{background:#040c1c}
              clip-path suit maintenant le contour réel des ailes (mesuré pixel par pixel sur
              pc-title-frame.png) au lieu d'un simple rectangle. Plus de background-color
              plein non plus : le motif se pose en transparence sur le dégradé de #pc-frame. -->
-        <div style="position:absolute;inset:0;background-image:radial-gradient(rgba(200,180,255,.4) 1px,transparent 1px);background-size:7px 7px;clip-path:polygon(13% 10%,87% 10%,98% 25%,91% 32%,90% 47%,88% 62%,86% 78%,85% 84%,15% 84%,14% 78%,12% 62%,9% 47%,9% 32%,2% 25%)"></div>
+        <div id="pc-title-dots" style="position:absolute;inset:0;background-image:radial-gradient(rgba(200,180,255,.4) 1px,transparent 1px);background-size:7px 7px;clip-path:polygon(13% 10%,87% 10%,98% 25%,91% 32%,90% 47%,88% 62%,86% 78%,85% 84%,15% 84%,14% 78%,12% 62%,9% 47%,9% 32%,2% 25%)"></div>
         <!-- Hauteur fixe (2026-08-04) au lieu d'aspect-ratio : avec aspect-ratio, la hauteur
              suit la largeur du cadre (qui varie avec le viewport, jusqu'au max-width:480px
              du bloc Player Card), alors que les flèches ◄ ► à côté sont à taille FIXE
@@ -2493,11 +2603,12 @@ select option{background:#040c1c}
       </div>
       <!-- Flèche DROITE (monter le classement = plus de points), à l'extérieur du cadre.
            TEST 2026-07-28 : même bouton image, non retourné (le triangle pointe déjà à droite). -->
-      <button onclick="navPcRank(-1)" data-i18n-title="dash.pc.nav.upper" title="Classement supérieur" style="
-        width:42px;height:42px;flex-shrink:0;border:none;background:transparent;padding:0;cursor:pointer;
+      <button id="pc-arrow-right" onclick="navPcRank(-1)" data-i18n-title="dash.pc.nav.upper" title="Classement supérieur" style="
+        position:relative;width:42px;height:42px;flex-shrink:0;border:none;background:transparent;padding:0;cursor:pointer;
         display:flex;align-items:center;justify-content:center;transition:transform .15s;
       " onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">
-        <img src="pc-nav-arrow.png" alt="" style="width:100%;height:100%;object-fit:contain;pointer-events:none;user-select:none">
+        <div id="pc-arrow-right-fill" style="display:none;position:absolute;width:65%;height:65%;top:48%;left:50%;transform:translate(-50%,-50%);clip-path:polygon(4px 0,calc(100% - 4px) 0,100% 4px,100% calc(100% - 4px),calc(100% - 4px) 100%,4px 100%,0 calc(100% - 4px),0 4px);pointer-events:none"></div>
+        <img src="pc-nav-arrow.png" alt="" style="width:100%;height:100%;object-fit:contain;pointer-events:none;user-select:none;position:relative">
       </button>
     </div>
 
@@ -2655,7 +2766,7 @@ select option{background:#040c1c}
                vide entre le haut de la vraie fenêtre du cadre (2.27%) et le haut de
                #pc-avatar-box (22.4%) -- pas toute la fenêtre. Vide par défaut (aucun
                impact hors test) ; rempli en JS uniquement pour isOwn. -->
-          <div id="pc-avatar-badge-band" style="position:absolute;left:9.05%;top:4%;width:81.9%;height:18.4%;z-index:1;clip-path:polygon(8px 0,calc(100% - 8px) 0,100% 8px,100% 100%,0 100%,0 8px);overflow:hidden;display:flex;align-items:center;justify-content:center"></div>
+          <div id="pc-avatar-badge-band" style="position:absolute;left:9.05%;top:2.4%;width:81.9%;height:22.3%;z-index:1;clip-path:polygon(10px 0,calc(100% - 10px) 0,100% 10px,100% 100%,0 100%,0 10px);overflow:hidden;display:flex;align-items:center;justify-content:center"></div>
           <!-- avatar (forme normale, pas de découpe hexagonale) -->
           <div id="pc-avatar-box" style="position:absolute;left:9.05%;top:22.4%;width:81.9%;height:71.2%;z-index:1;border-radius:6px;overflow:hidden;background:var(--bg)">
             <img id="pc-avatar-img" style="width:100%;height:100%;object-fit:cover;display:none" alt="">
@@ -8014,7 +8125,9 @@ async function onLoginSuccess(user, isNew){
       premium:pd.premium||false, premiumUntil:pd.premium_until||null, premiumTrial:pd.premium_trial||false,
       boostActiveUntil:pd?(pd.boost_active_until||null):null,
       gelActiveUntil:pd?(pd.gel_active_until||null):null,
-      birthDate:pd.birth_date||null
+      birthDate:pd.birth_date||null,
+      equippedBgC1:pd.equipped_bg_c1||null, equippedBgC2:pd.equipped_bg_c2||null,
+      medalBgC1:pd.medal_bg_c1||null, medalBgC2:pd.medal_bg_c2||null, medalBgUntil:pd.medal_bg_until||null
     };
     var exi=PLAYERS.findIndex(function(p){return p.id===1;});
     if(exi>=0)PLAYERS[exi]=window.__myPlayer; else PLAYERS.unshift(window.__myPlayer);
@@ -8228,7 +8341,7 @@ async function loadPlayersFromSupabase(){
   // 1. Charger tous les joueurs
   const { data: playersData, error: playersErr } = await supabaseClient
     .from('players')
-    .select('id,username,league,nat,grade,trend,avatar,competitive,buyin_debt,frozen,rtw_id,premium,premium_until,premium_trial,infirmerie_until,is_visible,consecutive_zero_periods,pts_cumulated,boost_active_until,gel_active_until,league_ref_rank,league_ref_lg,birth_date');
+    .select('id,username,league,nat,grade,trend,avatar,competitive,buyin_debt,frozen,rtw_id,premium,premium_until,premium_trial,infirmerie_until,is_visible,consecutive_zero_periods,pts_cumulated,boost_active_until,gel_active_until,league_ref_rank,league_ref_lg,birth_date,equipped_bg_c1,equipped_bg_c2,medal_bg_c1,medal_bg_c2,medal_bg_until');
 
   if(playersErr){
     if(panel) panel.innerHTML = '<div style="padding:1.5rem;text-align:center;color:var(--red);font-size:.8rem">⚠️ Erreur players : ' + playersErr.message + '</div>';
@@ -8309,6 +8422,8 @@ async function loadPlayersFromSupabase(){
       boostActiveUntil: p.boost_active_until || null,
       gelActiveUntil: p.gel_active_until || null,
       birthDate: p.birth_date || null,
+      equippedBgC1: p.equipped_bg_c1 || null, equippedBgC2: p.equipped_bg_c2 || null,
+      medalBgC1: p.medal_bg_c1 || null, medalBgC2: p.medal_bg_c2 || null, medalBgUntil: p.medal_bg_until || null,
     };
   });
 
@@ -9702,6 +9817,33 @@ function simToggleBoost(){
   calcPts();
 }
 
+/* Dégradé de fond skin "gagnant de Challenge" (2026-08-08, demande explicite
+   -- "varie les dégradés si plusieurs jaunes présents, joue sur des teintes
+   différentes, des dégradés dans l'autre sens le foncé en bas le clair en
+   haut et parfois en commençant par le coin opposé") : plusieurs Challenges
+   partagent une teinte jaune/or proche (Amiens, Stockholm, Bruxelles, Rezé...),
+   donc sans variation leur fond équipé se ressemblerait trop. Hash stable
+   (FNV-1a) sur les 2 couleurs -> même Challenge = toujours le même rendu,
+   mais des couleurs différentes tombent statistiquement sur des variantes
+   différentes (angle + sens + quelle couleur domine), sans rien stocker de
+   plus en base (juste c1/c2). */
+function _pcSkinGradient(c1,c2){
+  var s=(c1+c2).toLowerCase();
+  var h=0x811c9dc5;
+  for(var i=0;i<s.length;i++){ h^=s.charCodeAt(i); h=(h*0x01000193)>>>0; }
+  var variants=[
+    function(){ return 'linear-gradient(160deg, #0a0d18 0%, '+c2+' 55%, '+c1+' 100%)'; },
+    function(){ return 'linear-gradient(340deg, '+c1+' 0%, '+c2+' 45%, #0a0d18 100%)'; },
+    function(){ return 'linear-gradient(110deg, #0a0d18 0%, '+c2+' 55%, '+c1+' 100%)'; },
+    function(){ return 'linear-gradient(250deg, '+c1+' 0%, '+c2+' 45%, #0a0d18 100%)'; },
+    function(){ return 'linear-gradient(20deg, #0a0d18 0%, '+c2+' 55%, '+c1+' 100%)'; },
+    function(){ return 'linear-gradient(200deg, '+c1+' 0%, '+c2+' 45%, #0a0d18 100%)'; },
+    function(){ return 'linear-gradient(70deg, #0a0d18 0%, '+c1+' 55%, '+c2+' 100%)'; },
+    function(){ return 'linear-gradient(290deg, '+c2+' 0%, '+c1+' 45%, #0a0d18 100%)'; }
+  ];
+  return variants[h%variants.length]();
+}
+
 /* ============================================================
    RENDER : DASHBOARD
 ============================================================ */
@@ -9937,38 +10079,166 @@ function renderDashboard(){
     var avatarUrl=p?p.avatar:null;
     var imgEl=document.getElementById('pc-avatar-img');
     var cv=document.getElementById('pc-avatar-canvas');
-    // TEST 2026-08-08 (5e passe, demande explicite user) : le pseudo prend la
-    // couleur du Challenge gagné, UNIQUEMENT tant que le fond/bandeau de test est
-    // actif (isOwn) -- vide (style par défaut, blanc) sinon.
+    // Skin "gagnant de Challenge" (2026-08-08) : 3 sources possibles, par
+    // ordre de priorité.
+    // 1) TEST_MEDAL_BG (exploratoire, isOwn only, couleurs en dur, AVEC les
+    //    animations pluie+faisceau) -- reste la scène de test manuelle.
+    // 2) p.medalBgC1/C2 + medalBgUntil (RÉEL, AUTOMATIQUE, temporaire 48h
+    //    après la fin du Challenge -- posé tout seul dès que le RP concerné
+    //    gagne un badge "ville", cf renderChallenges) -- s'affiche pour
+    //    N'IMPORTE QUI regarde SA carte, AVEC les animations pluie+faisceau
+    //    (comme le test), tant que medalBgUntil n'est pas dépassé. L'expiration
+    //    se juge ICI, à l'affichage (comparaison à l'instant présent) : pas
+    //    besoin de cron, ça disparaît pile à l'heure pour tout le monde dès
+    //    que sa carte est re-rendue après l'échéance.
+    // 3) p.equippedBgC1/C2 (RÉEL, PERMANENT, choisi par le RP depuis Défis)
+    //    -- statique, JAMAIS d'animation, priorité la plus basse (le skin
+    //    temporaire de victoire prend le dessus tant qu'il est actif).
+    var _medalBgActive=!!(p && p.medalBgC1 && p.medalBgC2 && p.medalBgUntil && new Date(p.medalBgUntil).getTime()>Date.now());
+    var _skinC1=(isOwn&&TEST_MEDAL_BG)?'#ffe08a':(_medalBgActive?p.medalBgC1:(p&&p.equippedBgC1))||null;
+    var _skinC2=(isOwn&&TEST_MEDAL_BG)?'#b8860b':(_medalBgActive?p.medalBgC2:(p&&p.equippedBgC2))||null;
+    var _skinActive=!!(_skinC1&&_skinC2);
+    // L'animation (pluie+faisceau) tourne pour le test OU pour une victoire
+    // réelle encore dans sa fenêtre de 48h -- jamais pour le skin permanent.
+    var _skinAnimated=(isOwn&&TEST_MEDAL_BG)||_medalBgActive;
+    // Le pseudo prend la couleur du Challenge gagné UNIQUEMENT pendant le
+    // test animé (isOwn && TEST_MEDAL_BG) -- pas pour le skin réel équipé,
+    // resté hors du périmètre demandé ("uniquement le fond").
     var nameEl=document.getElementById('pc-name');
-    if(nameEl) nameEl.style.color = (isOwn && TEST_MEDAL_BG) ? '#2f6fff' : '';
+    if(nameEl) nameEl.style.color = _skinAnimated ? '#f5c842' : '';
+    var frameEl=document.getElementById('pc-frame');
+    if(frameEl){
+      // window.__pcSkinActive : dit si l'ANIMATION (pluie+faisceau, cf plus
+      // bas) doit tourner sur la carte affichée en ce moment -- test OU
+      // victoire réelle encore dans sa fenêtre de 48h (_skinAnimated),
+      // jamais pour le skin permanent équipé (2026-08-08, corrigé -- "je
+      // voudrais qu'il tourne indépendamment de l'ouverture et fermeture des
+      // pages" -- le flash signalé par l'user était le cycle qui repartait de
+      // zéro à CHAQUE rendu, provoqué par un clearInterval+relance immédiate
+      // ici). Ce flag global est mis à jour à CHAQUE rendu ; le minuteur
+      // lui-même (plus bas) ne dépend plus jamais du rendu.
+      window.__pcSkinActive=_skinAnimated;
+      if(_skinAnimated){
+        // Fond teinté Challenge + légère lueur hors du cadre. Le reflet
+        // lui-même n'est PLUS mélangé dans ce background-image (2026-08-08,
+        // demande explicite -- "dans l'autre sens, une bande diagonale
+        // blanche" -- l'ancien reflet fondu dans le dégradé doré manquait de
+        // punch) : c'est maintenant #pc-shine-bar, un vrai élément séparé
+        // blanc franc, cf HTML + @keyframes pcShineBarSweep. Couleurs : test
+        // en dur OU vraies couleurs de la victoire (_skinC1/C2).
+        frameEl.style.backgroundImage='none';
+        frameEl.style.background='linear-gradient(160deg, #0a0d18 0%, '+_skinC2+' 55%, '+_skinC1+' 100%)';
+        frameEl.style.boxShadow='0 0 26px 4px '+_skinC1+'59';
+        var shineBarEl=document.getElementById('pc-shine-bar');
+        if(shineBarEl) shineBarEl.style.display='block';
+      } else if(_skinActive){
+        // Skin réel équipé, statique, AUCUNE animation. Variante de dégradé
+        // (angle + sens) dérivée des 2 couleurs (2026-08-08, demande explicite
+        // -- "varie les dégradés si plusieurs jaunes présents, joue sur des
+        // teintes différentes, des dégradés dans l'autre sens le foncé en bas
+        // le clair en haut et parfois en commençant par le coin opposé") :
+        // plusieurs Challenges partagent une teinte jaune/or proche (Amiens,
+        // Stockholm, Bruxelles, Rezé...) -- sans variation, leur fond équipé
+        // serait quasi identique. _pcSkinGradient (cf fonction globale) choisit
+        // un angle + un sens de façon stable pour CE couple de couleurs (même
+        // Challenge = toujours le même rendu, mais 2 Challenges différents
+        // rendent différemment même à teinte proche).
+        frameEl.style.background=_pcSkinGradient(_skinC1,_skinC2);
+        frameEl.style.boxShadow='none';
+        var shineBarElReal=document.getElementById('pc-shine-bar');
+        if(shineBarElReal){ shineBarElReal.style.display='none'; shineBarElReal.style.animation='none'; }
+        Array.prototype.forEach.call(frameEl.querySelectorAll('.pc-sparkle'), function(s){ s.remove(); });
+      } else {
+        frameEl.style.backgroundImage='none';
+        frameEl.style.background='linear-gradient(160deg,#05080f 0%,#080b14 45%,#0a0d18 100%)';
+        frameEl.style.boxShadow='none';
+        var shineBarElOff=document.getElementById('pc-shine-bar');
+        if(shineBarElOff){ shineBarElOff.style.display='none'; shineBarElOff.style.animation='none'; }
+        Array.prototype.forEach.call(frameEl.querySelectorAll('.pc-sparkle'), function(s){ s.remove(); });
+      }
+      // Minuteur enregistré UNE SEULE FOIS pour toute la session (jamais
+      // effacé/relancé par un rendu -- corrigé 2026-08-08) : pluie de
+      // paillettes + barre lumineuse, 1 cycle de 4s (2.6s pluie + 1.4s
+      // balayage) puis 10s de silence, tourne en continu même sur une autre
+      // page (no-op silencieux via window.__pcSkinActive tant que ce n'est
+      // pas MA carte skin qui est affichée).
+      if(!window.__pcSparkleTimer){
+        window._pcRunCycle=function(){
+          if(!window.__pcSkinActive) return;
+          var fe=document.getElementById('pc-frame');
+          var sb=document.getElementById('pc-shine-bar');
+          if(!fe) return;
+          Array.prototype.forEach.call(fe.querySelectorAll('.pc-sparkle'), function(s){ s.remove(); });
+          var fRect=fe.getBoundingClientRect();
+          if(fRect.width>0 && fRect.height>0){
+            var fallPx=Math.max(15, .98*fRect.height);
+            for(var si=0; si<40; si++){
+              var lf=Math.random()*100;
+              var sp=document.createElement('div');
+              sp.className='pc-sparkle';
+              var sz=(2.5+Math.random()*2.5).toFixed(1);
+              sp.style.width=sz+'px'; sp.style.height=sz+'px';
+              sp.style.left=lf+'%'; sp.style.top='1%';
+              sp.style.setProperty('--fall', fallPx.toFixed(0)+'px');
+              sp.style.animationDelay=(Math.random()*.3).toFixed(2)+'s';
+              sp.style.animationDuration=(2+Math.random()*.6).toFixed(2)+'s';
+              fe.appendChild(sp);
+            }
+          }
+          if(sb){
+            sb.style.animation='none';
+            void sb.offsetWidth; // force reflow -- indispensable pour relancer l'animation depuis 0%
+            sb.style.animation='pcShineBarSweep 4s linear 1 both';
+          }
+        };
+        setTimeout(window._pcRunCycle, 300); // 1er passage, une seule fois pour toute la session
+        window.__pcSparkleTimer=setInterval(window._pcRunCycle, 14000);
+      }
+    }
+    // TEST 2026-08-08 (8e passe, demande explicite user) : le cadre "PLAYER CARD"
+    // et les 2 flèches de classement ont un centre/fond VOLONTAIREMENT transparent
+    // (cf commentaires plus haut) -- avec le fond de carte maintenant bleu, ce
+    // centre transparent laissait passer le bleu de façon peu propre. Fond sombre
+    // ajouté DERRIÈRE ces 3 éléments uniquement pendant le test, pour retrouver le
+    // même rendu qu'avant (dark) malgré le nouveau fond de carte.
+    // Masquage nécessaire dès qu'un fond coloré est actif (test OU skin réel
+    // équipé, cf _skinActive plus haut) -- sinon la couleur "fuit" à des
+    // endroits pensés pour un fond neutre (même souci pour les 2 sources).
+    var _anySkinActive=(isOwn && TEST_MEDAL_BG) || _skinActive;
+    var titleDotsEl=document.getElementById('pc-title-dots');
+    if(titleDotsEl) titleDotsEl.style.backgroundColor = _anySkinActive ? 'var(--bg)' : 'transparent';
+    // Fond des flèches : div dédié à 65% de la taille du bouton, remonté de 2%
+    // (top:48% au lieu de 50%) et coins biseautés (2026-08-08, "trop grand et
+    // carré, on le voit dépasser" puis "remonte de 2% et fait 4 coins
+    // biseautés") -- élément séparé (pas le fond du bouton lui-même) pour garder
+    // la vraie zone cliquable à 42x42 intacte.
+    var arrowLFill=document.getElementById('pc-arrow-left-fill'), arrowRFill=document.getElementById('pc-arrow-right-fill');
+    [arrowLFill,arrowRFill].forEach(function(f){
+      if(!f) return;
+      if(_anySkinActive){ f.style.display='block'; f.style.background='var(--bg)'; }
+      else { f.style.display='none'; }
+    });
     if(avatarUrl){
-      // TEST 2026-08-08 (fond avatar "gagnant de Challenge") : ajouté SEULEMENT à
-      // l'affichage, jamais écrit dans players.avatar. Couleurs Amiens (jaune) en
-      // dur le temps du test local -- à remplacer par medal_bg_colors/medal_bg_until
-      // une fois le mécanisme validé. Jaune plutôt que violet (déjà très présent
-      // ailleurs dans l'appli, cf. shine ligne "moi"/period-badge) pour bien juger
-      // le rendu sans confusion avec ces éléments existants.
+      // TEST 2026-08-08 (7e passe, demande explicite user) : titre retiré, mais le
+      // bandeau noir biseauté (pc-avatar-badge-band, coins coupés en haut via son
+      // clip-path déjà posé en HTML) reste rempli -- maintenant que le fond de la
+      // Player Card est bleu (frameEl ci-dessus), sans ce masque le bleu se voyait
+      // à travers le vide entre le haut de la vraie fenêtre du cadre et le haut de
+      // #pc-avatar-box (même souci que l'ancien fond transparent, avant qu'on
+      // remplisse ce bandeau la 1re fois). Rempli pour TOUT le monde (pas juste
+      // isOwn) : ce masque n'a rien à voir avec le test Challenge, il corrige un
+      // vide structurel du cadre qui existe pour tous les RP.
       var badgeBandEl=document.getElementById('pc-avatar-badge-band');
-      if(isOwn && TEST_MEDAL_BG){
-        avatarUrl += (avatarUrl.indexOf('?')>=0?'&':'?')+'backgroundType=gradientLinear&backgroundColor=2f6fff,1a3a75';
-        // Nom du Challenge (2026-08-08, 4e passe, demande explicite user) : plus de
-        // bandeau à couleur propre (débordait/mal calé dans le cadre) -- fond neutre
-        // (var(--bg), même ton que le cadre noir autour, donc aucun bord visible),
-        // juste le titre écrit dans la couleur du Challenge (ici bleu Cali, 2e
-        // Challenge testé pour comparaison avant validation -- cf ribbonColors
-        // ligne ~23466, même paire déjà utilisée pour l'avatar).
-        if(badgeBandEl){
-          badgeBandEl.style.background='var(--bg)';
-          // Distance + ville (2026-08-08, demande explicite user), taille remontée
-          // (.78rem -> .95rem) -- Bebas Neue étant déjà condensé, tient sur 1 ligne
-          // dans la largeur du bandeau (~123px).
-          badgeBandEl.innerHTML='<span style="font-family:\'Bebas Neue\',sans-serif;font-size:1.02rem;font-weight:700;letter-spacing:1px;color:#2f6fff;text-shadow:0 0 6px rgba(47,111,255,.4);white-space:nowrap">10 KM CALI</span>';
-        }
-      } else if(badgeBandEl){
-        badgeBandEl.style.background='transparent';
+      if(badgeBandEl){
+        badgeBandEl.style.background='var(--bg)';
         badgeBandEl.innerHTML='';
       }
+      // Avatar de la Player Card : JAMAIS de fond teinté ici (2026-08-08,
+      // corrigé -- "j'ai peur qu'en équipant le fond de l'avatar, ça habille
+      // aussi l'avatar de la Player Card... je voudrais garder la totalité de
+      // l'avatar de la PC en noir, le fond de carte + l'avatar teinté en même
+      // temps ça fait trop") -- reste plein noir même skin équipé. Le dégradé
+      // teinté ne s'applique QUE dans le classement (renderAvatarCanvas).
       if(imgEl){imgEl.src=avatarUrl;imgEl.style.display='block';}
       if(cv)cv.style.display='none';
     } else {
@@ -10784,7 +11054,20 @@ function renderLeaguePanel(){
     var isMe=(p.id===1);
     var gc=GRADE_COLORS[p.grade]||'#8090b0';
     var initials=p.name.split(' ').map(function(w){return w[0];}).join('');
-    var rowBg=isReleg?'background:rgba(255,68,68,.04);':isPromo?'background:rgba(45,219,128,.04);':(isMe?'background:rgba(4,12,35,.85);':'');
+    // Distinction confirmée (2026-08-08, précision explicite de l'user) :
+    // - Skin PERMANENT équipé (p.equippedBgC1/C2, choix libre du RP depuis
+    //   Défis) : NE teinte JAMAIS la ligne -- uniquement le fond de l'avatar
+    //   (cf renderAvatarCanvas plus bas) -- "sinon ça risque de faire un
+    //   arc-en-ciel de couleur dans les league" (tout le monde pourrait
+    //   choisir une couleur différente en même temps, en permanence).
+    // - Skin TEMPORAIRE de victoire (p.medalBgC1/C2/Until, 48h après la fin
+    //   du Challenge, AUTOMATIQUE) : teinte TOUTE la ligne en plus de
+    //   l'avatar -- "à la fin du challenge qu'on valide tous en même temps...
+    //   ça ne me dérange pas que le classement soit teinté, ce passage ne
+    //   dure que 48h" -- pas de risque d'arc-en-ciel puisque tous les
+    //   gagnants d'UN MÊME Challenge partagent les 2 mêmes couleurs.
+    var _rowMedalActive=p.medalBgC1&&p.medalBgC2&&p.medalBgUntil&&new Date(p.medalBgUntil).getTime()>Date.now();
+    var rowBg=isReleg?'background:rgba(255,68,68,.04);':isPromo?'background:rgba(45,219,128,.04);':(isMe?'background:rgba(4,12,35,.85);':(_rowMedalActive?('background:linear-gradient(100deg,'+p.medalBgC2+'40 0%,'+p.medalBgC1+'40 100%);'):''));
     var rowStyle=isMe?'box-shadow:inset 0 0 0 1.5px rgba(74,144,255,.65);':'';
     // Reveal (balayage + contour) : uniquement MA ligne, en continu tant que je
     // suis sur la page (animation CSS infinie — s'arrête toute seule en quittant
@@ -10874,17 +11157,59 @@ function renderLeaguePanel(){
     var avatarHtml='<div onclick="'+(p.id===1?'window.__viewedPlayer=null;renderDashboard();renderTeams();nav(\'dashboard\')':'showPlayerCard('+p.id+')')+'" style="width:34px;height:34px;border-radius:6px;border:2px solid '+gc+';overflow:hidden;flex-shrink:0;box-shadow:0 0 7px '+gc+'40;cursor:pointer;transition:transform .15s" onmouseover="this.style.transform=\'scale(1.1)\'" onmouseout="this.style.transform=\'\'" title="'+p.name+'"><canvas id="'+avId+'" width="34" height="34" style="display:block"></canvas></div>';
     var ptsHtml='<span style="text-align:right;min-width:4ch;font-variant-numeric:tabular-nums"><strong style="color:'+ptColor+'">'+p.pts.toLocaleString(SPEEDIX_LANG)+'</strong></span>'
       +'<span style="display:inline-flex;align-items:center;gap:.35rem;min-width:34px;justify-content:flex-start">'+trendHtml+paidBadge+'</span>';
+    // Minuteur global de la barre lumineuse .mrt-shine-bar (2026-08-08) :
+    // buildRow régénère la ligne "moi" en HTML (string) à chaque rendu de
+    // classement, donc pas d'élément DOM stable sur lequel accrocher un timer
+    // à la construction -- on démarre UN SEUL setInterval global (idempotent,
+    // ne se réarme jamais, tourne en continu même quand on n'est pas sur la
+    // page league -- demande explicite "tenir les 10s indépendamment d'une
+    // ouverture de page") qui va simplement chercher l'élément .mrt-shine-bar
+    // dans le DOM à chaque tick (absent si pas TEST_MEDAL_BG ou pas sur la
+    // page league : no-op silencieux). window._mrtSweep exposée globalement
+    // pour que nav() (cf plus bas dans le fichier) puisse déclencher un
+    // balayage IMMÉDIAT en plus du rythme régulier, dès qu'on revient sur la
+    // page league après avoir consulté une autre section (demande explicite
+    // "le cycle se remet tout de suite en route"), sans perturber le rythme
+    // de fond. Chorégraphie INDÉPENDANTE de la Player Card (2026-08-08,
+    // demande explicite -- "répète le passage un peu plus rapproché et
+    // ralentis-le juste un petit peu") : keyframe dédiée pcShineBarSweepRow
+    // (pas de temps mort "pluie" hérité, cf CSS), balayage ralenti à 2s,
+    // répétition resserrée à 5s de pause (contre 10s sur la Player Card).
+    if(!window.__mrtShineTimer){
+      window._mrtSweep=function(){
+        var bar=document.querySelector('.mrt-shine-bar');
+        if(!bar) return;
+        bar.style.animation='none';
+        void bar.offsetWidth; // force reflow -- indispensable pour relancer l'animation depuis 0%
+        bar.style.animation='pcShineBarSweepRow 5.5s linear 1 both';
+      };
+      setTimeout(window._mrtSweep, 300); // 1er passage rapide, sans attendre le 1er tick
+      window.__mrtShineTimer=setInterval(window._mrtSweep, 7000);
+    }
     // Ligne "moi" : jamais un <tr> stylé directement (::before/::after y cassent
     // table-layout:fixed, cf. commentaire CSS .my-row-tile) — un <td colspan="3">
     // contenant une vraie div biseautée, même technique que la barre sticky.
     if(isMe){
+      // Bandeau teinté + faisceau sur MA ligne : test TEST_MEDAL_BG OU vraie
+      // victoire encore dans sa fenêtre de 48h (_rowMedalActive, calculé plus
+      // haut) -- précision explicite de l'user (2026-08-08) : "l'animation 48h
+      // apparaît aussi sur toute la longueur de la ligne du classement", donc
+      // MA ligne a droit au même traitement complet (bandeau + faisceau) que
+      // le test tant que je suis dans ma fenêtre de victoire. Le skin PERMANENT
+      // équipé (une fois les 48h passées) ne teinte lui JAMAIS la ligne --
+      // uniquement l'avatar, cf renderAvatarCanvas.
+      var _meSkinActive=TEST_MEDAL_BG||_rowMedalActive;
+      var _meC1=TEST_MEDAL_BG?'#ffe08a':(p.medalBgC1||null);
+      var _meC2=TEST_MEDAL_BG?'#b8860b':(p.medalBgC2||null);
       return '<tr'+rowSkinClass+' data-uuid="'+(p._uuid||'')+'" style="'+_cascadeStyle+'"><td colspan="3" style="padding:.3rem 0;border-bottom:none">'
-        // TEST 2026-08-08 : --medal-c1/--medal-c2 en dur (bleu Cali) pour tester le
-        // bandeau teinté sur MA ligne -- gardé derrière TEST_MEDAL_BG (cf plus haut
-        // dans le fichier), à remplacer par les vraies couleurs du Challenge une
-        // fois medal_bg_colors/medal_bg_until posés en base.
-        +'<div class="my-row-tile" style="display:flex;align-items:center;'+(TEST_MEDAL_BG?'--medal-c1:#2f6fff;--medal-c2:#1a3a75':'')+'">'
-        +'<span class="mrt-border"></span><span class="mrt-fill"></span>'
+        +'<div class="my-row-tile" style="display:flex;align-items:center;'+(_meSkinActive?'--medal-c1:'+_meC1+';--medal-c2:'+_meC2:'')+'">'
+        // mrt-border : pulsation violette par défaut (myRowGlowPulse, toujours
+        // active normalement) atténuée pendant un skin actif (2026-08-08,
+        // demande explicite -- "réduis un peu l'effet violet de chaque côté") :
+        // reste visible (contour toujours là) mais figée à une opacité plus
+        // faible au lieu de pulser à pleine intensité, moins concurrente du
+        // faisceau blanc.
+        +'<span class="mrt-border"'+(_meSkinActive?' style="animation:none;background:rgba(228,84,255,.15)"':'')+'></span><span class="mrt-fill"'+(_meSkinActive?' style="animation:none;background-image:linear-gradient(135deg, var(--medal-c1,transparent) 0%, transparent 60%),linear-gradient(315deg, var(--medal-c2,transparent) 0%, transparent 60%)"':'')+'></span>'+(_meSkinActive?'<span class="mrt-shine-bar"></span>':'')
         +'<div style="flex:0 0 34px;box-sizing:border-box;padding:.35rem .15rem .35rem .3rem;text-align:center">'+rankCell+'</div>'
         +'<div style="flex:1;box-sizing:border-box;padding:.35rem .35rem .35rem .2rem;display:flex;align-items:center;gap:.55rem;min-width:0">'
         +natFlagHtml(p.nat)
@@ -11183,12 +11508,19 @@ function renderLeaguePanel(){
           _ox.drawImage(img,0,0,34,34);
         };
         img.onerror=function(){ drawMiniDefaultAvatar(_ox,34,p); };
-        // TEST 2026-08-08 (fond avatar "gagnant de Challenge") : ajouté SEULEMENT
-        // à l'affichage, players.avatar n'est jamais réécrit. Couleurs Amiens (jaune)
-        // en dur le temps du test local -- à remplacer par medal_bg_colors/
-        // medal_bg_until une fois le mécanisme validé.
+        // Fond avatar "gagnant de Challenge" (2026-08-08) : ajouté SEULEMENT à
+        // l'affichage, players.avatar n'est jamais réécrit. 3 sources par
+        // priorité : test animé (p.id===1 && TEST_MEDAL_BG, ma ligne
+        // seulement) > victoire réelle encore dans sa fenêtre 48h
+        // (p.medalBgC1/C2/Until, N'IMPORTE QUELLE ligne) > skin permanent
+        // équipé (p.equippedBgC1/C2, N'IMPORTE QUELLE ligne, demande
+        // explicite -- "on gardera aussi dans le classement l'habillage du
+        // fond de son avatar qd il s'équipe d'un fond de PC").
         var _src=p.avatar;
-        if(p.id===1 && TEST_MEDAL_BG) _src += (_src.indexOf('?')>=0?'&':'?')+'backgroundType=gradientLinear&backgroundColor=2f6fff,1a3a75';
+        var _avMedalActive=p.medalBgC1&&p.medalBgC2&&p.medalBgUntil&&new Date(p.medalBgUntil).getTime()>Date.now();
+        var _avC1=(p.id===1 && TEST_MEDAL_BG)?'ffe08a':(_avMedalActive?p.medalBgC1.replace('#',''):(p.equippedBgC1?p.equippedBgC1.replace('#',''):null));
+        var _avC2=(p.id===1 && TEST_MEDAL_BG)?'b8860b':(_avMedalActive?p.medalBgC2.replace('#',''):(p.equippedBgC2?p.equippedBgC2.replace('#',''):null));
+        if(_avC1&&_avC2) _src += (_src.indexOf('?')>=0?'&':'?')+'backgroundType=gradientLinear&backgroundColor='+_avC1+','+_avC2;
         img.src=_src;
       } else {
         drawMiniDefaultAvatar(ox,34,p);
@@ -19205,6 +19537,11 @@ function nav(page){
     if(typeof loadPlayersFromSupabase==='function') loadPlayersFromSupabase();
     if(typeof syncChatLeagueBtnHeight==='function') syncChatLeagueBtnHeight();
     if(typeof checkLeagueChatNotifs==='function') checkLeagueChatNotifs();
+    // Skin "gagnant de Challenge" : PLUS de balayage forcé ici (2026-08-08,
+    // retiré -- l'user a précisé qu'il ne voulait PAS que le cycle reparte à
+    // chaque ouverture de page, seulement qu'il tourne tout seul en fond,
+    // indépendamment de la navigation -- cf window._mrtSweep/__mrtShineTimer
+    // dans buildRow, déjà autonome).
   }
   if(page==='teams'){
     if(typeof renderTeams==='function') renderTeams();
@@ -23450,7 +23787,7 @@ async function renderChallenges(){
   var _CITY_CREST_OVERRIDES=[
     {match:/STOCKHOLM/i, image:'ai-icons/challenge-crests/stockholm-v2.png', medal:true, ribbonColors:['#fff0b0','#c88a12']},
     {match:/BRUXELLES/i, image:'ai-icons/challenge-crests/bruxelles-v2.png', medal:true, ribbonColors:['#fff3b0','#c98f00']},
-    {match:/MONTREUX/i, image:'ai-icons/challenge-crests/montreux-v4.png', medal:true, ribbonColors:['#e8b860','#8a5a10']},
+    {match:/MONTREUX/i, image:'ai-icons/challenge-crests/montreux-v4.png', medal:true, ribbonColors:['#f0954a','#7a3410']},
     {match:/FLEUR DU ROY/i, image:'ai-icons/challenge-crests/fleur-du-roy-v4.png', medal:true, ribbonColors:['#b8a0f0','#3a1a7a']},
     {match:/MURAILLE/i, image:'ai-icons/challenge-crests/muraille-chine-v2.png', medal:true, ribbonColors:['#a8f0c0','#1a6e3a']},
     {match:/ODYSS[ÉE]A/i, image:'ai-icons/challenge-crests/odyssea-dijon-v3.png', medal:true, ribbonColors:['#f0a0d8','#a01870']},
@@ -23518,6 +23855,48 @@ async function renderChallenges(){
     timesEarnedMap[u.badge_id]=u.times_earned||1;
   });
   if(!window.__viewedPlayer) timesEarnedMapGlobal=timesEarnedMap;
+
+  // Skin animé "gagnant de Challenge" (2026-08-08, demande explicite --
+  // "48h après la fin du challenge, si dimanche minuit fin du challenge, le
+  // skin disparaît le mardi minuit", détection AUTOMATIQUE via les badges
+  // gagnés) : dès que MA propre page Défis charge et détecte un Challenge
+  // "ville" (medal + ribbonColors + event_run) que je viens de gagner,
+  // j'équipe automatiquement players.medal_bg_c1/c2/until (jusqu'à
+  // event_date_end + 48h) -- colonnes SÉPARÉES de equipped_bg_c1/c2 (le choix
+  // permanent du RP) : celles-ci sont TEMPORAIRES et se réinitialisent toutes
+  // seules (l'expiration se juge à l'AFFICHAGE en comparant medal_bg_until à
+  // maintenant, cf renderDashboard/buildRow/renderAvatarCanvas -- pas besoin
+  // d'un cron pour que ça disparaisse pile à l'heure chez tout le monde).
+  if(!window.__viewedPlayer && currentUser){
+    var _wonMedals=_badgesCatalog.filter(function(b){
+      return b.medal && b.ribbonColors && b.threshold_type==='event_run' && unlockedMap[b.id] && b.event_date_end;
+    });
+    if(_wonMedals.length){
+      // Le plus récemment terminé d'abord (si plusieurs Challenges gagnés,
+      // on affiche celui dont la fenêtre de 48h est la plus fraîche).
+      _wonMedals.sort(function(a,z){ return (z.event_date_end||'').localeCompare(a.event_date_end||''); });
+      var _mb=_wonMedals[0];
+      var _mbUntil=new Date(_mb.event_date_end+'T23:59:59+02:00');
+      _mbUntil.setHours(_mbUntil.getHours()+48);
+      if(_mbUntil.getTime()>Date.now()){
+        var _mbUntilIso=_mbUntil.toISOString();
+        var _alreadySet=window.__myPlayer && window.__myPlayer.medalBgUntil===_mbUntilIso
+          && window.__myPlayer.medalBgC1===_mb.ribbonColors[0];
+        if(!_alreadySet){
+          supabaseClient.from('players').update({
+            medal_bg_c1:_mb.ribbonColors[0], medal_bg_c2:_mb.ribbonColors[1], medal_bg_until:_mbUntilIso
+          }).eq('id',currentUser.id).then(function(){
+            if(window.__myPlayer){
+              window.__myPlayer.medalBgC1=_mb.ribbonColors[0];
+              window.__myPlayer.medalBgC2=_mb.ribbonColors[1];
+              window.__myPlayer.medalBgUntil=_mbUntilIso;
+            }
+            if(typeof renderDashboard==='function') renderDashboard();
+          });
+        }
+      }
+    }
+  }
 
   // 3. Stats runs : on compte TOUS les runs y compris les flagués. Le flag
   // sert uniquement à la review admin (panel admin/triche), il ne doit pas
@@ -23858,6 +24237,26 @@ async function renderChallenges(){
     var replayBtn=(showAsCompleted && _isQuestReplayable(b,timesEarned))
       ?'<button onclick="event.stopPropagation();pickQuestDirect('+b.id+')" style="margin-top:.35rem;padding:.25rem .5rem;border-radius:5px;border:1.5px solid rgba(45,219,128,.6);background:linear-gradient(135deg,rgba(45,219,128,.22),rgba(45,219,128,.06));color:var(--green);font-size:.55rem;font-weight:700;cursor:pointer;letter-spacing:.3px;width:100%">🔁 REJOUER</button>'
       :'';
+    // Bouton "Habiller ma carte" (2026-08-08, demande explicite) : uniquement
+    // sur MA propre page Défis (pas en consultant un autre RP), sur un
+    // Challenge déjà gagné qui a un blason avec ribbonColors (les Challenges
+    // "villes", cf _CITY_CREST_OVERRIDES) -- équipe p.equipped_bg_c1/c2 en
+    // base avec les 2 couleurs du ruban de CE Challenge, fond dégradé statique
+    // uniquement (jamais d'animation), visible ensuite sur la Player Card + la
+    // ligne du classement (cf renderDashboard/buildRow).
+    var isOwnPCForEquip=!window.__viewedPlayer;
+    var equipBtn='';
+    if(showAsCompleted && isOwnPCForEquip && b.medal && b.ribbonColors){
+      var _rc0=b.ribbonColors[0], _rc1=b.ribbonColors[1];
+      var _myEq=window.__myPlayer||{};
+      var _isEquippedThis=(_myEq.equippedBgC1===_rc0 && _myEq.equippedBgC2===_rc1);
+      // Boutons réduits de moitié, centrés (2026-08-08, demande explicite --
+      // "enlève ÉQUIPÉ pour laisser un bouton divisé par deux avec juste
+      // ❌ RETIRER... et réduit le bouton avec seulement 🎨 CHOISIR").
+      equipBtn=_isEquippedThis
+        ?'<button onclick="event.stopPropagation();unequipChallengeBg()" style="margin:.35rem auto 0;display:block;padding:.25rem .5rem;border-radius:5px;border:1.5px solid rgba(255,68,68,.5);background:linear-gradient(135deg,rgba(255,68,68,.18),rgba(255,68,68,.05));color:var(--red);font-size:.55rem;font-weight:700;cursor:pointer;letter-spacing:.3px;width:50%">❌ RETIRER</button>'
+        :'<button onclick="event.stopPropagation();equipChallengeBg(\''+_rc0+'\',\''+_rc1+'\')" style="margin:.35rem auto 0;display:block;padding:.25rem .5rem;border-radius:5px;border:1.5px solid '+_rc0+';background:linear-gradient(135deg,'+_rc0+'33,'+_rc1+'22);color:'+_rc0+';font-size:.55rem;font-weight:700;cursor:pointer;letter-spacing:.3px;width:50%">🎨 CHOISIR</button>';
+    }
     if(showAsCompleted){
       var d=new Date(unlockedMap[b.id]);
       progressTxt='Gagné le '+d.toLocaleDateString(SPEEDIX_LANG,{day:'2-digit',month:'short'});
@@ -24061,7 +24460,7 @@ async function renderChallenges(){
       +'<div style="width:'+(isEvent?'112px;height:129px':'126px;height:139px')+';margin:0 auto .4rem">'+_renderBadgeHex(b,isUnlocked)+'</div>'
       +'<div style="font-family:Bebas Neue,sans-serif;font-size:.8rem;letter-spacing:1.3px;color:'+nameColor+';line-height:1.05;margin-bottom:.3rem;min-height:1.8em;display:flex;align-items:center;justify-content:center;padding:0 .1rem">'+(b.name||'—')+'</div>'
       +(showAsCompleted
-          ?'<div style="font-size:.56rem;color:'+color+';font-family:Space Mono,monospace">'+progressTxt+'</div>'+unlockedBibBlock+replayBtn
+          ?'<div style="font-size:.56rem;color:'+color+';font-family:Space Mono,monospace">'+progressTxt+'</div>'+unlockedBibBlock+replayBtn+equipBtn
           : (isEvent
               ?'<div style="font-size:.55rem;color:'+color+';font-family:Space Mono,monospace">'+progressTxt+'</div>'+eventBtn
               : (isPausedQuest
@@ -25487,6 +25886,33 @@ async function unregisterEvent(badgeId,badgeName){
   showToast('🗙 Inscription retirée pour "'+(badgeName||'l\'événement')+'"');
   if(typeof renderChallenges==='function') renderChallenges();
   if(typeof renderMyChallenges==='function') renderMyChallenges();
+}
+
+// Skin "gagnant de Challenge" (2026-08-08, demande explicite) : habille le
+// fond de la Player Card + la ligne du classement (+ le fond de l'avatar
+// dans le classement) avec les 2 couleurs du ruban d'un Challenge déjà
+// gagné. Statique, jamais d'animation (réservée au test TEST_MEDAL_BG,
+// séparé). Un seul fond équipé à la fois -- équiper un nouveau remplace
+// l'ancien, pas de cumul.
+async function equipChallengeBg(c1,c2){
+  if(!currentUser) return;
+  var {error}=await supabaseClient.from('players')
+    .update({equipped_bg_c1:c1,equipped_bg_c2:c2}).eq('id',currentUser.id);
+  if(error){ showToast('⚠️ Erreur : '+error.message); return; }
+  if(window.__myPlayer){ window.__myPlayer.equippedBgC1=c1; window.__myPlayer.equippedBgC2=c2; }
+  showToast('🎨 Fond équipé sur ta Player Card et ta ligne du classement');
+  if(typeof renderChallenges==='function') renderChallenges();
+  if(typeof renderDashboard==='function') renderDashboard();
+}
+async function unequipChallengeBg(){
+  if(!currentUser) return;
+  var {error}=await supabaseClient.from('players')
+    .update({equipped_bg_c1:null,equipped_bg_c2:null}).eq('id',currentUser.id);
+  if(error){ showToast('⚠️ Erreur : '+error.message); return; }
+  if(window.__myPlayer){ window.__myPlayer.equippedBgC1=null; window.__myPlayer.equippedBgC2=null; }
+  showToast('Fond retiré');
+  if(typeof renderChallenges==='function') renderChallenges();
+  if(typeof renderDashboard==='function') renderDashboard();
 }
 
 // Au login : recharge les inscriptions depuis Supabase et populate le cache
