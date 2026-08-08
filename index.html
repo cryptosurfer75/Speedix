@@ -3658,10 +3658,14 @@ select option{background:#040c1c}
          tracé (cf STATUS_COLOR), seules les modales à l'atterrissage gardent
          chacune leur couleur propre (INCHANGÉ, demande explicite). -->
     <div class="li"><span class="dot" style="background:#eef0f6"></span>Case libre</div>
-    <div class="li"><span class="dot" style="background:#4a90ff"></span>Case en location</div>
-    <div class="li"><span class="dot" style="background:#2ddb80"></span>Case en propriété</div>
+    <div class="li"><span class="dot" style="background:#2ddb80"></span>Case en location</div>
+    <div class="li"><span class="dot" style="background:#4a90ff"></span>Case en propriété</div>
     <div class="li"><span class="dot" style="background:#f5c842"></span>Case bonus</div>
-    <div class="li"><span class="dot" style="background:#20d0e0;opacity:.6"></span>Ton territoire</div>
+    <!-- "Ton territoire" (2026-08-08) : n'est plus un remplissage cyan à part (qui
+         cassait la cohérence location=vert/propriété=bleu) mais un CONTOUR lumineux
+         posé sur tes propres Lands, par-dessus leur vraie couleur de statut — cf
+         MINE_STROKE. Rond représenté ici comme un anneau plutôt qu'un disque plein. -->
+    <div class="li"><span class="dot" style="background:transparent;box-shadow:inset 0 0 0 2px #00d4ff"></span>Ton territoire (contour)</div>
     <div class="li"><span class="dot" style="background:#ff3fa4;box-shadow:0 0 4px 1px rgba(255,63,164,.5)"></span>Ami suivi dans le Feed</div>
   </div>
   <div id="tour-legend-reveal" onclick="Tour.showLegend()" title="Afficher la légende">▾</div>
@@ -28364,10 +28368,10 @@ window.Tour.init = async function(){
   // fonction Postgres) — nécessaire pour que le bouton "Préempter" (qui checke
   // land.owner.eligible) s'affiche correctement pour de VRAIS autres RP, pas
   // seulement pour les anciennes entrées DEMO_OWNERS qui portaient ce champ en dur.
-  function _tourOwnerObj(id, nameMap, eligMap){
+  function _tourOwnerObj(id, nameMap, eligMap, startIdxMap){
     if(!id) return null;
     if(currentUser && id===currentUser.id) return ME;
-    if(!_tourOwnerCache[id]) _tourOwnerCache[id] = {id:id, name:(nameMap&&nameMap[id])||'RP', color:OTHER_TOUR_COLORS[_otherColorIdx++ % OTHER_TOUR_COLORS.length], eligible:!!(eligMap&&eligMap[id]), real:true};
+    if(!_tourOwnerCache[id]) _tourOwnerCache[id] = {id:id, name:(nameMap&&nameMap[id])||'RP', color:OTHER_TOUR_COLORS[_otherColorIdx++ % OTHER_TOUR_COLORS.length], eligible:!!(eligMap&&eligMap[id]), real:true, startIdx:(startIdxMap&&startIdxMap[id])||0};
     return _tourOwnerCache[id];
   }
   if(currentUser && currentUser.id){
@@ -28378,19 +28382,25 @@ window.Tour.init = async function(){
       const _ids = new Set();
       (dbLands||[]).forEach(r=>{ if(r.holder_id) _ids.add(r.holder_id); if(r.etape_owner_id) _ids.add(r.etape_owner_id); });
       _ids.delete(currentUser.id);
-      let _names = {}, _elig = {};
+      // _startIdx (2026-08-08, demande explicite user) : nécessaire pour afficher
+      // "X km parcourus" dans popupHtml() sur les Lands d'un autre RP réel -- le
+      // numéro de case seul (l.idx) n'est parlant QUE pour un départ Paris (idx 0,
+      // case=km). Pour un départ Marseille (idx 451 par ex.), il faut soustraire
+      // le vrai tour_start_idx de CE propriétaire pour retrouver sa distance.
+      let _names = {}, _elig = {}, _startIdx = {};
       if(_ids.size){
-        const {data:ownerRows} = await supabaseClient.from('players').select('id,username,premium,tour_acquisition_rights,grade').in('id', Array.from(_ids));
+        const {data:ownerRows} = await supabaseClient.from('players').select('id,username,premium,tour_acquisition_rights,grade,tour_start_idx').in('id', Array.from(_ids));
         (ownerRows||[]).forEach(p=>{
           _names[p.id]=p.username;
           _elig[p.id] = !!p.premium || !!p.tour_acquisition_rights || TOUR_ELIGIBLE_GRADES.includes(p.grade);
+          _startIdx[p.id] = p.tour_start_idx||0;
         });
       }
       (dbLands||[]).forEach(row=>{
         const l = LANDS[row.idx];
         if(!l) return;
         if(row.type==='etape'){
-          if(row.etape_owner_id){ l.ownerEtape=_tourOwnerObj(row.etape_owner_id,_names,_elig); l.stars=row.stars||0; if(l.ownerEtape===ME) l.mine=true; }
+          if(row.etape_owner_id){ l.ownerEtape=_tourOwnerObj(row.etape_owner_id,_names,_elig,_startIdx); l.stars=row.stars||0; if(l.ownerEtape===ME) l.mine=true; }
           // Bug corrigé (2026-08-06, signalé par l'user — "je mets Angers en
           // vente, ça revient dans Mes Lands après un refresh") : for_sale/
           // sale_price (et visits/earned) n'étaient jamais relus pour les
@@ -28414,7 +28424,7 @@ window.Tour.init = async function(){
         l.visits = row.visits||0;
         l.earned = row.earned||0;
         if(row.for_sale){ l.forSale=true; l.salePrice=row.sale_price; }
-        if(row.holder_id){ l.owner=_tourOwnerObj(row.holder_id,_names,_elig); if(l.owner===ME) l.mine=true; }
+        if(row.holder_id){ l.owner=_tourOwnerObj(row.holder_id,_names,_elig,_startIdx); if(l.owner===ME) l.mine=true; }
       });
     }catch(e){ console.warn('[Tour] chargement tour_lands échoué, plateau vide affiché', e); }
   }
@@ -28754,7 +28764,22 @@ window.Tour.init = async function(){
   // (cf .rent-modal-bevel.event-frame/.extra-frame/.gift-frame, INCHANGÉES,
   // demande explicite) — seule la couleur de la CASE sur le tracé (et donc la
   // ligne de légende) est unifiée.
-  const STATUS_COLOR = {free:'#eef0f6', rented:'#4a90ff', owned:'#2ddb80', bonus:'#f5c842', event:'#f5c842', extra:'#f5c842', gift:'#f5c842'};
+  // Couleurs inversées le 2026-08-08 (demande explicite user, cohérence avec les
+  // cartes existantes : location=vert, achat=bleu — était l'inverse avant).
+  const STATUS_COLOR = {free:'#eef0f6', rented:'#2ddb80', owned:'#4a90ff', bonus:'#f5c842', event:'#f5c842', extra:'#f5c842', gift:'#f5c842'};
+  // Contour électrique réservé aux Lands qui sont les TIENNES (location OU achat) —
+  // 2026-08-08, demande explicite user : avant, chaque voisin réel avait sa propre
+  // couleur de remplissage (palette OTHER_TOUR_COLORS), donnant un "patchwork"
+  // multicolore illisible dès qu'on avançait sur le tracé. Désormais TOUTES les
+  // Lands utilisent le même remplissage vert/bleu (STATUS_COLOR, ci-dessus) quel
+  // que soit le propriétaire — seul un contour lumineux distingue tes propres
+  // Lands du reste (au lieu d'un remplissage à part, cyan, comme avant).
+  const MINE_STROKE = {rented:'#00ffb0', owned:'#00d4ff'};
+  // Remplissage assombri UNIQUEMENT sur tes propres Lands (2026-08-08, demande
+  // explicite user : le contour électrique se distinguait mal du vert/bleu clair
+  // standard, trop proches en teinte). Les Lands des autres RP gardent le vert/bleu
+  // normal de STATUS_COLOR -- seules les tiennes contrastent avec leur contour.
+  const MINE_FILL = {rented:'#0d5c34', owned:'#16337a'};
   // "free" = case visitée sans rien de spécial : quasi BLANC (2026-08-01, 2e essai —
   // le noir presque pur (#12151d) donnait un tracé "noir sur noir" invisible sur le
   // fond de carte déjà sombre). Le blanc tranche nettement à la fois sur le brouillard
@@ -28764,9 +28789,9 @@ window.Tour.init = async function(){
   LANDS.forEach(l=>{
     if(l.type==='etape') return;
     l.revealed = !!l.mine;
-    const fill = l.mine ? l.owner.color : '#232a3c';
+    const fill = l.mine ? MINE_FILL[l.status] : '#232a3c';
     const hex = L.polygon(hexVertices(l.lat,l.lng,l.hexRadius,l.bearing), {
-      stroke:true, color:'#00000060', weight:1,
+      stroke:true, color: (l.mine && MINE_STROKE[l.status]) ? MINE_STROKE[l.status] : '#00000060', weight: l.mine ? 3 : 1,
       fillColor: fill, fillOpacity: l.mine ? .95 : .75
     }).addTo(map);
     // Pas de popup du tout pour une Land déjà tienne dès le chargement (2026-08-01,
@@ -28788,8 +28813,11 @@ window.Tour.init = async function(){
   // même logique de couleur que la boucle de création juste au-dessus.
   function _refreshLandVisual(l){
     if(!l || !l.layer || l.type==='etape') return;
-    const fill = l.mine ? l.owner.color : (l.revealed ? (l.owner?l.owner.color:STATUS_COLOR[l.status]) : '#232a3c');
-    l.layer.setStyle({fillColor:fill, fillOpacity: (l.mine||l.revealed) ? .95 : .75});
+    const fill = l.mine ? MINE_FILL[l.status] : (l.revealed ? STATUS_COLOR[l.status] : '#232a3c');
+    l.layer.setStyle({
+      fillColor:fill, fillOpacity: (l.mine||l.revealed) ? .95 : .75,
+      color: (l.mine && MINE_STROKE[l.status]) ? MINE_STROKE[l.status] : '#00000060', weight: l.mine ? 3 : 1
+    });
     if(l.owner===ME) l.layer.unbindPopup(); else l.layer.bindPopup(popupHtml(l));
   }
 
@@ -28823,7 +28851,7 @@ window.Tour.init = async function(){
       return;
     }
     l.revealed = true;
-    const fill = l.owner ? l.owner.color : STATUS_COLOR[l.status];
+    const fill = STATUS_COLOR[l.status];
     l.layer.setStyle({fillColor:fill, fillOpacity:.95});
     l.layer.bindPopup(popupHtml(l));
   }
@@ -28931,7 +28959,7 @@ window.Tour.init = async function(){
         }
       }
     }
-    const fill = l.owner ? l.owner.color : STATUS_COLOR[l.status];
+    const fill = STATUS_COLOR[l.status];
     const t0 = performance.now(), baseR = l.hexRadius;
     const totalMs = REVEAL_GROW_MS + REVEAL_HOLD_MS + REVEAL_SHRINK_MS;
     let colorApplied = false;
@@ -29681,8 +29709,14 @@ window.Tour.init = async function(){
     if(l.status==='gift') return `<b>🎁 Cadeau</b><br>Donne un droit d'acquisition`;
     // Enlevé "si tu tombes ici" (2026-08-01, pas très friendly) : le prélèvement
     // n'est pas conditionnel dans ce popup, c'est le montant qu'il faudrait payer.
-    if(l.status==='rented') return `<b>En location</b><br>Locataire : ${l.owner.name}<br>Prélèvement d'une redevance de : ${landRedevance(l)} RPC`;
-    if(l.status==='owned') return `<b>Land propriétaire</b><br>Propriétaire : ${l.owner.name} (${'★'.repeat(l.stars)})<br>Prélèvement d'une redevance de : ${landRedevance(l)} RPC`;
+    // "X km parcourus → case n°Y" (2026-08-08, demande explicite user) : le numéro
+    // de case seul (l.idx) n'est parlant QUE pour un départ Paris (idx 0, case=km).
+    // Pour un départ Marseille (ou toute autre ville), km = l.idx - le vrai
+    // tour_start_idx DE CE PROPRIÉTAIRE (cf owner.startIdx, _tourOwnerObj) --
+    // même format que le popup "RP simulé"/ami existant plus bas (simulate150()).
+    const _kmLine = l.owner ? `${l.idx - (l.owner.startIdx||0)} km parcourus → case n°${l.idx}<br>` : '';
+    if(l.status==='rented') return `<b>En location</b><br>${_kmLine}Locataire : ${l.owner.name}<br>Prélèvement d'une redevance de : ${landRedevance(l)} RPC`;
+    if(l.status==='owned') return `<b>Land propriétaire</b><br>${_kmLine}Propriétaire : ${l.owner.name} (${'★'.repeat(l.stars)})<br>Prélèvement d'une redevance de : ${landRedevance(l)} RPC`;
     return '';
   }
   
