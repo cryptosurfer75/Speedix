@@ -11541,10 +11541,10 @@ function getParrainageTitre(count){
 // l'ancienne image depuis son cache HTTP même une fois l'app elle-même à jour
 // (CACHE_VERSION du service worker ne concerne que index.html/JS, pas ces PNG).
 var _parrainageBadgeImg={
-  'Ambassadeur':'ai-icons/parrainage-badges/ambassadeur.png?v=3',
-  'Gouverneur':'ai-icons/parrainage-badges/gouverneur.png?v=3',
-  'Empereur':'ai-icons/parrainage-badges/empereur.png?v=2',
-  'Fondateur':'ai-icons/parrainage-badges/fondateur.png?v=2'
+  'Ambassadeur':'ai-icons/parrainage-badges/ambassadeur.png?v=4',
+  'Gouverneur':'ai-icons/parrainage-badges/gouverneur.png?v=4',
+  'Empereur':'ai-icons/parrainage-badges/empereur.png?v=4',
+  'Fondateur':'ai-icons/parrainage-badges/fondateur.png?v=4'
 };
 // Icône de la tuile Player Card (à gauche du drapeau, cf #parrainage-emoji) —
 // remplacée par le blason du grade dès que le RP en a un (2026-08-06, demande
@@ -28378,9 +28378,43 @@ window.Tour.init = async function(){
     for(var i=0;i<id.length;i++){ h = (h*31 + id.charCodeAt(i)) >>> 0; }
     return FRIEND_PALETTE[h % FRIEND_PALETTE.length];
   }
+  // Nombre de Lands actives (louées ou possédées) par ami suivi — donnée réelle
+  // (2026-08-08, demande explicite : "importante pour le jeu"), même principe
+  // que FRIEND_LANDS dans la démo mais lue en base au lieu d'être inventée.
+  // Une seule requête groupée pour tous les amis affichés (pas une par ami).
+  async function _fetchFriendLandsCounts(friendIds){
+    var counts = {};
+    if(!friendIds.length) return counts;
+    try{
+      const orFilter = 'holder_id.in.('+friendIds.join(',')+'),etape_owner_id.in.('+friendIds.join(',')+')';
+      const {data} = await supabaseClient.from('tour_lands').select('holder_id,etape_owner_id').or(orFilter);
+      (data||[]).forEach(function(l){
+        if(l.holder_id && friendIds.indexOf(l.holder_id)>=0) counts[l.holder_id] = (counts[l.holder_id]||0)+1;
+        if(l.etape_owner_id && friendIds.indexOf(l.etape_owner_id)>=0) counts[l.etape_owner_id] = (counts[l.etape_owner_id]||0)+1;
+      });
+    }catch(e){ console.warn('[Tour] comptage Lands amis échoué', e); }
+    return counts;
+  }
+  // Change la couleur d'un ami RÉEL depuis les pastilles cliquables du popup
+  // (2026-08-08, remis — existait dans la démo via setFriendColor/simMarkers,
+  // remplacé ici par un index sur l'id du joueur plutôt qu'une position dans un
+  // tableau simulé). Ephémère (comme la démo) : pas persisté en base, remis à
+  // la couleur par défaut (hash de l'id) au prochain rechargement.
+  function setRealFriendColor(playerId, colorIdx){
+    const m = realPlayerMarkers.find(function(mk){
+      const el = mk.getElement && mk.getElement();
+      const dot = el && el.querySelector('.friend-marker');
+      return dot && dot.getAttribute('data-pid')===playerId;
+    });
+    if(!m) return;
+    const dot = m.getElement().querySelector('.friend-marker');
+    if(dot) dot.style.setProperty('--fc', FRIEND_PALETTE[colorIdx]);
+  }
   async function _renderRealPlayerMarkers(others){
     if(!map) return;
     await loadMyFollowing();
+    const friendIds = others.filter(function(p){ return (_myFollowing||[]).indexOf(p.id)>=0; }).map(function(p){ return p.id; });
+    const landsCounts = await _fetchFriendLandsCounts(friendIds);
     realPlayerMarkers.forEach(function(m){ map.removeLayer(m); });
     realPlayerMarkers = [];
     others.forEach(function(p){
@@ -28390,11 +28424,18 @@ window.Tour.init = async function(){
       let m;
       if(isFriend){
         const fc = _friendColorForId(p.id);
+        const landsCount = landsCounts[p.id]||0;
+        // Pastilles cliquables (2026-08-08, remis) : même palette que la démo,
+        // texte en violet foncé — le popup Leaflet a un fond BLANC par défaut,
+        // pas le thème sombre de l'appli (même piège que dans la démo).
+        const swatches = FRIEND_PALETTE.map(function(c,ci){
+          return '<span onclick="Tour.setRealFriendColor(\''+p.id+'\','+ci+')" style="display:inline-block;width:11px;height:11px;border-radius:50%;background:rgb('+c+');margin-right:5px;cursor:pointer;vertical-align:middle"></span>';
+        }).join('');
         m = L.marker([pos.lat,pos.lng], {
-          icon: L.divIcon({className:'', html:`<div class="friend-marker" style="--fc:${fc}"></div>`, iconSize:[14,14], iconAnchor:[7,7]}),
+          icon: L.divIcon({className:'', html:`<div class="friend-marker" data-pid="${p.id}" style="--fc:${fc}"></div>`, iconSize:[14,14], iconAnchor:[7,7]}),
           zIndexOffset: 900
         }).addTo(map);
-        m.bindPopup(`❤️ ${p.username||'RP suivi'} — case n°${pos.i}`);
+        m.bindPopup(`❤️ ${p.username||'RP suivi'} — case n°${pos.i}<br><span style="color:#5b2c8f;font-weight:600">${landsCount} Land${landsCount>1?'s':''}</span> active${landsCount>1?'s':''} sur le tracé<div style="margin-top:6px">${swatches}</div>`);
       } else {
         m = L.circleMarker([pos.lat,pos.lng], {
           radius:5, weight:1.5, color:'#fff', fillColor:'#0a0c12', fillOpacity:.95
