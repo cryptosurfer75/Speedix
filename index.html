@@ -28785,13 +28785,16 @@ window.Tour.init = async function(){
   // rester visibles une fois posés sur une case de tracé désormais blanche.
   LANDS.forEach(l=>{
     if(l.type==='etape') return;
-    // Révélées d'office si un vrai RP (autre que toi) loue/possède la Land (2026-08-08,
-    // demande explicite user) : le brouillard garde tout son sens pour les cases
-    // libres/bonus/événement (suspense du dé), mais cacher qui possède déjà une Land
-    // tant qu'on ne l'a pas soi-même traversée n'apportait rien -- ça empêchait
-    // seulement de voir la propriété des autres RP ailleurs sur le plateau.
-    l.revealed = !!l.mine || !!l.owner;
-    const fill = l.mine ? MINE_FILL[l.status] : (l.owner ? STATUS_COLOR[l.status] : '#232a3c');
+    // Révélation d'office des Lands déjà occupées ANNULÉE (2026-08-08, testée puis
+    // revert le même jour, demande explicite user) : ça permettait de repérer à
+    // l'avance quelles cases sont libres vs déjà prises, donc de calculer sa
+    // distance de course pour tomber pile sur une case libre — casse le hasard,
+    // pilier du jeu (comme le dé du Monopoly). Le brouillard s'applique donc de
+    // nouveau UNIFORMÉMENT à toute case qu'on n'a pas soi-même traversée, qu'elle
+    // ait un propriétaire réel ou non. La ligne km ajoutée dans popupHtml() reste
+    // valable : elle ne s'affiche que sur une case déjà révélée par un vrai passage.
+    l.revealed = !!l.mine;
+    const fill = l.mine ? MINE_FILL[l.status] : '#232a3c';
     const hex = L.polygon(hexVertices(l.lat,l.lng,l.hexRadius,l.bearing), {
       stroke:true, color: (l.mine && MINE_STROKE[l.status]) ? MINE_STROKE[l.status] : '#00000060', weight: l.mine ? 3 : 1,
       fillColor: fill, fillOpacity: l.mine ? .95 : .75
