@@ -3596,11 +3596,11 @@ select option{background:#040c1c}
          s'en servir que très très rarement") : la fenêtre automatique 1x/jour
          (checkPropertyTaxNotice, 15→25 du mois) suffit, plus besoin d'un bouton
          de vérification manuelle dédié. -->
-    <!-- Outils de test/démo, réservés à l'admin (2026-08-08, anomalie corrigée —
-         ces boutons déplacent la VRAIE position en base, players.tour_idx, donc
-         peuvent capturer des Lands/gagner du RPC réel : n'importe quel RP pouvait
-         s'en servir pour tricher). Masqué par défaut, ré-affiché par
-         initAdminPanel() uniquement si isAdmin(). -->
+    <!-- Outils de test/démo, réservés à l'admin + comptes de test sans Strava
+         (2026-08-08, anomalie corrigée — ces boutons déplacent la VRAIE position
+         en base, players.tour_idx, donc peuvent capturer des Lands/gagner du RPC
+         réel : n'importe quel RP pouvait s'en servir pour tricher). Masqué par
+         défaut, ré-affiché par initAdminPanel() selon canUseTourSimulator(). -->
     <div id="tour-admin-test-tools" style="display:none">
     <div class="sub" style="margin-top:10px;margin-bottom:2px">👉 Simule une course terminée de :</div>
     <div class="btnrow">
@@ -17346,6 +17346,20 @@ var ADMIN_UID='0cba7ec2-3d9d-4b08-9b51-280aa0c05a28';
 
 function isAdmin(){return currentUser&&currentUser.id===ADMIN_UID;}
 
+// Comptes de test SANS Strava (2026-08-08, demande explicite) : Laura Q-Runner,
+// Jordan Smith, Nakamoto-75 — ont besoin du simulateur de course du Tour pour
+// avancer, comme l'admin, faute de vraies courses Strava à synchroniser. Accès
+// UNIQUEMENT au panneau simulateur du Tour (cf canUseTourSimulator()), pas au
+// reste du panel admin.
+var TOUR_SIMULATOR_TEST_UIDS = [
+  'b8095b5b-3de3-42ba-97ed-d16f74977a82', // Laura Q-Runner
+  '19a0ace8-8205-424a-be88-d56073184ff0', // Jordan Smith
+  '1bc4d586-a4e8-411f-ad70-1f6bbb3fc430'  // Nakamoto-75
+];
+function canUseTourSimulator(){
+  return isAdmin() || !!(currentUser && TOUR_SIMULATOR_TEST_UIDS.indexOf(currentUser.id)>=0);
+}
+
 // ── Présence live via Supabase Realtime ─────────────────────────────
 window.__onlineUsers=[];
 function initPresence(user){
@@ -17488,10 +17502,11 @@ async function initAdminPanel(){
     if(isAdmin()) mobileBtn.classList.add('is-admin');
     else mobileBtn.classList.remove('is-admin');
   }
-  // Outils de test Tour (simulateur de km, reset, densité 250 RP) : réservés à
-  // l'admin, cf commentaire au-dessus du bloc HTML (index.html ~3599).
+  // Outils de test Tour (simulateur de km, reset) : réservés à l'admin + aux
+  // comptes de test sans Strava (cf canUseTourSimulator()), pas au reste du
+  // panel admin. Voir aussi le commentaire au-dessus du bloc HTML (~3599).
   var tourTestTools=document.getElementById('tour-admin-test-tools');
-  if(tourTestTools) tourTestTools.style.display=isAdmin()?'':'none';
+  if(tourTestTools) tourTestTools.style.display=canUseTourSimulator()?'':'none';
   if(!isAdmin()) return;
   updateAdminOnlineCounter();
   adminSetupCollapsibleBlocks();
