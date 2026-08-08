@@ -19581,6 +19581,22 @@ function nav(page){
         setTimeout(function(){ if(window.Tour && typeof Tour.onShow==='function') Tour.onShow(); }, delay);
       });
     },50);
+    // Re-vérification à chaque visite de la page (2026-08-09, corrigé -- bug
+    // signalé : checkPendingTourAdvance() n'était déclenché QU'AU LOGIN
+    // (cf ~ligne 8253), or la session PWA reste ouverte d'un lancement à
+    // l'autre (cf project_speedix_session_persistante_stores) -- un RP qui
+    // rouvre juste l'appli sans repasser par un vrai login ne redéclenchait
+    // donc jamais le check, et restait bloqué même avec une course en
+    // attente légitime en base. Même garde anti-collision (_callWhenModalFree)
+    // que côté login, délai un peu plus long pour laisser Tour.init()/onShow()
+    // (jusqu'à 1200ms ci-dessus) se stabiliser avant de proposer la modale.
+    if(typeof checkPendingTourAdvance==='function'){
+      setTimeout(function(){
+        checkPendingTourAdvance().then(function(km){
+          if(km>0 && typeof _callWhenModalFree==='function') _callWhenModalFree(function(){ showTourProgressPrompt(km); });
+        });
+      }, 2000);
+    }
   }
   // Arrêter le polling chat si on quitte Teams
   if(page!=='teams'&&_chatPollInterval){clearInterval(_chatPollInterval);_chatPollInterval=null;}
@@ -22638,7 +22654,7 @@ async function renderTeams(){
             +'<div class="team-sub">'+subLine+'</div>'
           +'</div>'
           +'<div class="team-pts-col" style="text-align:right;min-width:60px">'
-            +'<div class="team-pts-val" style="font-size:1.25rem;color:var(--gold)">'+(t._score||0).toLocaleString(SPEEDIX_LANG)+'</div>'
+            +'<div class="team-pts-val" style="font-size:1.1rem;color:var(--gold)">'+(t._score||0).toLocaleString(SPEEDIX_LANG)+'</div>'
             +'<div style="font-size:.6rem;color:var(--muted2);margin-top:1px">pts · base '+(t._base||0).toLocaleString(SPEEDIX_LANG)+'</div>'
           +'</div>'
         +'</div>';
