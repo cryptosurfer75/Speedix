@@ -22653,7 +22653,7 @@ async function renderTeams(){
             +'<div class="team-name tmb-name" data-id="'+t.id+'" data-name="'+encodeURIComponent(t.name)+'" style="color:'+teamColor+';cursor:pointer" title="Voir la composition">'+escapeHtml(t.name)+typeTag+'</div>'
             +'<div class="team-sub">'+subLine+'</div>'
           +'</div>'
-          +'<div class="team-pts-col" style="text-align:right;min-width:60px">'
+          +'<div class="team-pts-col" style="text-align:right;min-width:60px;position:relative;top:-3px">'
             +'<div class="team-pts-val" style="font-size:1.1rem;color:var(--gold)">'+(t._score||0).toLocaleString(SPEEDIX_LANG)+'</div>'
             +'<div style="font-size:.6rem;color:var(--muted2);margin-top:1px">pts · base '+(t._base||0).toLocaleString(SPEEDIX_LANG)+'</div>'
           +'</div>'
