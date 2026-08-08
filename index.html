@@ -1668,12 +1668,14 @@ body::after{
    libellé + valeur) sans déborder, coupée par le cadre (overflow:hidden).
    2e essai (même jour) : une colonne en 1fr s'étirait bord à bord de l'écran,
    ce qui grossissait aussi l'illustration proportionnellement → carte "immense",
-   signalé pas joli. Compromis : une seule colonne mais plafonnée à 300px et
-   centrée (au lieu de 1fr qui s'étire) — largement assez large pour qu'une
-   ligne d'info tienne sur une seule ligne, sans dévorer tout l'écran. Desktop
-   inchangé (plusieurs colonnes de 150px+, cf règle de base ci-dessus). */
+   signalé pas joli.
+   2026-08-08 (revert, demande explicite) : remis à 2 colonnes fixes sur mobile
+   -- la vraie cause du débordement était le libellé flex:1 sans min-width:0
+   (cf .mlc-row-label), maintenant tronqué en ellipsis au lieu de déborder, donc
+   plus besoin de la solution de contournement à 1 colonne. Desktop inchangé
+   (plusieurs colonnes de 150px+, cf règle de base ci-dessus). */
 @media(max-width:600px){
-  .mylands-grid{ grid-template-columns:minmax(0,300px); justify-content:center; }
+  .mylands-grid{ grid-template-columns:repeat(2,1fr); }
 }
 /* Page "Règles du jeu" (2026-08-04, porté depuis prototype-tour.html) — même
    overlay plein écran que "Mes Lands" (fond flouté + croix fixe icon-close-x.png),
@@ -1867,7 +1869,14 @@ body::after{
   display:flex; align-items:center; justify-content:center; font-size:12.5px;
   background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.09);
 }
-.mlc-row-label{ flex:1; font-size:10.5px; color:var(--muted2); text-transform:uppercase; letter-spacing:.4px; line-height:1.3; }
+/* min-width:0 + ellipsis (2026-08-08, fix cause racine du bug de carte coupée sur
+   mobile) : un enfant flex:1 a par défaut min-width:auto, donc ne rétrécit JAMAIS
+   sous la largeur de son texte -- c'est ÇA qui poussait la ligne à déborder du
+   cadre (overflow:hidden la coupait), pas flex:1 en lui-même. Un libellé trop
+   long pour la carte se tronque proprement en "…" au lieu de pousser la valeur
+   hors du cadre. Permet de remettre 2 cartes/ligne sur mobile sans reproduire
+   le bug (cf @media(max-width:600px) .mylands-grid plus bas). */
+.mlc-row-label{ flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:10.5px; color:var(--muted2); text-transform:uppercase; letter-spacing:.4px; line-height:1.3; }
 /* Suffixe "/ passage" ou "/ mois" en minuscules dans le titre (2026-08-06,
    demande explicite) — le titre reste en MAJUSCULES (héritage du parent),
    ce span annule juste le text-transform pour lui seul. */
@@ -28520,7 +28529,12 @@ window.Tour.init = async function(){
     if(realPlayerMarkers.some(function(m){ return m.isPopupOpen && m.isPopupOpen(); })) return;
     await loadMyFollowing();
     const friendIds = others.filter(function(p){ return (_myFollowing||[]).indexOf(p.id)>=0; }).map(function(p){ return p.id; });
-    const landsCounts = await _fetchFriendLandsCounts(friendIds);
+    // 2026-08-08, demande explicite user (généralisation des 2 stats -- distance
+    // parcourue + Lands actives -- à TOUS les points RP du tracé, pas seulement
+    // les amis suivis) : la fonction s'appelait _fetchFriendLandsCounts mais reçoit
+    // maintenant TOUS les ids affichés, pas juste friendIds.
+    const allIds = others.filter(function(p){ return typeof p.tour_idx==='number'; }).map(function(p){ return p.id; });
+    const landsCounts = await _fetchFriendLandsCounts(allIds);
     realPlayerMarkers.forEach(function(m){ map.removeLayer(m); });
     realPlayerMarkers = [];
     others.forEach(function(p){
@@ -28541,12 +28555,28 @@ window.Tour.init = async function(){
           icon: L.divIcon({className:'', html:`<div class="friend-marker" data-pid="${p.id}" style="--fc:${fc}"></div>`, iconSize:[14,14], iconAnchor:[7,7]}),
           zIndexOffset: 900
         }).addTo(map);
-        m.bindPopup(`❤️ ${p.username||'RP suivi'} — case n°${pos.i}<br><span style="color:#5b2c8f;font-weight:600">${landsCount} Land${landsCount>1?'s':''}</span> active${landsCount>1?'s':''} sur le tracé<div style="margin-top:6px">${swatches}</div>`);
+        // "X km parcourus → case n°Y" (2026-08-08, demande explicite user, généralisé
+        // depuis le popup des Lands) : un ancien choix (07/07-08) avait volontairement
+        // omis cette ligne côté amis suivis réels ("jugé inutile tant que personne ne
+        // fait plusieurs tours") -- revu depuis, un numéro de case seul n'est parlant
+        // que pour un départ Paris (idx 0), pas Marseille. p.tour_start_idx est déjà
+        // chargé dans la requête `others` (ligne ~28455), juste pas encore utilisé ici.
+        const friendKm = pos.i - (p.tour_start_idx||0);
+        m.bindPopup(`❤️ ${p.username||'RP suivi'} — ${friendKm} km parcourus → case n°${pos.i}<br><span style="color:#5b2c8f;font-weight:600">${landsCount} Land${landsCount>1?'s':''}</span> active${landsCount>1?'s':''} sur le tracé<div style="margin-top:6px">${swatches}</div>`);
       } else {
+        // Couleurs corrigées (2026-08-08) : même défaut que le point "RP simulé" de
+        // simulate150() déjà corrigé (remplissage quasi noir + contour blanc =
+        // invisible sur le fond sombre du plateau, sauf sur les rares cases déjà
+        // découvertes) -- oublié ici, marqueur DIFFÉRENT (vrais RP non suivis).
         m = L.circleMarker([pos.lat,pos.lng], {
-          radius:5, weight:1.5, color:'#fff', fillColor:'#0a0c12', fillOpacity:.95
+          radius:5, weight:1.5, color:'#0a0c12', fillColor:'#fff', fillOpacity:.95
         }).addTo(map);
-        m.bindPopup(`${p.username||'RP'} — case n°${pos.i}`);
+        // "X km parcourus → case n°Y" + Lands actives (2026-08-08, demande explicite
+        // user, généralisé depuis le popup amis suivis) : même calcul, mêmes données
+        // déjà chargées (p.tour_start_idx, landsCounts élargi à tous les ids ci-dessus).
+        const otherKm = pos.i - (p.tour_start_idx||0);
+        const otherLandsCount = landsCounts[p.id]||0;
+        m.bindPopup(`${p.username||'RP'} — ${otherKm} km parcourus → case n°${pos.i}<br><span style="color:#5b2c8f;font-weight:600">${otherLandsCount} Land${otherLandsCount>1?'s':''}</span> active${otherLandsCount>1?'s':''} sur le tracé`);
       }
       realPlayerMarkers.push(m);
     });
