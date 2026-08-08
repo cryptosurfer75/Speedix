@@ -11622,8 +11622,8 @@ async function loadParrainageData(playerId){
     // vraie marge intégrée — au même pourcentage d'affichage (86%), le blason
     // paraît donc bien plus gros. On ne touche pas showParrainageInfo() (l'affiche),
     // qui utilise ces mêmes fichiers dans son propre <img>, non concerné ici.
-    elEmoji.style.width = _badgeSrc ? '74%' : '86%';
-    elEmoji.style.height = _badgeSrc ? '74%' : '86%';
+    elEmoji.style.width = _badgeSrc ? '78%' : '86%';
+    elEmoji.style.height = _badgeSrc ? '78%' : '86%';
     if(currentUser && playerId===currentUser.id){
       window._myParrainageBadge = _badgeSrc || null;
     }
