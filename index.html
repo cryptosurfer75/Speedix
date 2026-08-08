@@ -11613,9 +11613,19 @@ async function loadParrainageData(playerId){
     // titre de CE joueur précis, jamais seulement le mien. L'ancien check
     // "playerId===currentUser.id" laissait l'icône bloquée sur mon propre
     // blason même en consultant la fiche d'un autre RP sans titre.
-    elEmoji.src = _parrainageBadgeImg[info.titre] || _PARRAINAGE_DEFAULT_ICON;
+    var _badgeSrc = _parrainageBadgeImg[info.titre];
+    elEmoji.src = _badgeSrc || _PARRAINAGE_DEFAULT_ICON;
+    // Taille réduite UNIQUEMENT pour les 4 blasons parrainage (2026-08-08, signalé
+    // par l'user : "trop gros sur téléphone, uniquement l'icône à côté du drapeau,
+    // pas celle de l'affiche") : ces images sont cadrées à fond perdu (le motif
+    // touche quasi les bords du PNG), contrairement à l'icône par défaut qui a une
+    // vraie marge intégrée — au même pourcentage d'affichage (86%), le blason
+    // paraît donc bien plus gros. On ne touche pas showParrainageInfo() (l'affiche),
+    // qui utilise ces mêmes fichiers dans son propre <img>, non concerné ici.
+    elEmoji.style.width = _badgeSrc ? '62%' : '86%';
+    elEmoji.style.height = _badgeSrc ? '62%' : '86%';
     if(currentUser && playerId===currentUser.id){
-      window._myParrainageBadge = _parrainageBadgeImg[info.titre] || null;
+      window._myParrainageBadge = _badgeSrc || null;
     }
   }
 }
