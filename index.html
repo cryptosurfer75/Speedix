@@ -9731,7 +9731,7 @@ function renderDashboard(){
         var gradeLabel=(p.grade||'starter').charAt(0).toUpperCase()+(p.grade||'starter').slice(1);
         var gradeEl=document.getElementById('pc-badge-grade');
         if(gradeEl){
-          gradeEl.textContent='⭐ '+gradeLabel.toUpperCase();
+          gradeEl.textContent='⭐  '+gradeLabel.toUpperCase();
           gradeEl.style.color=gc2;
         }
         var gradeRing2=document.getElementById('pc-badge-grade-ring');
@@ -9743,7 +9743,7 @@ function renderDashboard(){
       var gradeLabel=(p.grade||'starter').charAt(0).toUpperCase()+(p.grade||'starter').slice(1);
       var gradeEl=document.getElementById('pc-badge-grade');
       if(gradeEl){
-        gradeEl.textContent='⭐ '+gradeLabel.toUpperCase();
+        gradeEl.textContent='⭐  '+gradeLabel.toUpperCase();
         gradeEl.style.color=gc;
       }
       var gradeRing=document.getElementById('pc-badge-grade-ring');
@@ -9756,12 +9756,12 @@ function renderDashboard(){
     if(leagueEl){
       if(league.key==='starter'){
         leagueEl.style.display='';
-        leagueEl.textContent='⚙️ ZONE';
+        leagueEl.textContent='⚙️  ZONE';
         leagueEl.style.color='#7a8090';
         if(leagueRing) leagueRing.style.background='rgba('+hexToRgb('#7a8090')+',.5)';
       } else {
         leagueEl.style.display='';
-        leagueEl.textContent=league.emoji+' '+league.name+' '+league.label.toUpperCase();
+        leagueEl.textContent=league.emoji+'  '+league.name+' '+league.label.toUpperCase();
         leagueEl.style.color=league.color;
         if(leagueRing) leagueRing.style.background='rgba('+hexToRgb(league.color)+',.5)';
       }
