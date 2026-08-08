@@ -18010,7 +18010,13 @@ async function loadAdminStats(){
       supabaseClient.from('players').select('*',{count:'exact',head:true}).eq('premium',true)
     ]);
     // Runs des 7 derniers jours + total
-    var {data:r7}=await supabaseClient.from('runs').select('run_date').gte('run_date',startWeekDate);
+    // ⚠️ .order('run_date',{ascending:false}) obligatoire : le plafond PostgREST
+    // (1000 lignes silencieuses) est régulièrement dépassé sur 7 jours de courses.
+    // Sans tri, les lignes coupées étaient les plus récentes → "0 course importée
+    // aujourd'hui" alors que l'import Strava tournait normalement (vécu 2026-08-08).
+    // Avec le tri décroissant, ce sont les jours les plus anciens de la fenêtre 7j
+    // qui sont sous-comptés en cas de dépassement, jamais AUJ./HIER.
+    var {data:r7}=await supabaseClient.from('runs').select('run_date').gte('run_date',startWeekDate).order('run_date',{ascending:false});
     var {count:totalRuns}=await supabaseClient.from('runs').select('*',{count:'exact',head:true});
 
     // Helpers période — comparaison via date Paris (jour calendaire) pour éviter
