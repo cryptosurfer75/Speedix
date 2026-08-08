@@ -276,8 +276,14 @@ body::after{
   content:'';position:absolute;inset:.8px;z-index:-1;
   clip-path:polygon(8.2px 0,calc(100% - 8.2px) 0,100% 8.2px,100% calc(100% - 8.2px),calc(100% - 8.2px) 100%,8.2px 100%,0 calc(100% - 8.2px),0 8.2px);
   background-color:rgba(4,12,35,.97);
-  background-image:linear-gradient(100deg,transparent 40%,rgba(228,84,255,.45) 49%,rgba(255,255,255,.35) 50%,rgba(228,84,255,.45) 51%,transparent 60%);
-  background-size:200% 100%;
+  /* TEST 2026-08-08 (bandeau "gagnant de Challenge") : 2 dégradés additionnels
+     pilotés par --medal-c1/--medal-c2, posés en inline style sur .my-row-tile.
+     Transparent par défaut (aucun impact sur les RP sans medal_bg actif) —
+     jamais de fond-color transparent lui-même, cf. technique biseau existante. */
+  background-image:linear-gradient(100deg,transparent 40%,rgba(228,84,255,.45) 49%,rgba(255,255,255,.35) 50%,rgba(228,84,255,.45) 51%,transparent 60%),
+    linear-gradient(135deg, var(--medal-c1,transparent) 0%, transparent 60%),
+    linear-gradient(315deg, var(--medal-c2,transparent) 0%, transparent 60%);
+  background-size:200% 100%, 100% 100%, 100% 100%;
   background-repeat:no-repeat;
   animation:myRowShine 6s linear infinite;
 }
@@ -769,7 +775,7 @@ body::after{
   #page-league.page{padding-left:.85rem;padding-right:.85rem}
   #league-main-panel .tbl{table-layout:fixed !important}
   #league-main-panel .tbl th,
-  #league-main-panel .tbl td{padding:.4rem .35rem}
+  #league-main-panel .tbl td{padding:.35rem .35rem}
   #league-main-panel .tbl th:first-child,
   #league-main-panel .tbl td:first-child{padding-left:.3rem;padding-right:.15rem;width:34px !important}
   #league-main-panel .tbl th:nth-child(3),
@@ -2629,6 +2635,13 @@ select option{background:#040c1c}
                (toujours plus haute que large, anti-rognage-chapeau). Toujours collée en bas de la fenêtre (93.6%,
                sous le vrai bord à 97.84%) ; plaque pseudo recompensée en conséquence (margin-top ajusté). -->
           <img src="pc-avatar-frame-v8.png" alt="" style="position:absolute;inset:-6%;width:112%;height:112%;pointer-events:none;user-select:none">
+          <!-- TEST 2026-08-08 (fond avatar "gagnant de Challenge", 3e passe) : abandon du
+               calque-dégradé qui prolongeait le fond (jonction toujours visible, cf user).
+               Nouvelle piste : un vrai BANDEAU (nom du Challenge), qui occupe SEULEMENT le
+               vide entre le haut de la vraie fenêtre du cadre (2.27%) et le haut de
+               #pc-avatar-box (22.4%) -- pas toute la fenêtre. Vide par défaut (aucun
+               impact hors test) ; rempli en JS uniquement pour isOwn. -->
+          <div id="pc-avatar-badge-band" style="position:absolute;left:9.05%;top:4%;width:81.9%;height:18.4%;z-index:1;clip-path:polygon(8px 0,calc(100% - 8px) 0,100% 8px,100% 100%,0 100%,0 8px);overflow:hidden;display:flex;align-items:center;justify-content:center"></div>
           <!-- avatar (forme normale, pas de découpe hexagonale) -->
           <div id="pc-avatar-box" style="position:absolute;left:9.05%;top:22.4%;width:81.9%;height:71.2%;z-index:1;border-radius:6px;overflow:hidden;background:var(--bg)">
             <img id="pc-avatar-img" style="width:100%;height:100%;object-fit:cover;display:none" alt="">
@@ -2670,7 +2683,13 @@ select option{background:#040c1c}
              (display:inline-block sans limite). #pc-name garde white-space:nowrap mais gagne overflow:hidden
              + text-overflow:ellipsis + min-width:0, donc un nom trop long est tronqué avec "…" plutôt que
              de faire déborder la plaque sous le crayon d'édition ou vers la colonne médailles. -->
-        <div style="position:relative;z-index:2;margin-top:-11.3px;display:inline-block;max-width:100%;box-sizing:border-box;background:#5B6474;clip-path:polygon(12px 0,calc(100% - 12px) 0,100% 12px,100% calc(100% - 12px),calc(100% - 12px) 100%,12px 100%,0 calc(100% - 12px),0 12px);padding:1px">
+        <!-- 2026-08-08 : min-width ajouté (signalé par l'user, capture à l'appui) — sur un pseudo
+             court ("Val-DM"), la plaque en inline-block rétrécissait au texte, plus étroite que
+             pc-avatar-box (150px de cadre × 81.9% ≈ 123px), laissant apparaître le bord de la photo
+             de chaque côté en bas. min-width=largeur de la photo (pas du cadre décoratif entier,
+             qui déborde plus large) : la plaque couvre au moins tout le bas de la photo sans jamais
+             dépasser le cadre. N'affecte pas les pseudos longs, déjà gérés par max-width+ellipsis. -->
+        <div style="position:relative;z-index:2;margin-top:-11.3px;display:inline-block;min-width:135px;max-width:100%;box-sizing:border-box;background:#5B6474;clip-path:polygon(12px 0,calc(100% - 12px) 0,100% 12px,100% calc(100% - 12px),calc(100% - 12px) 100%,12px 100%,0 calc(100% - 12px),0 12px);padding:1px">
           <div style="background:#12141c;clip-path:polygon(11px 0,calc(100% - 11px) 0,100% 11px,100% calc(100% - 11px),calc(100% - 11px) 100%,11px 100%,0 calc(100% - 11px),0 11px);padding:.62rem .8rem .47rem;text-align:center;max-width:100%;box-sizing:border-box">
             <div id="pc-name" style="font-family:'Big Shoulders Display',sans-serif;font-weight:900;font-style:italic;font-size:1.25rem;letter-spacing:1px;color:#ffffff;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;min-width:0;transform:scaleY(1.35)">—</div>
           </div>
@@ -7542,6 +7561,13 @@ if(document.readyState==='loading'){
   applyI18n();
 }
 
+// Interrupteur du test "fond avatar gagnant de Challenge" (2026-08-08, en cours de
+// conception avec l'user -- avatar/bandeau/pseudo colorés côté Player Card +
+// classement, cf recherches sur ces 2 zones). Câblé sur isOwn/isMe, donc TOUJOURS
+// actif pour chaque RP réel tant que ce flag est true -- à laisser false hors
+// session de design (pas de vraie condition "a gagné ce Challenge" en base pour
+// l'instant, medal_bg_colors/medal_bg_until pas encore créées).
+const TEST_MEDAL_BG = false;
 const supabaseUrl = "https://eqzvptszeaumsbljwift.supabase.co";
 const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVxenZwdHN6ZWF1bXNibGp3aWZ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU0MjM3MTcsImV4cCI6MjA5MDk5OTcxN30.wn2iJ3grAlLHTUZYiwlSBaCHvwCW86kTQ8eWNH484Lk"; // Settings → API → anon public (commence par eyJ...)
 
@@ -9891,10 +9917,43 @@ function renderDashboard(){
     var avatarUrl=p?p.avatar:null;
     var imgEl=document.getElementById('pc-avatar-img');
     var cv=document.getElementById('pc-avatar-canvas');
+    // TEST 2026-08-08 (5e passe, demande explicite user) : le pseudo prend la
+    // couleur du Challenge gagné, UNIQUEMENT tant que le fond/bandeau de test est
+    // actif (isOwn) -- vide (style par défaut, blanc) sinon.
+    var nameEl=document.getElementById('pc-name');
+    if(nameEl) nameEl.style.color = (isOwn && TEST_MEDAL_BG) ? '#2f6fff' : '';
     if(avatarUrl){
+      // TEST 2026-08-08 (fond avatar "gagnant de Challenge") : ajouté SEULEMENT à
+      // l'affichage, jamais écrit dans players.avatar. Couleurs Amiens (jaune) en
+      // dur le temps du test local -- à remplacer par medal_bg_colors/medal_bg_until
+      // une fois le mécanisme validé. Jaune plutôt que violet (déjà très présent
+      // ailleurs dans l'appli, cf. shine ligne "moi"/period-badge) pour bien juger
+      // le rendu sans confusion avec ces éléments existants.
+      var badgeBandEl=document.getElementById('pc-avatar-badge-band');
+      if(isOwn && TEST_MEDAL_BG){
+        avatarUrl += (avatarUrl.indexOf('?')>=0?'&':'?')+'backgroundType=gradientLinear&backgroundColor=2f6fff,1a3a75';
+        // Nom du Challenge (2026-08-08, 4e passe, demande explicite user) : plus de
+        // bandeau à couleur propre (débordait/mal calé dans le cadre) -- fond neutre
+        // (var(--bg), même ton que le cadre noir autour, donc aucun bord visible),
+        // juste le titre écrit dans la couleur du Challenge (ici bleu Cali, 2e
+        // Challenge testé pour comparaison avant validation -- cf ribbonColors
+        // ligne ~23466, même paire déjà utilisée pour l'avatar).
+        if(badgeBandEl){
+          badgeBandEl.style.background='var(--bg)';
+          // Distance + ville (2026-08-08, demande explicite user), taille remontée
+          // (.78rem -> .95rem) -- Bebas Neue étant déjà condensé, tient sur 1 ligne
+          // dans la largeur du bandeau (~123px).
+          badgeBandEl.innerHTML='<span style="font-family:\'Bebas Neue\',sans-serif;font-size:1.02rem;font-weight:700;letter-spacing:1px;color:#2f6fff;text-shadow:0 0 6px rgba(47,111,255,.4);white-space:nowrap">10 KM CALI</span>';
+        }
+      } else if(badgeBandEl){
+        badgeBandEl.style.background='transparent';
+        badgeBandEl.innerHTML='';
+      }
       if(imgEl){imgEl.src=avatarUrl;imgEl.style.display='block';}
       if(cv)cv.style.display='none';
     } else {
+      var badgeBandEl2=document.getElementById('pc-avatar-badge-band');
+      if(badgeBandEl2){ badgeBandEl2.style.background='transparent'; badgeBandEl2.innerHTML=''; }
       if(imgEl)imgEl.style.display='none';
       if(cv){
         cv.style.display='block';
@@ -10792,7 +10851,7 @@ function renderLeaguePanel(){
       ?'<span title="'+t('league.badge.paid')+'" style="font-size:.82rem;flex-shrink:0;line-height:1">💰</span>'
       :'';
     var avId='av-'+p.id+'-'+rankNum;
-    var avatarHtml='<div onclick="'+(p.id===1?'window.__viewedPlayer=null;renderDashboard();renderTeams();nav(\'dashboard\')':'showPlayerCard('+p.id+')')+'" style="width:32px;height:32px;border-radius:6px;border:2px solid '+gc+';overflow:hidden;flex-shrink:0;box-shadow:0 0 7px '+gc+'40;cursor:pointer;transition:transform .15s" onmouseover="this.style.transform=\'scale(1.1)\'" onmouseout="this.style.transform=\'\'" title="'+p.name+'"><canvas id="'+avId+'" width="32" height="32" style="display:block"></canvas></div>';
+    var avatarHtml='<div onclick="'+(p.id===1?'window.__viewedPlayer=null;renderDashboard();renderTeams();nav(\'dashboard\')':'showPlayerCard('+p.id+')')+'" style="width:34px;height:34px;border-radius:6px;border:2px solid '+gc+';overflow:hidden;flex-shrink:0;box-shadow:0 0 7px '+gc+'40;cursor:pointer;transition:transform .15s" onmouseover="this.style.transform=\'scale(1.1)\'" onmouseout="this.style.transform=\'\'" title="'+p.name+'"><canvas id="'+avId+'" width="34" height="34" style="display:block"></canvas></div>';
     var ptsHtml='<span style="text-align:right;min-width:4ch;font-variant-numeric:tabular-nums"><strong style="color:'+ptColor+'">'+p.pts.toLocaleString(SPEEDIX_LANG)+'</strong></span>'
       +'<span style="display:inline-flex;align-items:center;gap:.35rem;min-width:34px;justify-content:flex-start">'+trendHtml+paidBadge+'</span>';
     // Ligne "moi" : jamais un <tr> stylé directement (::before/::after y cassent
@@ -10800,16 +10859,20 @@ function renderLeaguePanel(){
     // contenant une vraie div biseautée, même technique que la barre sticky.
     if(isMe){
       return '<tr'+rowSkinClass+' data-uuid="'+(p._uuid||'')+'" style="'+_cascadeStyle+'"><td colspan="3" style="padding:.3rem 0;border-bottom:none">'
-        +'<div class="my-row-tile" style="display:flex;align-items:center">'
+        // TEST 2026-08-08 : --medal-c1/--medal-c2 en dur (bleu Cali) pour tester le
+        // bandeau teinté sur MA ligne -- gardé derrière TEST_MEDAL_BG (cf plus haut
+        // dans le fichier), à remplacer par les vraies couleurs du Challenge une
+        // fois medal_bg_colors/medal_bg_until posés en base.
+        +'<div class="my-row-tile" style="display:flex;align-items:center;'+(TEST_MEDAL_BG?'--medal-c1:#2f6fff;--medal-c2:#1a3a75':'')+'">'
         +'<span class="mrt-border"></span><span class="mrt-fill"></span>'
-        +'<div style="flex:0 0 34px;box-sizing:border-box;padding:.4rem .15rem .4rem .3rem;text-align:center">'+rankCell+'</div>'
-        +'<div style="flex:1;box-sizing:border-box;padding:.4rem .35rem .4rem .2rem;display:flex;align-items:center;gap:.55rem;min-width:0">'
+        +'<div style="flex:0 0 34px;box-sizing:border-box;padding:.35rem .15rem .35rem .3rem;text-align:center">'+rankCell+'</div>'
+        +'<div style="flex:1;box-sizing:border-box;padding:.35rem .35rem .35rem .2rem;display:flex;align-items:center;gap:.55rem;min-width:0">'
         +natFlagHtml(p.nat)
         +avatarHtml
         +'<div style="display:flex;align-items:center;gap:.2rem;min-width:0"><div class="runner-name">'+p.name+meBadge+'</div>'+crownBadge+infBadge+gelBadge+calibBadge+debtBadge+parrainBadge+'</div>'
         +'</div>'
         +(boostBadge?'<div style="display:flex;align-items:center;flex-shrink:0">'+boostBadge+'</div>':'')
-        +'<div style="flex:0 0 100px;box-sizing:border-box;padding:.4rem .35rem;font-family:monospace;font-size:.82rem;display:flex;align-items:center;justify-content:flex-end;gap:.45rem">'
+        +'<div style="flex:0 0 100px;box-sizing:border-box;padding:.35rem .35rem;font-family:monospace;font-size:.82rem;display:flex;align-items:center;justify-content:flex-end;gap:.45rem">'
         +ptsHtml
         +'</div>'
         +'</div></td></tr>';
@@ -11089,16 +11152,26 @@ function renderLeaguePanel(){
         var img=new Image();
         var _ox=ox;
         img.onload=function(){
-          _ox.clearRect(0,0,32,32);
-          _ox.save();
-          _ox.beginPath();_ox.arc(16,16,16,0,Math.PI*2);_ox.clip();
-          _ox.drawImage(img,0,0,32,32);
-          _ox.restore();
+          // Découpe circulaire retirée (2026-08-08, signalé par l'user) : le cadre
+          // du div est déjà un carré arrondi (border-radius:6px + overflow:hidden),
+          // pas un cercle. Le clip circulaire ici coupait les 4 coins de l'image —
+          // invisible tant que le fond de l'avatar était transparent (coins sombres
+          // sur fond déjà sombre), mais coupait aussi les coins d'un fond dégradé
+          // ajouté (cf test fond "gagnant de Challenge") au lieu de les laisser
+          // remplir tout le carré.
+          _ox.clearRect(0,0,34,34);
+          _ox.drawImage(img,0,0,34,34);
         };
-        img.onerror=function(){ drawMiniDefaultAvatar(_ox,32,p); };
-        img.src=p.avatar;
+        img.onerror=function(){ drawMiniDefaultAvatar(_ox,34,p); };
+        // TEST 2026-08-08 (fond avatar "gagnant de Challenge") : ajouté SEULEMENT
+        // à l'affichage, players.avatar n'est jamais réécrit. Couleurs Amiens (jaune)
+        // en dur le temps du test local -- à remplacer par medal_bg_colors/
+        // medal_bg_until une fois le mécanisme validé.
+        var _src=p.avatar;
+        if(p.id===1 && TEST_MEDAL_BG) _src += (_src.indexOf('?')>=0?'&':'?')+'backgroundType=gradientLinear&backgroundColor=2f6fff,1a3a75';
+        img.src=_src;
       } else {
-        drawMiniDefaultAvatar(ox,32,p);
+        drawMiniDefaultAvatar(ox,34,p);
       }
     }
     // Numérotation en deux blocs indépendants (compétitifs 1..N, calibrage 1..M),
@@ -28754,7 +28827,28 @@ window.Tour.init = async function(){
     l.layer.setStyle({fillColor:fill, fillOpacity:.95});
     l.layer.bindPopup(popupHtml(l));
   }
-  
+
+  // ── Rattrapage du tracé parcouru au CHARGEMENT de la page (2026-08-08, demande
+  // explicite user — "reste blanc quel que soit le cas de figure après") : avant,
+  // `l.revealed` n'existait qu'en mémoire, remis à zéro à chaque rechargement, et
+  // n'était peint QUE pendant l'animation de déplacement jouée en direct dans
+  // l'app. Un déplacement traité par le webhook Strava pendant que l'app est
+  // fermée ne déclenchait donc jamais cette animation → les cases traversées
+  // restaient en brouillard pour toujours, même après réouverture. Fix : dérivé
+  // directement de players.tour_start_idx/tour_laps/tour_idx (SOURCE UNIQUE de la
+  // position, cf ME plus haut) à chaque chargement, donc toujours juste quel que
+  // soit ce qui a fait avancer le RP. Uniquement le tour EN COURS (les tours
+  // précédents ont déjà été re-brouillés par refogTrack() en base de session
+  // précédente — rien à rattraper pour eux).
+  if(_tourPlayerRow){
+    const _myCurIdx = (typeof _tourPlayerRow.tour_idx==='number') ? _tourPlayerRow.tour_idx : ME.startIdx;
+    const _curLapStartAbs = ME.startIdx + ME.laps*TOTAL_CELLS;
+    const _distThisLap = _myCurIdx - _curLapStartAbs;
+    for(let k=0; k<=_distThisLap; k++){
+      quietRevealFree(((ME.startIdx+k)%TOTAL_CELLS+TOTAL_CELLS)%TOTAL_CELLS);
+    }
+  }
+
   // Découverte en 3 temps : grossit (GROW_MS) → reste agrandie le temps que le RP
   // "est dessus" (HOLD_MS) → rétrécit (SHRINK_MS). Avant : tout en 500ms, trop
   // rapide pour vraiment voir ce qui est découvert.
