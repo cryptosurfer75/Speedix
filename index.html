@@ -799,12 +799,17 @@ body::after{
      hors écran quand les valeurs sont longues. On compresse la grille 68/1fr/64 et on force
      la colonne centrale à pouvoir rétrécir. */
   [style*="grid-template-columns:76px 1fr 76px"]{grid-template-columns:70px minmax(0,1fr) 70px !important;gap:.4rem !important}
-  #pc-badge-grade,#pc-badge-league{font-size:.82rem !important;padding:.35rem .65rem !important;letter-spacing:.8px !important}
+  #pc-badge-grade,#pc-badge-league{font-size:.72rem !important;padding:.35rem .3rem !important;letter-spacing:.3px !important}
 }
 
 @media(max-width:380px){
   .nav-tab{font-size:.6rem;padding:.22rem .4rem}
   .nav-logo{font-size:1rem;letter-spacing:2px}
+  /* Grade/Ligue sous l'avatar : encore plus étroit sur petit téléphone — sinon
+     le texte ("⭐ CONFIRMÉ", "🟣 L5 AMÉTHYSTE"...) dépassait le cadre biseauté
+     et se faisait couper net par le clip-path (pas d'ellipsis), au lieu de
+     rétrécir. Signalé par l'user le 08/08 ("on ne voit que le début"). */
+  #pc-badge-grade,#pc-badge-league{font-size:.62rem !important;padding:.3rem .2rem !important;letter-spacing:0 !important}
   [style*="grid-template-columns:76px 1fr 76px"]{grid-template-columns:60px minmax(0,1fr) 60px !important;gap:.3rem !important}
 }
 </style>
@@ -2744,7 +2749,7 @@ select option{background:#040c1c}
             <div style="
               padding:1rem .5rem;background:#0c0f1a;clip-path:polygon(8px 0,calc(100% - 8px) 0,100% 8px,100% calc(100% - 8px),calc(100% - 8px) 100%,8px 100%,0 calc(100% - 8px),0 8px);
               font-family:'Bebas Neue',sans-serif;font-size:.95rem;letter-spacing:1.5px;
-              color:var(--gold);white-space:nowrap;text-align:center;
+              color:var(--gold);white-space:nowrap;text-align:center;overflow:hidden;text-overflow:ellipsis;box-sizing:border-box;
             " id="pc-badge-grade">—</div>
           </div>
           <!-- Catégorie d'âge FFA (2026-08-05, demande explicite) : petit carré
@@ -2772,7 +2777,7 @@ select option{background:#040c1c}
             <div style="
               padding:1rem .5rem;background:#0c0f1a;clip-path:polygon(8px 0,calc(100% - 8px) 0,100% 8px,100% calc(100% - 8px),calc(100% - 8px) 100%,8px 100%,0 calc(100% - 8px),0 8px);
               font-family:'Bebas Neue',sans-serif;font-size:.9rem;letter-spacing:1px;
-              color:#20c060;white-space:nowrap;text-align:center;
+              color:#20c060;white-space:nowrap;text-align:center;overflow:hidden;text-overflow:ellipsis;box-sizing:border-box;
             " id="pc-badge-league">—</div>
           </div>
           </div>
