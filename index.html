@@ -1656,6 +1656,17 @@ body::after{
   display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:12px;
   max-width:1000px; margin:0 auto;
 }
+/* Une seule carte par ligne sur mobile (2026-08-08, fix cartes coupées — 1er essai
+   avec un libellé qui repasse à la ligne annulé, "pas beau", cf conversation) :
+   à 150px la carte n'a pas assez de large pour tenir une ligne d'info (icône +
+   libellé + valeur) sans déborder, coupée par le cadre (overflow:hidden). En
+   dessous de 600px de large, on remonte le minimum à 260px — sur un téléphone
+   ça ne laisse jamais la place à 2 colonnes, la grille passe donc naturellement
+   à 1 seule carte par ligne, en pleine largeur, comme sur ordinateur où chaque
+   carte a déjà assez de place. Desktop inchangé (plusieurs colonnes de 150px+). */
+@media(max-width:600px){
+  .mylands-grid{ grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); }
+}
 /* Page "Règles du jeu" (2026-08-04, porté depuis prototype-tour.html) — même
    overlay plein écran que "Mes Lands" (fond flouté + croix fixe icon-close-x.png),
    mais contenu texte en cartes plutôt qu'une grille, largeur resserrée pour
@@ -1848,13 +1859,7 @@ body::after{
   display:flex; align-items:center; justify-content:center; font-size:12.5px;
   background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.09);
 }
-/* min-width:0 (2026-08-08, bug corrigé — cartes coupées sur mobile) : un enfant
-   flex refuse par défaut de rétrécir sous la largeur de son texte en une seule
-   ligne, même avec flex:1. Sur une carte proche du minimum de la grille (150px),
-   le libellé forçait la ligne entière à déborder — .mlc-inner (overflow:hidden)
-   coupait alors la valeur à droite. Sur desktop, les cartes ont plus de place
-   donc le libellé tenait sur une ligne sans jamais forcer ce débordement. */
-.mlc-row-label{ flex:1; min-width:0; font-size:10.5px; color:var(--muted2); text-transform:uppercase; letter-spacing:.4px; line-height:1.3; }
+.mlc-row-label{ flex:1; font-size:10.5px; color:var(--muted2); text-transform:uppercase; letter-spacing:.4px; line-height:1.3; }
 /* Suffixe "/ passage" ou "/ mois" en minuscules dans le titre (2026-08-06,
    demande explicite) — le titre reste en MAJUSCULES (héritage du parent),
    ce span annule juste le text-transform pour lui seul. */
