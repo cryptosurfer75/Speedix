@@ -112,6 +112,15 @@
   --expert:#f5c842; --pro:#ff6020; --elite:#9060f0;
 }
 *{margin:0;padding:0;box-sizing:border-box}
+/* Règle globale (2026-08-09, demande explicite -- "tous les boutons on avait
+   dit en majuscule", corrigé après avoir constaté que des fenêtres entières
+   étaient passées à travers les correctifs ciblés précédents) : TOUS les
+   boutons de l'app en majuscules par défaut, une fois pour toutes, plutôt que
+   de rajouter text-transform:uppercase bouton par bouton (source d'oublis
+   récurrents). Un bouton qui aurait vraiment besoin de rester en casse
+   normale peut surcharger avec text-transform:none en style plus spécifique,
+   mais aucun cas de ce type identifié à ce jour dans l'app. */
+button{text-transform:uppercase}
 /* min-height en dvh (dynamic viewport height) pour gérer correctement les barres
    système Android (status bar + navigation bar) avec viewport-fit=cover.
    Padding safe-area sur tous les côtés pour iPhone : viewport-fit=cover étend la
@@ -448,7 +457,7 @@ body::after{
    RANK / AVATAR
 ============================================================ */
 .rank-num{
-  font-family:'Space Mono',monospace;font-size:.9rem;font-weight:700;
+  font-family:'Rajdhani',sans-serif;font-size:1.05rem;font-weight:700;
   text-align:center;width:32px;
 }
 .rank-1{color:#ffd700}.rank-2{color:#c0c0c0}.rank-3{color:#cd7f32}
@@ -496,7 +505,7 @@ body::after{
 .pc-meta{font-size:.75rem;color:var(--muted2);margin-top:.2rem;display:flex;align-items:center;gap:.4rem;flex-wrap:wrap}
 .pc-stats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:.5rem;margin-bottom:1rem}
 .pc-stat{background:rgba(255,255,255,.04);border-radius:5px;padding:.5rem .65rem}
-.pc-stat-val{font-family:'Space Mono',monospace;font-size:.9rem;color:var(--gold);font-weight:700;line-height:1}
+.pc-stat-val{font-family:'Rajdhani',sans-serif;font-size:.9rem;color:var(--gold);font-weight:700;line-height:1}
 .pc-stat-lbl{font-size:.58rem;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-top:.15rem}
 .pc-footer{display:flex;align-items:center;justify-content:space-between;padding-top:.75rem;border-top:1px solid rgba(245,200,66,.15)}
 .pc-league-name{font-family:'Bebas Neue',sans-serif;font-size:1rem;letter-spacing:2px}
@@ -700,13 +709,13 @@ body::after{
   padding:.85rem 1rem;border-bottom:1px solid var(--border);
 }
 .team-row:last-child{border-bottom:none}
-.team-pos{font-family:'Space Mono',monospace;font-size:1.1rem;font-weight:700;width:36px;text-align:center;flex-shrink:0}
+.team-pos{font-family:'Rajdhani',sans-serif;font-size:1.4rem;font-weight:700;width:36px;text-align:center;flex-shrink:0}
 .team-emblem-sm{width:48px;height:48px;border-radius:8px;background:var(--bg3);border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;font-size:1.7rem;flex-shrink:0}
 .team-info{flex:1;min-width:0}
 .team-name{font-family:'Bebas Neue',sans-serif;letter-spacing:1.5px;font-size:1.15rem;line-height:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .team-sub{font-size:.75rem;color:var(--muted2);margin-top:.2rem}
 .team-pts-col{text-align:right;flex-shrink:0}
-.team-pts-val{font-family:'Space Mono',monospace;font-size:1.05rem;color:var(--gold);font-weight:700}
+.team-pts-val{font-family:'Rajdhani',sans-serif;font-size:1.75rem;color:var(--gold);font-weight:700}
 .team-bonus-lbl{font-size:.68rem;color:var(--green);margin-top:.15rem}
 
 /* ============================================================
@@ -1208,7 +1217,7 @@ body::after{
     background:var(--card);border:1px solid var(--border)}
   #cr-app .lbrow .rk{font-family:'Bebas Neue';font-size:18px;color:var(--muted)}
   #cr-app .lbrow .nm{font-size:15px;color:var(--text)}
-  #cr-app .lbrow .pts{font-family:'Space Mono';font-weight:700;font-size:15px;color:var(--gold)}
+  #cr-app .lbrow .pts{font-family:'Rajdhani',sans-serif;font-weight:700;font-size:17px;color:var(--gold)}
   #cr-app .lbrow.me{background:rgba(228,84,255,.10);border-color:#e454ff;box-shadow:0 0 14px rgba(228,84,255,.3)}
   #cr-app .lbrow.top1 .pts{color:var(--gold)}
   #cr-app .lang{position:absolute;top:0;right:0;display:flex;gap:6px}
@@ -11217,7 +11226,7 @@ function renderLeaguePanel(){
         +'<div style="display:flex;align-items:center;gap:.2rem;min-width:0"><div class="runner-name">'+p.name+meBadge+'</div>'+crownBadge+infBadge+gelBadge+calibBadge+debtBadge+parrainBadge+'</div>'
         +'</div>'
         +(boostBadge?'<div style="display:flex;align-items:center;flex-shrink:0">'+boostBadge+'</div>':'')
-        +'<div style="flex:0 0 100px;box-sizing:border-box;padding:.35rem .35rem;font-family:monospace;font-size:.82rem;display:flex;align-items:center;justify-content:flex-end;gap:.45rem">'
+        +'<div style="flex:0 0 100px;box-sizing:border-box;padding:.35rem .35rem;font-family:\'Rajdhani\',sans-serif;font-size:1.08rem;font-weight:700;display:flex;align-items:center;justify-content:flex-end;gap:.45rem">'
         +ptsHtml
         +'</div>'
         +'</div></td></tr>';
@@ -11229,7 +11238,7 @@ function renderLeaguePanel(){
       +avatarHtml
       +'<div style="display:flex;align-items:center;gap:.2rem"><div class="runner-name">'+p.name+meBadge+'</div>'+crownBadge+infBadge+boostBadge+gelBadge+calibBadge+debtBadge+parrainBadge+'</div>'
       +'</div></td>'
-      +'<td style="font-family:monospace;font-size:.82rem">'
+      +'<td style="font-family:\'Rajdhani\',sans-serif;font-size:1.08rem;font-weight:700">'
       +'<span style="display:inline-flex;align-items:center;justify-content:flex-end;gap:.45rem;width:100%">'
       +ptsHtml
       +'</span>'
@@ -11393,7 +11402,7 @@ function renderLeaguePanel(){
     // compétitifs (même règle que les lignes du tableau) — jamais pour du calibrage.
     var myRankDisp=(myIsCompForRank&&myRankInPanel>=1&&myRankInPanel<=3&&myRankArr[myRankInPanel-1])
       ?myRankArr[myRankInPanel-1]
-      :'<span style="font-family:\'Space Mono\',monospace;font-size:.85rem;font-weight:700;color:var(--muted2)">#'+myRankInPanel+'</span>';
+      :'<span style="font-family:\'Rajdhani\',sans-serif;font-size:1.08rem;font-weight:700;color:var(--muted2)">#'+myRankInPanel+'</span>';
     // La barre reproduit exactement la structure d'une ligne .tbl en flexbox
     myStickyBar='<div id="my-sticky-row" style="'
       +'position:sticky;bottom:8px;z-index:20;'
@@ -11421,7 +11430,7 @@ function renderLeaguePanel(){
       +'<div style="font-family:\'Big Shoulders Display\',sans-serif;font-weight:900;font-style:italic;font-size:.95rem;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;transform:scaleY(1.15)">'+myPlayer.name+'</div>'
       +'</div>'
       // Colonne pts — width fixe 120px identique au th du tableau
-      +'<div style="padding:.55rem .75rem;font-family:monospace;font-size:.82rem;white-space:nowrap;flex:0 0 120px;display:flex;align-items:center;justify-content:flex-end;gap:.45rem">'
+      +'<div style="padding:.55rem .75rem;font-family:\'Rajdhani\',sans-serif;font-size:1.08rem;font-weight:700;white-space:nowrap;flex:0 0 120px;display:flex;align-items:center;justify-content:flex-end;gap:.45rem">'
       +'<span style="text-align:right;min-width:4ch;font-variant-numeric:tabular-nums"><strong style="color:var(--gold)">'+myPlayer.pts.toLocaleString(SPEEDIX_LANG)+'</strong></span>'
       +'<span style="display:inline-flex;align-items:center;min-width:34px;justify-content:flex-start">'+myTrendHtml+'</span>'
       +'</div>'
@@ -11802,7 +11811,7 @@ async function renderHistory(page){
       +'<td style="font-weight:600">'+(km>0?km.toFixed(2):'—')+'</td>'
       +'<td style="font-family:Space Mono,monospace;font-size:.78rem">'+(spd>0?spd.toFixed(2):'—')+'</td>'
       +'<td style="font-family:Space Mono,monospace;font-size:.78rem">'+(elv>0?'↑ '+elv:'—')+'</td>'
-      +'<td style="text-align:right"><strong style="color:var(--gold);font-family:Space Mono,monospace">'+pts.toLocaleString(SPEEDIX_LANG)+'</strong></td>'
+      +'<td style="text-align:right"><strong style="color:var(--gold);font-family:\'Rajdhani\',sans-serif">'+pts.toLocaleString(SPEEDIX_LANG)+'</strong></td>'
     +'</tr>';
   }).join('');
   // Pagination
@@ -13967,7 +13976,7 @@ async function renderMyLands(page){
       +'<td>'+statusBadge+'</td>'
       +'<td style="font-size:.75rem;text-align:center">P'+(rp||0)+'</td>'
       +'<td style="color:'+starsColor+';font-size:.8rem;text-align:center">'+starsTxt+'</td>'
-      +'<td style="font-family:Space Mono,monospace;font-size:.75rem;color:var(--gold);text-align:center">'+rpcPassage[l.stars||0]+'</td>'
+      +'<td style="font-family:\'Rajdhani\',sans-serif;font-size:.9rem;font-weight:700;color:var(--gold);text-align:center">'+rpcPassage[l.stars||0]+'</td>'
       +'<td style="font-family:Space Mono,monospace;font-size:.72rem;text-align:center">'+loyerCell+'</td>'
       +'<td style="text-align:center"><button onclick="showLandDetail(\''+l.id+'\')" style="padding:.2rem .5rem;border-radius:4px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.06);color:var(--muted2);font-size:.6rem;cursor:pointer">Infos</button></td>'
       +'<td style="text-align:center;font-size:.65rem">'+(function(){
@@ -15952,7 +15961,7 @@ async function renderPeriodRecap(player, closedPeriod, opts){
   // Rang général final (pas de total volontairement)
   var rankLine;
   if(myRank>0){
-    rankLine=(_en?'🏅 Final overall ranking: ':'🏅 Classement général final : ')+'<strong style="color:var(--gold);font-family:Space Mono,monospace;font-size:1rem">#'+myRank+'</strong>';
+    rankLine=(_en?'🏅 Final overall ranking: ':'🏅 Classement général final : ')+'<strong style="color:var(--gold);font-family:\'Rajdhani\',sans-serif;font-size:1.05rem">#'+myRank+'</strong>';
   } else {
     rankLine='<span style="color:var(--muted2)">'+(_en?'No ranking (no run this period)':'Pas de classement (aucune course sur la période)')+'</span>';
   }
@@ -16719,7 +16728,7 @@ async function renderSocialFeed(){
       +'</div>'
       +'<div style="font-size:.62rem;color:var(--muted)">'+dateStr+'</div>'
       +'</div>'
-      +'<div style="font-family:Space Mono,monospace;font-size:.9rem;font-weight:700;color:var(--gold)">'+pts.toLocaleString(SPEEDIX_LANG)+' pts</div>'
+      +'<div style="font-family:\'Rajdhani\',sans-serif;font-size:1rem;font-weight:700;color:var(--gold)">'+pts.toLocaleString(SPEEDIX_LANG)+' pts</div>'
       +'</div>'
       // Stats course
       +'<div style="display:flex;gap:.75rem;margin-bottom:.4rem;flex-wrap:wrap">'
@@ -18405,7 +18414,7 @@ async function adminLoadHistory(){
     var date=r.run_date?new Date(r.run_date).toLocaleDateString(SPEEDIX_LANG):'—';
     return '<div style="display:flex;justify-content:space-between;padding:.2rem 0;border-bottom:1px solid rgba(30,37,53,.6)">'
       +'<span style="color:var(--text)">'+name+'</span>'
-      +'<span style="color:var(--gold);font-family:Space Mono,monospace">'+r.points.toLocaleString(SPEEDIX_LANG)+' pts</span>'
+      +'<span style="color:var(--gold);font-family:\'Rajdhani\',sans-serif;font-weight:700">'+r.points.toLocaleString(SPEEDIX_LANG)+' pts</span>'
       +'<span style="color:var(--muted2)">'+date+'</span>'
     +'</div>';
   }).join('');
@@ -20220,12 +20229,14 @@ function showTourV2WelcomeModal(startRpc, startNyx, refundRpc){
 
 // Avancée sur le plateau à partir des VRAIES courses Strava (2026-08-07) —
 // jusqu'ici seul le simulateur manuel (runKm/runKmFromInput) faisait bouger le
-// pion. Marqueur "dernière course déjà convertie en avancée" gardé en
-// localStorage, scopé par compte (currentUser.id dans la clé) — juste un
-// repère "jusqu'où j'ai déjà consommé les courses", pas la position elle-même
-// (qui vit maintenant en base, cf players.tour_idx et le commentaire sur ME
-// dans window.Tour.init).
-function _tourRunSeenKey(){ return 'tour-run-seen-'+(currentUser?currentUser.id:''); }
+// pion. Marqueur "dernière course déjà convertie en avancée" = players.
+// tour_run_seen_at EN BASE (2026-08-09, corrigé -- bug signalé : gardé en
+// localStorage avant, donc scopé par APPAREIL, pas par compte -- un RP qui
+// ouvrait l'appli sur son téléphone (pion avancé, marqueur mis à jour SUR LE
+// TÉLÉPHONE) puis sur un autre appareil/navigateur voyait le marqueur de CET
+// appareil encore à l'ancienne date, donc la même course reproposée et
+// recomptée une 2e fois -> double avancée sur le plateau. Une seule vraie
+// source, comme players.tour_idx (cf commentaire sur ME dans window.Tour.init).
 // Date de la bascule SPEEDIX Tour V2 (commit 5a3b098, 2026-08-08 01h55 Paris).
 // Sert de plancher pour le rattrapage 1re ouverture ci-dessous : on ne remonte
 // jamais avant le lancement (pas de rattrapage sur l'historique complet d'un
@@ -20236,9 +20247,11 @@ var TOUR_V2_LAUNCH_ISO = '2026-08-07T23:55:51.000Z';
 var _pendingTourKm = 0;
 async function checkPendingTourAdvance(){
   if(!currentUser) return 0;
-  var key = _tourRunSeenKey();
   var lastSeen;
-  try{ lastSeen = localStorage.getItem(key); }catch(e){ lastSeen = null; }
+  try{
+    var {data:pRow} = await supabaseClient.from('players').select('tour_run_seen_at').eq('id', currentUser.id).maybeSingle();
+    lastSeen = pRow ? pRow.tour_run_seen_at : null;
+  }catch(e){ lastSeen = null; }
   if(!lastSeen) lastSeen = TOUR_V2_LAUNCH_ISO;
   try{
     var {data} = await supabaseClient.from('runs')
@@ -20256,8 +20269,8 @@ function showTourProgressPrompt(km){
     + '<div style="text-align:center;padding:1rem .5rem">'
     + '  <div style="font-size:.9rem;color:var(--text);line-height:1.6;margin-bottom:1rem">Tu as couru <b style="color:var(--gold)">'+km.toFixed(1)+' km</b> depuis ta dernière visite. Veux-tu voir ta progression sur le Speedix Tour et découvrir ce que tu as gagné ?</div>'
     + '  <div style="display:flex;gap:.6rem;justify-content:center">'
-    + '    <button onclick="closeModal(\'land-modal\')" style="padding:.5rem 1.2rem;border-radius:7px;border:1.5px solid rgba(255,255,255,.3);background:transparent;color:#fff;font-weight:700;font-size:.85rem;cursor:pointer">Plus tard</button>'
-    + '    <button onclick="closeModal(\'land-modal\');consumeTourAdvance();" style="padding:.5rem 1.2rem;border-radius:7px;border:1.5px solid var(--green);background:rgba(45,219,128,.12);color:var(--green);font-weight:700;font-size:.85rem;cursor:pointer">Voir ma progression</button>'
+    + '    <button onclick="closeModal(\'land-modal\')" style="padding:.5rem 1.2rem;border-radius:7px;border:1.5px solid rgba(255,255,255,.3);background:transparent;color:#fff;font-weight:700;font-size:.85rem;cursor:pointer;text-transform:uppercase">Plus tard</button>'
+    + '    <button onclick="closeModal(\'land-modal\');consumeTourAdvance();" style="padding:.5rem 1.2rem;border-radius:7px;border:1.5px solid var(--green);background:rgba(45,219,128,.12);color:var(--green);font-weight:700;font-size:.85rem;cursor:pointer;text-transform:uppercase">Voir ma progression</button>'
     + '  </div>'
     + '</div>';
   openModal('land-modal');
@@ -20265,7 +20278,14 @@ function showTourProgressPrompt(km){
 function consumeTourAdvance(){
   var km = _pendingTourKm;
   if(!km || km<=0) return;
-  try{ localStorage.setItem(_tourRunSeenKey(), new Date().toISOString()); }catch(e){}
+  // En base (pas localStorage, cf commentaire sur checkPendingTourAdvance ci-
+  // dessus) : sans ça, un autre appareil connecté sur le même compte ignore
+  // que la course vient d'être consommée et repropose/recompte la même
+  // avancée -- bug réel signalé (double déplacement sur le plateau).
+  if(currentUser){
+    supabaseClient.from('players').update({tour_run_seen_at:new Date().toISOString()}).eq('id',currentUser.id)
+      .then(function(){}, function(e){ console.warn('[tour-advance] consume write failed:', e); });
+  }
   _pendingTourKm = 0;
   // nav('lands') déclenche déjà Tour.init() tout seul (cf nav(), ~50ms puis
   // onShow() à 200/500/1200ms) — ne PAS le rappeler ici, sinon double init
@@ -21990,7 +22010,7 @@ async function syncStravaActivities(silent){
       }
       resultsHtml+='<div style="display:flex;justify-content:space-between;padding:.35rem .3rem;border-bottom:1px solid rgba(30,37,53,.6);font-size:.72rem;border-radius:4px">'
         +'<span style="color:var(--text)">'+escapeHtml(a.name)+' <span style="color:var(--muted2)">'+Math.round(km*10)/10+'km</span></span>'
-        +'<span style="display:flex;align-items:center;gap:.4rem"><span style="color:var(--gold);font-family:Space Mono,monospace">'+pts+' pts</span>'
+        +'<span style="display:flex;align-items:center;gap:.4rem"><span style="color:var(--gold);font-family:\'Rajdhani\',sans-serif;font-weight:700">'+pts+' pts</span>'
         +(hexes.length?'<span style="color:var(--cyan);font-size:.6rem">'+hexes.length+' lands</span>':'')
         +'</span>'
       +'</div>';
@@ -22581,7 +22601,7 @@ async function renderTeams(){
           ?'<img src="ai-icons/medal-1-gold.png" style="width:26px;height:26px;object-fit:contain">'
           :rank===2?'<img src="ai-icons/medal-2-silver.png" style="width:26px;height:26px;object-fit:contain">'
           :rank===3?'<img src="ai-icons/medal-3-bronze.png" style="width:26px;height:26px;object-fit:contain">'
-          :'<span style="font-family:monospace;font-size:.78rem;color:var(--muted2);font-weight:700">'+rank+'</span>';
+          :'<span style="font-family:\'Rajdhani\',sans-serif;font-size:.78rem;color:var(--muted2);font-weight:700">'+rank+'</span>';
         var teamEmoji=t.emoji||'🏃';
         var teamColor=t.color||'#4a90ff';
         var isOpen=(t.invite_code===OPEN_TEAM_MARKER);
@@ -22618,7 +22638,7 @@ async function renderTeams(){
             +'<div class="team-sub">'+subLine+'</div>'
           +'</div>'
           +'<div class="team-pts-col" style="text-align:right;min-width:60px">'
-            +'<div class="team-pts-val" style="font-size:1rem;color:var(--gold)">'+(t._score||0).toLocaleString(SPEEDIX_LANG)+'</div>'
+            +'<div class="team-pts-val" style="font-size:1.25rem;color:var(--gold)">'+(t._score||0).toLocaleString(SPEEDIX_LANG)+'</div>'
             +'<div style="font-size:.6rem;color:var(--muted2);margin-top:1px">pts · base '+(t._base||0).toLocaleString(SPEEDIX_LANG)+'</div>'
           +'</div>'
         +'</div>';
@@ -22821,7 +22841,7 @@ async function renderTeams(){
             +'<div style="text-align:right;flex-shrink:0">'
               +'<div style="font-family:Bebas Neue,sans-serif;font-size:1.6rem;letter-spacing:3px;color:'+_tc+';line-height:1">#'+_myRank+'</div>'
               +'<div style="font-size:.58rem;color:var(--muted2);letter-spacing:.5px">RANG</div>'
-              +'<div style="font-family:Space Mono,monospace;font-size:.75rem;color:var(--gold);margin-top:.1rem">'+(_myTeamData._score||0).toLocaleString(SPEEDIX_LANG)+' pts</div>'
+              +'<div style="font-family:\'Rajdhani\',sans-serif;font-size:.9rem;font-weight:700;color:var(--gold);margin-top:.1rem">'+(_myTeamData._score||0).toLocaleString(SPEEDIX_LANG)+' pts</div>'
             +'</div>'
           +'</div>';
         // Actions (quitter + gestion capitaine — pas pour les teams open sauf quitter)
@@ -22905,7 +22925,7 @@ async function renderTeams(){
           +(isCap?'<span style="font-size:.58rem;font-weight:700;padding:.1rem .4rem;border-radius:3px;background:rgba(245,200,66,.15);border:1px solid rgba(245,200,66,.4);color:var(--gold);letter-spacing:.5px">C</span>':'')
           +kickBtn
         +'</div></td>'
-        +'<td style="text-align:right;font-family:Space Mono,monospace;font-size:.8rem;color:var(--gold);font-weight:700">'+(m.pts||0).toLocaleString(SPEEDIX_LANG)+'</td>'
+        +'<td style="text-align:right;font-family:\'Rajdhani\',sans-serif;font-size:.95rem;color:var(--gold);font-weight:700">'+(m.pts||0).toLocaleString(SPEEDIX_LANG)+'</td>'
         +'</tr>';
     }).join('');
 
@@ -26367,7 +26387,7 @@ function showPalmares(rank, type){
       return '<div style="display:flex;align-items:center;gap:.65rem;padding:.45rem .7rem;background:'+c[1]+'.06);border:1px solid '+c[1]+'.18);border-radius:7px">'
         +'<div style="font-family:Bebas Neue,sans-serif;font-size:1.1rem;color:'+c[0]+';width:28px;text-align:center;flex-shrink:0">'+rank+'</div>'
         +'<div style="flex:1"><span style="font-size:.75rem;color:var(--muted2)">P'+p.period+' · </span><span style="font-family:Bebas Neue,sans-serif;font-size:.88rem;letter-spacing:1px;color:'+c[0]+'">'+leagueName+'</span></div>'
-        +'<span style="font-family:Space Mono,monospace;font-size:.72rem;color:'+c[0]+'">'+(p.pts||0).toLocaleString(SPEEDIX_LANG)+' pts</span>'
+        +'<span style="font-family:\'Rajdhani\',sans-serif;font-size:.88rem;font-weight:700;color:'+c[0]+'">'+(p.pts||0).toLocaleString(SPEEDIX_LANG)+' pts</span>'
       +'</div>';
     }).join('');
   }
@@ -26542,7 +26562,7 @@ async function loadTeamMembers(teamId, teamName){
         var letter=g.charAt(0).toUpperCase();
         return '<span title="'+g.charAt(0).toUpperCase()+g.slice(1)+'" style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:5px;background:'+col+'22;border:1.5px solid '+col+';color:'+col+';font-family:\'Bebas Neue\',sans-serif;font-size:.85rem;font-weight:700">'+letter+'</span>';
       })()+'</td>'
-      +'<td style="text-align:right;font-family:Space Mono,monospace;font-size:.75rem;color:var(--gold)">'+(m._pts||0).toLocaleString(SPEEDIX_LANG)+'</td>'
+      +'<td style="text-align:right;font-family:\'Rajdhani\',sans-serif;font-size:.95rem;font-weight:700;color:var(--gold)">'+(m._pts||0).toLocaleString(SPEEDIX_LANG)+'</td>'
       +'</tr>';
   }).join('');
 }
@@ -26635,7 +26655,7 @@ function _rankRowHtml(p,i,valStr,valCol,modalId){
         : '<span style="font-family:\'Big Shoulders Display\',sans-serif;font-weight:900;font-style:italic;display:inline-block;transform:scaleY(1.15);font-size:.85rem;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;flex:1">'+(p.username||'—')+'</span>')
     +'</div></td>'
     +'<td><span title="'+g.charAt(0).toUpperCase()+g.slice(1)+'" style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:5px;background:'+col+'22;border:1.5px solid '+col+';color:'+col+';font-family:\'Bebas Neue\',sans-serif;font-size:.85rem;font-weight:700">'+letter+'</span></td>'
-    +'<td style="text-align:right;white-space:nowrap;font-family:Space Mono,monospace;font-size:.75rem;color:'+valCol+'">'+valStr+'</td>'
+    +'<td style="text-align:right;white-space:nowrap;font-family:\'Rajdhani\',sans-serif;font-size:.95rem;font-weight:700;color:'+valCol+'">'+valStr+'</td>'
     +'</tr>';
 }
 
