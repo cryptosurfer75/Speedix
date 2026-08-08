@@ -2407,8 +2407,8 @@ select option{background:#040c1c}
     <button class="nav-tab"        onclick="nav('league')">League</button>
     <button class="nav-tab active" onclick="navPlayerCard()">Player Card</button>
     <button class="nav-tab" onclick="nav('teams')" style="position:relative">Teams<span id="team-notif-badge" style="display:none;position:absolute;top:2px;right:2px;width:8px;height:8px;border-radius:50%;background:#4a90ff"></span></button>
-    <button class="nav-tab"        onclick="nav('lands')">Lands</button>
-    <button class="nav-tab" onclick="nav('points')" style="position:relative">Races<span id="feed-challenge-badge" style="display:none;position:absolute;top:2px;right:2px;width:8px;height:8px;border-radius:50%;background:#2ddb80;animation:onlinePulse 1.6s infinite"></span></button>
+    <button class="nav-tab"        onclick="nav('lands')">Le Tour</button>
+    <button class="nav-tab"        onclick="nav('points')">Races</button>
     <button class="nav-tab"        onclick="nav('social')">Feed</button>
     <button class="nav-tab"        onclick="nav('economy')">Market</button>
     <button class="nav-tab"        onclick="nav('access')">Premium</button>
@@ -2768,6 +2768,14 @@ select option{background:#040c1c}
           <img src="ai-icons/icon-defis-flat-v1.png" alt="Défis" style="width:86%;height:86%;object-fit:contain;display:block">
         </div>
         </div>
+        <!-- Pastille tuile Défis (2026-08-08, demande explicite — la pastille ne doit
+             vivre que sur les cases de la Player Card, jamais dans le menu déroulant) :
+             SIBLING du tile clippé, jamais enfant (même règle que social-notif-badge
+             juste au-dessus, cf reference_speedix_corner_bracket_pattern). Allumée par
+             updateChallengeNavBadge()/refreshCollabBadge() dès qu'un des 2 sous-badges
+             (Challenges ou Voisins, cf challenges-tab-events-badge/-collab-badge un peu
+             plus bas dans le fichier) est actif -- source unique, pas de recalcul ici. -->
+        <div id="defis-tile-badge" style="display:none;position:absolute;top:-4px;right:-4px;width:14px;height:14px;border-radius:50%;background:#2ddb80;box-shadow:0 0 8px rgba(45,219,128,.7);border:2px solid #0a1432;animation:onlinePulse 1.6s infinite;pointer-events:none"></div>
         <div class="pc-tile-hint tl"><svg viewBox="0 0 22 22"><path d="M0,22 L0,9 L9,0 L22,0" fill="none" stroke="#ff9d1f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
         <div class="pc-tile-hint br"><svg viewBox="0 0 22 22"><path d="M0,22 L0,9 L9,0 L22,0" fill="none" stroke="#ff9d1f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
         </div>
@@ -19540,7 +19548,7 @@ const TOAST_I18N_EN = {
   '✅ Loyer déjà payé ce mois':'✅ Rent already paid this month',
   '⚠️ Max 3 lands':'⚠️ Max 3 lands',
   '⚠️ Max 3 lands à sponsoriser à la fois':'⚠️ Max 3 lands to sponsor at once',
-  '⚠️ Maximum 2 challenges/mois en Free. Passe Premium pour en accepter plus.':'⚠️ Max 2 challenges/month on Free. Go Premium to accept more.',
+  '⚠️ Maximum 2 challenges/mois en Free. Passe en Premium pour challenges illimités.':'⚠️ Max 2 challenges/month on Free. Go Premium for unlimited challenges.',
   '⚠️ Maximum 4 photos':'⚠️ Maximum 4 photos',
   '✓ Message copié — colle-le dans WhatsApp/SMS/Mail':'✓ Message copied — paste it into WhatsApp/SMS/Email',
   '✓ Message copié — colle-le dans WhatsApp/SMS/Mail pour partager':'✓ Message copied — paste it into WhatsApp/SMS/Email to share',
@@ -24115,10 +24123,24 @@ function _markChallengesAsSeen(ids){
   localStorage.setItem(k,JSON.stringify(merged));
 }
 
-// Met à jour les pastilles "nouveau challenge" (nav Races + onglet Challenges).
-// La pastille s'affiche UNIQUEMENT s'il existe au moins un challenge actif jamais vu
-// par ce user. Elle s'éteint quand le RP visite l'onglet Challenges.
-async function updateChallengeNavBadge(){
+// Pastille combinée de la tuile "Défis" sur la Player Card (2026-08-08, demande
+// explicite user — les pastilles ne doivent vivre QUE sur les cases de la Player
+// Card, jamais dans le menu déroulant ni sur un onglet sans rapport comme Races,
+// qui n'a plus rien à voir avec Défis/Challenges depuis leur sortie en page à
+// part le 2026-07-21). S'allume dès que l'un des 2 sous-badges (Challenges OU
+// Voisins, posés sur les sous-onglets de la page Défis) est actif -- lit leur
+// état déjà calculé, ne relance jamais le calcul en double (doctrine anti-dérive).
+function _updateDefisTileBadge(){
+  var e1=document.getElementById('challenges-tab-events-badge');
+  var e2=document.getElementById('challenges-tab-collab-badge');
+  var on=(e1&&e1.style.display!=='none')||(e2&&e2.style.display!=='none');
+  _setBadgeBlink('defis-tile-badge', on, '#2ddb80');
+}
+
+// Met à jour la pastille "nouveau challenge" (sous-onglet Challenges de la page
+// Défis). La pastille s'affiche UNIQUEMENT s'il existe au moins un challenge
+// actif jamais vu par ce user. Elle s'éteint quand le RP visite l'onglet.
+async function updateChallengeNavBadge(markSeen){
   if(!currentUser) return;
   try {
     var today=getParisTodayStr();
@@ -24136,17 +24158,20 @@ async function updateChallengeNavBadge(){
       return b.threshold_type==='event_run' && !unlockedIds.has(b.id)
         && b.event_date && (b.event_date_end || b.event_date) >= today;
     });
+    if(markSeen && activeChallenges.length){
+      _markChallengesAsSeen(activeChallenges.map(function(b){return b.id;}));
+    }
     // 4. Filtre ceux jamais vus
     var seenIds=new Set(_getSeenChallenges());
     var hasUnseen=activeChallenges.some(function(b){return !seenIds.has(b.id);});
-    // 5. Applique l'état aux pastilles
-    // Réactivées le 2026-08-07 (demande explicite) après avoir été désactivées
-    // le 2026-07-xx (trop intrusives, clignotaient même sans rien de nouveau) —
+    // 5. Applique l'état à la pastille
+    // Réactivée le 2026-08-07 (demande explicite) après avoir été désactivée
+    // le 2026-07-xx (trop intrusive, clignotait même sans rien de nouveau) —
     // le clignotement est maintenant strictement lié à hasUnseen (un vrai
     // challenge jamais vu) et s'éteint dès le clic (cf _markChallengesAsSeen),
     // donc ne devrait plus rester allumé en continu comme avant.
-    _setBadgeBlink('feed-challenge-badge', hasUnseen, '#2ddb80');
     _setBadgeBlink('challenges-tab-events-badge', hasUnseen, '#2ddb80');
+    _updateDefisTileBadge();
   } catch(e){ console.warn('[updateChallengeNavBadge]',e); }
 }
 
@@ -24271,13 +24296,9 @@ function switchChallengesTab(tab){
     if(collabWrap) collabWrap.style.display='none';
     // events / defis : marquage Events si onglet events
     if(tab==='events'){
-      var today=getParisTodayStr();
-      var activeIds=(_badgesCatalog||[]).filter(function(b){
-        return b.threshold_type==='event_run'
-          && b.event_date && (b.event_date_end || b.event_date) >= today;
-      }).map(function(b){return b.id;});
-      if(activeIds.length) _markChallengesAsSeen(activeIds);
-      if(typeof updateChallengeNavBadge==='function') updateChallengeNavBadge();
+      // Marquage "vu" délégué à updateChallengeNavBadge(true) (2026-08-08) —
+      // source unique, même logique que nav('points'), plus de duplication.
+      if(typeof updateChallengeNavBadge==='function') updateChallengeNavBadge(true);
     }
     renderChallenges();
   }
@@ -25142,6 +25163,7 @@ async function refreshCollabBadge(){
   // qui avait fait désactiver la 1re version.
   var n = await countCollabPendingForBadge();
   _setBadgeBlink('challenges-tab-collab-badge', n>0, '#2ddb80');
+  if(typeof _updateDefisTileBadge==='function') _updateDefisTileBadge();
 }
 
 async function _markCollabSeen(){
@@ -25150,6 +25172,7 @@ async function _markCollabSeen(){
   // ne réapparaisse pas après refresh/reconnexion (jusqu'à ce qu'un NOUVEAU
   // défi soit proposé).
   _setBadgeBlink('challenges-tab-collab-badge', false);
+  if(typeof _updateDefisTileBadge==='function') _updateDefisTileBadge();
   if(!currentUser) return;
   try {
     var {data:myParts}=await supabaseClient.from('collab_challenge_participants')
@@ -25425,7 +25448,7 @@ async function participateEvent(badgeId,badgeName){
           return (d.getFullYear()+'-'+d.getMonth())===newKey;
         }).length;
         if(sameMonthCount>=2){
-          showToast('⚠️ Maximum 2 challenges/mois en Free. Passe Premium pour en accepter plus.');
+          showToast('⚠️ Maximum 2 challenges/mois en Free. Passe en Premium pour challenges illimités.');
           return;
         }
       }
