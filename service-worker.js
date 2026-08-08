@@ -2,11 +2,14 @@
 // Stratégie : network-first pour index.html (pour ne pas servir une version figée),
 // cache-first pour les assets statiques (icônes, logos, CDN).
 // ▸ Bump CACHE_VERSION à chaque release significative pour invalider l'ancien cache.
+// ▸ 2026-08-08 : format renommé speedix-vNNN -> speedix-V2-N (demande explicite
+//   user), N repart à 1 depuis le 1er push de cette session post-bascule Tour V2
+//   (v974 = V2-1, v975 = V2-2, v976 = V2-3, v977 = V2-4, celle-ci = V2-5).
 // ▸ Le client (index.html) détecte l'installation d'un nouveau SW, lui envoie
 //   SKIP_WAITING, et recharge automatiquement dès que le nouveau prend le
 //   contrôle — les utilisateurs ont ainsi la nouvelle version sans refresh manuel.
 
-const CACHE_VERSION = 'speedix-v977';
+const CACHE_VERSION = 'speedix-V2-5';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
