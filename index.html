@@ -2823,7 +2823,7 @@ select option{background:#040c1c}
           position:relative;width:100%;height:57px;display:flex;align-items:center;justify-content:center;
           padding:0;border:none;clip-path:polygon(9px 0,calc(100% - 9px) 0,100% 9px,100% calc(100% - 9px),calc(100% - 9px) 100%,9px 100%,0 calc(100% - 9px),0 9px);
           background:linear-gradient(135deg,rgba(144,96,240,.16),rgba(144,96,240,.04)),#0c0f1a;cursor:pointer;transition:all .18s;
-        " onmouseover="this.style.background='rgba(144,96,240,.22)'" onmouseout="this.style.background='linear-gradient(135deg,rgba(144,96,240,.16),rgba(144,96,240,.04)),#0c0f1a'"><img id="parrainage-emoji" src="ai-icons/icon-parrainage-flat-v1.png" alt="Parrainage" style="width:84%;height:84%;object-fit:contain;pointer-events:none;user-select:none"><div class="pc-tile-frame-fx"><svg viewBox="0 0 200 100" preserveAspectRatio="none"><polyline class="pc-tile-frame-line-violet" points="30,4 16,4 4,16 4,84 16,96 30,96"/><polyline class="pc-tile-frame-line-violet" points="170,4 184,4 196,16 196,84 184,96 170,96"/><polyline class="pc-tile-frame-line-in-violet" points="30,9 20,9 9,20 9,80 20,91 30,91"/><polyline class="pc-tile-frame-line-in-violet" points="170,9 180,9 191,20 191,80 180,91 170,91"/></svg></div></button>
+        " onmouseover="this.style.background='rgba(144,96,240,.22)'" onmouseout="this.style.background='linear-gradient(135deg,rgba(144,96,240,.16),rgba(144,96,240,.04)),#0c0f1a'"><div id="parrainage-emoji" style="width:84%;height:84%;background-image:url('ai-icons/icon-parrainage-flat-v1.png');background-size:contain;background-position:center;background-repeat:no-repeat;pointer-events:none;user-select:none"></div><div class="pc-tile-frame-fx"><svg viewBox="0 0 200 100" preserveAspectRatio="none"><polyline class="pc-tile-frame-line-violet" points="30,4 16,4 4,16 4,84 16,96 30,96"/><polyline class="pc-tile-frame-line-violet" points="170,4 184,4 196,16 196,84 184,96 170,96"/><polyline class="pc-tile-frame-line-in-violet" points="30,9 20,9 9,20 9,80 20,91 30,91"/><polyline class="pc-tile-frame-line-in-violet" points="170,9 180,9 191,20 191,80 180,91 170,91"/></svg></div></button>
       </div>
       <div style="background:linear-gradient(135deg,rgba(200,150,255,.9) 0%,rgba(144,96,240,.75) 60%,rgba(94,50,190,.9) 100%);box-shadow:0 0 8px rgba(144,96,240,.65);clip-path:polygon(10px 0,calc(100% - 10px) 0,100% 10px,100% calc(100% - 10px),calc(100% - 10px) 100%,10px 100%,0 calc(100% - 10px),0 10px);padding:1.5px;height:60px;box-sizing:border-box">
         <div id="pc-flag" style="position:relative;width:100%;height:57px;clip-path:polygon(9px 0,calc(100% - 9px) 0,100% 9px,100% calc(100% - 9px),calc(100% - 9px) 100%,9px 100%,0 calc(100% - 9px),0 9px);background:linear-gradient(135deg,rgba(144,96,240,.16),rgba(144,96,240,.04)),#0c0f1a;display:flex;align-items:center;justify-content:center;overflow:visible"><div class="pc-tile-frame-fx"><svg viewBox="0 0 200 100" preserveAspectRatio="none"><polyline class="pc-tile-frame-line-violet" points="30,4 16,4 4,16 4,84 16,96 30,96"/><polyline class="pc-tile-frame-line-violet" points="170,4 184,4 196,16 196,84 184,96 170,96"/><polyline class="pc-tile-frame-line-in-violet" points="30,9 20,9 9,20 9,80 20,91 30,91"/><polyline class="pc-tile-frame-line-in-violet" points="170,9 180,9 191,20 191,80 180,91 170,91"/></svg></div></div>
@@ -9662,7 +9662,7 @@ function renderDashboard(){
     // temps qu'elle réponde, on évite un flash du blason du RP précédemment
     // consulté — remplacée par le vrai blason dès que la requête revient.
     var _preEmoji=document.getElementById('parrainage-emoji');
-    if(_preEmoji) _preEmoji.src=_PARRAINAGE_DEFAULT_ICON;
+    if(_preEmoji) _preEmoji.style.backgroundImage="url('"+_PARRAINAGE_DEFAULT_ICON+"')";
     if(_parrUid&&typeof loadParrainageData==='function') loadParrainageData(_parrUid);
     var set=function(id,val){var el=document.getElementById(id);if(el)el.textContent=val;};
     // Identité
@@ -11617,7 +11617,13 @@ async function loadParrainageData(playerId){
     // "playerId===currentUser.id" laissait l'icône bloquée sur mon propre
     // blason même en consultant la fiche d'un autre RP sans titre.
     var _badgeSrc = _parrainageBadgeImg[info.titre];
-    elEmoji.src = _badgeSrc || _PARRAINAGE_DEFAULT_ICON;
+    // 2026-08-08 : passé d'un <img object-fit:contain> à un <div background-image
+    // background-size:contain> — malgré des sources propres et des calculs corrects,
+    // le rendu réel (signalé par l'user, capture à l'appui) coupait quand même le bas
+    // du blason sur mobile. background-size:contain est la technique la plus fiable
+    // pour "toujours montrer l'image entière, jamais coupée", sans dépendre du
+    // comportement d'object-fit sur un <img> flex-enfant en pourcentage.
+    elEmoji.style.backgroundImage = "url('"+(_badgeSrc || _PARRAINAGE_DEFAULT_ICON)+"')";
     // Taille réduite UNIQUEMENT pour les 4 blasons parrainage (2026-08-08, signalé
     // par l'user : "trop gros sur téléphone, uniquement l'icône à côté du drapeau,
     // pas celle de l'affiche") : ces images sont cadrées à fond perdu (le motif
