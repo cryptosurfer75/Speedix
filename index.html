@@ -28568,6 +28568,18 @@ window.Tour.init = async function(){
   var _tourResetInProgress = false;
   function saveTourState(){
     if(_tourResetInProgress || !currentUser || !currentUser.id) return;
+    // Garde-fou CRITIQUE (2026-08-08, bug corrigé — Val-DM/Jordan Smith/Nakamoto-75
+    // se sont tous retrouvés avec la MÊME position en base). Cause : ce setInterval
+    // 4s tourne en tâche de fond depuis le 1er Tour.init() de l'onglet et ne
+    // s'arrête JAMAIS tout seul. Si le RP se déconnecte et se reconnecte avec un
+    // AUTRE compte SANS revisiter la page Tour (donc sans redéclencher Tour.init(),
+    // qui force un rechargement complet dans ce cas, cf plus haut), ce timer
+    // continuait de tourner avec myIdx/ME du compte PRÉCÉDENT — currentUser.id
+    // avait changé, mais pas myIdx — et écrivait donc l'ANCIENNE position sur le
+    // NOUVEAU compte connecté, toutes les 4s, même sans jamais rouvrir le Tour.
+    // On n'écrit désormais que si le compte connecté est bien celui pour lequel
+    // Tour a été initialisé la dernière fois dans cet onglet.
+    if(currentUser.id !== _tourInitializedForUserId) return;
     supabaseClient.from('players').update({
       tour_idx: myIdx, tour_laps: ME.laps||0,
       tour_start_city: ME.startCity, tour_start_idx: ME.startIdx||0
