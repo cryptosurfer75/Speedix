@@ -11632,28 +11632,27 @@ async function loadParrainageData(playerId){
     // "playerId===currentUser.id" laissait l'icône bloquée sur mon propre
     // blason même en consultant la fiche d'un autre RP sans titre.
     var _badgeSrc = _parrainageBadgeImg[info.titre];
+    // 2026-08-08 : passé d'un <img object-fit:contain> à un <div background-image
+    // background-size:contain> — malgré des sources propres et des calculs corrects,
+    // le rendu réel (signalé par l'user, capture à l'appui) coupait quand même le bas
+    // du blason sur mobile. background-size:contain est la technique la plus fiable
+    // pour "toujours montrer l'image entière, jamais coupée", sans dépendre du
+    // comportement d'object-fit sur un <img> flex-enfant en pourcentage.
     elEmoji.style.backgroundImage = "url('"+(_badgeSrc || _PARRAINAGE_DEFAULT_ICON)+"')";
-    // 2026-08-08, round 2 : le vrai problème n'était pas une découpe CSS (contain
-    // ne peut techniquement pas couper, vérifié) — c'est que les 4 blasons sont des
-    // compositions HAUTES (écusson + ruban + étoile), et la tuile est large et BASSE
-    // (57px de haut). En "contain", tout rentre mais devient minuscule — le ruban et
-    // l'étoile tout en bas ne font plus que quelques pixels, illisibles, perçus comme
-    // "coupés" par l'user alors qu'ils sont techniquement présents. Pour les 4 blasons
-    // UNIQUEMENT : case carrée à taille FIXE (pas un pourcentage de la tuile large) +
-    // cover + position centrée sur le HAUT, pour montrer l'écusson en grand et net
-    // (partie la plus identifiable) plutôt que tout le dessin en minuscule illisible.
-    // L'icône par défaut (RP sans titre) n'est pas concernée, elle marchait déjà bien.
-    if(_badgeSrc){
-      elEmoji.style.width='44px';
-      elEmoji.style.height='44px';
-      elEmoji.style.backgroundSize='cover';
-      elEmoji.style.backgroundPosition='center 12%';
-    } else {
-      elEmoji.style.width='84%';
-      elEmoji.style.height='84%';
-      elEmoji.style.backgroundSize='contain';
-      elEmoji.style.backgroundPosition='center';
-    }
+    // ⚠️ 2026-08-08, tentative "cover + case fixe 44px" ESSAYÉE ET REJETÉE (encore
+    // pire selon l'user — "plus coupé", "encore plus petit") — remis à cette version
+    // (contain, 82%/84%) en attendant de reprendre le sujet plus tard.
+    elEmoji.style.backgroundSize='contain';
+    elEmoji.style.backgroundPosition='center';
+    // Taille réduite UNIQUEMENT pour les 4 blasons parrainage (2026-08-08, signalé
+    // par l'user : "trop gros sur téléphone, uniquement l'icône à côté du drapeau,
+    // pas celle de l'affiche") : ces images sont cadrées à fond perdu (le motif
+    // touche quasi les bords du PNG), contrairement à l'icône par défaut qui a une
+    // vraie marge intégrée — au même pourcentage d'affichage (86%), le blason
+    // paraît donc bien plus gros. On ne touche pas showParrainageInfo() (l'affiche),
+    // qui utilise ces mêmes fichiers dans son propre <img>, non concerné ici.
+    elEmoji.style.width = _badgeSrc ? '82%' : '84%';
+    elEmoji.style.height = _badgeSrc ? '82%' : '84%';
     if(currentUser && playerId===currentUser.id){
       window._myParrainageBadge = _badgeSrc || null;
     }
@@ -15750,8 +15749,17 @@ function syncChatLeagueBtnHeight(){
 function openLeagueChat(){
   if(!currentUser) return;
   // Marquer vu + éteindre la pastille (un seul salon désormais, plus de
-  // distinction "ma league vs une autre").
-  localStorage.setItem('leaguechat-seen-'+GLOBAL_CHAT_KEY+'-'+currentUser.id,new Date().toISOString());
+  // distinction "ma league vs une autre"). 2026-08-08 : passé de localStorage à
+  // la base (players.leaguechat_last_seen_at) — signalé par l'user, la pastille
+  // se rallumait à chaque reconnexion même sans nouveau message, signe que le
+  // "vu" gardé en local ne survivait pas d'une session à l'autre (même défaut
+  // que la position du Tour, cf players.tour_idx). localStorage gardé en plus,
+  // en filet de sécurité local instantané, mais la base fait foi.
+  var _now=new Date().toISOString();
+  try{ localStorage.setItem('leaguechat-seen-'+GLOBAL_CHAT_KEY+'-'+currentUser.id,_now); }catch(e){}
+  supabaseClient.from('players').update({leaguechat_last_seen_at:_now}).eq('id',currentUser.id).then(function(res){
+    if(res && res.error) console.warn('[leaguechat] maj leaguechat_last_seen_at échouée', res.error);
+  });
   _setBadgeBlink('leaguechat-notif-badge', false);
   nav('leaguechat');
   loadLeagueChat(GLOBAL_CHAT_KEY);
@@ -15759,10 +15767,21 @@ function openLeagueChat(){
 }
 
 // Pastille rouge sur le bouton "Chat" : nouveaux messages (d'autres RP)
-// depuis la dernière visite du salon global.
-function checkLeagueChatNotifs(){
+// depuis la dernière visite du salon global. Lu depuis la base (source unique,
+// cf commentaire dans openLeagueChat) — fallback localStorage seulement si la
+// colonne n'a jamais été renseignée (RP jamais passé par le nouveau code).
+async function checkLeagueChatNotifs(){
   if(!currentUser) return;
-  var lastSeen=localStorage.getItem('leaguechat-seen-'+GLOBAL_CHAT_KEY+'-'+currentUser.id)||'2000-01-01';
+  var lastSeen='2000-01-01';
+  try{
+    var {data}=await supabaseClient.from('players').select('leaguechat_last_seen_at').eq('id',currentUser.id).single();
+    if(data && data.leaguechat_last_seen_at){
+      lastSeen=data.leaguechat_last_seen_at;
+    } else {
+      var _local=localStorage.getItem('leaguechat-seen-'+GLOBAL_CHAT_KEY+'-'+currentUser.id);
+      if(_local) lastSeen=_local;
+    }
+  }catch(e){}
   window.fetch(supabaseUrl+'/rest/v1/league_messages?league=eq.'+encodeURIComponent(GLOBAL_CHAT_KEY)+'&player_id=neq.'+encodeURIComponent(currentUser.id)+'&created_at=gt.'+encodeURIComponent(lastSeen)+'&select=id',{
     headers:{'apikey':supabaseKey,'Authorization':'Bearer '+supabaseKey,'Accept':'application/json'}
   }).then(function(r){return r.json();}).then(function(rows){
