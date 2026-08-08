@@ -3512,8 +3512,8 @@ select option{background:#040c1c}
   <div class="block" style="padding:0;overflow:hidden;border:1.5px solid rgba(144,96,240,.6)">
     <div id="leaguechat-messages" style="height:60vh;min-height:320px;overflow-y:auto;display:flex;flex-direction:column;gap:.4rem;padding:1rem;scrollbar-width:thin;scrollbar-color:rgba(144,96,240,.25) transparent"></div>
     <div style="display:flex;gap:.5rem;padding:.75rem 1rem;border-top:1px solid rgba(144,96,240,.25)">
-      <input id="leaguechat-input" type="text" placeholder="Message…" maxlength="300" style="flex:1;padding:.7rem .8rem;border-radius:8px;border:1px solid rgba(144,96,240,.25);background:rgba(4,12,28,.5);color:var(--text);font-size:.95rem;outline:none" onkeydown="if(event.key==='Enter')sendLeagueMessage()">
-      <button onclick="sendLeagueMessage()" style="padding:.55rem 1.1rem;border-radius:8px;border:1.5px solid rgba(45,219,128,.6);background:linear-gradient(135deg,rgba(45,219,128,.28),rgba(45,219,128,.08));color:var(--green);font-size:.85rem;font-weight:700;cursor:pointer">→</button>
+      <input id="leaguechat-input" type="text" placeholder="Message…" maxlength="300" style="flex:1;min-width:0;padding:.7rem .8rem;border-radius:8px;border:1px solid rgba(144,96,240,.25);background:rgba(4,12,28,.5);color:var(--text);font-size:.95rem;outline:none" onkeydown="if(event.key==='Enter')sendLeagueMessage()">
+      <button onclick="sendLeagueMessage()" style="flex-shrink:0;padding:.55rem 1.1rem;border-radius:8px;border:1.5px solid rgba(45,219,128,.6);background:linear-gradient(135deg,rgba(45,219,128,.28),rgba(45,219,128,.08));color:var(--green);font-size:.85rem;font-weight:700;cursor:pointer">→</button>
     </div>
   </div>
 </div>
