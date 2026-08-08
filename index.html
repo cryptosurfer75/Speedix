@@ -28481,7 +28481,31 @@ window.Tour.init = async function(){
   // même style que la démo validée) pour un RP que TU suis (table `follows`, cf
   // toggleFollow/_myFollowing plus haut dans le fichier). Couleur stable par RP (hash
   // de son id sur FRIEND_PALETTE) plutôt qu'aléatoire à chaque rafraîchissement.
+  // Couleurs choisies manuellement par CE user pour ses amis suivis (2026-08-08,
+  // demande explicite — "ne reste pas au refresh/en sortant de l'app") : avant,
+  // c'était volontairement éphémère (cf ancien commentaire de setRealFriendColor
+  // plus bas), remis au hash par défaut à chaque rechargement. Persisté en
+  // localStorage, même principe que seen-challenges-<uid> un peu plus haut dans
+  // le fichier — un choix de couleur est une préférence PERSO du viewer sur SES
+  // amis, pas une donnée de jeu partagée, localStorage suffit (pas de table dédiée).
+  function _friendColorOverridesKey(){
+    return currentUser ? ('friend-colors-'+currentUser.id) : null;
+  }
+  function _getFriendColorOverrides(){
+    var k=_friendColorOverridesKey();
+    if(!k) return {};
+    try { return JSON.parse(localStorage.getItem(k)||'{}'); } catch(e) { return {}; }
+  }
+  function _setFriendColorOverride(playerId, colorIdx){
+    var k=_friendColorOverridesKey();
+    if(!k) return;
+    var overrides=_getFriendColorOverrides();
+    overrides[playerId]=colorIdx;
+    localStorage.setItem(k, JSON.stringify(overrides));
+  }
   function _friendColorForId(id){
+    var overrides=_getFriendColorOverrides();
+    if(Object.prototype.hasOwnProperty.call(overrides,id)) return FRIEND_PALETTE[overrides[id]];
     var h = 0;
     for(var i=0;i<id.length;i++){ h = (h*31 + id.charCodeAt(i)) >>> 0; }
     return FRIEND_PALETTE[h % FRIEND_PALETTE.length];
@@ -28506,9 +28530,10 @@ window.Tour.init = async function(){
   // Change la couleur d'un ami RÉEL depuis les pastilles cliquables du popup
   // (2026-08-08, remis — existait dans la démo via setFriendColor/simMarkers,
   // remplacé ici par un index sur l'id du joueur plutôt qu'une position dans un
-  // tableau simulé). Ephémère (comme la démo) : pas persisté en base, remis à
-  // la couleur par défaut (hash de l'id) au prochain rechargement.
+  // tableau simulé). Persisté (2026-08-08, cf _setFriendColorOverride) : reste
+  // au refresh/en rouvrant l'app, jusqu'à un nouveau choix.
   function setRealFriendColor(playerId, colorIdx){
+    _setFriendColorOverride(playerId, colorIdx);
     const m = realPlayerMarkers.find(function(mk){
       const el = mk.getElement && mk.getElement();
       const dot = el && el.querySelector('.friend-marker');
