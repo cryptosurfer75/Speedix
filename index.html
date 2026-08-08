@@ -2729,11 +2729,14 @@ select option{background:#040c1c}
 
     </div><!-- /grid principal -->
 
-    <!-- Ligne : carré gauche (réservé) | drapeau (rectangle réduit) | carré droite (QUIZZ) -->
-      <!-- Grade + League, repositionnés juste au-dessus du drapeau -->
-        <!-- 3 badges sur la même ligne -->
-        <div style="display:grid;grid-template-columns:76px 1fr 76px;gap:.3rem;margin:.7rem 0 .2rem">
-          <div></div>
+    <!-- Grade + League, repositionnés juste au-dessus du drapeau -->
+        <!-- 3 badges sur la même ligne. Auparavant enveloppé dans le MÊME grid
+             76px/1fr/76px que la ligne du drapeau au-dessus (colonnes 1 et 3
+             vides, juste pour aligner visuellement) — supprimé le 08/08 :
+             signalé par l'user "plein d'espace à droite et à gauche, la tuile
+             est trop petite" — ces 2×76px (rétrécis à 70/60px sur mobile, cf
+             media queries ~ligne 801/813) étaient du vide pur qui empêchait
+             Grade/Ligue de profiter de toute la largeur disponible. -->
           <!-- align-items:flex-start (2026-08-05, corrige le vrai bug signalé —
                "gros cadre en dessous de couleur" sur Grade/Ligue) : par défaut
                un flex row étire tous ses enfants à la hauteur du plus grand
@@ -2743,7 +2746,7 @@ select option{background:#040c1c}
                s'étirait au-delà de leur propre contenu, laissant dépasser un
                bloc de couleur en dessous. Avec flex-start, chaque tuile garde
                sa propre hauteur naturelle, plus aucun étirement croisé. -->
-          <div style="display:flex;gap:.6rem;min-width:0;align-items:flex-start">
+          <div style="display:flex;gap:.6rem;min-width:0;align-items:flex-start;margin:.7rem 0 .2rem">
           <!-- Grade -->
           <div id="pc-badge-grade-ring" style="flex:1;min-width:0;background:linear-gradient(135deg,rgba(255,230,150,.85) 0%,rgba(245,200,66,.55) 50%,rgba(200,140,20,.85) 100%);box-shadow:0 0 6px rgba(245,200,66,.5);clip-path:polygon(9px 0,calc(100% - 9px) 0,100% 9px,100% calc(100% - 9px),calc(100% - 9px) 100%,9px 100%,0 calc(100% - 9px),0 9px);padding:1.5px">
             <div style="
@@ -2781,8 +2784,6 @@ select option{background:#040c1c}
             " id="pc-badge-league">—</div>
           </div>
           </div>
-          <div></div>
-        </div>
     <!-- ═══ ANCIEN cadre 3 fenêtres (pc-row-frame-v2-crop.png) — gardé en mémoire pour
          revenir en arrière facilement si le test ci-dessous ne convient pas. ═══
     <div style="position:relative;width:100%;aspect-ratio:1446/282;margin-bottom:.3rem">
