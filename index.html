@@ -22245,9 +22245,13 @@ async function renderTeams(){
         var _blasonIdx=getBlasonIdx(_pcTeamData);
         if(_blasonIdx>=0 && (AVAIL_BLASON_ZOOM[_blasonIdx]||AVAIL_BLASON_SMALL[_blasonIdx])){
           _pcImg.src=AVAIL_BLASON_ZOOM[_blasonIdx]||AVAIL_BLASON_SMALL[_blasonIdx];
-          // object-position décalé vers le bas : en cover pur (centré), le nom de l'équipe
-          // en bas du blason (ex. "ATLANTIS") se retrouvait à moitié coupé.
-          _pcImg.style.cssText='width:100%;height:100%;object-fit:cover;object-position:center 62%;display:block';
+          // 2026-08-08 : passé de cover à contain (plus jamais de découpe, cf le nom
+          // d'équipe en bas du blason qui se faisait couper) + réduit à 65% avec la
+          // tuile #pc-team-frame maintenant en flex centré — ⚠️ c'est CE bloc (RP avec
+          // une team) qui pilote l'affichage réel, pas le style HTML par défaut de
+          // l'img plus haut dans la page : cssText l'écrase entièrement à chaque
+          // renderTeams(), donc modifier UNIQUEMENT ici pour que ça se voie vraiment.
+          _pcImg.style.cssText='width:65%;height:65%;object-fit:contain;display:block';
         } else if(_pcTeamData.invite_code===OPEN_TEAM_MARKER){
           // Logo Team Open : 86%+marge 7% comme les autres icônes de tuile (Race/Feed/
           // Parrainage), pas 100% — sinon il reste visuellement plus gros qu'elles même
