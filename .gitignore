@@ -35,11 +35,13 @@ bots/
 # Coque native Capacitor (projet à part, jamais servi par GitHub Pages)
 capacitor-wrap/
 
-# Assets non référencés par index.html (brouillons/exploration)
-blasons/
-medals/
-flags/
-land-card-preview/
+# Assets non référencés par index.html (brouillons/exploration) — ancrés à la
+# racine (/xxx/) pour ne PAS exclure un dossier de même nom ailleurs, ex.
+# ai-icons/flags/ (vrais drapeaux utilisés par la Player Card, tout autre chose).
+/blasons/
+/medals/
+/flags/
+/land-card-preview/
 
 # Pages de test/aperçu autonomes (jamais déployées)
 test-medaille-reze.html

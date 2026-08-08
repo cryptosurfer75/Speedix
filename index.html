@@ -23272,15 +23272,6 @@ async function renderChallenges(){
   if(!_badgesCatalog){
     var {data:cat}=await supabaseClient.from('badges').select('*').order('sort_order');
     _badgesCatalog=cat||[];
-    // TEST LOCAL TEMPORAIRE (2026-08-07) — les paliers Edmonton/Rezé pas encore
-    // prêts pour les vrais RP sont mis en `threshold_type='event_run_pending'`
-    // en base (cf. reference_speedix_medal_standard) pour rester invisibles sur
-    // le vrai site déployé (qui ne reconnaît que 'event_run' à l'identique).
-    // Ici en local uniquement, on les renormalise en mémoire pour pouvoir tester
-    // le picker de distance sur les 4/3 paliers complets. À retirer une fois
-    // le chantier prêt à partir en prod (à ce moment-là, repasser aussi les
-    // lignes en base sur 'event_run').
-    _badgesCatalog.forEach(function(b){ if(b.threshold_type==='event_run_pending') b.threshold_type='event_run'; });
     // Garde défensive (2026-07-31) : _localizeBadgeInplace n'existe nulle part
     // dans le fichier (bug préexistant, hors sujet du chantier blasons) — sans
     // ce typeof, l'appel plantait silencieusement (promesse rejetée) et coupait
