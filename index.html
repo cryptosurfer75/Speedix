@@ -1297,8 +1297,8 @@ body::after{
   cursor:pointer;
 }
 @keyframes friendPulse{
-  0%,100%{ box-shadow:0 0 0 3px rgba(var(--fc),.3),0 0 7px 2px rgba(var(--fc),.6); }
-  50%{ box-shadow:0 0 0 5px rgba(var(--fc),.15),0 0 12px 4px rgba(var(--fc),.8); }
+  0%,100%{ box-shadow:0 0 0 2px rgba(var(--fc),.15),0 0 5px 1px rgba(var(--fc),.35); }
+  50%{ box-shadow:0 0 0 3px rgba(var(--fc),.3),0 0 7px 2px rgba(var(--fc),.6); }
 }
 
 /* Petit rond qui marque LA Land cliquée sur "Mes Lands", une fois revenu sur
@@ -19829,18 +19829,20 @@ function showTourV2WelcomeModal(startRpc, startNyx, refundRpc){
 // (qui vit maintenant en base, cf players.tour_idx et le commentaire sur ME
 // dans window.Tour.init).
 function _tourRunSeenKey(){ return 'tour-run-seen-'+(currentUser?currentUser.id:''); }
+// Date de la bascule SPEEDIX Tour V2 (commit 5a3b098, 2026-08-08 01h55 Paris).
+// Sert de plancher pour le rattrapage 1re ouverture ci-dessous : on ne remonte
+// jamais avant le lancement (pas de rattrapage sur l'historique complet d'un
+// compte ancien), mais on ne saute plus non plus la toute première fenêtre —
+// demande explicite du 08/08 pour que les RP qui ouvrent l'appli pour la
+// 1re fois depuis la bascule voient quand même la proposition d'aller sur le Tour.
+var TOUR_V2_LAUNCH_ISO = '2026-08-07T23:55:51.000Z';
 var _pendingTourKm = 0;
 async function checkPendingTourAdvance(){
   if(!currentUser) return 0;
   var key = _tourRunSeenKey();
   var lastSeen;
   try{ lastSeen = localStorage.getItem(key); }catch(e){ lastSeen = null; }
-  if(!lastSeen){
-    // 1re activation : pas de rattrapage sur tout l'historique, on démarre le
-    // suivi à partir de maintenant (cohérent avec "on repart tous à zéro").
-    try{ localStorage.setItem(key, new Date().toISOString()); }catch(e){}
-    return 0;
-  }
+  if(!lastSeen) lastSeen = TOUR_V2_LAUNCH_ISO;
   try{
     var {data} = await supabaseClient.from('runs')
       .select('distance').eq('player_id', currentUser.id).gt('run_date', lastSeen);
