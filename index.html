@@ -565,15 +565,9 @@ body::after{
 .mc:hover{transform:scale(1.3);z-index:2}
 .mc-free{background:rgba(255,255,255,.03);border-color:rgba(30,37,53,.8)}
 .mc-free:hover{border-color:var(--gold);background:rgba(245,200,66,.08)}
-.mc-mine{background:rgba(45,219,128,.12);border-color:rgba(45,219,128,.35)}
-.mc-other{background:rgba(74,144,255,.08);border-color:rgba(74,144,255,.2)}
 .mc-s1{background:rgba(245,200,66,.15);border-color:rgba(245,200,66,.45)}
 .mc-s2{background:rgba(255,96,32,.15);border-color:rgba(255,96,32,.45)}
 .mc-s3{background:rgba(144,96,240,.2);border-color:rgba(144,96,240,.5)}
-.mc-pirate{background:rgba(255,68,68,.12);border-color:rgba(255,68,68,.5);animation:blink-r 2s infinite}
-.mc-tresor{background:rgba(245,200,66,.2);border-color:var(--gold);animation:blink-g 1.5s infinite}
-@keyframes blink-r{50%{box-shadow:0 0 6px rgba(255,68,68,.5)}}
-@keyframes blink-g{50%{box-shadow:0 0 8px rgba(245,200,66,.6)}}
 .map-legend{display:flex;gap:.75rem;flex-wrap:wrap;margin-bottom:.75rem}
 .ml-item{display:flex;align-items:center;gap:.35rem;font-size:.68rem;color:var(--muted2)}
 .ml-dot{width:10px;height:10px;border-radius:2px;border:1px solid;flex-shrink:0}
@@ -2385,7 +2379,7 @@ select option{background:#040c1c}
       <div onclick="event.stopPropagation();navMenu('dashboard')"  class="rtw-item">🃏 Player Card</div>
       <div onclick="event.stopPropagation();navMenu('league')"     class="rtw-item">🏆 League</div>
       <div onclick="event.stopPropagation();navMenu('teams')"      class="rtw-item">🦈 Teams</div>
-      <div onclick="event.stopPropagation();navMenu('lands')"      class="rtw-item">🗺️ Lands</div>
+      <div onclick="event.stopPropagation();navMenu('lands')"      class="rtw-item">🗺️ Le Tour</div>
       <div onclick="event.stopPropagation();navMenu('points')"     class="rtw-item">🏃 Races</div>
       <div onclick="event.stopPropagation();navMenu('defis')"      class="rtw-item">🎯 Défis</div>
       <div onclick="event.stopPropagation();navMenu('social')"     class="rtw-item">📸 Feed</div>
@@ -6358,8 +6352,7 @@ const I18N = {
     'fp.view.teams'             : 'Visualisation RP dans les Teams',
     'fp.feed'                   : 'Accès Feed des amis',
     'fp.team.private'           : 'Création Team privée offerte',
-    'fp.treasures'              : 'Trésors cachés & bonus spéciaux',
-    'fp.challenges'             : 'Challenges et défis illimités',
+    'fp.challenges'             : 'Défis et challenges boostés',
     'fp.gifts.boost'            : '5 Boosts + 5 Gels offerts / mois',
     'fp.gifts.nyx'              : '20 NYX offerts / mois',
     // — Page Teams
@@ -7121,8 +7114,7 @@ const I18N = {
     'fp.view.teams'             : 'View RPs in Teams',
     'fp.feed'                   : 'Friends Feed access',
     'fp.team.private'           : 'Free private Team creation',
-    'fp.treasures'              : 'Hidden treasures & special bonuses',
-    'fp.challenges'             : 'Challenges and quests, unlimited',
+    'fp.challenges'             : 'Boosted Défis & Challenges',
     'fp.gifts.boost'            : '5 Boosts + 5 Freezes free / month',
     'fp.gifts.nyx'              : '20 NYX free / month',
     // — Teams page
@@ -9506,13 +9498,12 @@ const FP_DATA=[
   {key:'fp.land.rentbuy', f:'Location & achat des Lands',    free:true, prem:true},
   {key:'fp.ads',          f:'Publicités dans le jeu',        free:true, prem:false, freeNote:'oui', premNote:'non'},
   {key:'fp.land.stagecity',f:'Achat exclusif des villes étapes',free:false,prem:true},
-  {key:'fp.challenges',   f:'Challenges et défis illimités', free:false, prem:true},
+  {key:'fp.challenges',   f:'Défis et challenges boostés', free:false, prem:true},
   {key:'fp.view.rank',    f:'Visualisation de tous les classements', free:false,prem:true},
   {key:'fp.view.pc',      f:'Visualisation de toutes les PC',free:false,prem:true},
   {key:'fp.view.teams',   f:'Visualisation RP dans les Teams',free:false,prem:true},
   {key:'fp.feed',         f:'Accès Feed des amis',free:false,prem:true},
   {key:'fp.team.private', f:'Création Team privée offerte',   free:false,prem:true},
-  {key:'fp.treasures',    f:'Trésors cachés & bonus spéciaux',free:false,prem:true},
   {key:'fp.gifts.boost',  f:'5 Boosts + 5 Gels offerts / mois', free:false,prem:true},
   {key:'fp.gifts.nyx',    f:'20 NYX offerts / mois',         free:false,prem:true},
 ];
@@ -16087,7 +16078,14 @@ async function toggleFollow(playerId){
     });
     _myFollowing.splice(idx,1);
   } else {
-    // Follow
+    // Follow — réservé Premium (2026-08-08, défense en profondeur : l'UI cache déjà
+    // tous les points d'entrée pour un Free — barre de recherche RP, bouton "+ Suivre"
+    // — mais la fonction elle-même n'avait aucun garde interne). Le UNFOLLOW reste
+    // toujours possible, même passé Free après coup (pas de blocage à la sortie).
+    if(!isPremium()){
+      showToast('🔒 Passe en Premium pour suivre un RP');
+      return;
+    }
     await window.fetch(supabaseUrl+'/rest/v1/follows',{
       method:'POST',
       headers:{'apikey':supabaseKey,'Authorization':'Bearer '+supabaseKey,'Content-Type':'application/json','Prefer':'return=minimal'},
@@ -18324,9 +18322,10 @@ function showPlayerCard(playerId){
   if(playerId!==1&&!isPremium()){
     var targetPlayer=PLAYERS.find(function(x){return x.id===playerId;});
     var allowed=false;
-    // Free : peut voir les PC de sa league uniquement
-    var myKey=window.__myPlayer?window.__myPlayer.leagueKey:'starter';
-    if(targetPlayer&&targetPlayer.leagueKey===myKey) allowed=true;
+    // Free : peut voir les PC de sa league + celle au-dessus/en-dessous (2026-08-08,
+    // aligné sur canAccessLeague — même règle que le classement, source unique du
+    // ±1 ; avant, cette page était plus stricte : ligue EXACTE seulement).
+    if(targetPlayer && canAccessLeague(targetPlayer.leagueKey)) allowed=true;
     // Free : peut voir les PC des membres de sa team
     if(window.__myTeamId&&targetPlayer&&targetPlayer._uuid){
       var _tmMembers=window._myTeamMemberIds||[];
@@ -18626,47 +18625,6 @@ async function loadTeamLandsOnMap(){
 
 
 // renderMyLands — version dynamique définie plus haut
-
-function clickLand(idx,cls){
-  let title='Land #'+String(idx).padStart(3,'0'),sub='',body='';
-  if(cls==='mc-pirate'){
-    sub='☠️ Île du Pirate — Zone interdite';
-    body=`<div style="color:var(--red);font-size:.82rem;line-height:2">
-      Vitesse détectée supérieure à 20 km/h.<br>
-      <strong>Conséquences :</strong><br>
-      · Expulsion de la League<br>· Perte de la Player Card<br>
-      · Remise en jeu immédiate des Lands<br>· Blocage statut Premium
-    </div>`;
-  } else if(cls==='mc-tresor'){
-    sub='🎁 Trésor caché — Grade Confirmé requis';
-    body=`<div style="color:var(--gold);font-size:.82rem;margin-bottom:.75rem;line-height:1.8">
-      Un trésor est présent ici !<br>Contenu possible : RPC · Titre de propriété · Pack spécial
-    </div>
-    <button class="btn btn-gold" onclick="showToast('🎉 +12 500 RPC obtenus !');closeModal('land-modal')">Réclamer le trésor</button>`;
-  } else if(cls.includes('mc-mine')||cls.includes('mc-t')){
-    sub='Ta Land en location';
-    body=`<div style="font-size:.82rem;color:var(--muted2);line-height:2;margin-bottom:.75rem">
-      Statut : <strong style="color:var(--green)">Location</strong><br>
-      RPC / passage : <strong style="color:var(--gold)">3–12 RPC</strong><br>
-      Loyer : <strong style="color:var(--red)">4 000 RPC / période</strong>
-    </div>
-    <button class="btn btn-outline btn-sm" onclick="showToast('+1 Étoile ajouté — −10 NYX');closeModal('land-modal')">+ Étoile (10 NYX)</button>
-    <button class="btn btn-outline btn-sm" style="margin-left:.5rem" onclick="showToast('Land remise en jeu');closeModal('land-modal')">Remettre en jeu</button>`;
-  } else if(cls==='mc-other'){
-    sub='Occupée par un autre RP';
-    body='<div style="font-size:.82rem;color:var(--muted2)">Attendez qu\'elle soit libérée pour la revendiquer.</div>';
-  } else {
-    sub='Land libre — disponible';
-    body=`<div style="font-size:.82rem;color:var(--muted2);margin-bottom:.75rem;line-height:1.8">
-      Coût de location P1 : <strong style="color:var(--gold)">5 000 RPC / période</strong>
-    </div>
-    <button class="btn btn-gold" style="width:100%" onclick="showToast('Land revendiquée ! −5 000 RPC');closeModal('land-modal')">Revendiquer</button>`;
-  }
-  document.getElementById('lm-title').textContent=title;
-  document.getElementById('lm-sub').textContent=sub;
-  document.getElementById('lm-body').innerHTML=body;
-  openModal('land-modal');
-}
 
 /* ============================================================
    RENDER : TEAMS
@@ -26084,6 +26042,9 @@ async function loadTeamMembers(teamId, teamName){
       }).reduce(function(s,r){return s+(r.points||0);},0);
     }
     m._ptsForTeam=computeTeamMemberPtsForTeam(pts, m.role, joinedBefore, ptsBeforeJoin);
+    // Gardé pour l'affichage (2026-08-08, demande explicite user, signalement d'un
+    // RP) : même exemption que le calcul juste au-dessus (jamais pour le capitaine).
+    m._joinedAfterCutoff=(!joinedBefore && m.role!=='capitaine');
   });
   // Tri principal : ptsForTeam desc (pour identifier top 6 et extras), tiebreak sur pts
   data.sort(function(a,b){
@@ -26118,6 +26079,11 @@ async function loadTeamMembers(teamId, teamName){
           ? '<span onclick="closeModal(\'team-members-modal\');showPlayerCardByUuid(\''+m.player_id+'\')" style="font-family:\'Big Shoulders Display\',sans-serif;font-weight:900;font-style:italic;display:inline-block;transform:scaleY(1.15);font-size:.85rem;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;flex:1;cursor:pointer;text-decoration:underline;text-decoration-color:rgba(255,255,255,.3);text-underline-offset:3px" title="Voir la Player Card">'+(p.username||'—')+'</span>'
           : '<span style="font-family:\'Big Shoulders Display\',sans-serif;font-weight:900;font-style:italic;display:inline-block;transform:scaleY(1.15);font-size:.85rem;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;flex:1">'+(p.username||'—')+'</span>')
         +(isCap?'<span style="font-size:.55rem;font-weight:700;padding:.1rem .3rem;border-radius:3px;background:rgba(245,200,66,.15);border:1px solid rgba(245,200,66,.4);color:var(--gold);flex-shrink:0">CAP</span>':'')
+        // Croix rouge discrète (2026-08-08, demande explicite, signalée par un RP) :
+        // rejoint après le 10 du mois → ses points ne comptent pas dans la moyenne
+        // de cette période (règle déjà appliquée au calcul, cf m._joinedAfterCutoff
+        // plus haut — juste jamais expliquée visuellement jusqu'ici).
+        +(m._joinedAfterCutoff?'<span title="Rejoint après le 10 du mois — points non comptés dans la moyenne de cette période" style="color:var(--red);font-size:.62rem;font-weight:700;flex-shrink:0;line-height:1">✕</span>':'')
       +'</div></td>'
       +'<td>'+(function(){
         var g=(p.grade||'starter').toLowerCase();
