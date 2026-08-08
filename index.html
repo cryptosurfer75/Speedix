@@ -1176,6 +1176,11 @@ body::after{
   flex:1;min-width:60px;background:var(--bg3);border:1px solid var(--border2);color:var(--text);
   padding:8px 6px;border-radius:8px;font-family:'Rajdhani',sans-serif;font-weight:600;
   font-size:13px;cursor:pointer;transition:.15s;
+  /* Majuscule (2026-08-08, demande explicite, généralise le même traitement déjà
+     appliqué aux boutons askConfirm) : .rm-btn-play ("Acheter") est en Bebas Neue,
+     une police qui ne rend QUE des capitales -- ce bouton ("Plus tard"...) est en
+     Rajdhani (vraies minuscules), d'où l'incohérence visuelle signalée. */
+  text-transform:uppercase;
 }
 .tour-btn:hover{background:var(--border2);border-color:var(--gold)}
 .tour-btn:active{transform:scale(.96)}
@@ -1750,7 +1755,13 @@ body::after{
    ordre de peinture CSS) pour donner du volume sans jamais remplir un
    bouton/badge d'une couleur pleine (règle intacte, cf
    feedback_speedix_boutons_sans_fond_couleur). */
-.mlc-slot{ transition:transform .15s; }
+/* min-width:0 (2026-08-08, bug réel signalé par l'user avec 2 vraies Lands louées
+   sur mobile) : même piège que .mlc-row-label, un niveau au-dessus -- un enfant de
+   grille (.mlc-slot, direct sous .mylands-grid) a lui aussi min-width:auto par
+   défaut, donc ne se laisse jamais compresser sous la largeur naturelle de son
+   contenu même avec grid-template-columns:repeat(2,1fr). Résultat : la 2e carte
+   déborde complètement du cadre au lieu de tenir à 50%. */
+.mlc-slot{ min-width:0; transition:transform .15s; }
 .mlc-slot:hover{ transform:translateY(-3px); }
 .mlc-inner{
   position:relative; overflow:hidden;
@@ -30818,7 +30829,7 @@ window.Tour.init = async function(){
     if(!isOwned && !isEtapeOwned){
       return {
         title: `⭐ <span style="color:#fff">ÉTOILES</span> <span style="color:var(--gold)">RÉSERVÉES</span>`,
-        sub: `Les étoiles ne peuvent être posées que sur une Land que tu POSSÈDES — pas une Land en location. Deviens propriétaire de cette Land pour <b class="rm-green">${LAND_PRICE_NYX} NYX</b>, tu pourras ensuite y ajouter jusqu'à 3 étoiles.`,
+        sub: `Les étoiles ne peuvent être posées que sur une Land en PROPRIÉTÉ — pas une Land en location. Passe cette Land en propriété pour <b class="rm-green">${LAND_PRICE_NYX} NYX</b>, tu pourras ensuite y ajouter jusqu'à 3 étoiles.`,
         btns: `<button class="tour-btn" onclick="Tour.closeRentModal()">Plus tard</button><button class="rm-btn-play pulse-cta" onclick="Tour.attemptBuyLand(Tour.LANDS[${land.idx}])">Acheter</button>`
       };
     }
@@ -31789,7 +31800,7 @@ window.Tour.init = async function(){
     bevel.classList.add('event-frame');
     document.getElementById('tour-rm-inner').classList.remove('celebrate');
     document.getElementById('tour-rm-title').innerHTML = `🏛️ <span style="color:#fff">TAXE</span> <span style="color:var(--gold)">FONCIÈRE</span>`;
-    document.getElementById('tour-rm-sub').innerHTML = `Tu possèdes <b>${landsCount}</b> Land${landsCount>1?'s':''} — <b>5 NYX/Land = <span class="rm-gold">${amount} NYX</span></b> seront prélevés dans <b>${daysLeft}</b> jour${daysLeft>1?'s':''} si tu ne fais rien.<br><br>Tu peux demander l'exonération en cliquant ci-dessous — ça suffit à prouver que tu es toujours là. Tu peux aussi gérer tes Lands en sélectionnant celles que tu souhaites garder ou libérer.`;
+    document.getElementById('tour-rm-sub').innerHTML = `Tu as <b>${landsCount}</b> Land${landsCount>1?'s':''} en propriété — <b>5 NYX/Land = <span class="rm-gold">${amount} NYX</span></b> seront prélevés dans <b>${daysLeft}</b> jour${daysLeft>1?'s':''} si tu ne fais rien.<br><br>Tu peux demander l'exonération en cliquant ci-dessous — ça suffit à prouver que tu es toujours là. Tu peux aussi gérer tes Lands en sélectionnant celles que tu souhaites garder ou libérer.`;
     document.getElementById('tour-rm-btns').innerHTML = `<button class="tour-btn" onclick="Tour.showTaxReleasePicker()">GÉRER</button><button class="tour-btn" onclick="Tour.closeRentModal()">PASSER</button><button class="rm-btn-play pulse-cta" onclick="Tour.claimTaxExemption()">EXONÉRATION</button>`;
     document.getElementById('tour-rent-modal').classList.add('open');
     document.getElementById('tour-rm-status-strip').innerHTML = renderModalStatusStrip();
@@ -31810,7 +31821,7 @@ window.Tour.init = async function(){
     document.getElementById('tour-rm-inner').classList.remove('celebrate');
     document.getElementById('tour-rm-title').innerHTML = `⚙️ <span style="color:#fff">GÉRER SES</span> <span style="color:var(--gold)">LANDS</span>`;
     if(!mine.length){
-      document.getElementById('tour-rm-sub').innerHTML = `Tu n'as plus aucune Land ${_releasePickerMode==='rent'?'en location':'possédée'}.`;
+      document.getElementById('tour-rm-sub').innerHTML = `Tu n'as plus aucune Land ${_releasePickerMode==='rent'?'en location':'en propriété'}.`;
       document.getElementById('tour-rm-btns').innerHTML = `<button class="tour-btn gold" onclick="Tour.backFromReleasePicker()">← RETOUR</button>`;
       document.getElementById('tour-rm-status-strip').innerHTML = renderModalStatusStrip();
       return;
