@@ -4660,8 +4660,8 @@ select option{background:#040c1c}
     <div id="ask-confirm-title" class="modal-title" data-i18n="ac.title.default" style="text-align:center">Confirmation</div>
     <div id="ask-confirm-message" style="font-size:.85rem;color:var(--text);line-height:1.55;margin:.5rem 0 1.2rem"></div>
     <div style="display:flex;gap:.5rem">
-      <button id="ask-confirm-cancel" data-i18n="ac.cancel.default" style="flex:1;padding:.6rem;border-radius:8px;border:1px solid var(--border2);background:rgba(255,255,255,.03);color:var(--muted2);font-weight:700;font-size:.8rem;cursor:pointer">Annuler</button>
-      <button id="ask-confirm-ok" data-i18n="ac.ok.default" style="flex:1;padding:.6rem;border-radius:8px;border:1.5px solid var(--gold);background:linear-gradient(175deg,rgba(245,200,66,.22),rgba(200,160,20,.12));color:var(--gold);font-weight:700;font-size:.85rem;cursor:pointer;letter-spacing:.3px">Confirmer</button>
+      <button id="ask-confirm-cancel" data-i18n="ac.cancel.default" style="flex:1;padding:.6rem;border-radius:8px;border:1px solid var(--border2);background:rgba(255,255,255,.03);color:var(--muted2);font-weight:700;font-size:.8rem;cursor:pointer;text-transform:uppercase">Annuler</button>
+      <button id="ask-confirm-ok" data-i18n="ac.ok.default" style="flex:1;padding:.6rem;border-radius:8px;border:1.5px solid var(--gold);background:linear-gradient(175deg,rgba(245,200,66,.22),rgba(200,160,20,.12));color:var(--gold);font-weight:700;font-size:.85rem;cursor:pointer;letter-spacing:.3px;text-transform:uppercase">Confirmer</button>
     </div>
   </div>
 </div>
@@ -25528,7 +25528,7 @@ async function dropQuest(badgeId,badgeName){
   var _ok=await askConfirm(isOneShot
     ? 'Retirer ce défi ? Il redevient disponible pour être choisi plus tard.'
     : 'Mettre ce défi en pause ? Ta progression est conservée, elle reprendra lorsque tu le sélectionneras à nouveau.',
-    {title:isOneShot?'Retirer ce défi':'Mettre en pause',emoji:'🔄',okLabel:isOneShot?'Retirer':'Mettre en pause'});
+    {title:isOneShot?'Retirer ce défi':'Mettre en pause',emoji:'🔄',okLabel:isOneShot?'Retirer':'Mettre en pause',success:true});
   if(!_ok) return;
   try {
     if(isOneShot){
