@@ -3596,6 +3596,12 @@ select option{background:#040c1c}
          s'en servir que très très rarement") : la fenêtre automatique 1x/jour
          (checkPropertyTaxNotice, 15→25 du mois) suffit, plus besoin d'un bouton
          de vérification manuelle dédié. -->
+    <!-- Outils de test/démo, réservés à l'admin (2026-08-08, anomalie corrigée —
+         ces boutons déplacent la VRAIE position en base, players.tour_idx, donc
+         peuvent capturer des Lands/gagner du RPC réel : n'importe quel RP pouvait
+         s'en servir pour tricher). Masqué par défaut, ré-affiché par
+         initAdminPanel() uniquement si isAdmin(). -->
+    <div id="tour-admin-test-tools" style="display:none">
     <div class="sub" style="margin-top:10px;margin-bottom:2px">👉 Simule une course terminée de :</div>
     <div class="btnrow">
       <input type="number" id="tour-run-km-input" min="0.1" step="0.1" placeholder="Ex : 12,2 km" onkeydown="if(event.key==='Enter') Tour.runKmFromInput()" style="flex:1;min-width:80px;background:var(--bg3);border:1px solid var(--border2);color:var(--text);padding:8px 6px;border-radius:8px;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px">
@@ -3604,9 +3610,6 @@ select option{background:#040c1c}
     <div class="btnrow">
       <button class="tour-btn" onclick="Tour.hardResetTourDemo()">↺ Recommencer</button>
     </div>
-    <div class="sub" style="margin-top:10px;margin-bottom:2px">👉 Voir la densité réelle :</div>
-    <div class="btnrow">
-      <button class="tour-btn gold" onclick="Tour.simulate150()">👥 Simuler 250 RP</button>
     </div>
   </div>
 
@@ -17479,6 +17482,10 @@ async function initAdminPanel(){
     if(isAdmin()) mobileBtn.classList.add('is-admin');
     else mobileBtn.classList.remove('is-admin');
   }
+  // Outils de test Tour (simulateur de km, reset, densité 250 RP) : réservés à
+  // l'admin, cf commentaire au-dessus du bloc HTML (index.html ~3599).
+  var tourTestTools=document.getElementById('tour-admin-test-tools');
+  if(tourTestTools) tourTestTools.style.display=isAdmin()?'':'none';
   if(!isAdmin()) return;
   updateAdminOnlineCounter();
   adminSetupCollapsibleBlocks();
@@ -28262,21 +28269,60 @@ window.Tour.init = async function(){
   // pas la position absolue). Chargée une fois ici + rafraîchie périodiquement (pas
   // à chaque frame, cf setInterval plus bas) : updateMyRank() lit juste ce tableau.
   let TOUR_OTHERS_DIST = [];
+  let realPlayerMarkers = [];
   async function _refreshTourOthersDist(){
     try{
       const {data} = await supabaseClient.from('players')
-        .select('id,tour_idx,tour_laps,tour_start_idx')
+        .select('id,username,tour_idx,tour_laps,tour_start_idx')
         .not('tour_idx','is',null)
         .eq('frozen', false)
         .is('deleted_at', null);
-      TOUR_OTHERS_DIST = (data||[])
-        .filter(function(p){ return p.id !== (currentUser && currentUser.id); })
-        .map(function(p){
-          var dist = ((p.tour_idx - (p.tour_start_idx||0)) % TOTAL_CELLS + TOTAL_CELLS) % TOTAL_CELLS;
-          return (p.tour_laps||0)*TOTAL_CELLS + dist;
-        });
+      const others = (data||[]).filter(function(p){ return p.id !== (currentUser && currentUser.id); });
+      TOUR_OTHERS_DIST = others.map(function(p){
+        var dist = ((p.tour_idx - (p.tour_start_idx||0)) % TOTAL_CELLS + TOTAL_CELLS) % TOTAL_CELLS;
+        return (p.tour_laps||0)*TOTAL_CELLS + dist;
+      });
       updateMyRank();
+      await _renderRealPlayerMarkers(others);
     }catch(e){ console.warn('[Tour] _refreshTourOthersDist échoué', e); }
+  }
+  // Points sur la carte pour les VRAIS autres RP déjà partis sur le Tour (2026-08-08,
+  // demande explicite — jusqu'ici seuls les RP simulés du bouton démo "Simuler 250 RP"
+  // étaient visibles, les vrais RP ne servaient qu'au calcul de classement, sans point).
+  // Point noir discret pour un RP quelconque ; point coloré CLIGNOTANT (.friend-marker,
+  // même style que la démo validée) pour un RP que TU suis (table `follows`, cf
+  // toggleFollow/_myFollowing plus haut dans le fichier). Couleur stable par RP (hash
+  // de son id sur FRIEND_PALETTE) plutôt qu'aléatoire à chaque rafraîchissement.
+  function _friendColorForId(id){
+    var h = 0;
+    for(var i=0;i<id.length;i++){ h = (h*31 + id.charCodeAt(i)) >>> 0; }
+    return FRIEND_PALETTE[h % FRIEND_PALETTE.length];
+  }
+  async function _renderRealPlayerMarkers(others){
+    if(!map) return;
+    await loadMyFollowing();
+    realPlayerMarkers.forEach(function(m){ map.removeLayer(m); });
+    realPlayerMarkers = [];
+    others.forEach(function(p){
+      if(typeof p.tour_idx !== 'number') return;
+      const pos = posAt(p.tour_idx);
+      const isFriend = (_myFollowing||[]).indexOf(p.id) >= 0;
+      let m;
+      if(isFriend){
+        const fc = _friendColorForId(p.id);
+        m = L.marker([pos.lat,pos.lng], {
+          icon: L.divIcon({className:'', html:`<div class="friend-marker" style="--fc:${fc}"></div>`, iconSize:[14,14], iconAnchor:[7,7]}),
+          zIndexOffset: 900
+        }).addTo(map);
+        m.bindPopup(`❤️ ${p.username||'RP suivi'} — case n°${pos.i}`);
+      } else {
+        m = L.circleMarker([pos.lat,pos.lng], {
+          radius:5, weight:1.5, color:'#fff', fillColor:'#0a0c12', fillOpacity:.95
+        }).addTo(map);
+        m.bindPopup(`${p.username||'RP'} — case n°${pos.i}`);
+      }
+      realPlayerMarkers.push(m);
+    });
   }
   // Nombre de Lands du RP (louées + possédées + étape achetée) — utilisé par les
   // cases événement dont le coût dépend du nombre de Lands (ex. "ouragan"), et
