@@ -11523,11 +11523,15 @@ function getParrainageTitre(count){
 // Blasons illustrés par titre (2026-08-06) — SOURCE UNIQUE des chemins d'image,
 // utilisée à la fois par showParrainageInfo() (page dédiée) et par l'icône de
 // la Player Card (cf loadParrainageData plus bas) : jamais dupliquée.
+// ?v=2 (2026-08-08) : les 4 fichiers ont été nettoyés (artefacts noirs retirés) mais
+// gardent le même nom — sans ce paramètre, le navigateur peut continuer à servir
+// l'ancienne image depuis son cache HTTP même une fois l'app elle-même à jour
+// (CACHE_VERSION du service worker ne concerne que index.html/JS, pas ces PNG).
 var _parrainageBadgeImg={
-  'Ambassadeur':'ai-icons/parrainage-badges/ambassadeur.png',
-  'Gouverneur':'ai-icons/parrainage-badges/gouverneur.png',
-  'Empereur':'ai-icons/parrainage-badges/empereur.png',
-  'Fondateur':'ai-icons/parrainage-badges/fondateur.png'
+  'Ambassadeur':'ai-icons/parrainage-badges/ambassadeur.png?v=2',
+  'Gouverneur':'ai-icons/parrainage-badges/gouverneur.png?v=2',
+  'Empereur':'ai-icons/parrainage-badges/empereur.png?v=2',
+  'Fondateur':'ai-icons/parrainage-badges/fondateur.png?v=2'
 };
 // Icône de la tuile Player Card (à gauche du drapeau, cf #parrainage-emoji) —
 // remplacée par le blason du grade dès que le RP en a un (2026-08-06, demande
