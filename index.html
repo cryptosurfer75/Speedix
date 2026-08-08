@@ -27757,10 +27757,27 @@ try{ setInterval(updateBadge, 60000); }catch(e){}
 <script id="tour-script">
 (function(){
 var _tourInitialized = false;
+var _tourInitializedForUserId = null;
 window.Tour = window.Tour || {};
 window.Tour.init = async function(){
-  if(_tourInitialized){ window.Tour.onShow(); return; }
+  if(_tourInitialized){
+    // Changement de compte connecté depuis le dernier Tour.init() (2026-08-08,
+    // bug corrigé — jusqu'ici le Tour gardait en mémoire les données du 1er
+    // compte chargé dans l'onglet (position, grade, wallet…) et l'auto-
+    // sauvegarde périodique (saveTourState, toutes les 4s) écrivait alors CETTE
+    // position/ces données périmées sur le NOUVEAU compte connecté, écrasant sa
+    // vraie progression (vécu le 08/08 — la position et le grade réels de
+    // Val-DM écrasés après un changement de compte sans rechargement complet).
+    // Rechargement complet = seul moyen sûr de repartir propre : le module
+    // n'est pas conçu pour être ré-initialisé à chaud (carte Leaflet, intervals…).
+    if(_tourInitializedForUserId && currentUser && currentUser.id && currentUser.id!==_tourInitializedForUserId){
+      location.reload();
+      return;
+    }
+    window.Tour.onShow(); return;
+  }
   _tourInitialized = true;
+  _tourInitializedForUserId = currentUser && currentUser.id;
   
   // ============================================================
   // SPEEDIX TOUR — prototype visuel autonome (pas de backend, pas de sauvegarde)
