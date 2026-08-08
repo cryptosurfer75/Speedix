@@ -1848,7 +1848,13 @@ body::after{
   display:flex; align-items:center; justify-content:center; font-size:12.5px;
   background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.09);
 }
-.mlc-row-label{ flex:1; font-size:10.5px; color:var(--muted2); text-transform:uppercase; letter-spacing:.4px; line-height:1.3; }
+/* min-width:0 (2026-08-08, bug corrigé — cartes coupées sur mobile) : un enfant
+   flex refuse par défaut de rétrécir sous la largeur de son texte en une seule
+   ligne, même avec flex:1. Sur une carte proche du minimum de la grille (150px),
+   le libellé forçait la ligne entière à déborder — .mlc-inner (overflow:hidden)
+   coupait alors la valeur à droite. Sur desktop, les cartes ont plus de place
+   donc le libellé tenait sur une ligne sans jamais forcer ce débordement. */
+.mlc-row-label{ flex:1; min-width:0; font-size:10.5px; color:var(--muted2); text-transform:uppercase; letter-spacing:.4px; line-height:1.3; }
 /* Suffixe "/ passage" ou "/ mois" en minuscules dans le titre (2026-08-06,
    demande explicite) — le titre reste en MAJUSCULES (héritage du parent),
    ce span annule juste le text-transform pour lui seul. */
