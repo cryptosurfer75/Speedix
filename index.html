@@ -31163,7 +31163,11 @@ window.Tour.init = async function(){
     playerMarker.setLatLng([l.lat,l.lng]);
     document.getElementById('tour-p-idx').textContent = pos.i+' / '+TOTAL_CELLS;
     updateMyRank();
-    map.setView([l.lat,l.lng], 6);
+    // Zoom 9 (2026-08-08, demande explicite — "trop général, il faut zoomer dès le
+    // départ", confirmé par l'user comme équivalent à 3 clics sur le "+" depuis le
+    // zoom 6 d'origine) : même niveau que RUN_ZOOM, pour ne pas avoir un saut de
+    // zoom visible dès le premier déplacement après l'arrivée sur la page.
+    map.setView([l.lat,l.lng], 9);
   }
   function resetDemo(){
     closeRentModal();
