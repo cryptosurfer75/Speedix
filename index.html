@@ -29677,6 +29677,13 @@ window.Tour.init = async function(){
     const input = document.getElementById('tour-run-km-input');
     const km = parseFloat((input.value||'').replace(',','.'));
     if(!km || km<=0) return;
+    // Remonte en haut de la page (2026-08-08, demande explicite) : le champ de
+    // saisie est plus bas que la carte, donc sans ça le RP reste scrollé sur le
+    // panneau et ne voit jamais le pion avancer. Une vraie course (via
+    // consumeTourAdvance) n'a jamais ce souci — nav('lands') fait déjà ce même
+    // window.scrollTo(0,0) en changeant de page — seul le simulateur, qui ne
+    // change pas de page, en avait besoin.
+    window.scrollTo({top:0, behavior:'smooth'});
     runKm(km);
     input.value = '';
   }
