@@ -9868,19 +9868,16 @@ function renderDashboard(){
         // qu'elle n'est pas bouclée. Cf. tally à la rotation (processEndOfPeriod).
         var activePeriods=(cumData&&cumData.active_periods)||0;
         set('stat-periodes', activePeriods>0?activePeriods:'0');
-        // Lands locataire / propriétaire
-        // Une land en vente active est exclue du compte "propriété" (le RP a
-        // initié son désengagement, elle n'est plus comptée comme acquise).
-        var {data:myLandsLoc}=await supabaseClient.from('lands').select('id').eq('tenant_id',_statUid).eq('status','rented');
-        var {data:myLandsProp}=await supabaseClient.from('lands').select('id').eq('owner_id',_statUid).eq('status','owned');
-        var ownedIds=(myLandsProp||[]).map(function(l){return l.id;});
-        var activeSaleIds=[];
-        if(ownedIds.length){
-          var {data:activeSales}=await supabaseClient.from('land_sales')
-            .select('land_id').in('land_id',ownedIds).eq('status','active');
-          activeSaleIds=(activeSales||[]).map(function(s){return s.land_id;});
-        }
-        var nbPropEffective=ownedIds.filter(function(id){return activeSaleIds.indexOf(id)<0;}).length;
+        // Lands locataire / propriétaire — SOURCE UNIQUE = tour_lands (SPEEDIX Tour
+        // V2), PAS l'ancienne table `lands` (V1, gelée depuis la bascule Tour du
+        // 2026-08-08, cf CLAUDE.md). Bug corrigé 2026-08-08 (signalé par l'user,
+        // Jordan Smith) : ces 2 requêtes visaient encore `lands`/`tenant_id`/
+        // `owner_id`/`land_sales`, donc ne retrouvaient jamais rien pour AUCUN RP
+        // depuis la bascule. Une Land en vente active (tour_lands.for_sale) est
+        // exclue du compte "propriété" (le RP a initié son désengagement).
+        var {data:myLandsLoc}=await supabaseClient.from('tour_lands').select('idx').eq('holder_id',_statUid).eq('status','rented');
+        var {data:myLandsPropRaw}=await supabaseClient.from('tour_lands').select('idx,for_sale').eq('holder_id',_statUid).eq('status','owned');
+        var nbPropEffective=(myLandsPropRaw||[]).filter(function(l){return !l.for_sale;}).length;
         set('stat-lands-loc',(myLandsLoc?myLandsLoc.length:0));
         set('stat-lands-prop',nbPropEffective);
       })();
