@@ -769,7 +769,7 @@ body::after{
   #page-league.page{padding-left:.85rem;padding-right:.85rem}
   #league-main-panel .tbl{table-layout:fixed !important}
   #league-main-panel .tbl th,
-  #league-main-panel .tbl td{padding:.5rem .35rem}
+  #league-main-panel .tbl td{padding:.4rem .35rem}
   #league-main-panel .tbl th:first-child,
   #league-main-panel .tbl td:first-child{padding-left:.3rem;padding-right:.15rem;width:34px !important}
   #league-main-panel .tbl th:nth-child(3),
@@ -1277,7 +1277,7 @@ body::after{
    Lands dessus, juste un nom en jaune très transparent pour visualiser le
    tracé possible. */
 .preview-etape-label{
-  position:absolute;color:rgba(245,200,66,.35);font-family:'Bebas Neue',sans-serif;font-size:13px;
+  position:absolute;color:rgba(245,200,66,.15);font-family:'Bebas Neue',sans-serif;font-size:13px;
   letter-spacing:.5px;white-space:nowrap;text-shadow:0 1px 3px rgba(0,0,0,.6);
 }
 .player-marker{
@@ -10792,7 +10792,7 @@ function renderLeaguePanel(){
       ?'<span title="'+t('league.badge.paid')+'" style="font-size:.82rem;flex-shrink:0;line-height:1">💰</span>'
       :'';
     var avId='av-'+p.id+'-'+rankNum;
-    var avatarHtml='<div onclick="'+(p.id===1?'window.__viewedPlayer=null;renderDashboard();renderTeams();nav(\'dashboard\')':'showPlayerCard('+p.id+')')+'" style="width:28px;height:28px;border-radius:5px;border:2px solid '+gc+';overflow:hidden;flex-shrink:0;box-shadow:0 0 6px '+gc+'40;cursor:pointer;transition:transform .15s" onmouseover="this.style.transform=\'scale(1.1)\'" onmouseout="this.style.transform=\'\'" title="'+p.name+'"><canvas id="'+avId+'" width="28" height="28" style="display:block"></canvas></div>';
+    var avatarHtml='<div onclick="'+(p.id===1?'window.__viewedPlayer=null;renderDashboard();renderTeams();nav(\'dashboard\')':'showPlayerCard('+p.id+')')+'" style="width:32px;height:32px;border-radius:6px;border:2px solid '+gc+';overflow:hidden;flex-shrink:0;box-shadow:0 0 7px '+gc+'40;cursor:pointer;transition:transform .15s" onmouseover="this.style.transform=\'scale(1.1)\'" onmouseout="this.style.transform=\'\'" title="'+p.name+'"><canvas id="'+avId+'" width="32" height="32" style="display:block"></canvas></div>';
     var ptsHtml='<span style="text-align:right;min-width:4ch;font-variant-numeric:tabular-nums"><strong style="color:'+ptColor+'">'+p.pts.toLocaleString(SPEEDIX_LANG)+'</strong></span>'
       +'<span style="display:inline-flex;align-items:center;gap:.35rem;min-width:34px;justify-content:flex-start">'+trendHtml+paidBadge+'</span>';
     // Ligne "moi" : jamais un <tr> stylé directement (::before/::after y cassent
@@ -10802,14 +10802,14 @@ function renderLeaguePanel(){
       return '<tr'+rowSkinClass+' data-uuid="'+(p._uuid||'')+'" style="'+_cascadeStyle+'"><td colspan="3" style="padding:.3rem 0;border-bottom:none">'
         +'<div class="my-row-tile" style="display:flex;align-items:center">'
         +'<span class="mrt-border"></span><span class="mrt-fill"></span>'
-        +'<div style="flex:0 0 34px;box-sizing:border-box;padding:.5rem .15rem .5rem .3rem;text-align:center">'+rankCell+'</div>'
-        +'<div style="flex:1;box-sizing:border-box;padding:.5rem .35rem .5rem .2rem;display:flex;align-items:center;gap:.55rem;min-width:0">'
+        +'<div style="flex:0 0 34px;box-sizing:border-box;padding:.4rem .15rem .4rem .3rem;text-align:center">'+rankCell+'</div>'
+        +'<div style="flex:1;box-sizing:border-box;padding:.4rem .35rem .4rem .2rem;display:flex;align-items:center;gap:.55rem;min-width:0">'
         +natFlagHtml(p.nat)
         +avatarHtml
         +'<div style="display:flex;align-items:center;gap:.2rem;min-width:0"><div class="runner-name">'+p.name+meBadge+'</div>'+crownBadge+infBadge+gelBadge+calibBadge+debtBadge+parrainBadge+'</div>'
         +'</div>'
         +(boostBadge?'<div style="display:flex;align-items:center;flex-shrink:0">'+boostBadge+'</div>':'')
-        +'<div style="flex:0 0 100px;box-sizing:border-box;padding:.5rem .35rem;font-family:monospace;font-size:.82rem;display:flex;align-items:center;justify-content:flex-end;gap:.45rem">'
+        +'<div style="flex:0 0 100px;box-sizing:border-box;padding:.4rem .35rem;font-family:monospace;font-size:.82rem;display:flex;align-items:center;justify-content:flex-end;gap:.45rem">'
         +ptsHtml
         +'</div>'
         +'</div></td></tr>';
@@ -11089,16 +11089,16 @@ function renderLeaguePanel(){
         var img=new Image();
         var _ox=ox;
         img.onload=function(){
-          _ox.clearRect(0,0,28,28);
+          _ox.clearRect(0,0,32,32);
           _ox.save();
-          _ox.beginPath();_ox.arc(14,14,14,0,Math.PI*2);_ox.clip();
-          _ox.drawImage(img,0,0,28,28);
+          _ox.beginPath();_ox.arc(16,16,16,0,Math.PI*2);_ox.clip();
+          _ox.drawImage(img,0,0,32,32);
           _ox.restore();
         };
-        img.onerror=function(){ drawMiniDefaultAvatar(_ox,28,p); };
+        img.onerror=function(){ drawMiniDefaultAvatar(_ox,32,p); };
         img.src=p.avatar;
       } else {
-        drawMiniDefaultAvatar(ox,28,p);
+        drawMiniDefaultAvatar(ox,32,p);
       }
     }
     // Numérotation en deux blocs indépendants (compétitifs 1..N, calibrage 1..M),
@@ -29034,7 +29034,7 @@ window.Tour.init = async function(){
     const bearing = bearingBetween(c, nb);
     const isBifurcation = i===bifurcationStart || i===bifurcationEnd;
     L.polygon(hexVertices(c.lat,c.lng,Math.min(HEX_RADIUS_KM,localSafeKm),bearing), {
-      stroke:true, color: isBifurcation ? '#ff4444' : '#f5c84255', weight: isBifurcation ? 2 : 1,
+      stroke:true, color: isBifurcation ? '#ff4444' : '#f5c84225', weight: isBifurcation ? 2 : 1,
       fillColor: isBifurcation ? '#ff444455' : '#f5c84220', fillOpacity: isBifurcation ? .6 : .4
     }).bindTooltip(isBifurcation ? 'Bifurcation — extension pas encore ouverte' : 'Extension pas encore ouverte', {direction:'top'}).addTo(map);
   });
@@ -29149,7 +29149,7 @@ window.Tour.init = async function(){
     const bearing = bearingBetween(c, nb);
     const isArrival = i===arrivalIdxNord;
     L.polygon(hexVertices(c.lat,c.lng,Math.min(HEX_RADIUS_KM,localSafeKm),bearing), {
-      stroke:true, color: isArrival ? '#ff4444' : '#f5c84255', weight: isArrival ? 2 : 1,
+      stroke:true, color: isArrival ? '#ff4444' : '#f5c84225', weight: isArrival ? 2 : 1,
       fillColor: isArrival ? '#ff444455' : '#f5c84220', fillOpacity: isArrival ? .6 : .4
     }).bindTooltip(isArrival ? 'Arrivée — extension pas encore ouverte' : 'Extension pas encore ouverte', {direction:'top'}).addTo(map);
   });
@@ -29289,7 +29289,7 @@ window.Tour.init = async function(){
     const bearing = bearingBetween(c, nb);
     const isBifurcation = i===bifurcationStartBelgique || i===bifurcationEndBelgique;
     L.polygon(hexVertices(c.lat,c.lng,Math.min(HEX_RADIUS_KM,localSafeKm),bearing), {
-      stroke:true, color: isBifurcation ? '#ff4444' : '#f5c84255', weight: isBifurcation ? 2 : 1,
+      stroke:true, color: isBifurcation ? '#ff4444' : '#f5c84225', weight: isBifurcation ? 2 : 1,
       fillColor: isBifurcation ? '#ff444455' : '#f5c84220', fillOpacity: isBifurcation ? .6 : .4
     }).bindTooltip(isBifurcation ? 'Bifurcation — extension pas encore ouverte' : 'Extension pas encore ouverte', {direction:'top'}).addTo(map);
   });
@@ -29535,7 +29535,7 @@ window.Tour.init = async function(){
     const bearing = bearingBetween(c, nb);
     const isBifurcation = i===bifurcationStartEurope || i===bifurcationEndEurope;
     L.polygon(hexVertices(c.lat,c.lng,Math.min(HEX_RADIUS_KM,localSafeKm),bearing), {
-      stroke:true, color: isBifurcation ? '#ff4444' : '#f5c84255', weight: isBifurcation ? 2 : 1,
+      stroke:true, color: isBifurcation ? '#ff4444' : '#f5c84225', weight: isBifurcation ? 2 : 1,
       fillColor: isBifurcation ? '#ff444455' : '#f5c84220', fillOpacity: isBifurcation ? .6 : .4
     }).bindTooltip(isBifurcation ? 'Bifurcation — extension pas encore ouverte' : 'Extension pas encore ouverte', {direction:'top'}).addTo(map);
   });
@@ -31778,10 +31778,15 @@ window.Tour.init = async function(){
         // faute de contraste (2026-08-01).
         m.bindPopup(`❤️ ${FRIEND_NAMES[friendPos]} — ${Math.round(km)} km parcourus → case n°${cellIdx}<br><span style="color:#5b2c8f;font-weight:600">${FRIEND_LANDS[friendPos]} Lands</span> actives sur la carte<br><div style="margin-top:6px">${swatches}</div>`);
       } else {
-        // Noir (au lieu de blanc) depuis que le tracé parcouru est devenu blanc
-        // (2026-08-01) — sinon un point posé sur une case déjà découverte disparaît.
+        // Blanc avec contour sombre (2026-08-08) : le remplissage noir posé le
+        // 2026-08-01 pour rester visible sur le tracé parcouru (devenu blanc)
+        // disparaissait partout ailleurs sur le fond sombre du plateau — la
+        // grande majorité de la carte — et rendait les RP simulés invisibles
+        // (signalé par l'user, 3 RP l'ayant dépassé introuvables sur la carte).
+        // Contour sombre conservé pour garder un minimum de contraste sur les
+        // rares cases déjà découvertes (blanches).
         m = L.circleMarker([l.lat,l.lng], {
-          radius:5, weight:1.5, color:'#fff', fillColor:'#0a0c12', fillOpacity:.95
+          radius:5, weight:1.5, color:'#0a0c12', fillColor:'#fff', fillOpacity:.95
         }).addTo(map);
         m.bindPopup(`RP simulé — ${Math.round(km)} km parcourus → case n°${cellIdx}`);
       }
