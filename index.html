@@ -1659,13 +1659,15 @@ body::after{
 /* Une seule carte par ligne sur mobile (2026-08-08, fix cartes coupées — 1er essai
    avec un libellé qui repasse à la ligne annulé, "pas beau", cf conversation) :
    à 150px la carte n'a pas assez de large pour tenir une ligne d'info (icône +
-   libellé + valeur) sans déborder, coupée par le cadre (overflow:hidden). En
-   dessous de 600px de large, on remonte le minimum à 260px — sur un téléphone
-   ça ne laisse jamais la place à 2 colonnes, la grille passe donc naturellement
-   à 1 seule carte par ligne, en pleine largeur, comme sur ordinateur où chaque
-   carte a déjà assez de place. Desktop inchangé (plusieurs colonnes de 150px+). */
+   libellé + valeur) sans déborder, coupée par le cadre (overflow:hidden).
+   2e essai (même jour) : une colonne en 1fr s'étirait bord à bord de l'écran,
+   ce qui grossissait aussi l'illustration proportionnellement → carte "immense",
+   signalé pas joli. Compromis : une seule colonne mais plafonnée à 300px et
+   centrée (au lieu de 1fr qui s'étire) — largement assez large pour qu'une
+   ligne d'info tienne sur une seule ligne, sans dévorer tout l'écran. Desktop
+   inchangé (plusieurs colonnes de 150px+, cf règle de base ci-dessus). */
 @media(max-width:600px){
-  .mylands-grid{ grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); }
+  .mylands-grid{ grid-template-columns:minmax(0,300px); justify-content:center; }
 }
 /* Page "Règles du jeu" (2026-08-04, porté depuis prototype-tour.html) — même
    overlay plein écran que "Mes Lands" (fond flouté + croix fixe icon-close-x.png),
