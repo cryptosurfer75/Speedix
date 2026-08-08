@@ -10718,7 +10718,9 @@ function renderLeaguePanel(){
     // moins avant la fin de la période (= alarme tardive, 2026-07-21 : avant
     // J-10, jugé trop stressant pour les retardataires). Sinon doré comme tout le monde.
     var ptColor=(isReleg && _daysLeftInPeriod<=7)?'var(--red)':'var(--gold)';
-    var parrainColors={A:'#2ddb80',G:'#ff6020',E:'#e454ff',F:'#f5c842'};
+    // MIROIR de getParrainageTitre() — garder synchro, NE PAS diverger (2026-08-08,
+    // corrigé en même temps : couleurs alignées sur les vrais blasons parrainage).
+    var parrainColors={A:'#c050d0',G:'var(--green)',E:'var(--gold)',F:'#1090e0'};
     var meBadge='';
     // Badge S = zone Starter (jamais sorti, < 500 pts cumulés)
     // Badge C = calibrage (hors Starter mais competitive=false, 1ère période complète en league)
@@ -11524,13 +11526,14 @@ function showRunDetails(runId){
 var _parrainageCache={count:0,titre:'—',titreKey:null,lettre:'·',color:'var(--muted2)',filleuls:[]};
 
 function getParrainageTitre(count){
-  if(count>=40) return {titre:'Fondateur',key:'sponsor.rank.F',lettre:'F',color:'var(--gold)'};
-  // Fuchsia (2026-08-06, demande explicite) — pas #9060f0/var(--purple), déjà
-  // pris par le grade de ligue "Elite" (confusion signalée par l'user). Reprend
-  // le fuchsia déjà utilisé comme couleur de cadre de la page Parrainage elle-même.
-  if(count>=30) return {titre:'Empereur',key:'sponsor.rank.E',lettre:'E',color:'#e454ff'};
-  if(count>=20) return {titre:'Gouverneur',key:'sponsor.rank.G',lettre:'G',color:'#ff6020'};
-  if(count>=10) return {titre:'Ambassadeur',key:'sponsor.rank.A',lettre:'A',color:'#2ddb80'};
+  // Couleurs alignées sur les VRAIES couleurs des blasons (ai-icons/parrainage-badges/,
+  // 2026-08-08, signalé par l'user — le texte ne correspondait à aucun des 4 blasons,
+  // ex. Ambassadeur écrit en vert alors que son blason est violet). Échantillonnées
+  // directement dans les fichiers plutôt que de retoucher les images.
+  if(count>=40) return {titre:'Fondateur',key:'sponsor.rank.F',lettre:'F',color:'#1090e0'};
+  if(count>=30) return {titre:'Empereur',key:'sponsor.rank.E',lettre:'E',color:'var(--gold)'};
+  if(count>=20) return {titre:'Gouverneur',key:'sponsor.rank.G',lettre:'G',color:'var(--green)'};
+  if(count>=10) return {titre:'Ambassadeur',key:'sponsor.rank.A',lettre:'A',color:'#c050d0'};
   return {titre:'—',key:null,lettre:'·',color:'var(--muted2)'};
 }
 // Blasons illustrés par titre (2026-08-06) — SOURCE UNIQUE des chemins d'image,
@@ -28418,6 +28421,13 @@ window.Tour.init = async function(){
   }
   async function _renderRealPlayerMarkers(others){
     if(!map) return;
+    // Ne jamais démolir/recréer les marqueurs pendant qu'une popup est ouverte
+    // (2026-08-08, bug corrigé — "les points apparaissent mais aucune action au
+    // clic" : le rafraîchissement toutes les 20s (_refreshTourOthersDist)
+    // recréait TOUS les marqueurs à chaque passage, fermant instantanément la
+    // popup si le RP cliquait pile à ce moment-là — le clic semblait n'avoir
+    // aucun effet). Le passage suivant (20s plus tard) retentera tout seul.
+    if(realPlayerMarkers.some(function(m){ return m.isPopupOpen && m.isPopupOpen(); })) return;
     await loadMyFollowing();
     const friendIds = others.filter(function(p){ return (_myFollowing||[]).indexOf(p.id)>=0; }).map(function(p){ return p.id; });
     const landsCounts = await _fetchFriendLandsCounts(friendIds);
