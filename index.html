@@ -1213,11 +1213,18 @@ body::after{
    2 <span> en z-index négatif derrière le texte, jamais border+clip-path sur
    un seul élément. */
 .tour-tile-btn{
-  position:relative;z-index:0;flex:1;min-width:110px;
+  position:relative;z-index:0;flex:1;min-width:110px;box-sizing:border-box;
   border:none;background:transparent;cursor:pointer;padding:10px 12px;
   font-family:'Rajdhani',sans-serif;font-weight:600;font-size:13px;color:var(--text);
   display:flex;align-items:center;justify-content:flex-start;gap:8px;text-align:left;
   transition:transform .15s;
+  /* Hauteur fixe (2026-08-09, demande explicite -- "je veux que les six soient
+     de la même taille") : sur petit écran, "Départ de course" et "Mes redevances"
+     passent sur 2 lignes alors que les 4 autres tiennent sur 1, ce qui rendait
+     les 3 .btnrow de hauteurs différentes. min-height réserve la place de 2
+     lignes pour TOUTES les tuiles -- celles à texte court restent juste centrées
+     verticalement (align-items:center déjà en place) dans la même hauteur. */
+  min-height:54px;
 }
 .tour-tile-btn:active{transform:scale(.96)}
 /* Émojis alignés en colonne (2026-08-09, demande explicite -- "comme les
@@ -11078,7 +11085,13 @@ function renderLeaguePanel(){
     // sinon un gagnant du Challenge encore sous le seuil de sa league (fréquent
     // en tout début de période, cf. commentaire plus bas) perdait son bandeau,
     // remplacé par le rouge de relégation (cas Juwi signalé par l'user 2026-08-09).
-    var rowBg=_rowMedalActive?('background:linear-gradient(100deg,'+p.medalBgC2+'40 0%,'+p.medalBgC1+'40 100%);'):(isReleg?'background:rgba(255,68,68,.04);':isPromo?'background:rgba(45,219,128,.04);':(isMe?'background:rgba(4,12,35,.85);':''));
+    // Fond rouge aligné sur la même règle que ptColor plus bas (2026-08-09,
+    // demande explicite -- "stressant" de voir son fond de ligne teinté rouge
+    // dès le début de période, dès qu'on est sous la ligne de maintien) : le
+    // fond ne vire au rouge qu'à J-7 ou moins, jamais avant. Avant ce correctif,
+    // isReleg seul suffisait à teinter -- incohérent avec ptColor qui, lui,
+    // respectait déjà la fenêtre de 7 jours depuis 2026-07-21.
+    var rowBg=_rowMedalActive?('background:linear-gradient(100deg,'+p.medalBgC2+'40 0%,'+p.medalBgC1+'40 100%);'):((isReleg&&_daysLeftInPeriod<=7)?'background:rgba(255,68,68,.04);':isPromo?'background:rgba(45,219,128,.04);':(isMe?'background:rgba(4,12,35,.85);':''));
     // Liseré autour de la ligne d'un gagnant de Challenge (48h), même traitement
     // que le contour de MA ligne mais dans la couleur du skin gagné -- demande
     // explicite de l'user 2026-08-09 : "le bandeau bleu est sympa mais un peu à
@@ -19496,8 +19509,11 @@ async function renderTeams(){
             +'<div class="team-sub">'+subLine+'</div>'
           +'</div>'
           +'<div class="team-pts-col" style="text-align:right;min-width:60px;position:relative;top:-3px">'
-            +'<div class="team-pts-val" style="font-size:1.1rem;color:var(--gold)">'+(t._score||0).toLocaleString(SPEEDIX_LANG)+'</div>'
-            +'<div style="font-size:.6rem;color:var(--muted2);margin-top:1px">pts · base '+(t._base||0).toLocaleString(SPEEDIX_LANG)+'</div>'
+            // tabularPts (2026-08-09, même correctif que League/Cash Run) : .team-pts-val
+            // est en Rajdhani, qui n'a pas de chiffres à largeur fixe -- sans ça, le score
+            // d'une team paraît plus ou moins "resserré" qu'une autre selon ses chiffres.
+            +'<div class="team-pts-val" style="font-size:1.1rem;color:var(--gold)">'+tabularPts(t._score||0)+'</div>'
+            +'<div style="font-size:.6rem;color:var(--muted2);margin-top:1px">pts · base '+tabularPts(t._base||0)+'</div>'
           +'</div>'
         +'</div>';
       }).join('');
@@ -22679,22 +22695,39 @@ async function participateEvent(badgeId,badgeName){
       }
     } catch(e){ console.warn('[event cap] check fail',e); }
   }
-  var key='participated-'+badgeId+'-'+currentUser.id;
-  localStorage.setItem(key,'1');
   // Dossard : préserver l'existant si déjà inscrit, sinon générer
   var bibKey='bib-'+badgeId+'-'+currentUser.id;
   var bib=localStorage.getItem(bibKey);
+  // ⚠️ Bug corrigé (2026-08-09, cas vécu — un RP inscrit avant sa course a vu le
+  // toast "✓ Inscrit" alors que l'écriture en base avait échoué, sans que rien ne
+  // le signale : supabase-js NE JETTE PAS d'exception sur une erreur DB/RLS, il
+  // renvoie juste {error}, donc le try/catch précédent ne l'attrapait jamais. Le
+  // localStorage était en plus posé AVANT même la tentative d'écriture. Résultat :
+  // le RP se croyait inscrit (dossard affiché) mais check-badges ne trouvait rien
+  // le jour J → badge jamais débloqué malgré le bon run. Désormais on lit
+  // explicitement {error} et on ne confirme/ne pose le localStorage que si
+  // l'écriture a vraiment réussi ; sinon toast d'erreur clair, rien de silencieux.
+  var _newBib=bib || String(Math.floor(Math.random()*899)+100);
+  var upsertError=null;
   try {
     if(!bib){
       var {data:existing}=await supabaseClient.from('player_event_participations')
         .select('bib_number').eq('player_id',currentUser.id).eq('badge_id',badgeId).maybeSingle();
-      bib=(existing && existing.bib_number) || String(Math.floor(Math.random()*899)+100);
-      localStorage.setItem(bibKey,bib);
+      if(existing && existing.bib_number) _newBib=existing.bib_number;
     }
-    await supabaseClient.from('player_event_participations')
-      .upsert({player_id:currentUser.id, badge_id:badgeId, bib_number:bib},{onConflict:'player_id,badge_id'});
-  } catch(e){ console.warn('participateEvent DB persist fail',e); }
-  showToast('✓ Inscrit à "'+(badgeName||'l\'événement')+'" — Dossard #'+bib+' attribué 🎽');
+    var {error}=await supabaseClient.from('player_event_participations')
+      .upsert({player_id:currentUser.id, badge_id:badgeId, bib_number:_newBib},{onConflict:'player_id,badge_id'});
+    upsertError=error;
+  } catch(e){ upsertError=e; }
+  if(upsertError){
+    console.warn('participateEvent DB persist fail',upsertError);
+    showToast('⚠️ Inscription impossible (problème réseau) — réessaie dans un instant');
+    return;
+  }
+  var key='participated-'+badgeId+'-'+currentUser.id;
+  localStorage.setItem(key,'1');
+  localStorage.setItem(bibKey,_newBib);
+  showToast('✓ Inscrit à "'+(badgeName||'l\'événement')+'" — Dossard #'+_newBib+' attribué 🎽');
   if(typeof renderChallenges==='function') renderChallenges();
   if(typeof renderMyChallenges==='function') renderMyChallenges();
 }
@@ -25098,7 +25131,12 @@ async function paintStats(){
     const rk = i<3 ? ['<img src="ai-icons/medal-1-gold.png" style="width:18px;height:18px;object-fit:contain">','<img src="ai-icons/medal-2-silver.png" style="width:18px;height:18px;object-fit:contain">','<img src="ai-icons/medal-3-bronze.png" style="width:18px;height:18px;object-fit:contain">'][i] : (i+1);
     // Flèche = position de référence (photo de minuit, serveur) − position actuelle (i+1).
     const prev = (r.refRank!=null) ? r.refRank : null;
-    row.innerHTML=`<span class="rk">${rk}</span><span class="nm">${r.name}</span><span class="gm">${fmt(r.games)}</span><span class="tr">${r.full}</span><span class="pts">${fmt(r.rpc)}</span><span class="tnd">${crTrendHtml(prev,i+1)}</span>`;
+    // .pts en Rajdhani (contrairement à .gm/.tr qui sont en Space Mono, déjà
+    // tabulaire) -- même bug de chiffres à largeur variable que le classement
+    // League (2026-08-09, signalé par l'user sur SON propre score, plus resserré
+    // que les autres) : on réutilise tabularPts() (cf plus haut dans le fichier),
+    // qui force chaque chiffre dans une case de largeur identique.
+    row.innerHTML=`<span class="rk">${rk}</span><span class="nm">${r.name}</span><span class="gm">${fmt(r.games)}</span><span class="tr">${r.full}</span><span class="pts">${tabularPts(r.rpc)}</span><span class="tnd">${crTrendHtml(prev,i+1)}</span>`;
     if(_crCascadeArmed){
       const _dyRows=Math.max(-15,Math.min(15,(prev!=null?prev:(i+1))-(i+1)));
       row.style.setProperty('--row-dy',(_dyRows*56)+'px');
@@ -29131,7 +29169,7 @@ window.Tour.init = async function(){
   }
   function _sleep(ms){ return new Promise(r=>setTimeout(r,ms)); }
   let _historyAbort = false;
-  function _animateGhost(marker, fromIdx, toIdx, trail, trailPts){
+  function _animateGhost(marker, fromIdx, toIdx){
     return new Promise(resolve=>{
       const dir = toIdx>=fromIdx ? 1 : -1;
       const cells = Math.abs(toIdx-fromIdx);
@@ -29150,11 +29188,7 @@ window.Tour.init = async function(){
         marker.setLatLng([pos.lat,pos.lng]);
         map.setView([pos.lat,pos.lng], map.getZoom(), {animate:false});
         if(p<1) requestAnimationFrame(frame);
-        else {
-          trailPts.push(posAt(((toIdx%TOTAL_CELLS)+TOTAL_CELLS)%TOTAL_CELLS));
-          trail.setLatLngs(trailPts);
-          resolve();
-        }
+        else resolve();
       }
       requestAnimationFrame(frame);
     });
@@ -29191,21 +29225,17 @@ window.Tour.init = async function(){
       icon: L.divIcon({className:'', html:'<div class="history-marker"></div>', iconSize:[18,18], iconAnchor:[9,9]}),
       zIndexOffset: 1200
     }).addTo(map);
-    const trailPts = [posAt(ME.startIdx)];
-    const trail = L.polyline(trailPts.map(p=>[p.lat,p.lng]), {color:'#ffffff', weight:3, opacity:.5, dashArray:'2,7'}).addTo(map);
-
     let from = ME.startIdx;
     for(let i=0; i<stops.length && !_historyAbort; i++){
       const stop = stops[i];
       const d = stop.date ? new Date(stop.date).toLocaleDateString('fr-FR') : '';
       label.textContent = 'Course '+(i+1)+'/'+stops.length+(d?' — '+d:'')+(stop.km?' — '+Number(stop.km).toLocaleString(SPEEDIX_LANG,{maximumFractionDigits:1})+' km':'');
-      await _animateGhost(ghost, from, stop.idx, trail, trailPts);
+      await _animateGhost(ghost, from, stop.idx);
       from = stop.idx;
       if(_historyAbort) break;
       await _sleep(650);
     }
     map.removeLayer(ghost);
-    map.removeLayer(trail);
     playerMarker.setOpacity(1);
     bar.remove();
     map.setView(posAt(myIdx), map.getZoom(), {animate:false});
