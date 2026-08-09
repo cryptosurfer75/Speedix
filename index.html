@@ -20890,16 +20890,30 @@ async function renderChallenges(){
     return s;
   }
   // stats() : progression affichée pour un badge donné.
+  // - Badges automatiques (Fidèle/Jackpot/Esprit d'équipe/Prospecteur, cf isAutoType
+  //   plus bas) : JAMAIS liés au système d'objectifs actifs -- pas de CHOISIR/pause
+  //   possible pour ces types, donc aucune ligne player_active_quests ne peut jamais
+  //   exister pour eux. Avant ce correctif (2026-08-09, demande explicite), ça
+  //   voulait dire que statsFor() retombait systématiquement sur le "return 0" tout
+  //   en bas, faute de q/p -- la barre de progression restait bloquée à 0 pour
+  //   toujours, même avec de vrais jackpots/défis collab gagnés. Ici on retourne
+  //   directement la valeur vie entière, sans passer par le système de quête.
+  //   MIROIR de checkBadges.ts -- garder synchro, NE PAS diverger.
   // - Jamais choisi (ni actif ni en pause) → 0 (gelé, jamais évalué).
   // - En pause → valeur gelée au moment de la mise en pause (banked_progress),
   //   ne bouge plus tant que le RP ne le reprend pas.
-  // - Actif → cashrun_jackpots est un total vie entière non horodaté, toujours
-  //   affiché tel quel ; les autres types combinent banked_progress + le delta
-  //   accumulé depuis la (ré)activation (somme, sauf types "record" = max).
+  // - Actif → les types combinent banked_progress + le delta accumulé depuis la
+  //   (ré)activation (somme, sauf types "record"/streak = max, cf _QUEST_MAX_TYPES).
   function statsFor(b){
+    if(b.threshold_type==='cashrun_jackpots') return cashrunJackpots;
+    if(b.threshold_type==='account_age_days') return (pRow&&pRow.created_at)?(Date.now()-new Date(pRow.created_at).getTime())/86400000:0;
+    if(b.threshold_type==='collab_wins') return collabWinRows.length;
+    // lands_owned (PROSPECTEUR) : pas de source vivante depuis la bascule Tour V2
+    // (l'ancienne table `lands` V1 est vide, aucun signal de possession simultanée
+    // n'existe plus) -- reste honnêtement à 0 plutôt que d'afficher un faux chiffre.
+    if(b.threshold_type==='lands_owned') return 0;
     var q=activeQuestsMap[b.id];
     if(q){
-      if(b.threshold_type==='cashrun_jackpots') return cashrunJackpots;
       var live=statsSince(q.since)[b.threshold_type]||0;
       var banked=q.banked||0;
       return _QUEST_MAX_TYPES[b.threshold_type] ? Math.max(banked,live) : banked+live;
@@ -21236,11 +21250,14 @@ async function renderChallenges(){
       // Objectif choisi puis mis en pause : progression gelée, n'avance plus — 2026-07-20.
       // Plus de mention "⏸ En pause" (2026-08-04, demande explicite) : le bouton
       // REPRENDRE suffit à comprendre l'état, inutile et ça décalait la carte.
+    } else if(isAutoType){
+      // Badges automatiques (2026-08-09, demande explicite -- "ma progression au
+      // jackpot devrait être 3/5") : jamais "non choisi" (rien à choisir), toujours
+      // la vraie valeur vie entière via statsFor() ci-dessus (plus jamais vide).
+      progressTxt=_fmtQuestProgress(b,current,target);
     } else if(!isActiveQuest){
-      // Jamais choisi comme objectif actif — 2026-07-20. Message dédié pour
-      // les badges automatiques (2026-08-03) : "non choisi" prêterait à
-      // confusion, il n'y a justement rien à choisir.
-      progressTxt=isAutoType ? '' : '🔒 Non choisi';
+      // Jamais choisi comme objectif actif — 2026-07-20.
+      progressTxt='🔒 Non choisi';
     } else if(isBinary){
       if(b.threshold_type==='simultaneous_lands') progressTxt=target+' Lands en 60 min';
       else progressTxt='À réaliser en 1 course';
@@ -21376,12 +21393,20 @@ async function renderChallenges(){
                   // réservée ni de saut de ligne forcé, ça réglait un symptôme qui
                   // n'existe plus une fois le texte redondant supprimé.
                   ?'<div style="font-size:.55rem;color:var(--muted);font-family:Space Mono,monospace;margin-bottom:.3rem">'+(isBinary?'':_fmtQuestProgress(b,current,target))+'</div>'+resumeBtn
-                  : (!isActiveQuest
-                      ?'<div style="font-size:.55rem;color:var(--muted);font-style:italic">'+progressTxt+'</div>'+pickBtn
-                      : (isBinary
-                          ?'<div style="font-size:.55rem;color:var(--muted);font-style:italic">'+progressTxt+'</div>'+questFooter
-                          :'<div style="font-size:.55rem;color:var(--muted);font-family:Space Mono,monospace;margin-bottom:.3rem">'+progressTxt+'</div>'
-                            +'<div style="height:3px;border-radius:2px;background:rgba(255,255,255,.06);overflow:hidden"><div style="height:100%;width:'+pct+'%;background:linear-gradient(90deg,'+_mixHex(color,0.3)+','+color+');border-radius:2px;transition:width .4s"></div></div>'+questFooter)))))
+                  : (isAutoType
+                      // Badges automatiques (2026-08-09, demande explicite) : vraie
+                      // barre de progression comme un objectif actif normal (même
+                      // gabarit de bar ci-dessous), + le rappel "se déclenche tout
+                      // seul" (pickBtn, déjà calculé pour isAutoType plus haut) au
+                      // lieu du bouton CHOISIR.
+                      ?'<div style="font-size:.55rem;color:var(--muted);font-family:Space Mono,monospace;margin-bottom:.3rem">'+progressTxt+'</div>'
+                        +'<div style="height:3px;border-radius:2px;background:rgba(255,255,255,.06);overflow:hidden"><div style="height:100%;width:'+pct+'%;background:linear-gradient(90deg,'+_mixHex(color,0.3)+','+color+');border-radius:2px;transition:width .4s"></div></div>'+pickBtn
+                      : (!isActiveQuest
+                          ?'<div style="font-size:.55rem;color:var(--muted);font-style:italic">'+progressTxt+'</div>'+pickBtn
+                          : (isBinary
+                              ?'<div style="font-size:.55rem;color:var(--muted);font-style:italic">'+progressTxt+'</div>'+questFooter
+                              :'<div style="font-size:.55rem;color:var(--muted);font-family:Space Mono,monospace;margin-bottom:.3rem">'+progressTxt+'</div>'
+                                +'<div style="height:3px;border-radius:2px;background:rgba(255,255,255,.06);overflow:hidden"><div style="height:100%;width:'+pct+'%;background:linear-gradient(90deg,'+_mixHex(color,0.3)+','+color+');border-radius:2px;transition:width .4s"></div></div>'+questFooter))))))
       +(rewardTxt.length?'<div style="font-size:.52rem;color:var(--muted2);margin-top:.3rem;letter-spacing:.3px">'+rewardTxt.join(' · ')+'</div>':'')
     +_cardClose
     // Vrais siblings du div biseauté (2026-08-05, cf commentaire sur
@@ -22818,7 +22843,13 @@ function _isQuestReplayable(b,timesEarned){
 // single_run_elv_m, speed_over_5km, simultaneous_lands. Utilisé en 2 endroits :
 // statsFor() (la pause garde le MEILLEUR des deux, jamais une somme) et le
 // picker (un seul défi par type actif à la fois — cf. pickQuestDirect).
-var _QUEST_MAX_TYPES={single_run_km:1,single_run_elv_m:1,speed_over_5km:1,simultaneous_lands:1};
+// streak_days ajouté ici le 2026-08-09 (demande explicite -- "une série qu'on
+// peut mettre en pause, ça n'en est plus une, le curseur doit aller jusqu'au
+// bout ou repartir à zéro") : pas pour la logique max/somme (jamais atteinte,
+// cf ci-dessous) mais pour hériter du comportement "isOneShot" de dropQuest/
+// pickQuestDirect -- retirer une Série SUPPRIME la ligne au lieu de la mettre
+// en pause avec la progression conservée, donc plus aucune notion de reprise.
+var _QUEST_MAX_TYPES={single_run_km:1,single_run_elv_m:1,speed_over_5km:1,simultaneous_lands:1,streak_days:1};
 
 // Sélection directe (2026-08-03) : remplace l'ancienne modale "picker" — tout
 // est déjà visible sur la page catégorisée, donc un clic sur CHOISIR/REJOUER/
@@ -22892,13 +22923,20 @@ async function dropQuest(badgeId,badgeName){
   // Retiré = retour direct en "🔒 Non choisi", ligne supprimée.
   var b=(_badgesCatalog||[]).find(function(x){return x.id===badgeId;});
   var isOneShot=b && _QUEST_MAX_TYPES[b.threshold_type];
+  // Série (streak_days, 2026-08-09, demande explicite — "ça n'en est plus une
+  // série si on peut la mettre en pause, le curseur doit aller jusqu'au bout ou
+  // repartir à zéro") : message dédié, plus explicite que le générique "isOneShot"
+  // ci-dessous sur la vraie conséquence (perte de la série en cours).
+  var isStreak=b && b.threshold_type==='streak_days';
   // Fenêtre de confirmation du jeu (2026-08-08, signalé par l'user — "c'est un
   // texte basique via Google", càd le confirm() natif du navigateur/téléphone,
   // pas une fenêtre du jeu) : askConfirm() remplace confirm() partout ailleurs
   // dans l'app, ce point-là avait été oublié.
-  var _ok=await askConfirm(isOneShot
-    ? 'Retirer ce défi ? Il redevient disponible pour être choisi plus tard.'
-    : 'Mettre ce défi en pause ? Ta progression est conservée, elle reprendra lorsque tu le sélectionneras à nouveau.',
+  var _ok=await askConfirm(isStreak
+    ? 'Retirer ce défi ? Ta série en cours repart à zéro — il n\'est pas possible de la mettre en pause.'
+    : isOneShot
+      ? 'Retirer ce défi ? Il redevient disponible pour être choisi plus tard.'
+      : 'Mettre ce défi en pause ? Ta progression est conservée, elle reprendra lorsque tu le sélectionneras à nouveau.',
     {title:isOneShot?'Retirer ce défi':'Mettre en pause',emoji:'🔄',okLabel:isOneShot?'Retirer':'Mettre en pause',success:true});
   if(!_ok) return;
   try {
