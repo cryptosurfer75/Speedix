@@ -602,83 +602,8 @@ body::after{
 .borb-avail{border-color:var(--border2);color:var(--muted);background:var(--bg3)}
 .borb-used{border-color:rgba(30,37,53,.5);color:rgba(90,96,128,.4);background:transparent}
 @keyframes glow-g{0%,100%{box-shadow:0 0 0 rgba(45,219,128,0)}50%{box-shadow:0 0 10px rgba(45,219,128,.5)}}
-.hex-tt{background:rgba(6,8,16,.92)!important;border:1px solid var(--border2)!important;color:var(--text)!important;font-size:.72rem!important;border-radius:6px!important}
-/* ── Initiale du propriétaire au centre des hexes des autres RP ──
-   Adapté au zoom via classe sur le conteneur de la map. Couleur subtile
-   (pas un white bright qui "claque" comme une enseigne) + outline noir fin
-   pour rester lisible sur n'importe quelle couleur de hex sous-jacente. */
-.hex-initial{pointer-events:none;background:none!important;border:none!important}
-.hex-sponsor-logo{pointer-events:none;background:none!important;border:none!important;display:flex!important;align-items:center;justify-content:center}
-.hex-sponsor-logo img{object-fit:contain;filter:drop-shadow(0 1px 3px rgba(0,0,0,.6))}
-/* Logo sponsor : caché en zoom large (sinon il écrase les hexes), taille fixe par palier */
-#lands-map.lz-tiny .hex-sponsor-logo,
-#lands-map.lz-12 .hex-sponsor-logo,
-#lands-map.lz-13 .hex-sponsor-logo,
-#lands-map.lz-14 .hex-sponsor-logo{display:none!important}
-#lands-map.lz-15 .hex-sponsor-logo img{width:32px;height:32px}
-#lands-map.lz-16 .hex-sponsor-logo img{width:42px;height:42px}
-#lands-map.lz-17 .hex-sponsor-logo img{width:54px;height:54px}
-#lands-map.lz-18p .hex-sponsor-logo img{width:64px;height:64px}
-.hex-initial-text{
-  color:rgba(255,255,255,.42);
-  font-family:'Bebas Neue',sans-serif;
-  font-weight:500;
-  text-align:center;
-  line-height:1;
-  letter-spacing:.5px;
-  text-shadow:0 0 2px rgba(0,0,0,.7);
-}
-/* Caché quand on dézoom : hexagones trop petits, lettre déborderait */
-/* Lettre cachée en vision large/moyenne — apparaît seulement au zoom fort
-   où le RP est focus sur une rue précise et a besoin d'identifier un hex. */
-#lands-map.lz-tiny .hex-initial-text{display:none}
-#lands-map.lz-12 .hex-initial-text{display:none}
-#lands-map.lz-13 .hex-initial-text{display:none}
-#lands-map.lz-14 .hex-initial-text{display:none}
-#lands-map.lz-15 .hex-initial-text{font-size:11px}
-#lands-map.lz-16 .hex-initial-text{font-size:13px}
-#lands-map.lz-17 .hex-initial-text{font-size:15px}
-#lands-map.lz-18p .hex-initial-text{font-size:18px}
-/* Opacité globale du calque SVG (hexagones + totems) atténuée en vue large.
-   Idée : visuel apaisé tant qu'on n'est pas focus sur une zone précise.
-   À partir du zoom 15 (apparition des lettres) → pleine luminosité.
-   ⚠️ Pas de transition CSS sur le SVG : ça interfère avec l'animation de
-   zoom de Leaflet (le SVG semble figé pendant que les tiles glissent). */
-#lands-map.lz-tiny .leaflet-overlay-pane svg{opacity:.45}
-#lands-map.lz-12 .leaflet-overlay-pane svg{opacity:.5}
-#lands-map.lz-13 .leaflet-overlay-pane svg{opacity:.58}
-#lands-map.lz-14 .leaflet-overlay-pane svg{opacity:.68}
 .leaflet-container{background:var(--bg2)!important;font-family:'Rajdhani',sans-serif!important}
-.speedix-totem{background:none!important;border:none!important}
-.speedix-star{background:none!important;border:none!important}
-.speedix-sale{background:none!important;border:none!important}
-.speedix-prop-label{background:none!important;border:none!important}
 
-/* ============================================================
-   MAP
-============================================================ */
-.map-wrap{display:grid;grid-template-columns:repeat(20,1fr);gap:2px}
-.mc{
-  aspect-ratio:1;border-radius:2px;cursor:pointer;
-  border:1px solid transparent;transition:all .12s;
-  display:flex;align-items:center;justify-content:center;
-  font-size:.3rem;
-}
-.mc:hover{transform:scale(1.3);z-index:2}
-.mc-free{background:rgba(255,255,255,.03);border-color:rgba(30,37,53,.8)}
-.mc-free:hover{border-color:var(--gold);background:rgba(245,200,66,.08)}
-.mc-s1{background:rgba(245,200,66,.15);border-color:rgba(245,200,66,.45)}
-.mc-s2{background:rgba(255,96,32,.15);border-color:rgba(255,96,32,.45)}
-.mc-s3{background:rgba(144,96,240,.2);border-color:rgba(144,96,240,.5)}
-.map-legend{display:flex;gap:.75rem;flex-wrap:wrap;margin-bottom:.75rem}
-.ml-item{display:flex;align-items:center;gap:.35rem;font-size:.68rem;color:var(--muted2)}
-.ml-dot{width:10px;height:10px;border-radius:2px;border:1px solid;flex-shrink:0}
-
-/* ============================================================
-   LANDS TABLE
-============================================================ */
-.status-loc{font-size:.65rem;font-weight:700;color:var(--blue)}
-.status-prop{font-size:.65rem;font-weight:700;color:var(--green)}
 
 /* ============================================================
    FORMULAS
@@ -886,16 +811,6 @@ body::after{
   #league-main-panel .runner-name{
     min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1 1 auto;
   }
-
-  /* LANDS — en-tête carte hexagonale : empiler proprement sur mobile.
-     Ligne 1 = titre, ligne 2 = toggle Individuel/Team à gauche + Classement à droite.
-     On masque le nom de ville (redondant avec le label affiché sur la carte). */
-  #lands-map-header{flex-direction:column;align-items:stretch;gap:.55rem}
-  #lands-map-header .lmap-ctrls{width:100%;gap:.5rem;flex-wrap:nowrap;align-items:center;justify-content:space-between;margin-left:0}
-  #lands-map-header .lmap-toggle{margin-left:0 !important}
-  #lands-map-header .lmap-toggle button{padding:.4rem .9rem;font-size:.72rem}
-  #lands-map-header #map-stats-indiv{margin-left:0 !important}
-  #lands-map-header #lands-city-name{display:none}
 
   /* Player Card : éviter que les 3 badges (grade, league, rank) poussent le blason/drapeau
      hors écran quand les valeurs sont longues. On compresse la grille 68/1fr/64 et on force
@@ -4298,19 +4213,16 @@ select option{background:#040c1c}
     <div class="block">
       <div class="block-header"><div class="block-title" data-i18n-html="eco.lands.rent.title">🔑 Lands <span class="hl">Location</span></div></div>
       <div class="block-body-sm">
-        <div class="eco-row"><span data-i18n="lands.rent.m13">Mois 1 à 3</span><span class="eco-price">5 000 RPC</span></div>
-        <div class="eco-row"><span data-i18n="lands.rent.m48">Mois 4 à 8</span><span class="eco-price">4 800 RPC</span></div>
-        <div class="eco-row"><span data-i18n="lands.rent.m912">Mois 9 à 12</span><span class="eco-price">4 600 RPC</span></div>
+        <div class="eco-row"><span data-i18n="lands.rent.m13">Loyer journalier</span><span class="eco-price">165 RPC</span></div>
+        <div class="eco-row"><span data-i18n="lands.rent.max">Bail maximum</span><span class="eco-price">6 mois</span></div>
       </div>
     </div>
 
     <div class="block">
       <div class="block-header"><div class="block-title" data-i18n-html="eco.lands.buy.title">🔑 Lands <span class="hl">Achat</span></div></div>
       <div class="block-body-sm">
-        <div class="eco-row"><span data-i18n="lands.buy.p3">Après P3</span><span class="eco-price eco-price-nyx">120 NYX</span></div>
-        <div class="eco-row"><span data-i18n="lands.buy.p6">Après P6</span><span class="eco-price eco-price-nyx">150 NYX</span></div>
-        <div class="eco-row"><span data-i18n="lands.buy.p12">Après P12</span><span class="eco-price eco-price-nyx">200 NYX</span></div>
-        <div class="eco-row"><span data-i18n="lands.buy.right">Droit d'acquisition</span><span class="eco-price eco-price-nyx">60 NYX</span></div>
+        <div class="eco-row"><span data-i18n="lands.buy.p3">Prix unique</span><span class="eco-price eco-price-nyx">80 NYX</span></div>
+        <div class="eco-row"><span data-i18n="lands.buy.right">Droit d'acquisition</span><span class="eco-price eco-price-nyx">20 NYX</span></div>
       </div>
     </div>
 
@@ -5976,18 +5888,19 @@ function askConfirm(message, opts){
 // §4   DASHBOARD                                  (~5076)  renderDashboard, computePts, calcPts
 // §5   LEAGUE / POINTS                            (~5654)  renderLeaguePanel, renderLeagueNav, getPrizeDistribution
 // §6   HISTORY / RÉFÉRRAL / CHALLENGES PERSO      (~6327)  renderHistory, showRunDetails, loadParrainageData, renderMyChallenges
-// §7   LANDS — MAP & MARCHÉ                       (~6777)  initLandsMap, loadLandsOnMap, buyLand, rentLand, addStar
-// §8   LOYER (RENT)                               (~8285)  RENT_DAILY_RATE, processMonthlyRent, adminAuditProrataRefunds
-// §9   EXPLORATION (CAPTURES)                     (~8664)  finishExploration, addTotems, showExploreSelectModal
-// §10  ADMIN — PANEL & SPONSOR LANDS              (~9067)  initAdminExplorePanel, adminFindAddress, adminSponsorLands
+// §7-§10 SUPPRIMÉS (2026-08-09) — ancien module Lands V1 (carte hexagonale,
+// marché, loyer V1, exploration GPS, admin sponsor) entièrement retiré, plus
+// jamais utilisé depuis le passage au SPEEDIX Tour V2 (nav('lands') pointe
+// désormais sur le Tour). Numérotation §11+ volontairement inchangée pour
+// rester alignée avec CLAUDE.md.
 // §11  PÉRIODES & FIN DE CYCLE                    (~9251)  processEndOfPeriod, renderPeriodRecap, startPeriodTimer
 // §12  CHAT TEAMS & SOCIAL FEED                   (~9997)  loadTeamChat, renderSocialFeed, toggleReaction, postComment
 // §13  ADMIN — UTILS & PRÉSENCE EN LIGNE          (~10940) isAdmin, initPresence, initAdminPanel, adminFindPlayerDuplicates
-// §14  PLAYER CARD & TERRITOIRE                   (~11593) showPlayerCard, showTerritoireRanking, switchMapMode
+// §14  PLAYER CARD & TERRITOIRE                   (~11593) showPlayerCard
 // §15  ÉCONOMIE & PREMIUM                         (~12112) isPremium, isFullPremium, updatePremiumUI, _checkPremiumExpiration
 // §16  NAV / MODALS / TOASTS / WALLET / LICENCES  (~12439) nav, openModal, walletLoad, buyLicence
-// §17  RÉFÉRRAL / STREAK / INFIRMERIE / BOOSTS    (~13109) checkReferralReward, checkAndClaimStreak, activateInfirmerie, activateBoost
-// §18  STRAVA OAUTH & SYNC                        (~13765) connectStrava, syncStravaActivities, processStravaLands
+// §17  RÉFÉRRAL / STREAK / INFIRMERIE / BOOSTS    (~13109) checkReferralSameTeam, checkAndClaimStreak, activateInfirmerie, activateBoost
+// §18  STRAVA OAUTH & SYNC                        (~13765) connectStrava, syncStravaActivities
 // §19  (supprimée 2026-07-20 — était RUNS CAPTURE & LIVE / GPS live, jamais fiable ; on passe uniquement par Strava)
 // §20  TEAMS — CRÉATION & GESTION                 (~15534) createTeam, doJoinTeam, leaveTeam, kickMember
 // §21  MEDALS / BADGES (UTILS DE CALCUL)          (~16527) loadPlayerMedals, _badgeRibbonLabel, _renderBadgeHex
@@ -6255,14 +6168,11 @@ const I18N = {
     'lands.col.action'          : 'Action',
     'lands.col.av'              : 'A / V',
     'lands.rent.title'          : 'Coûts <span class="hl">Location</span>',
-    'lands.rent.m13'            : 'Mois 1 à 3',
-    'lands.rent.m48'            : 'Mois 4 à 8',
-    'lands.rent.m912'           : 'Mois 9 à 12',
-    'lands.rent.note'           : '1er mois au prorata (165 RPC/jour restant)<br>Loyer dû entre le 5 et le 10 du mois<br>Après 12 mois → acheter la Land ou elle repart dans le jeu',
+    'lands.rent.m13'            : 'Loyer journalier',
+    'lands.rent.max'            : 'Bail maximum',
+    'lands.rent.note'           : '1er mois au prorata (165 RPC/jour restant)<br>Loyer dû entre le 5 et le 10 du mois<br>Après 6 mois → acheter la Land ou elle repart dans le jeu',
     'lands.buy.title'           : 'Achat <span class="hl">NYX</span>',
-    'lands.buy.p3'              : 'Après P3',
-    'lands.buy.p6'              : 'Après P6',
-    'lands.buy.p12'             : 'Après P12',
+    'lands.buy.p3'              : 'Prix unique',
     'lands.buy.right'           : 'Droit d\'acquisition',
     'lands.crossing.title'      : 'Récompenses <span class="hl">Passage</span>',
     'lands.crossing.s0'         : 'Sans étoile',
@@ -7017,14 +6927,11 @@ const I18N = {
     'lands.col.action'          : 'Action',
     'lands.col.av'              : 'B / S',
     'lands.rent.title'          : 'Rental <span class="hl">costs</span>',
-    'lands.rent.m13'            : 'Months 1 to 3',
-    'lands.rent.m48'            : 'Months 4 to 8',
-    'lands.rent.m912'           : 'Months 9 to 12',
-    'lands.rent.note'           : 'Month 1 pro-rated (165 RPC/day remaining)<br>Rent due between the 5th and 10th of the month<br>After 12 months → buy the Land or it goes back into play',
+    'lands.rent.m13'            : 'Daily rent',
+    'lands.rent.max'            : 'Maximum lease',
+    'lands.rent.note'           : 'Month 1 pro-rated (165 RPC/day remaining)<br>Rent due between the 5th and 10th of the month<br>After 6 months → buy the Land or it goes back into play',
     'lands.buy.title'           : 'NYX <span class="hl">purchase</span>',
-    'lands.buy.p3'              : 'After P3',
-    'lands.buy.p6'              : 'After P6',
-    'lands.buy.p12'             : 'After P12',
+    'lands.buy.p3'              : 'Single price',
     'lands.buy.right'           : 'Acquisition right',
     'lands.crossing.title'      : 'Crossing <span class="hl">rewards</span>',
     'lands.crossing.s0'         : 'No star',
@@ -11080,7 +10987,11 @@ function renderLeaguePanel(){
     // en tout début de période, cf. commentaire plus bas) perdait son bandeau,
     // remplacé par le rouge de relégation (cas Juwi signalé par l'user 2026-08-09).
     var rowBg=_rowMedalActive?('background:linear-gradient(100deg,'+p.medalBgC2+'40 0%,'+p.medalBgC1+'40 100%);'):(isReleg?'background:rgba(255,68,68,.04);':isPromo?'background:rgba(45,219,128,.04);':(isMe?'background:rgba(4,12,35,.85);':''));
-    var rowStyle=isMe?'box-shadow:inset 0 0 0 1.5px rgba(74,144,255,.65);':'';
+    // Liseré autour de la ligne d'un gagnant de Challenge (48h), même traitement
+    // que le contour de MA ligne mais dans la couleur du skin gagné -- demande
+    // explicite de l'user 2026-08-09 : "le bandeau bleu est sympa mais un peu à
+    // plat, un petit cadre comme celui de notre ligne RP".
+    var rowStyle=isMe?'box-shadow:inset 0 0 0 1.5px rgba(74,144,255,.65);':(_rowMedalActive?('box-shadow:inset 0 0 0 1.5px '+p.medalBgC1+'cc;'):'');
     // Reveal (balayage + contour) : uniquement MA ligne, en continu tant que je
     // suis sur la page (animation CSS infinie — s'arrête toute seule en quittant
     // la page puisque la ligne n'existe plus, cf. keyframes myRowShine/myRowGlowPulse).
@@ -15573,9 +15484,10 @@ async function adminCheckReferralMilestones(playerId, playerName){
   // SOURCE UNIQUE : on délègue à la recette base apply_referral_milestones, qui
   // évalue les 4 paliers (first_run, 1000_pts, 3_periods via active_periods,
   // same_team) de façon idempotente et crédite le parrain (credit_player).
-  // On NE recode PLUS 2 paliers sur 4 ici — cf doctrine anti-dérive (CLAUDE.md
-  // pt 4 + REGISTRE-REGLES-METIER.md). La voie course/team (checkReferralReward)
-  // et le trigger DB sur referred_by utilisent exactement la même règle.
+  // On NE recode PLUS aucun palier ici — cf doctrine anti-dérive (CLAUDE.md
+  // pt 4 + REGISTRE-REGLES-METIER.md). La voie course/team (checkReferralSameTeam,
+  // corrigée le 2026-08-09) et le trigger DB sur referred_by utilisent
+  // exactement la même règle.
   try{
     var {data:player}=await supabaseClient.from('players').select('referred_by').eq('id',playerId).single();
     if(!player||!player.referred_by) return;
@@ -15739,8 +15651,8 @@ async function loadAdminStats(){
 
 // ████████████████████████████████████████████████████████████████████████████
 // §14 — PLAYER CARD & TERRITOIRE
-// Carte joueur (fiche détaillée), classement territoire, switch mode carte.
-// showPlayerCard, showTerritoireRanking, switchMapMode, loadTeamLandsOnMap.
+// Carte joueur (fiche détaillée).
+// showPlayerCard.
 // ████████████████████████████████████████████████████████████████████████████
 
 function hexToRgb(hex){
@@ -16436,13 +16348,9 @@ function hideNavWalletBehindLogo(){
 
 function nav(page){
   // Accès nav('lands') OUVERT À TOUS (2026-08-08, bascule V2) : la page
-  // pointe désormais sur le nouveau SPEEDIX Tour, pas l'ancien système V1 —
-  // LANDS_PAUSED continue de bloquer UNIQUEMENT processMonthlyRent() et
-  // loadPendingExploration() (ancien système réel-GPS, tables V1 déjà
-  // vidées, aucune raison de les réactiver). Le blocage admin-only qui
-  // existait ici avant (page entière derrière LANDS_PAUSED) était une
-  // mesure pour l'ANCIEN système, jamais destinée au Tour — ne pas le
-  // remettre, ça bloquerait le Tour pour tous les vrais RP au lancement.
+  // pointe désormais sur le SPEEDIX Tour. L'ancien système Lands V1 (carte
+  // hexagonale, marché, loyer, exploration GPS) a été retiré complètement
+  // le 2026-08-09 — plus de blocage LANDS_PAUSED à gérer ici.
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
   document.getElementById('page-'+page).classList.add('active');
@@ -17566,29 +17474,6 @@ async function walletCreditOther(playerId, rpc, nyx, reason){
 // volontaire = INTERDITE, on passe par l'infirmerie), boosts temporaires.
 // ████████████████████████████████████████████████████████████████████████████
 
-async function checkReferralReward(rewardType){
-  if(!currentUser) return;
-  // Récupérer mon parrain
-  var {data:me}=await supabaseClient.from('players').select('referred_by').eq('id',currentUser.id).single();
-  if(!me||!me.referred_by) return; // pas de parrain
-  var parrainId=me.referred_by;
-  // Vérifier si cette récompense a déjà été donnée
-  var {data:existing}=await supabaseClient.from('referral_rewards')
-    .select('id').eq('parrain_id',parrainId).eq('filleul_id',currentUser.id).eq('reward_type',rewardType).maybeSingle();
-  if(existing) return; // déjà donnée
-  // Déterminer les montants
-  var rpc=0,nyx=0;
-  if(rewardType==='first_run'){rpc=2000;nyx=5;}
-  else{nyx=5;} // 3_periods, 1000_pts, same_team
-  // Enregistrer la récompense
-  await supabaseClient.from('referral_rewards').insert({
-    parrain_id:parrainId, filleul_id:currentUser.id,
-    reward_type:rewardType, rpc_amount:rpc, nyx_amount:nyx
-  });
-  // Créditer le parrain
-  await walletCreditOther(parrainId, rpc, nyx, 'Parrainage: '+rewardType);
-}
-
 // Labels des types de récompenses
 var REWARD_LABELS={
   'first_run':'a fait sa première course',
@@ -17658,11 +17543,16 @@ async function checkReferralNotifications(){
 // soit LA team du parrain — un parrain peut avoir des filleuls qui rejoignent
 // une autre team que la sienne, l'ancienne condition était injustement
 // impossible à valider dans ce cas). N'importe quelle team du filleul suffit.
+// SOURCE UNIQUE (2026-08-09) : délègue à la RPC base apply_referral_milestones
+// — MIROIR de la définition base, garder synchro. L'ancienne version
+// réimplémentait tout ce calcul en JS (montants en dur, idempotence maison)
+// malgré un commentaire du panel admin prétendant déjà passer par la base.
 async function checkReferralSameTeam(){
   if(!currentUser) return;
   var {data:me}=await supabaseClient.from('players').select('referred_by').eq('id',currentUser.id).single();
   if(!me||!me.referred_by) return;
-  await checkReferralReward('same_team');
+  try{ await supabaseClient.rpc('apply_referral_milestones',{p_parrain_id:me.referred_by,p_filleul_id:currentUser.id}); }
+  catch(e){ console.warn('[referral] apply_referral_milestones:', e.message); }
 }
 
 // ══════════════════════════════════════════════════════════════════════
@@ -23451,7 +23341,7 @@ function renderCountryRanking(nat){
 ============================================================ */
 (function init(){
   var renders=['renderDashboard','renderLeagueNav','renderLeaguePP','renderLeaguePanel',
-    'renderHistory','renderMyLands','renderTeams'];
+    'renderHistory','renderTeams'];
   renders.forEach(function(fn){
     try{ window[fn]?window[fn]():eval(fn+'()'); }
     catch(e){ console.warn('Render error in '+fn+':', e.message); }
