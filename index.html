@@ -808,8 +808,15 @@ body::after{
   #league-main-panel .tbl td:nth-child(2){min-width:0;overflow:hidden;padding-left:.2rem}
   #league-main-panel .tbl td:nth-child(2) > div{min-width:0;flex-wrap:nowrap;gap:.4rem}
   #league-main-panel .tbl td:nth-child(2) > div > div:last-child{min-width:0;flex:1 1 auto;overflow:hidden}
+  /* flex:0 (pas de grow) et non 1 (2026-08-09, corrigé -- signalé par l'user
+     "la pastille se balade, parfois juste après le nom, parfois au bout de
+     la ligne") : avec flex-grow:1, le nom occupait TOUJOURS toute la largeur
+     disponible même quand le texte était court, collant les badges à
+     l'extrémité de la ligne au lieu de juste après le nom. flex-shrink:1 +
+     min-width:0 restent nécessaires pour que l'ellipsis se déclenche sur les
+     noms vraiment trop longs. */
   #league-main-panel .runner-name{
-    min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1 1 auto;
+    min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:0 1 auto;
   }
 
   /* Player Card : éviter que les 3 badges (grade, league, rank) poussent le blason/drapeau
