@@ -14985,8 +14985,20 @@ function initPresence(user){
   });
   ch.subscribe(async function(status){
     if(status==='SUBSCRIBED'){
-      var uname=(window.__myPlayer&&window.__myPlayer.username)||user.email||'?';
-      await ch.track({username:uname});
+      // Toujours un vrai pseudo dans la liste "RP connectés" du panel admin —
+      // jamais l'email (2026-08-09, bug signalé par l'user : window.__myPlayer
+      // pouvait ne pas encore être chargé au moment du subscribe, l'ancien
+      // fallback affichait alors l'adresse mail à la place du pseudo). Nouveau
+      // fallback : relit le username directement en base plutôt que d'utiliser
+      // user.email.
+      var uname=window.__myPlayer&&window.__myPlayer.username;
+      if(!uname){
+        try{
+          var {data:pRow}=await supabaseClient.from('players').select('username').eq('id',user.id).single();
+          uname=pRow&&pRow.username;
+        }catch(e){}
+      }
+      await ch.track({username:uname||'?'});
     }
   });
 }
