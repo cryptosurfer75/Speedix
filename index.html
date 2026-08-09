@@ -8364,8 +8364,6 @@ async function loadPlayersFromSupabase(){
   if(typeof _scrollToMyLeagueRow === 'function') _scrollToMyLeagueRow();
   // Champion Cash Run du mois (👑) : recalcul async → re-render du panel si le #1 a changé.
   loadCashrunChampion();
-  // Pastilles distance des Challenges en cours (5/10/21/42…) : idem, async.
-  loadActiveEventDistances();
 
 }
 
@@ -8391,36 +8389,6 @@ async function loadCashrunChampion(){
   } catch(e){ console.warn('[cashrun champion] failed', e); }
 }
 
-// Pastille distance (2026-08-09, demande explicite) : petit rond avec la
-// distance (5/10/21/42…) à côté du pseudo, pour tout RP inscrit à un
-// Challenge "ville" ENCORE ACTIF (event_date_end pas encore passé) — utile
-// dès qu'un même Challenge propose plusieurs distances au choix
-// (b.event_group) pour voir d'un coup d'œil qui court quoi dans le
-// classement. Basé sur l'inscription (player_event_participations), PAS sur
-// le badge déjà gagné : MIROIR de la pastille posée sur showBadgeUnlockModal
-// (même style rond + bordure couleur du badge), garder synchro si ça change.
-// Async, même principe que loadCashrunChampion : re-render seulement si la
-// map a changé depuis le dernier calcul.
-async function loadActiveEventDistances(){
-  try {
-    var today=new Date().toISOString().slice(0,10);
-    var { data } = await supabaseClient
-      .from('player_event_participations')
-      .select('player_id, badges(threshold_value,color,event_date_end,threshold_type)');
-    var map={};
-    (data||[]).forEach(function(row){
-      var b=row.badges;
-      if(!b || b.threshold_type!=='event_run' || !b.event_date_end) return;
-      if(b.event_date_end<today) return; // challenge déjà terminé
-      if(b.threshold_value==null) return;
-      map[row.player_id]={dist:Math.round(b.threshold_value), color:b.color||'#f5c842'};
-    });
-    if(JSON.stringify(map)!==JSON.stringify(window.__activeEventDistances||{})){
-      window.__activeEventDistances=map;
-      if(typeof renderLeaguePanel==='function') renderLeaguePanel();
-    }
-  } catch(e){ console.warn('[event distances] failed', e); }
-}
 
 
 const AVAILABLE_TEAMS=[
@@ -11074,12 +11042,13 @@ function renderLeaguePanel(){
     var crownBadge=(window.__crMonthChampUuid && p._uuid===window.__crMonthChampUuid)
       ?'<span title="'+t('league.badge.quizzchamp')+'" style="margin-left:.3rem;font-size:.85rem;flex-shrink:0;line-height:1">👑</span>'
       :'';
-    // Pastille distance du Challenge en cours (5/10/21/42…) : posée par
-    // loadActiveEventDistances() pour tout RP inscrit à un event pas encore
-    // terminé. Utile dès qu'un même Challenge propose plusieurs distances.
-    var _evDist=window.__activeEventDistances && window.__activeEventDistances[p._uuid];
-    var eventDistBadge=_evDist
-      ?'<span title="Distance du challenge en cours" style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:#ffffff;border:1.5px solid '+_evDist.color+';font-family:\'Bebas Neue\',sans-serif;font-size:.72rem;font-weight:900;color:'+_evDist.color+';margin-left:.3rem;flex-shrink:0;line-height:1;padding-top:.12em">'+_evDist.dist+'</span>'
+    // Pastille distance (5/10/21/42…) : UNIQUEMENT pendant la fenêtre de 48h
+    // du skin "gagnant de Challenge" (même condition que le bandeau bleu,
+    // _rowMedalActive) — PAS à la simple inscription (1ère version, corrigée
+    // 2026-08-09 suite retour user : "je veux que la pastille apparaisse
+    // uniquement au moment où le challenge est validé et gagné, pas avant").
+    var eventDistBadge=(_rowMedalActive && p.medalBgDist!=null)
+      ?'<span title="Distance du Challenge gagné" style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:#ffffff;border:1.5px solid '+p.medalBgC1+';font-family:\'Bebas Neue\',sans-serif;font-size:.72rem;font-weight:900;color:'+p.medalBgC1+';margin-left:.3rem;flex-shrink:0;line-height:1;padding-top:.12em">'+p.medalBgDist+'</span>'
       :'';
     // Tendance League = position de référence (photo de minuit, league_ref_rank) − rang actuel.
     // On ne compare QUE si la ligue n'a pas changé depuis la photo (sinon une promotion/relégation
