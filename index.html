@@ -1214,12 +1214,18 @@ body::after{
    un seul élément. */
 .tour-tile-btn{
   position:relative;z-index:0;flex:1;min-width:110px;
-  border:none;background:transparent;cursor:pointer;padding:10px 8px;
+  border:none;background:transparent;cursor:pointer;padding:10px 12px;
   font-family:'Rajdhani',sans-serif;font-weight:600;font-size:13px;color:var(--text);
-  display:flex;align-items:center;justify-content:center;gap:6px;text-align:center;
+  display:flex;align-items:center;justify-content:flex-start;gap:8px;text-align:left;
   transition:transform .15s;
 }
 .tour-tile-btn:active{transform:scale(.96)}
+/* Émojis alignés en colonne (2026-08-09, demande explicite -- "comme les
+   statistiques de la Player Card") : largeur FIXE pour l'emoji, texte toujours
+   collé après -- sinon un bouton centré "à l'ancienne" place l'emoji à une
+   position différente selon la longueur du texte (ex. "Historique" vs "Départ
+   de course"), donc jamais aligné d'une tuile à l'autre. */
+.tour-tile-emoji{width:18px;flex-shrink:0;text-align:center}
 .tour-tile-border{
   position:absolute;inset:0;z-index:-2;
   clip-path:polygon(8px 0,calc(100% - 8px) 0,100% 8px,100% calc(100% - 8px),calc(100% - 8px) 100%,8px 100%,0 calc(100% - 8px),0 8px);
@@ -1265,9 +1271,27 @@ body::after{
 .tour-tile-btn.glass-purple{color:#fff}
 .tour-tile-btn.glass-purple .tour-tile-border{background:rgba(144,96,240,.55)}
 .tour-tile-btn.glass-purple .tour-tile-fill{background:linear-gradient(135deg,rgba(144,96,240,.35),rgba(144,96,240,.08)),#0c0f1a}
-/* Historique / Règles du jeu (2026-08-09, demande explicite -- "ne bougent que
-   lorsqu'on clique dessus") : pas d'état persistant, juste un flash vert au
-   clic (:active), même teinte que .glass-green, texte blanc conservé. */
+/* Règles du jeu (2026-08-09, demande explicite -- "en jaune avec dégradé jaune
+   ... pour que les gens se rendent bien compte qu'il y a un bouton") : permanent,
+   pas d'état à surveiller -- juste posé tel quel en HTML, jamais togglé en JS. */
+.tour-tile-btn.glass-gold{color:#fff}
+.tour-tile-btn.glass-gold .tour-tile-border{background:rgba(245,200,66,.55)}
+.tour-tile-btn.glass-gold .tour-tile-fill{background:linear-gradient(135deg,rgba(245,200,66,.35),rgba(245,200,66,.08)),#0c0f1a}
+/* Mes Lands (2026-08-09, demande explicite -- "fond vert et écriture blanche,
+   permanent tant qu'il a une Land, redevient naturel s'il n'en a plus") :
+   MÊME dégradé de fond que .glass-green/.glass-blue/.glass-purple (demande
+   explicite -- "en dégradé comme on fait partout, pas en plein") -- seul le
+   cadre reste plein (var(--green), pas translucide) pour distinguer cet état
+   durable d'une simple alerte passagère (Départ de course/Redevances). Texte
+   blanc, jamais coloré. */
+.tour-tile-btn.solid-green{color:#fff}
+.tour-tile-btn.solid-green .tour-tile-border{background:var(--green)}
+.tour-tile-btn.solid-green .tour-tile-fill{background:linear-gradient(135deg,rgba(45,219,128,.35),rgba(45,219,128,.08)),#0c0f1a}
+/* Historique (2026-08-09, demande explicite -- "ne bouge que lorsqu'on clique
+   dessus") : pas d'état persistant, juste un flash vert au clic (:active),
+   même teinte que .glass-green, texte blanc conservé. Retiré de Règles du jeu
+   (2026-08-09, remarque de l'user -- le clic ouvre directement la page des
+   règles, le flash n'a donc jamais le temps de s'afficher). */
 .tour-tile-btn.press-glow:active .tour-tile-border{background:rgba(45,219,128,.55)}
 .tour-tile-btn.press-glow:active .tour-tile-fill{background:linear-gradient(135deg,rgba(45,219,128,.35),rgba(45,219,128,.08)),#0c0f1a}
 
@@ -3746,7 +3770,7 @@ select option{background:#040c1c}
     </div>
     <div class="btnrow">
       <button id="tour-notif-btn" class="tour-tile-btn white tour-notif-btn" onclick="Tour.showRentNotifications()"><span class="tour-tile-border"></span><span class="tour-tile-fill"></span><span class="tour-tile-emoji">🔔</span>Mes redevances<span class="tour-tile-dot" id="tour-notif-dot"></span></button>
-      <button class="tour-tile-btn white press-glow" onclick="Tour.openRulesPage()"><span class="tour-tile-border"></span><span class="tour-tile-fill"></span><span class="tour-tile-emoji">📜</span>Règles du jeu</button>
+      <button class="tour-tile-btn glass-gold" onclick="Tour.openRulesPage()"><span class="tour-tile-border"></span><span class="tour-tile-fill"></span><span class="tour-tile-emoji">📜</span>Règles du jeu</button>
     </div>
     <!-- Tuile "Taxe foncière" retirée (2026-08-06, demande explicite — "on va
          s'en servir que très très rarement") : la fenêtre automatique 1x/jour
@@ -27484,16 +27508,19 @@ window.Tour.init = async function(){
     const mylandsBtn = document.getElementById('tour-mylands-btn');
     if(mylandsBtn){
       const hasLand = LANDS.some(l => l.mine || l.owner===ME || l.ownerEtape===ME);
-      mylandsBtn.classList.toggle('green', hasLand);
+      mylandsBtn.classList.toggle('solid-green', hasLand);
       mylandsBtn.classList.toggle('white', !hasLand);
     }
     const forsaleBtn = document.getElementById('tour-forsale-btn');
     if(forsaleBtn){
-      const hasForSale = LANDS.some(l => l.forSale);
-      // Verre bleu, texte blanc (2026-08-09, demande explicite -- distinct de
-      // Mes Lands ci-dessus, qui colore le texte lui-même).
-      forsaleBtn.classList.toggle('glass-blue', hasForSale);
-      forsaleBtn.classList.toggle('white', !hasForSale);
+      // Bleu seulement pour une Land JAMAIS VUE (2026-08-09, demande explicite —
+      // "redevient blanc quand on a consulté le tableau, redevient bleu QUE
+      // lorsqu'une nouvelle Land arrive en vente") : contrairement à Mes Lands,
+      // ce n'est pas "il y a ≥1 en vente" mais "il y a ≥1 en vente jamais vue"
+      // -- cf _seenForSaleIdx, rempli par openForSalePage().
+      const hasNewForSale = LANDS.some(l => l.forSale && !_seenForSaleIdx.has(l.idx));
+      forsaleBtn.classList.toggle('glass-blue', hasNewForSale);
+      forsaleBtn.classList.toggle('white', !hasNewForSale);
     }
     saveTourState();
   }
@@ -28522,7 +28549,20 @@ window.Tour.init = async function(){
       return head + grp.items.map(forSaleCardHtml).join('');
     }).join('');
   }
-  function openForSalePage(){ renderForSalePage(); document.getElementById('tour-forsale-overlay').classList.add('open'); }
+  // Suivi "vu/pas vu" du bouton Lands à vendre (2026-08-09, demande explicite —
+  // "il redevient blanc lorsqu'on a consulté le tableau, il redevient bleu QUE
+  // lorsqu'une nouvelle Land arrive en vente") : contrairement à Mes Lands
+  // (état persistant tant qu'on détient une Land), ici l'état dépend de si le
+  // RP a DÉJÀ ouvert la page pour les voir -- pas de colonne DB nécessaire,
+  // juste un Set en mémoire d'onglet (repart à zéro au rechargement, ce qui est
+  // acceptable pour une simple pastille de notification, pas une règle de jeu).
+  let _seenForSaleIdx = new Set();
+  function openForSalePage(){
+    renderForSalePage();
+    document.getElementById('tour-forsale-overlay').classList.add('open');
+    LANDS.forEach(l => { if(l.forSale) _seenForSaleIdx.add(l.idx); });
+    updatePlayerStatusPanel();
+  }
   function closeForSalePage(){ document.getElementById('tour-forsale-overlay').classList.remove('open'); }
 
   // ── Page "Mes Lands" (2026-08-01) — remplace l'idée de tableau par des petites
@@ -29053,10 +29093,19 @@ window.Tour.init = async function(){
   // retomber pile sur ce total -- les courses plus anciennes que ce point sont
   // antérieures au Tour (courues avant de choisir Paris/Marseille), donc écartées.
   // ⚠️ Limite connue, acceptée : un évènement "Avancez/Reculez de N Lands" (case
-  // mystère) déplace aussi le pion sans course associée -- sur un RP qui en a
-  // déclenché, le total réel peut différer de la somme des courses, et pour les
-  // 3 comptes corrigés à la main le 2026-08-09 (patch direct de tour_idx sans
-  // rejeu), le replay peut s'arrêter un peu avant leur vraie position actuelle.
+  // mystère) déplace aussi le pion sans course associée, tout comme les outils
+  // de test/démo admin (Tour.runKm depuis la console, patch SQL direct) --  sur
+  // un compte concerné, la course "frontière" retrouvée par l'accumulation à
+  // rebours ne tombe pas forcément pile sur le total réel. ⚠️ Bug corrigé
+  // (2026-08-09, signalé par l'user sur Val-DM/Jordan Smith -- "on va plus loin
+  // que la case sur laquelle on est") : la version précédente comptait la
+  // course frontière EN ENTIER dès qu'elle faisait dépasser le total, donc
+  // affichait un point allant AU-DELÀ de la vraie position actuelle dès que ce
+  // dépassement existait (le cas normal, pas l'exception). Désormais chaque
+  // case est plafonnée à totalCellsTravelled : le DERNIER arrêt tombe donc
+  // toujours exactement sur la vraie position actuelle, jamais au-delà --
+  // seul le détail affiché pour cette toute dernière course peut être imprécis
+  // sur un compte contaminé par du mouvement hors-course, jamais la position.
   async function _buildHistoryStops(){
     if(!currentUser || !currentUser.id || ME.startIdx==null) return null;
     const {data:allRuns, error} = await supabaseClient.from('runs')
@@ -29073,10 +29122,10 @@ window.Tour.init = async function(){
       if(acc >= totalCellsTravelled) break;
     }
     const stops = [];
-    let idx = ME.startIdx;
-    for(let i=cutIdx; i<allRuns.length; i++){
-      idx += Math.max(1, Math.round(allRuns[i].distance||0));
-      stops.push({idx, date:allRuns[i].run_date, km:allRuns[i].distance});
+    let cum = 0;
+    for(let i=cutIdx; i<allRuns.length && cum<totalCellsTravelled; i++){
+      cum = Math.min(totalCellsTravelled, cum + Math.max(1, Math.round(allRuns[i].distance||0)));
+      stops.push({idx: ME.startIdx+cum, date:allRuns[i].run_date, km:allRuns[i].distance});
     }
     return stops;
   }
@@ -29153,7 +29202,7 @@ window.Tour.init = async function(){
       await _animateGhost(ghost, from, stop.idx, trail, trailPts);
       from = stop.idx;
       if(_historyAbort) break;
-      await _sleep(850);
+      await _sleep(650);
     }
     map.removeLayer(ghost);
     map.removeLayer(trail);
