@@ -8364,6 +8364,8 @@ async function loadPlayersFromSupabase(){
   if(typeof _scrollToMyLeagueRow === 'function') _scrollToMyLeagueRow();
   // Champion Cash Run du mois (👑) : recalcul async → re-render du panel si le #1 a changé.
   loadCashrunChampion();
+  // Pastilles distance des Challenges en cours (5/10/21/42…) : idem, async.
+  loadActiveEventDistances();
 
 }
 
@@ -8387,6 +8389,37 @@ async function loadCashrunChampion(){
       if(typeof renderLeaguePanel === 'function') renderLeaguePanel();
     }
   } catch(e){ console.warn('[cashrun champion] failed', e); }
+}
+
+// Pastille distance (2026-08-09, demande explicite) : petit rond avec la
+// distance (5/10/21/42…) à côté du pseudo, pour tout RP inscrit à un
+// Challenge "ville" ENCORE ACTIF (event_date_end pas encore passé) — utile
+// dès qu'un même Challenge propose plusieurs distances au choix
+// (b.event_group) pour voir d'un coup d'œil qui court quoi dans le
+// classement. Basé sur l'inscription (player_event_participations), PAS sur
+// le badge déjà gagné : MIROIR de la pastille posée sur showBadgeUnlockModal
+// (même style rond + bordure couleur du badge), garder synchro si ça change.
+// Async, même principe que loadCashrunChampion : re-render seulement si la
+// map a changé depuis le dernier calcul.
+async function loadActiveEventDistances(){
+  try {
+    var today=new Date().toISOString().slice(0,10);
+    var { data } = await supabaseClient
+      .from('player_event_participations')
+      .select('player_id, badges(threshold_value,color,event_date_end,threshold_type)');
+    var map={};
+    (data||[]).forEach(function(row){
+      var b=row.badges;
+      if(!b || b.threshold_type!=='event_run' || !b.event_date_end) return;
+      if(b.event_date_end<today) return; // challenge déjà terminé
+      if(b.threshold_value==null) return;
+      map[row.player_id]={dist:Math.round(b.threshold_value), color:b.color||'#f5c842'};
+    });
+    if(JSON.stringify(map)!==JSON.stringify(window.__activeEventDistances||{})){
+      window.__activeEventDistances=map;
+      if(typeof renderLeaguePanel==='function') renderLeaguePanel();
+    }
+  } catch(e){ console.warn('[event distances] failed', e); }
 }
 
 
@@ -11041,6 +11074,13 @@ function renderLeaguePanel(){
     var crownBadge=(window.__crMonthChampUuid && p._uuid===window.__crMonthChampUuid)
       ?'<span title="'+t('league.badge.quizzchamp')+'" style="margin-left:.3rem;font-size:.85rem;flex-shrink:0;line-height:1">👑</span>'
       :'';
+    // Pastille distance du Challenge en cours (5/10/21/42…) : posée par
+    // loadActiveEventDistances() pour tout RP inscrit à un event pas encore
+    // terminé. Utile dès qu'un même Challenge propose plusieurs distances.
+    var _evDist=window.__activeEventDistances && window.__activeEventDistances[p._uuid];
+    var eventDistBadge=_evDist
+      ?'<span title="Distance du challenge en cours" style="display:inline-flex;align-items:center;justify-content:center;width:17px;height:17px;border-radius:50%;background:#0c0f1a;border:1.5px solid '+_evDist.color+';font-family:\'Bebas Neue\',sans-serif;font-size:.6rem;font-weight:900;color:'+_evDist.color+';margin-left:.3rem;flex-shrink:0;line-height:1">'+_evDist.dist+'</span>'
+      :'';
     // Tendance League = position de référence (photo de minuit, league_ref_rank) − rang actuel.
     // On ne compare QUE si la ligue n'a pas changé depuis la photo (sinon une promotion/relégation
     // en calibrage afficherait une fausse flèche). Pas de mouvement → "=" (comme la barre "ma position").
@@ -11134,7 +11174,7 @@ function renderLeaguePanel(){
         +'<div style="flex:1;box-sizing:border-box;padding:.35rem .35rem .35rem .2rem;display:flex;align-items:center;gap:.55rem;min-width:0">'
         +natFlagHtml(p.nat)
         +avatarHtml
-        +'<div style="display:flex;align-items:center;gap:.2rem;min-width:0"><div class="runner-name">'+p.name+meBadge+'</div>'+crownBadge+infBadge+gelBadge+calibBadge+debtBadge+parrainBadge+'</div>'
+        +'<div style="display:flex;align-items:center;gap:.2rem;min-width:0"><div class="runner-name">'+p.name+meBadge+'</div>'+crownBadge+eventDistBadge+infBadge+gelBadge+calibBadge+debtBadge+parrainBadge+'</div>'
         +'</div>'
         +(boostBadge?'<div style="display:flex;align-items:center;flex-shrink:0">'+boostBadge+'</div>':'')
         +'<div style="flex:0 0 100px;box-sizing:border-box;padding:.35rem .35rem;font-family:\'Rajdhani\',sans-serif;font-size:1.08rem;font-weight:700;white-space:nowrap;display:flex;align-items:center;justify-content:flex-end;gap:.3rem">'
@@ -11147,7 +11187,7 @@ function renderLeaguePanel(){
       +'<td><div style="display:flex;align-items:center;gap:.55rem">'
       +natFlagHtml(p.nat)
       +avatarHtml
-      +'<div style="display:flex;align-items:center;gap:.2rem"><div class="runner-name">'+p.name+meBadge+'</div>'+crownBadge+infBadge+boostBadge+gelBadge+calibBadge+debtBadge+parrainBadge+'</div>'
+      +'<div style="display:flex;align-items:center;gap:.2rem"><div class="runner-name">'+p.name+meBadge+'</div>'+crownBadge+eventDistBadge+infBadge+boostBadge+gelBadge+calibBadge+debtBadge+parrainBadge+'</div>'
       +'</div></td>'
       +'<td style="font-family:\'Rajdhani\',sans-serif;font-size:1.08rem;font-weight:700">'
       +'<span style="display:inline-flex;align-items:center;justify-content:flex-end;gap:.3rem;width:100%">'
@@ -25223,18 +25263,6 @@ window.Tour.init = async function(){
   for(let i=0;i<LANDS.length;i++){
     SPACING.push(haversine(LANDS[i].lat,LANDS[i].lng, LANDS[(i+1)%LANDS.length].lat, LANDS[(i+1)%LANDS.length].lng));
   }
-  
-  // ── Statuts fictifs (démo uniquement) ── `eligible` (2026-08-03, demande
-  // explicite) simule si ce RP remplit l'une des 3 conditions (Premium, droit
-  // d'acquisition, grade CONFIRMÉ) — condition nécessaire des 2 côtés pour la
-  // préemption : on ne peut préempter que chez un locataire qui AURAIT pu
-  // acheter sa Land mais traîne, jamais chez un RP qui n'en avait de toute
-  // façon pas le droit. Mélange volontaire (3 éligibles, 1 non) pour voir les
-  // 2 cas dans la démo selon le RP dont tu croises la Land.
-  const DEMO_OWNERS = [
-    {name:'Val-DM', color:'#4a90ff', eligible:true}, {name:'Ratlamarche', color:'#2ddb80', eligible:true},
-    {name:'Pimoustic', color:'#ff6020', eligible:false}, {name:'Mc-Greg28', color:'#9060f0', eligible:true}
-  ];
   // ── Cartes "chance" façon Monopoly, version course à pied (2026-08-01) — 50
   // cartes, dans l'esprit des cartes Chance/Caisse de Communauté. Équilibrées à
   // 25 gains / 25 pertes en NOMBRE (net +5720 RPC en valeur — volontairement
@@ -27303,7 +27331,7 @@ window.Tour.init = async function(){
       // en prod (acquisition = prorata immédiat). La simplification du 2026-08-02
       // avait retiré l'affichage ET le prélèvement par erreur — proratedRent()
       // restait définie mais n'était plus jamais appelée nulle part. Le loyer du
-      // mois SUIVANT reste facturé plein tarif via advanceMonthDemo() (inchangé).
+      // mois SUIVANT est désormais prélevé pour de vrai par le cron tour_charge_rent().
       const rentCost = proratedRent();
       return {
         title: 'Case libre — n°'+land.idx,
@@ -27802,10 +27830,9 @@ window.Tour.init = async function(){
 
   // ── Bail 6 mois (2026-08-01, règle reprise de la Land actuelle en prod) : un
   // locataire a 6 mois pour acheter sa Land, sinon elle repart en jeu (redevient
-  // libre, plus personne dessus). Le passage du temps reste simulé côté client
-  // (pas de cron de loyer mensuel encore branché en base, cf advanceMonthDemo)
-  // mais la LIBÉRATION elle-même (bouton "Libérer") est réelle depuis le
-  // 2026-08-06 — cf tour_release_land.
+  // libre, plus personne dessus). Le prélèvement mensuel est réel (cron
+  // tour_charge_rent) et la LIBÉRATION elle-même (bouton "Libérer") est réelle
+  // depuis le 2026-08-06 — cf tour_release_land.
   // p_keepOpen (2026-08-06, ajouté pour showTaxReleasePicker) : la libération
   // depuis le sélecteur de taxe foncière ne doit PAS fermer la fenêtre en
   // cours (le RP peut libérer plusieurs Lands d'affilée) — même recette
@@ -27834,17 +27861,6 @@ window.Tour.init = async function(){
     document.getElementById('tour-rent-modal').classList.add('open');
     document.getElementById('tour-rm-status-strip').innerHTML = renderModalStatusStrip();
     window._rentModalLand = land;
-  }
-  // Bouton démo (panneau) : simulait l'encaissement mensuel du loyer sur TOUTES
-  // les Lands en location d'un coup. ⚠️ Désactivé le 2026-08-06 (branchement du
-  // vrai Wallet) : cette fonction décrémentait ME.rpc en LOCAL sans qu'aucun
-  // débit réel n'ait lieu en base (aucun cron d'encaissement mensuel Tour
-  // n'existe encore côté serveur, contrairement à releaseLand/tour_pay_rent qui
-  // sont maintenant réels) — la garder active aurait affiché un solde qui ne
-  // correspond plus à la réalité. À rebrancher le jour où un vrai cron mensuel
-  // de loyer Tour existera en base (même principe que process_player_rent).
-  function advanceMonthDemo(){
-    if(typeof window.showToast==='function') window.showToast('⏳ Encaissement mensuel automatique pas encore branché en base — reviens plus tard.');
   }
   // Achat d'une étoile (2026-08-01) — permanent, jamais reprise. Fonctionne sur
   // une Land possédée classique (status='owned') ou une ville étape achetée
@@ -28712,51 +28728,12 @@ window.Tour.init = async function(){
   const SIM_150_KM = [1856.3,1843.0,1621.0,1444.4,1196.5,1161.3,1020.6,943.9,935.0,934.7,910.5,908.6,880.9,802.0,782.8,780.3,776.5,776.4,753.4,751.8,745.9,742.7,734.7,712.1,701.0,622.6,619.3,618.1,613.6,610.8,608.3,604.5,598.9,592.8,590.9,579.5,577.7,575.3,570.3,567.4,549.3,547.8,545.9,535.0,530.8,524.9,523.2,512.8,508.6,499.2,490.2,481.7,481.5,478.2,477.8,477.1,476.0,474.9,473.1,472.6,465.8,463.7,458.7,451.3,443.7,440.3,437.3,434.8,429.3,419.8,419.4,419.2,419.0,418.8,418.2,416.8,414.9,412.6,408.1,401.8,398.4,396.7,393.4,386.6,383.6,382.4,380.1,379.8,378.9,372.9,366.1,360.2,358.8,356.6,345.5,344.7,344.6,343.8,342.4,342.2,341.2,340.0,338.7,335.2,326.1,323.8,319.2,317.1,316.1,313.2,313.2,312.7,311.7,308.8,307.6,302.4,299.4,299.1,297.2,296.9,296.8,296.3,295.8,294.5,294.5,289.2,287.5,287.3,280.7,280.4,278.3,278.0,277.4,268.1,266.5,265.3,265.1,264.9,260.3,258.7,254.0,251.5,251.4,249.9,249.5,246.3,245.0,242.9,241.3,239.2,234.4,233.4,232.8,232.7,231.9,229.8,229.7,226.5,226.3,224.3,223.9,220.9,220.5,220.4,219.5,219.3,219.2,218.4,217.2,216.5,215.9,214.3,213.2,210.5,206.8,206.4,205.9,201.2,201.1,200.1,199.7,198.6,197.8,197.4,195.1,193.1,193.0,192.9,191.5,191.1,188.2,186.0,185.5,184.4,182.9,182.9,182.8,182.7,181.1,178.1,172.0,171.5,167.2,167.1,167.1,166.0,163.2,161.4,160.8,160.7,156.3,155.8,154.7,152.9,150.7,148.7,146.8,145.0,144.0,143.3,143.3,142.6,140.0,138.6,137.6,137.3,136.8,136.7,134.0,132.7,132.0,131.7,129.3,126.3,125.2,124.7,121.7,121.5,120.7,120.6,117.7,117.6,117.6,117.2,116.3,116.1,113.7,112.4,109.6,109.1];
   
   let simMarkers = [];
-  // Parmi les 150 RP simulés, ceux-ci représentent des "amis" suivis dans le feed
-  // (données fictives pour la démo — en vrai ce serait les follows/amis validés
-  // du RP connecté). Repartis dans le tableau pour être bien dispersés sur la boucle.
-  const FRIEND_INDICES = [3,28,53,78,103,128,153,178,203,228];
-  const FRIEND_NAMES = ['Ratlamarche','Pimoustic','Mc-Greg28','Bounty','Felix','Gaby34','Douds-974','Oleksii','MiPedrAnJo','Ana80'];
-  // Nombre de Lands (louées OU possédées, peu importe — juste le total de cases
-  // sur le tracé) par ami simulé, pour la démo (2026-08-01).
-  const FRIEND_LANDS = [12, 5, 8, 3, 20, 7, 2, 15, 6, 9];
   // Palette réduite à 6 couleurs (2026-08-01, demande explicite) affichées en
   // pastilles cliquables directement dans le popup — remplace l'ancien clic sur
   // le point lui-même (peu découvrable, sans indication visuelle du choix).
+  // Utilisée par le système RÉEL de couleurs d'amis (cf _friendColorForId/
+  // setRealFriendColor plus haut dans le fichier), pas seulement la démo.
   const FRIEND_PALETTE = ['255,63,164','176,111,255','255,138,61','255,85,102','45,224,192','245,224,80'];
-  
-  // Change la couleur d'un ami depuis les pastilles cliquables du popup (2026-08-01)
-  // — remplace l'ancien clic sur le point lui-même.
-  function setFriendColor(friendPos, colorIdx){
-    const m = simMarkers[FRIEND_INDICES[friendPos]];
-    if(!m) return;
-    const el = m.getElement();
-    const dot = el && el.querySelector('.friend-marker');
-    if(dot) dot.style.setProperty('--fc', FRIEND_PALETTE[colorIdx]);
-  }
-  // Notifications de redevance groupées (2026-08-04, porté depuis prototype-tour.html
-  // — index.html devient la version prioritaire à jour, cf demande explicite de
-  // l'user) : quand un RP tombe sur une de TES Lands, on n'ouvre PAS une popup par
-  // RP — on accumule dans ME.pendingRentEvents (persisté via saveTourState, cf
-  // ME:Object.assign). Pas de popup automatique à l'ouverture de l'appli non plus
-  // — juste une pastille sur le bouton 🔔 ; la fenêtre groupée (liste + total) ne
-  // s'ouvre que quand le RP clique dessus lui-même.
-  const VISITOR_NAME_POOL = Array.from(new Set(FRIEND_NAMES.concat(DEMO_OWNERS.map(o=>o.name)))).filter(n=>n!==ME.name);
-  function pushRentEvent(land){
-    ME.pendingRentEvents = ME.pendingRentEvents || [];
-    const name = VISITOR_NAME_POOL[Math.floor(Math.random()*VISITOR_NAME_POOL.length)];
-    ME.pendingRentEvents.push({type:'rent', name:name, amount:landRedevance(land)});
-  }
-  // Préemption subie — un RP simulé (obligatoirement `eligible`, même règle des 2
-  // côtés que pour TA propre préemption, cf landModalContent) te prend une Land
-  // que tu loues encore mais n'as pas achetée. Ne cible jamais une Land possédée.
-  function pushPreemptEvent(land, npc){
-    land.status = 'owned'; land.owner = npc; land.stars = 0;
-    delete land.leaseMonths; delete land.freeMonthsLeft;
-    if(land.layer){ land.layer.setStyle({fillColor: npc.color, fillOpacity:.95}); land.layer.bindPopup(popupHtml(land)); }
-    ME.pendingRentEvents = ME.pendingRentEvents || [];
-    ME.pendingRentEvents.push({type:'preempt', name:npc.name, landIdx:land.idx});
-  }
   function updateTourNotifBadge(){
     const badge = document.getElementById('tour-notif-badge');
     if(!badge) return;
@@ -28984,87 +28961,20 @@ window.Tour.init = async function(){
     closeRentModal();
     showCelebrationModal('🏠 Loyer payé !', `−${res.amount.toLocaleString(SPEEDIX_LANG)} RPC pour ${res.lands_count} Land${res.lands_count>1?'s':''} en location. Bon SPEEDIX Tour !`);
   }
-  function simulate150(){
-    simMarkers.forEach(m=>map.removeLayer(m));
-    simMarkers = [];
-    SIM_150_KM.forEach((km,i)=>{
-      const cellIdx = Math.round(km) % TOTAL_CELLS;
-      const l = LANDS[cellIdx];
-      // Compteur "Mes Lands" (2026-08-01) : si ce RP simulé tombe sur une de TES
-      // Lands (louée ou possédée, y compris étape), on compte la visite et la
-      // redevance qu'elle t'aurait rapportée — même montant que la vraie pop-up
-      // "case occupée" (landRedevance() : 250 RPC en location, +50/étoile si possédée).
-      if(l.owner===ME || l.ownerEtape===ME){
-        l.visits = (l.visits||0) + 1;
-        l.earned = (l.earned||0) + landRedevance(l);
-        pushRentEvent(l);
-      }
-      const friendPos = FRIEND_INDICES.indexOf(i);
-      let m;
-      if(friendPos>=0){
-        let colorIdx = friendPos % FRIEND_PALETTE.length;
-        m = L.marker([l.lat,l.lng], {
-          icon: L.divIcon({className:'', html:`<div class="friend-marker" style="--fc:${FRIEND_PALETTE[colorIdx]}"></div>`, iconSize:[14,14], iconAnchor:[7,7]}),
-          zIndexOffset: 900
-        }).addTo(map);
-        const swatches = FRIEND_PALETTE.map((c,ci)=>
-          `<span onclick="Tour.setFriendColor(${friendPos},${ci})" style="display:inline-block;width:11px;height:11px;border-radius:50%;background:rgb(${c});margin-right:5px;cursor:pointer;vertical-align:middle"></span>`
-        ).join('');
-        // Violet foncé (pas --gold) : le popup Leaflet a un fond BLANC par défaut
-        // (pas le thème sombre de l'appli) — le jaune y était quasi invisible,
-        // faute de contraste (2026-08-01).
-        m.bindPopup(`❤️ ${FRIEND_NAMES[friendPos]} — ${Math.round(km)} km parcourus → case n°${cellIdx}<br><span style="color:#5b2c8f;font-weight:600">${FRIEND_LANDS[friendPos]} Lands</span> actives sur la carte<br><div style="margin-top:6px">${swatches}</div>`);
-      } else {
-        // Blanc avec contour sombre (2026-08-08) : le remplissage noir posé le
-        // 2026-08-01 pour rester visible sur le tracé parcouru (devenu blanc)
-        // disparaissait partout ailleurs sur le fond sombre du plateau — la
-        // grande majorité de la carte — et rendait les RP simulés invisibles
-        // (signalé par l'user, 3 RP l'ayant dépassé introuvables sur la carte).
-        // Contour sombre conservé pour garder un minimum de contraste sur les
-        // rares cases déjà découvertes (blanches).
-        m = L.circleMarker([l.lat,l.lng], {
-          radius:5, weight:1.5, color:'#0a0c12', fillColor:'#fff', fillOpacity:.95
-        }).addTo(map);
-        m.bindPopup(`RP simulé — ${Math.round(km)} km parcourus → case n°${cellIdx}`);
-      }
-      simMarkers.push(m);
-    });
-    // Préemption subie (2026-08-04, porté depuis prototype-tour.html) : au plus UNE
-    // par clic sur "Simuler 250 RP", probabilité modeste (20%) — sinon 250 RP
-    // simulés videraient toutes tes locations d'un coup, punitif, pas représentatif.
-    // Double condition symétrique à ta propre préemption : ne se déclenche que si
-    // TOI tu remplis les conditions d'achat (canBuyLands()) ET qu'un RP éligible
-    // est disponible pour agir à ta place.
-    if(canBuyLands() && Math.random()<0.2){
-      const myRentedLands = LANDS.filter(l=>l.owner===ME && l.status==='rented');
-      const eligibleNpcs = DEMO_OWNERS.filter(o=>o.eligible && o.name!==ME.name);
-      if(myRentedLands.length && eligibleNpcs.length){
-        const target = myRentedLands[Math.floor(Math.random()*myRentedLands.length)];
-        const npc = eligibleNpcs[Math.floor(Math.random()*eligibleNpcs.length)];
-        pushPreemptEvent(target, npc);
-      }
-    }
-    // #tour-toast supprimé (2026-08-06) — réutilise le toast générique de
-    // l'appli (coin bas-droit, cf showToast(msg) global) plutôt qu'un
-    // composant dédié en double.
-    showToast(`👥 250 RP simulés — dont ${FRIEND_INDICES.length} amis suivis (points lumineux, clique pour changer leur couleur) — vrais cumuls de km`);
-    renderMyLandsPage(); // rafraîchit les compteurs visites/RPC si la page est ouverte
-    updateTourNotifBadge(); // signale les nouvelles redevances/préemptions par une pastille, pas une popup
-  }
   // Expose le nécessaire pour les attributs onclick="Tour.xxx(...)" ajoutés
   // plus haut, et pour LANDS/ME référencés directement dans certains d'entre
   // eux (LANDS[idx], ME.premium...) -- références LIVE (array/objet), pas une
   // copie, donc les mutations restent visibles au travers de Tour.LANDS/Tour.ME.
   Object.assign(window.Tour, {
     LANDS, ME,
-    runKm, runKmWhenReady, runKmFromInput, resetDemo, simulate150, simulateFreeLanding, simulateEtapeLanding,
-    buyAcquisitionRightDemo, openMyLandsPage, closeMyLandsPage, advanceMonthDemo,
+    runKm, runKmWhenReady, runKmFromInput, resetDemo, simulateFreeLanding, simulateEtapeLanding,
+    buyAcquisitionRightDemo, openMyLandsPage, closeMyLandsPage,
     confirmRent, closeRentModal, goToRpcMarket,
     preemptLand, preemptGoPremium, preemptBuyAcquisitionRight, preemptGoToNyxMarket,
     preemptGoToNyxMarketForRight,
     buyMyRentedLand, releaseLand, buyStarFromModal, openStarModal,
     openSellModal, confirmSellLand, cancelSale, focusLandOnMap,
-    setFriendColor, setRealFriendColor, attemptBuyEtape, attemptBuyLand, simulateGoPremium, goToNyxMarket,
+    setRealFriendColor, attemptBuyEtape, attemptBuyLand, simulateGoPremium, goToNyxMarket,
     updatePlayerStatusPanel, openStartCityModal, chooseStartCity, bumpParisStarts,
     hardResetTourDemo, showRentNotifications, claimTaxExemption, showTaxReleasePicker,
     showRentReleasePicker, releaseLandFromPicker, backFromReleasePicker, backToTaxModal,
