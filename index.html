@@ -7605,6 +7605,33 @@ function _i18nDetectLang(){
 
 var SPEEDIX_LANG=_i18nDetectLang();
 
+// ⚠️ SOURCE UNIQUE du séparateur de milliers pour TOUS les chiffres de l'app
+// (points, RPC, NYX, km...) : partout dans le code, l'affichage passe par
+// X.toLocaleString(SPEEDIX_LANG) (~95 endroits). En FR, cet appel natif insère
+// une espace fine insécable comme séparateur de milliers — un caractère que les
+// polices de chiffres de l'app (Rajdhani, Space Mono) ne savent pas toujours
+// dessiner, ce qui la rendait invisible sur certaines lignes et donnait
+// l'impression d'un affichage incohérent d'une zone à l'autre (signalé par
+// l'user 2026-08-09, d'abord vu sur le classement). Plutôt que de corriger les
+// ~95 endroits un par un, on intercepte ICI l'appel .toLocaleString(SPEEDIX_LANG)
+// pour forcer une espace normale (toujours visible, quelle que soit la police).
+// L'anglais (virgule, sans problème de glyphe) et tout autre appel natif
+// (dates, etc.) gardent leur comportement d'origine, intact.
+(function(){
+  var _numToLocaleStringNative=Number.prototype.toLocaleString;
+  Number.prototype.toLocaleString=function(locale,opts){
+    if(locale===SPEEDIX_LANG && opts===undefined && SPEEDIX_LANG!=='en'){
+      var neg=this<0;
+      var rounded=Math.round(Math.abs(this)*1000)/1000; // jusqu'à 3 décimales, comme le comportement natif par défaut
+      var parts=rounded.toString().split('.');
+      var intPart=parts[0].replace(/\B(?=(\d{3})+(?!\d))/g,' ');
+      var out=intPart+(parts[1]?','+parts[1]:'');
+      return neg?('-'+out):out;
+    }
+    return _numToLocaleStringNative.apply(this,arguments);
+  };
+})();
+
 function t(key){
   var dict=I18N[SPEEDIX_LANG]||I18N[I18N_DEFAULT_LANG];
   if(dict && key in dict) return dict[key];
@@ -11043,6 +11070,17 @@ function renderLeaguePanel(){
     _daysLeftInPeriod=Math.ceil((new Date(_periodData.end).getTime()-Date.now())/86400000);
   }
 
+  // Pastille de tendance (▲/▼/=) à largeur FIXE : avant, un écart à 2 chiffres
+  // (ex. ▲12) élargissait la pastille et poussait le badge 💰 place payée vers
+  // la droite jusqu'à toucher le cadre de la league (signalé par l'user
+  // 2026-08-09). Largeur fixe = le chiffre bouge dans sa case, plus jamais la case elle-même.
+  function trendBadgeHtml(trendVal){
+    var v=Math.min(Math.abs(trendVal||0),99);
+    if(trendVal>0) return '<span style="display:inline-block;width:1.35rem;text-align:left;font-size:.6rem;color:var(--green);font-weight:700;font-variant-numeric:tabular-nums">▲'+v+'</span>';
+    if(trendVal<0) return '<span style="display:inline-block;width:1.35rem;text-align:left;font-size:.6rem;color:var(--red);font-weight:700;font-variant-numeric:tabular-nums">▼'+v+'</span>';
+    return '<span style="display:inline-block;width:1.35rem;text-align:left;font-size:.6rem;color:var(--muted)">=</span>';
+  }
+
   function buildRow(p, rankNum, isPromo, isReleg, paidRanks, compRank){
     var isCalib=(p.competitive===false);
     // compRank = rang parmi les compétitifs (pour médailles/places payées), 0 si calibrage
@@ -11134,10 +11172,7 @@ function renderLeaguePanel(){
     var totalInLeague=_blockPlayers.length;
     if(rankNum===1 && trend<0) trend=0;
     if(rankNum===totalInLeague && trend>0) trend=0;
-    var trendHtml='';
-    if(trend>0) trendHtml='<span style="font-size:.6rem;color:var(--green);font-weight:700">▲'+trend+'</span>';
-    else if(trend<0) trendHtml='<span style="font-size:.6rem;color:var(--red);font-weight:700">▼'+Math.abs(trend)+'</span>';
-    else trendHtml='<span style="font-size:.6rem;color:var(--muted)">=</span>';
+    var trendHtml=trendBadgeHtml(trend);
     // Cascade d'entrée (1ère visite session uniquement) : la ligne part de sa position
     // de référence (trend = ancien rang − rang actuel) et glisse jusqu'à sa place, avec
     // un délai croissant par rang pour l'effet "tableau d'aéroport" en cascade.
@@ -11165,7 +11200,7 @@ function renderLeaguePanel(){
     var avId='av-'+p.id+'-'+rankNum;
     var avatarHtml='<div onclick="'+(p.id===1?'window.__viewedPlayer=null;renderDashboard();renderTeams();nav(\'dashboard\')':'showPlayerCard('+p.id+')')+'" style="width:34px;height:34px;border-radius:6px;border:2px solid '+gc+';overflow:hidden;flex-shrink:0;box-shadow:0 0 7px '+gc+'40;cursor:pointer;transition:transform .15s" onmouseover="this.style.transform=\'scale(1.1)\'" onmouseout="this.style.transform=\'\'" title="'+p.name+'"><canvas id="'+avId+'" width="34" height="34" style="display:block"></canvas></div>';
     var ptsHtml='<span style="text-align:right;min-width:4ch;font-variant-numeric:tabular-nums"><strong style="color:'+ptColor+'">'+p.pts.toLocaleString(SPEEDIX_LANG)+'</strong></span>'
-      +'<span style="display:inline-flex;align-items:center;gap:.35rem;min-width:34px;justify-content:flex-start">'+trendHtml+paidBadge+'</span>';
+      +'<span style="display:inline-flex;align-items:center;gap:.3rem;width:42px;flex-shrink:0">'+trendHtml+paidBadge+'</span>';
     // Minuteur global de la barre lumineuse .mrt-shine-bar (2026-08-08) :
     // buildRow régénère la ligne "moi" en HTML (string) à chaque rendu de
     // classement, donc pas d'élément DOM stable sur lequel accrocher un timer
@@ -11226,7 +11261,7 @@ function renderLeaguePanel(){
         +'<div style="display:flex;align-items:center;gap:.2rem;min-width:0"><div class="runner-name">'+p.name+meBadge+'</div>'+crownBadge+infBadge+gelBadge+calibBadge+debtBadge+parrainBadge+'</div>'
         +'</div>'
         +(boostBadge?'<div style="display:flex;align-items:center;flex-shrink:0">'+boostBadge+'</div>':'')
-        +'<div style="flex:0 0 100px;box-sizing:border-box;padding:.35rem .35rem;font-family:\'Rajdhani\',sans-serif;font-size:1.08rem;font-weight:700;display:flex;align-items:center;justify-content:flex-end;gap:.45rem">'
+        +'<div style="flex:0 0 100px;box-sizing:border-box;padding:.35rem .35rem;font-family:\'Rajdhani\',sans-serif;font-size:1.08rem;font-weight:700;display:flex;align-items:center;justify-content:flex-end;gap:.3rem">'
         +ptsHtml
         +'</div>'
         +'</div></td></tr>';
@@ -11239,7 +11274,7 @@ function renderLeaguePanel(){
       +'<div style="display:flex;align-items:center;gap:.2rem"><div class="runner-name">'+p.name+meBadge+'</div>'+crownBadge+infBadge+boostBadge+gelBadge+calibBadge+debtBadge+parrainBadge+'</div>'
       +'</div></td>'
       +'<td style="font-family:\'Rajdhani\',sans-serif;font-size:1.08rem;font-weight:700">'
-      +'<span style="display:inline-flex;align-items:center;justify-content:flex-end;gap:.45rem;width:100%">'
+      +'<span style="display:inline-flex;align-items:center;justify-content:flex-end;gap:.3rem;width:100%">'
       +ptsHtml
       +'</span>'
       +'</td></tr>';
@@ -11393,10 +11428,7 @@ function renderLeaguePanel(){
     var myGc=GRADE_COLORS[myPlayer.grade]||'#8090b0';
     var myInitials=myPlayer.name.split(' ').map(function(w){return w[0];}).join('');
     var myTrend=myPlayer.trend||0;
-    var myTrendHtml=myTrend>0
-      ?'<span style="font-size:.6rem;color:var(--green);font-weight:700">▲'+myTrend+'</span>'
-      :myTrend<0?'<span style="font-size:.6rem;color:var(--red);font-weight:700">▼'+Math.abs(myTrend)+'</span>'
-      :'<span style="font-size:.6rem;color:var(--muted)">=</span>';
+    var myTrendHtml=trendBadgeHtml(myTrend);
     var myRankArr=['<img src="ai-icons/medal-1-gold.png" style="width:22px;height:22px;object-fit:contain">','<img src="ai-icons/medal-2-silver.png" style="width:22px;height:22px;object-fit:contain">','<img src="ai-icons/medal-3-bronze.png" style="width:22px;height:22px;object-fit:contain">'];
     // Une médaille dans la barre sticky uniquement si je suis dans le bloc
     // compétitifs (même règle que les lignes du tableau) — jamais pour du calibrage.
