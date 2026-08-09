@@ -382,7 +382,7 @@ body::after{
    n'anime que `left`). Ajoutée en HTML UNIQUEMENT si TEST_MEDAL_BG (cf
    buildRow), jamais présente sinon donc aucun impact sur les autres RP. */
 .mrt-shine-bar{
-  position:absolute;top:-25%;left:-40%;width:28%;height:150%;z-index:-1;pointer-events:none;
+  position:absolute;top:-25%;left:-40%;width:14%;height:150%;z-index:-1;pointer-events:none;
   /* Bande blanche encore élargie (2026-08-08, demande explicite -- "la bande
      blanche au milieu la plus large") : plateau à pleine opacité 35%-65%
      (était 42%-58%). */
@@ -7509,7 +7509,7 @@ var SPEEDIX_LANG=_i18nDetectLang();
 // colonne avec cette police.
 function tabularPts(n){
   return n.toLocaleString(SPEEDIX_LANG).replace(/[0-9]/g,function(d){
-    return '<span style="display:inline-block;width:.62em;text-align:center">'+d+'</span>';
+    return '<span style="display:inline-block;width:.58em;text-align:center">'+d+'</span>';
   });
 }
 
@@ -11079,7 +11079,7 @@ function renderLeaguePanel(){
     // terminé. Utile dès qu'un même Challenge propose plusieurs distances.
     var _evDist=window.__activeEventDistances && window.__activeEventDistances[p._uuid];
     var eventDistBadge=_evDist
-      ?'<span title="Distance du challenge en cours" style="display:inline-flex;align-items:center;justify-content:center;width:17px;height:17px;border-radius:50%;background:#0c0f1a;border:1.5px solid '+_evDist.color+';font-family:\'Bebas Neue\',sans-serif;font-size:.6rem;font-weight:900;color:'+_evDist.color+';margin-left:.3rem;flex-shrink:0;line-height:1">'+_evDist.dist+'</span>'
+      ?'<span title="Distance du challenge en cours" style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:#ffffff;border:1.5px solid '+_evDist.color+';font-family:\'Bebas Neue\',sans-serif;font-size:.72rem;font-weight:900;color:'+_evDist.color+';margin-left:.3rem;flex-shrink:0;line-height:1">'+_evDist.dist+'</span>'
       :'';
     // Tendance League = position de référence (photo de minuit, league_ref_rank) − rang actuel.
     // On ne compare QUE si la ligue n'a pas changé depuis la photo (sinon une promotion/relégation
@@ -11141,7 +11141,7 @@ function renderLeaguePanel(){
         if(!bar) return;
         bar.style.animation='none';
         void bar.offsetWidth; // force reflow -- indispensable pour relancer l'animation depuis 0%
-        bar.style.animation='pcShineBarSweepRow 5.5s linear 1 both';
+        bar.style.animation='pcShineBarSweepRow 4s linear 1 both';
       };
       setTimeout(window._mrtSweep, 300); // 1er passage rapide, sans attendre le 1er tick
       window.__mrtShineTimer=setInterval(window._mrtSweep, 7000);
