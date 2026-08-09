@@ -11079,7 +11079,7 @@ function renderLeaguePanel(){
     // terminé. Utile dès qu'un même Challenge propose plusieurs distances.
     var _evDist=window.__activeEventDistances && window.__activeEventDistances[p._uuid];
     var eventDistBadge=_evDist
-      ?'<span title="Distance du challenge en cours" style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:#ffffff;border:1.5px solid '+_evDist.color+';font-family:\'Bebas Neue\',sans-serif;font-size:.72rem;font-weight:900;color:'+_evDist.color+';margin-left:.3rem;flex-shrink:0;line-height:1">'+_evDist.dist+'</span>'
+      ?'<span title="Distance du challenge en cours" style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:#ffffff;border:1.5px solid '+_evDist.color+';font-family:\'Bebas Neue\',sans-serif;font-size:.72rem;font-weight:900;color:'+_evDist.color+';margin-left:.3rem;flex-shrink:0;line-height:1;padding-top:.12em">'+_evDist.dist+'</span>'
       :'';
     // Tendance League = position de référence (photo de minuit, league_ref_rank) − rang actuel.
     // On ne compare QUE si la ligue n'a pas changé depuis la photo (sinon une promotion/relégation
