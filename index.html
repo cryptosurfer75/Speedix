@@ -26070,6 +26070,18 @@ window.Tour.init = async function(){
       // Marqueur consommé une seule fois par landModalContent : l.status vient
       // de passer à 'rented', il ne suffit plus à distinguer "Land offerte".
       l._extraJustClaimed = true;
+      // ⚠️ Bug corrigé (2026-08-09, trouvé en audit général du Tour demandé par
+      // l'user) : cette Land "offerte" ne repartait QUE dans LANDS (mémoire), sans
+      // jamais toucher tour_lands en base -- contrairement à bonus/gift/event juste
+      // au-dessus, tous rattachés à une vraie recette RPC en 2026-08-06. Un simple
+      // refresh/reconnexion après avoir atterri sur une des 5 cases "extra" faisait
+      // donc disparaître la Land gratuite (jamais vraiment possédée côté serveur).
+      // tour_claim_extra_land = même schéma que tour_buy_land, sans le coût.
+      if(currentUser && currentUser.id){
+        _tourCall('tour_claim_extra_land', {p_idx: idx}).then(function(res){
+          if(res && !res.ok) console.warn('[Tour] tour_claim_extra_land:', res.error);
+        });
+      }
     }
     if(l.status==='gift'){
       // Vrai octroi en base (2026-08-06, bug corrigé — signalé par l'user) :
