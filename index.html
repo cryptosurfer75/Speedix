@@ -20048,6 +20048,83 @@ var LEAGUE_DISPLAY={};
 // ============================================================
 var _badgesCatalog=null; // Cache du catalogue
 
+// TEST LOCAL TEMPORAIRE (2026-07-31) — patche les VRAIS badges "capitales"
+// déjà en base (par nom) pour leur ajouter un blason illustré, SANS toucher
+// à la base de données (juste un ajout de champs côté client, en mémoire).
+// À retirer une fois validé et migré proprement (colonnes dédiées en base).
+// Couleur volontairement PAS écrasée : celle déjà en base par badge est
+// gardée telle quelle (source unique = la table `badges`).
+// SOURCE UNIQUE (2026-08-09) : sorti de renderChallenges() pour être appelable
+// aussi depuis showBadgeUnlockModal (la fenêtre "BADGE GAGNÉ !" affichait
+// encore l'ancien rendu générique emoji+hexagone, jamais le vrai blason, car
+// elle reçoit le badge BRUT de l'Edge Function check-badges, jamais passé par
+// ce patch — cf. _decorateBadgeWithCityCrest ci-dessous.
+var _CITY_CREST_OVERRIDES=[
+  {match:/STOCKHOLM/i, image:'ai-icons/challenge-crests/stockholm-v2.png', medal:true, ribbonColors:['#fff0b0','#c88a12']},
+  {match:/BRUXELLES/i, image:'ai-icons/challenge-crests/bruxelles-v2.png', medal:true, ribbonColors:['#fff3b0','#c98f00']},
+  {match:/MONTREUX/i, image:'ai-icons/challenge-crests/montreux-v4.png', medal:true, ribbonColors:['#f0954a','#7a3410']},
+  {match:/FLEUR DU ROY|TRAIL DU ROY/i, image:'ai-icons/challenge-crests/fleur-du-roy-v4.png', medal:true, ribbonColors:['#b8a0f0','#3a1a7a']},
+  {match:/MURAILLE/i, image:'ai-icons/challenge-crests/muraille-chine-v2.png', medal:true, ribbonColors:['#a8f0c0','#1a6e3a']},
+  {match:/ODYSS[ÉE]A/i, image:'ai-icons/challenge-crests/odyssea-dijon-v3.png', medal:true, ribbonColors:['#f0a0d8','#a01870']},
+  {match:/OL[ÉE]RON/i, image:'ai-icons/challenge-crests/oleron-v2.png', medal:true, ribbonColors:['#f0a0c8','#a0104e']},
+  {match:/P[ÉE]ROU/i, image:'ai-icons/challenge-crests/perou-v3.png', medal:true, ribbonColors:['#f0b088','#8a3016']},
+  {match:/SULLY/i, image:'ai-icons/challenge-crests/sully-v4.png', medal:true, ribbonColors:['#b8e888','#3a7a1a']},
+  {match:/PLAGES/i, image:'ai-icons/challenge-crests/biarritz-v2.png', medal:true, ribbonColors:['#8fe8f0','#0e6b78']},
+  {match:/LONDRES/i, image:'ai-icons/challenge-crests/londres-v2.png', medal:true, ribbonColors:['#e6a0e0','#5a1f7a']},
+  {match:/CALI/i, image:'ai-icons/challenge-crests/cali-v2.png', medal:true, ribbonColors:['#2f6fff','#0c1c40']},
+  {match:/BESAN[ÇC]ON/i, image:'ai-icons/challenge-crests/besancon-v2.png', medal:true, ribbonColors:['#fdb38c','#702700']},
+  {match:/AMIENS|JULES VERNE/i, image:'ai-icons/challenge-crests/amiens-v5.png', medal:true, ribbonColors:['#ffe08a','#b8860b']},
+  {match:/TOUQUET/i, image:'ai-icons/challenge-crests/touquet-v3.png', medal:true, ribbonColors:['#f99f8d','#6c1201']},
+  {match:/EDMONTON/i, image:'ai-icons/challenge-crests/edmonton-v1.png', medal:true, ribbonColors:['#a35fd6','#5c1f96'], ribbonRise:8},
+  {match:/SANTA ROSA/i, image:'ai-icons/challenge-crests/santa-rosa-v1.png', medal:true, ribbonColors:['#e06fa8','#8a2a5a'], ribbonRise:8},
+  {match:/BUDAPEST/i, image:'ai-icons/challenge-crests/budapest-v1.png', medal:true, ribbonColors:['#e0935a','#a85a1f'], ribbonRise:9},
+  {match:/PORTO/i, image:'ai-icons/challenge-crests/porto-v1.png', medal:true, ribbonColors:['#f5a83c','#b8650f'], ribbonRise:7},
+  {match:/REZ[ÉE]/i, image:'ai-icons/challenge-crests/reze-v3.png', medal:true, ribbonColors:['#ffdb4d','#a86c00'], ribbonRise:0, ribbonLen:43, ribbonFlat:true, medalImgH:94},
+  {match:/PROSPECTEUR/i, image:'ai-icons/defi-icons/prospecteur-v1.png', hexBadge:true},
+  {match:/^5K$/i, image:'ai-icons/defi-icons/run5k-v1.png', hexBadge:true},
+  {match:/^10K$/i, image:'ai-icons/defi-icons/run10k-v1.png', hexBadge:true},
+  {match:/SEMI-MARATHON/i, image:'ai-icons/defi-icons/runsemi-v1.png', hexBadge:true},
+  {match:/^MARATHON$/i, image:'ai-icons/defi-icons/runmarathon-v1.png', hexBadge:true},
+  {match:/CENT BORNARDS/i, image:'ai-icons/defi-icons/run100-v1.png', hexBadge:true},
+  {match:/^20K$/i, image:'ai-icons/defi-icons/cum20-v1.png', hexBadge:true},
+  {match:/^50K$/i, image:'ai-icons/defi-icons/cum50-v1.png', hexBadge:true},
+  {match:/^100K$/i, image:'ai-icons/defi-icons/cum100-v1.png', hexBadge:true},
+  {match:/^250K$/i, image:'ai-icons/defi-icons/cum250-v1.png', hexBadge:true},
+  {match:/^500K$/i, image:'ai-icons/defi-icons/cum500-v1.png', hexBadge:true},
+  {match:/^1000K$/i, image:'ai-icons/defi-icons/cum1000-v1.png', hexBadge:true},
+  {match:/^PAYS$/i, image:'ai-icons/defi-icons/pays-v1.png', hexBadge:true},
+  {match:/^2000K$/i, image:'ai-icons/defi-icons/cum2000-v1.png', hexBadge:true},
+  {match:/CONTINENT/i, image:'ai-icons/defi-icons/continent-v1.png', hexBadge:true},
+  {match:/LUNAIRE/i, image:'ai-icons/defi-icons/lunaire-v1.png', hexBadge:true},
+  {match:/SOLAIRE/i, image:'ai-icons/defi-icons/solaire-v1.png', hexBadge:true},
+  {match:/GALACTIQUE/i, image:'ai-icons/defi-icons/galactique-v1.png', hexBadge:true},
+  {match:/ESPACE/i, image:'ai-icons/defi-icons/espace-v1.png', hexBadge:true},
+  {match:/BUZZ/i, image:'ai-icons/defi-icons/buzz-v1.png', hexBadge:true},
+  {match:/^S[ÉE]RIE 7$/i, image:'ai-icons/defi-icons/serie7-v1.png', hexBadge:true},
+  {match:/^S[ÉE]RIE 30$/i, image:'ai-icons/defi-icons/serie30-v1.png', hexBadge:true},
+  {match:/^S[ÉE]RIE 90$/i, image:'ai-icons/defi-icons/serie90-v1.png', hexBadge:true},
+  {match:/^S[ÉE]RIE 180$/i, image:'ai-icons/defi-icons/serie180-v1.png', hexBadge:true},
+  {match:/^S[ÉE]RIE 365$/i, image:'ai-icons/defi-icons/serie365-v1.png', hexBadge:true},
+  {match:/ALTIM[ÈE]TRE 1000/i, image:'ai-icons/defi-icons/elv1000-v1.png', hexBadge:true},
+  {match:/MONT-BLANC/i, image:'ai-icons/defi-icons/elvmb-v1.png', hexBadge:true},
+  {match:/EVEREST/i, image:'ai-icons/defi-icons/elveverest-v1.png', hexBadge:true},
+  {match:/KILIMANDJARO/i, image:'ai-icons/defi-icons/elvkilimandjaro-v1.png', hexBadge:true},
+  {match:/^[ÉE]CLAIR$/i, image:'ai-icons/defi-icons/eclair-v1.png', hexBadge:true},
+  {match:/NOCTAMBULE/i, image:'ai-icons/defi-icons/noctambule-v1.png', hexBadge:true},
+  {match:/AURORE/i, image:'ai-icons/defi-icons/aurore-v1.png', hexBadge:true},
+  {match:/^NOMADE$/i, image:'ai-icons/defi-icons/nomade-v1.png', hexBadge:true},
+  {match:/VOYAGEUR/i, image:'ai-icons/defi-icons/voyageur-v1.png', hexBadge:true},
+  {match:/^JACKPOT$/i, image:'ai-icons/defi-icons/jackpot-v1.png', hexBadge:true},
+  {match:/ESPRIT/i, image:'ai-icons/defi-icons/espritequipe-v1.png', hexBadge:true},
+  {match:/^FID[ÈE]LE$/i, image:'ai-icons/defi-icons/fidele-v1.png', hexBadge:true}
+];
+function _decorateBadgeWithCityCrest(b){
+  if(!b || b.image) return b; // déjà décoré (ou pas de match nécessaire)
+  var ov=_CITY_CREST_OVERRIDES.find(function(o){return o.match.test(b.name||'');});
+  if(ov){ b.image=ov.image; b.image_x=15; b.image_y=18; b.image_w=70; b.image_h=74; b.medal=!!ov.medal; b.ribbonColors=ov.ribbonColors; b.ribbonRise=ov.ribbonRise||0; b.ribbonLen=ov.ribbonLen; b.ribbonFlat=!!ov.ribbonFlat; b.medalImgY=ov.medalImgY; b.medalImgW=ov.medalImgW; b.medalImgH=ov.medalImgH; b.hexBadge=!!ov.hexBadge; }
+  return b;
+}
+
 // Catégories et leurs labels (pour les filtres)
 var BADGE_CATEGORIES={
   single_run:     {label:'🏃 Course', order:1},
@@ -20494,77 +20571,10 @@ async function renderChallenges(){
     // tout le reste de la fonction, y compris le patch des blasons ci-dessous.
     if(typeof _localizeBadgeInplace==='function') _badgesCatalog.forEach(_localizeBadgeInplace);
   }
-  // TEST LOCAL TEMPORAIRE (2026-07-31) — patche les VRAIS badges "capitales"
-  // déjà en base (par nom) pour leur ajouter un blason illustré, SANS toucher
-  // à la base de données (juste un ajout de champs côté client, en mémoire).
-  // Hors du bloc de cache ci-dessus pour tourner à chaque appel, quel que soit
-  // l'état du cache. À retirer une fois validé et migré proprement (colonnes
-  // dédiées en base).
-  // Couleur volontairement PAS écrasée : celle déjà en base par badge est
-  // gardée telle quelle (source unique = la table `badges`).
-  var _CITY_CREST_OVERRIDES=[
-    {match:/STOCKHOLM/i, image:'ai-icons/challenge-crests/stockholm-v2.png', medal:true, ribbonColors:['#fff0b0','#c88a12']},
-    {match:/BRUXELLES/i, image:'ai-icons/challenge-crests/bruxelles-v2.png', medal:true, ribbonColors:['#fff3b0','#c98f00']},
-    {match:/MONTREUX/i, image:'ai-icons/challenge-crests/montreux-v4.png', medal:true, ribbonColors:['#f0954a','#7a3410']},
-    {match:/FLEUR DU ROY|TRAIL DU ROY/i, image:'ai-icons/challenge-crests/fleur-du-roy-v4.png', medal:true, ribbonColors:['#b8a0f0','#3a1a7a']},
-    {match:/MURAILLE/i, image:'ai-icons/challenge-crests/muraille-chine-v2.png', medal:true, ribbonColors:['#a8f0c0','#1a6e3a']},
-    {match:/ODYSS[ÉE]A/i, image:'ai-icons/challenge-crests/odyssea-dijon-v3.png', medal:true, ribbonColors:['#f0a0d8','#a01870']},
-    {match:/OL[ÉE]RON/i, image:'ai-icons/challenge-crests/oleron-v2.png', medal:true, ribbonColors:['#f0a0c8','#a0104e']},
-    {match:/P[ÉE]ROU/i, image:'ai-icons/challenge-crests/perou-v3.png', medal:true, ribbonColors:['#f0b088','#8a3016']},
-    {match:/SULLY/i, image:'ai-icons/challenge-crests/sully-v4.png', medal:true, ribbonColors:['#b8e888','#3a7a1a']},
-    {match:/PLAGES/i, image:'ai-icons/challenge-crests/biarritz-v2.png', medal:true, ribbonColors:['#8fe8f0','#0e6b78']},
-    {match:/LONDRES/i, image:'ai-icons/challenge-crests/londres-v2.png', medal:true, ribbonColors:['#e6a0e0','#5a1f7a']},
-    {match:/CALI/i, image:'ai-icons/challenge-crests/cali-v2.png', medal:true, ribbonColors:['#2f6fff','#0c1c40']},
-    {match:/BESAN[ÇC]ON/i, image:'ai-icons/challenge-crests/besancon-v2.png', medal:true, ribbonColors:['#fdb38c','#702700']},
-    {match:/AMIENS|JULES VERNE/i, image:'ai-icons/challenge-crests/amiens-v5.png', medal:true, ribbonColors:['#ffe08a','#b8860b']},
-    {match:/TOUQUET/i, image:'ai-icons/challenge-crests/touquet-v3.png', medal:true, ribbonColors:['#f99f8d','#6c1201']},
-    {match:/EDMONTON/i, image:'ai-icons/challenge-crests/edmonton-v1.png', medal:true, ribbonColors:['#a35fd6','#5c1f96'], ribbonRise:8},
-    {match:/SANTA ROSA/i, image:'ai-icons/challenge-crests/santa-rosa-v1.png', medal:true, ribbonColors:['#e06fa8','#8a2a5a'], ribbonRise:8},
-    {match:/BUDAPEST/i, image:'ai-icons/challenge-crests/budapest-v1.png', medal:true, ribbonColors:['#e0935a','#a85a1f'], ribbonRise:9},
-    {match:/PORTO/i, image:'ai-icons/challenge-crests/porto-v1.png', medal:true, ribbonColors:['#f5a83c','#b8650f'], ribbonRise:7},
-    {match:/REZ[ÉE]/i, image:'ai-icons/challenge-crests/reze-v3.png', medal:true, ribbonColors:['#ffdb4d','#a86c00'], ribbonRise:0, ribbonLen:43, ribbonFlat:true, medalImgH:94},
-    {match:/PROSPECTEUR/i, image:'ai-icons/defi-icons/prospecteur-v1.png', hexBadge:true},
-    {match:/^5K$/i, image:'ai-icons/defi-icons/run5k-v1.png', hexBadge:true},
-    {match:/^10K$/i, image:'ai-icons/defi-icons/run10k-v1.png', hexBadge:true},
-    {match:/SEMI-MARATHON/i, image:'ai-icons/defi-icons/runsemi-v1.png', hexBadge:true},
-    {match:/^MARATHON$/i, image:'ai-icons/defi-icons/runmarathon-v1.png', hexBadge:true},
-    {match:/CENT BORNARDS/i, image:'ai-icons/defi-icons/run100-v1.png', hexBadge:true},
-    {match:/^20K$/i, image:'ai-icons/defi-icons/cum20-v1.png', hexBadge:true},
-    {match:/^50K$/i, image:'ai-icons/defi-icons/cum50-v1.png', hexBadge:true},
-    {match:/^100K$/i, image:'ai-icons/defi-icons/cum100-v1.png', hexBadge:true},
-    {match:/^250K$/i, image:'ai-icons/defi-icons/cum250-v1.png', hexBadge:true},
-    {match:/^500K$/i, image:'ai-icons/defi-icons/cum500-v1.png', hexBadge:true},
-    {match:/^1000K$/i, image:'ai-icons/defi-icons/cum1000-v1.png', hexBadge:true},
-    {match:/^PAYS$/i, image:'ai-icons/defi-icons/pays-v1.png', hexBadge:true},
-    {match:/^2000K$/i, image:'ai-icons/defi-icons/cum2000-v1.png', hexBadge:true},
-    {match:/CONTINENT/i, image:'ai-icons/defi-icons/continent-v1.png', hexBadge:true},
-    {match:/LUNAIRE/i, image:'ai-icons/defi-icons/lunaire-v1.png', hexBadge:true},
-    {match:/SOLAIRE/i, image:'ai-icons/defi-icons/solaire-v1.png', hexBadge:true},
-    {match:/GALACTIQUE/i, image:'ai-icons/defi-icons/galactique-v1.png', hexBadge:true},
-    {match:/ESPACE/i, image:'ai-icons/defi-icons/espace-v1.png', hexBadge:true},
-    {match:/BUZZ/i, image:'ai-icons/defi-icons/buzz-v1.png', hexBadge:true},
-    {match:/^S[ÉE]RIE 7$/i, image:'ai-icons/defi-icons/serie7-v1.png', hexBadge:true},
-    {match:/^S[ÉE]RIE 30$/i, image:'ai-icons/defi-icons/serie30-v1.png', hexBadge:true},
-    {match:/^S[ÉE]RIE 90$/i, image:'ai-icons/defi-icons/serie90-v1.png', hexBadge:true},
-    {match:/^S[ÉE]RIE 180$/i, image:'ai-icons/defi-icons/serie180-v1.png', hexBadge:true},
-    {match:/^S[ÉE]RIE 365$/i, image:'ai-icons/defi-icons/serie365-v1.png', hexBadge:true},
-    {match:/ALTIM[ÈE]TRE 1000/i, image:'ai-icons/defi-icons/elv1000-v1.png', hexBadge:true},
-    {match:/MONT-BLANC/i, image:'ai-icons/defi-icons/elvmb-v1.png', hexBadge:true},
-    {match:/EVEREST/i, image:'ai-icons/defi-icons/elveverest-v1.png', hexBadge:true},
-    {match:/KILIMANDJARO/i, image:'ai-icons/defi-icons/elvkilimandjaro-v1.png', hexBadge:true},
-    {match:/^[ÉE]CLAIR$/i, image:'ai-icons/defi-icons/eclair-v1.png', hexBadge:true},
-    {match:/NOCTAMBULE/i, image:'ai-icons/defi-icons/noctambule-v1.png', hexBadge:true},
-    {match:/AURORE/i, image:'ai-icons/defi-icons/aurore-v1.png', hexBadge:true},
-    {match:/^NOMADE$/i, image:'ai-icons/defi-icons/nomade-v1.png', hexBadge:true},
-    {match:/VOYAGEUR/i, image:'ai-icons/defi-icons/voyageur-v1.png', hexBadge:true},
-    {match:/^JACKPOT$/i, image:'ai-icons/defi-icons/jackpot-v1.png', hexBadge:true},
-    {match:/ESPRIT/i, image:'ai-icons/defi-icons/espritequipe-v1.png', hexBadge:true},
-    {match:/^FID[ÈE]LE$/i, image:'ai-icons/defi-icons/fidele-v1.png', hexBadge:true}
-  ];
-  _badgesCatalog.forEach(function(b){
-    var ov=_CITY_CREST_OVERRIDES.find(function(o){return o.match.test(b.name||'');});
-    if(ov){ b.image=ov.image; b.image_x=15; b.image_y=18; b.image_w=70; b.image_h=74; b.medal=!!ov.medal; b.ribbonColors=ov.ribbonColors; b.ribbonRise=ov.ribbonRise||0; b.ribbonLen=ov.ribbonLen; b.ribbonFlat=!!ov.ribbonFlat; b.medalImgY=ov.medalImgY; b.medalImgW=ov.medalImgW; b.medalImgH=ov.medalImgH; b.hexBadge=!!ov.hexBadge; }
-  });
+  // Patch blasons (cf. _CITY_CREST_OVERRIDES + _decorateBadgeWithCityCrest,
+  // déclarés en global) — hors du bloc de cache ci-dessus pour tourner à
+  // chaque appel, quel que soit l'état du cache.
+  _badgesCatalog.forEach(_decorateBadgeWithCityCrest);
   // 2. Badges débloqués (+ nombre de fois gagné — rejeu, 2026-07-21)
   var {data:unlocked}=await supabaseClient.from('player_badges').select('badge_id,earned_at,last_earned_at,times_earned').eq('player_id',targetUuid);
   var unlockedMap={}, timesEarnedMap={};
@@ -27748,10 +27758,16 @@ window.Tour.init = async function(){
     document.getElementById('tour-rm-status-strip').innerHTML = renderModalStatusStrip();
     window._rentModalLand = land;
   }
+  // Rebranché sur le vrai achat Premium (2026-08-09) : simulait ME.premium=true
+  // côté client sans aucun paiement réel, puis relançait immédiatement la
+  // préemption comme si le statut Premium venait d'être confirmé — même
+  // exploit de principe que l'ancien "crédit RPC gratuit" corrigé le
+  // 2026-08-06 (cf goToRpcMarket). Le vrai achat est asynchrone (webhook
+  // RevenueCat) : on ouvre la vraie modale Premium et on laisse le RP
+  // relancer sa préemption lui-même une fois Premium confirmé.
   function preemptGoPremium(){
-    ME.premium = true;
-    updatePlayerStatusPanel();
-    preemptLand(); // relance la préemption, canBuyLands() est maintenant vrai
+    closeRentModal();
+    if(typeof handlePremiumClick==='function') handlePremiumClick();
   }
   async function preemptBuyAcquisitionRight(){
     // ⚠️ Corrigé (2026-08-04) : un `return` silencieux ici faisait un bouton "qui
@@ -28543,13 +28559,17 @@ window.Tour.init = async function(){
     }
     buyMyRentedLand(land);
   }
-  // "Passer Premium" simulé (pas de vrai paiement dans ce prototype) — repasse
-  // par la dernière tentative d'achat en cours (étape OU Land classique, cf
-  // window._pendingBuyRetry) pour enchaîner naturellement.
+  // Rebranché sur le vrai achat Premium (2026-08-09, même correction que
+  // preemptGoPremium ci-dessus) : ouvre la vraie modale Premium au lieu de
+  // simuler ME.premium=true côté client. window._pendingBuyRetry reste posé
+  // par l'appelant pour reprendre l'action en cours si le RP revient sur le
+  // Tour après un vrai achat (même principe que goToRpcMarket/goToNyxMarket).
+  // Ferme aussi les 3 listes plein écran (attemptBuyLand peut être appelée
+  // depuis "Mes Lands") — même bug/fix que goToRpcMarket le 2026-08-06.
   function simulateGoPremium(){
-    ME.premium = true;
-    updatePlayerStatusPanel();
-    (window._pendingBuyRetry||attemptBuyEtape)();
+    closeRentModal();
+    closeForSalePage(); closeMyLandsPage(); closeRulesPage();
+    if(typeof handlePremiumClick==='function') handlePremiumClick();
   }
   // "Acheter des NYX" — ⚠️ 2026-08-06 : ne simule plus un crédit gratuit
   // (exploit maintenant que le Wallet est réel), renvoie vers la vraie
