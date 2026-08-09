@@ -20831,10 +20831,15 @@ async function renderChallenges(){
 
   // 4ter. Lands actuellement possédées/louées (PROSPECTEUR, règle 2026-08-03 —
   // 8 Lands en même temps, peu importe quand chacune a été acquise). SOURCE
-  // UNIQUE = tour_lands (SPEEDIX Tour V2), holder_id + status in (owned,rented) —
-  // jamais l'ancienne table `lands` V1 juste au-dessus (vide depuis la bascule).
-  // MIROIR de checkBadges.ts (_shared) — garder synchro, NE PAS diverger.
-  var {count:landsOwnedCount}=await supabaseClient.from('tour_lands').select('idx',{count:'exact',head:true}).eq('holder_id',targetUuid).in('status',['owned','rented']);
+  // UNIQUE = tour_lands (SPEEDIX Tour V2) — jamais l'ancienne table `lands` V1
+  // juste au-dessus (vide depuis la bascule).
+  // ⚠️ Compte AUSSI le QG (2026-08-09, cas vécu — RP à 0/8 alors qu'il possède
+  // sa case de départ) : la case de départ ("étape" offerte/gardée/invendable,
+  // jamais passée par le marché normal) est enregistrée via etape_owner_id, PAS
+  // holder_id/status='owned' comme une Land achetée — sans le OR ci-dessous
+  // elle ne comptait jamais. MIROIR de checkBadges.ts (_shared) — garder
+  // synchro, NE PAS diverger.
+  var {count:landsOwnedCount}=await supabaseClient.from('tour_lands').select('idx',{count:'exact',head:true}).or('and(holder_id.eq.'+targetUuid+',status.in.(owned,rented)),etape_owner_id.eq.'+targetUuid);
   var landsOwned=landsOwnedCount||0;
 
   // 4bis. Profil joueur (Cash Run, anciennete, onboarding objectifs) + defis collab gagnes
@@ -20856,7 +20861,7 @@ async function renderChallenges(){
   var {data:tourEtapes}=await supabaseClient.from('player_tour_etapes_landed').select('etape_name,landed_at').eq('player_id',targetUuid);
   var tourEtapesRows=tourEtapes||[];
 
-  // 4ter. Objectifs actifs (2026-07-20, esprit "pause" révisé le même jour) :
+  // 4quater. Objectifs actifs (2026-07-20, esprit "pause" révisé le même jour) :
   // un badge (hors event_run, qui garde son propre système d'inscription) ne
   // progresse QUE si le RP l'a choisi comme un de ses objectifs actifs
   // (4 max en Premium, 2 max en Free — cf. _questPickerCap()). Changer
