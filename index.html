@@ -7614,17 +7614,23 @@ var SPEEDIX_LANG=_i18nDetectLang();
 // l'impression d'un affichage incohérent d'une zone à l'autre (signalé par
 // l'user 2026-08-09, d'abord vu sur le classement). Plutôt que de corriger les
 // ~95 endroits un par un, on intercepte ICI l'appel .toLocaleString(SPEEDIX_LANG)
-// pour forcer une espace normale (toujours visible, quelle que soit la police).
-// L'anglais (virgule, sans problème de glyphe) et tout autre appel natif
+// pour forcer une espace INSECABLE classique (code U+00A0), et non plus la
+// version fine (U+202F, invisible dans certaines polices) NI une espace
+// normale : une espace normale (" ") avait recree le bug inverse en coupant
+// les points sur 2 lignes des qu un container etait un peu juste (vu sur la
+// ligne "moi" du classement, 2026-08-09, avec le badge couronne Cash Run en
+// plus qui reduisait la place disponible).
+// L'anglais (virgule, sans probleme de glyphe) et tout autre appel natif
 // (dates, etc.) gardent leur comportement d'origine, intact.
 (function(){
   var _numToLocaleStringNative=Number.prototype.toLocaleString;
+  var NBSP=String.fromCharCode(160); // U+00A0, espace insecable classique
   Number.prototype.toLocaleString=function(locale,opts){
     if(locale===SPEEDIX_LANG && opts===undefined && SPEEDIX_LANG!=='en'){
       var neg=this<0;
-      var rounded=Math.round(Math.abs(this)*1000)/1000; // jusqu'à 3 décimales, comme le comportement natif par défaut
+      var rounded=Math.round(Math.abs(this)*1000)/1000; // jusqu a 3 decimales, comme le comportement natif par defaut
       var parts=rounded.toString().split('.');
-      var intPart=parts[0].replace(/\B(?=(\d{3})+(?!\d))/g,' ');
+      var intPart=parts[0].replace(/\B(?=(\d{3})+(?!\d))/g,NBSP);
       var out=intPart+(parts[1]?','+parts[1]:'');
       return neg?('-'+out):out;
     }
@@ -11261,7 +11267,7 @@ function renderLeaguePanel(){
         +'<div style="display:flex;align-items:center;gap:.2rem;min-width:0"><div class="runner-name">'+p.name+meBadge+'</div>'+crownBadge+infBadge+gelBadge+calibBadge+debtBadge+parrainBadge+'</div>'
         +'</div>'
         +(boostBadge?'<div style="display:flex;align-items:center;flex-shrink:0">'+boostBadge+'</div>':'')
-        +'<div style="flex:0 0 100px;box-sizing:border-box;padding:.35rem .35rem;font-family:\'Rajdhani\',sans-serif;font-size:1.08rem;font-weight:700;display:flex;align-items:center;justify-content:flex-end;gap:.3rem">'
+        +'<div style="flex:0 0 100px;box-sizing:border-box;padding:.35rem .35rem;font-family:\'Rajdhani\',sans-serif;font-size:1.08rem;font-weight:700;white-space:nowrap;display:flex;align-items:center;justify-content:flex-end;gap:.3rem">'
         +ptsHtml
         +'</div>'
         +'</div></td></tr>';
