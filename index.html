@@ -25855,35 +25855,6 @@ window.Tour.init = async function(){
   
   // Tracé de fond
   L.polyline(LANDS.map(l=>[l.lat,l.lng]), {color:'#1e2535', weight:2, opacity:.6}).addTo(map);
-
-  // ⚠️ TRACÉ PROVISOIRE (2026-08-09, demande explicite user) : simple aperçu
-  // visuel d'une extension possible du circuit vers l'Espagne/le Portugal —
-  // AUCUN lien avec les vraies cases du plateau (LANDS), juste une ligne
-  // jaune décorative posée par-dessus pour discussion. À retirer si le
-  // tracé définitif est différent ou si l'idée est abandonnée.
-  L.polyline([
-    [43.1839,3.0033],   // Narbonne
-    [42.6886,2.8948],   // Perpignan
-    [41.9794,2.8214],   // Girone
-    [41.3851,2.1734],   // Barcelone
-    [39.4699,-0.3763],  // Valence
-    [38.3452,-0.4810],  // Alicante
-    [37.9922,-1.1307],  // Murcie
-    [37.1773,-3.5986],  // Grenade
-    [36.7213,-4.4214],  // Malaga
-    [37.3891,-5.9845],  // Séville
-    [38.7223,-9.1393],  // Lisbonne
-    [41.1579,-8.6291],  // Porto
-    [42.2406,-8.7207],  // Vigo
-    [43.3623,-8.4115],  // La Corogne
-    [43.5322,-5.6611],  // Gijón
-    [43.2630,-2.9350],  // Bilbao
-    [41.6523,-4.7245],  // Valladolid
-    [40.4168,-3.7038],  // Madrid
-    [41.6488,-0.8891],  // Saragosse
-    [42.5063,1.5218],   // Andorre
-    [43.2130,2.3491]    // Carcassonne
-  ], {color:'#f5d020', weight:3, opacity:.9, dashArray:'6,6'}).addTo(map);
   
   // ── Hexagones (même esprit visuel que la vraie carte des Lands, pas des points) ──
   // Chaque hexagone est tourné pour présenter une ARÊTE (pas un sommet) dans l'axe
