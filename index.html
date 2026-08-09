@@ -20833,11 +20833,15 @@ async function renderChallenges(){
   // 8 Lands en même temps, peu importe quand chacune a été acquise). SOURCE
   // UNIQUE = tour_lands (SPEEDIX Tour V2) — jamais l'ancienne table `lands` V1
   // juste au-dessus (vide depuis la bascule).
-  // ⚠️ Compte AUSSI le QG (2026-08-09, cas vécu — RP à 0/8 alors qu'il possède
-  // sa case de départ) : la case de départ ("étape" offerte/gardée/invendable,
-  // jamais passée par le marché normal) est enregistrée via etape_owner_id, PAS
-  // holder_id/status='owned' comme une Land achetée — sans le OR ci-dessous
-  // elle ne comptait jamais. MIROIR de checkBadges.ts (_shared) — garder
+  // ⚠️ Compte AUSSI les villes étape achetées (2026-08-09, cas vécu — RP à 0/8
+  // alors qu'il possédait la sienne) : une ville étape (Land rare, achetée
+  // normalement en NYX + statut Premium via tour_buy_etape, cf attemptBuyEtape/
+  // confirmBuyEtape) enregistre son propriétaire dans etape_owner_id, PAS
+  // holder_id/status='owned' comme une Land classique — circuit d'achat séparé
+  // (prix NYX, pas de statut "rented"), mais un achat bien réel au même titre
+  // qu'une Land normale. Sans le OR ci-dessous elle ne comptait jamais. Pas de
+  // notion de "case offerte" ici, ni nulle part dans le jeu (V2) — cf.
+  // correction 2026-08-09. MIROIR de checkBadges.ts (_shared) — garder
   // synchro, NE PAS diverger.
   var {count:landsOwnedCount}=await supabaseClient.from('tour_lands').select('idx',{count:'exact',head:true}).or('and(holder_id.eq.'+targetUuid+',status.in.(owned,rented)),etape_owner_id.eq.'+targetUuid);
   var landsOwned=landsOwnedCount||0;
