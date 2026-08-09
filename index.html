@@ -20285,7 +20285,14 @@ var _CITY_CREST_OVERRIDES=[
   {match:/MONT-BLANC/i, image:'ai-icons/defi-icons/elvmb-v1.png', hexBadge:true},
   {match:/EVEREST/i, image:'ai-icons/defi-icons/elveverest-v1.png', hexBadge:true},
   {match:/KILIMANDJARO/i, image:'ai-icons/defi-icons/elvkilimandjaro-v1.png', hexBadge:true},
-  {match:/^[ÉE]CLAIR$/i, image:'ai-icons/defi-icons/eclair-v1.png', hexBadge:true},
+  // glowAlpha (2026-08-09, demande explicite -- "le halo du badge Éclair est
+  // plus intense que celui des autres") : l'illustration a un halo jaune déjà
+  // peint DANS le PNG (contrairement aux autres badges plus sombres/plats),
+  // donc le même drop-shadow CSS (identique pour tous) se superpose à un halo
+  // déjà présent et ressort visuellement plus fort -- pas un bug de valeurs
+  // différentes, une question d'artwork. glowAlpha règle juste l'alpha hex du
+  // drop-shadow pour CE badge (défaut 'aa' ~67%, ici réduit à '55' ~33%).
+  {match:/^[ÉE]CLAIR$/i, image:'ai-icons/defi-icons/eclair-v1.png', hexBadge:true, glowAlpha:'33'},
   {match:/NOCTAMBULE/i, image:'ai-icons/defi-icons/noctambule-v1.png', hexBadge:true},
   {match:/AURORE/i, image:'ai-icons/defi-icons/aurore-v1.png', hexBadge:true},
   {match:/^NOMADE$/i, image:'ai-icons/defi-icons/nomade-v1.png', hexBadge:true},
@@ -20297,7 +20304,7 @@ var _CITY_CREST_OVERRIDES=[
 function _decorateBadgeWithCityCrest(b){
   if(!b || b.image) return b; // déjà décoré (ou pas de match nécessaire)
   var ov=_CITY_CREST_OVERRIDES.find(function(o){return o.match.test(b.name||'');});
-  if(ov){ b.image=ov.image; b.image_x=15; b.image_y=18; b.image_w=70; b.image_h=74; b.medal=!!ov.medal; b.ribbonColors=ov.ribbonColors; b.ribbonRise=ov.ribbonRise||0; b.ribbonLen=ov.ribbonLen; b.ribbonFlat=!!ov.ribbonFlat; b.medalImgY=ov.medalImgY; b.medalImgW=ov.medalImgW; b.medalImgH=ov.medalImgH; b.hexBadge=!!ov.hexBadge; }
+  if(ov){ b.image=ov.image; b.image_x=15; b.image_y=18; b.image_w=70; b.image_h=74; b.medal=!!ov.medal; b.ribbonColors=ov.ribbonColors; b.ribbonRise=ov.ribbonRise||0; b.ribbonLen=ov.ribbonLen; b.ribbonFlat=!!ov.ribbonFlat; b.medalImgY=ov.medalImgY; b.medalImgW=ov.medalImgW; b.medalImgH=ov.medalImgH; b.hexBadge=!!ov.hexBadge; b.glowAlpha=ov.glowAlpha; }
   return b;
 }
 
@@ -20492,7 +20499,11 @@ function _renderBadgeHex(b,isUnlocked){
     // badges déjà gagnés, couleur du badge (= couleur du cadre), un drop-shadow
     // à décalage nul suit le contour réel du PNG détouré → vraie lueur, pas un
     // dégradé rectangulaire plaqué derrière.
-    var imgFilter=(isUnlocked?('drop-shadow(0 0 9px '+color+'99) '):'grayscale(.85) ')+'drop-shadow(0 2px 3px rgba(0,0,0,.55))';
+    // glowAlpha (2026-08-09) : alpha hex du halo réglable par badge (défaut '99'),
+    // cf commentaire _CITY_CREST_OVERRIDES/ÉCLAIR -- certaines illustrations ont
+    // déjà un halo peint dans le PNG, le même glow CSS que les autres y ressort
+    // trop fort sans ce réglage.
+    var imgFilter=(isUnlocked?('drop-shadow(0 0 9px '+color+(b.glowAlpha||'99')+') '):'grayscale(.85) ')+'drop-shadow(0 2px 3px rgba(0,0,0,.55))';
     // Présentation "médaille" (2026-08-02) : ruban bordeaux/or Speedix (identique
     // pour toutes les villes, pas les couleurs du pays — cf. discussion) au-dessus
     // du blason affiché en entier, sans fond hexagone séparé (évite l'effet
@@ -20818,6 +20829,14 @@ async function renderChallenges(){
   var cutoff=new Date(Date.now()-60*60*1000).toISOString();
   var {data:rec}=await supabaseClient.from('lands').select('id,rented_at').eq('tenant_id',targetUuid).gte('rented_at',cutoff);
 
+  // 4ter. Lands actuellement possédées/louées (PROSPECTEUR, règle 2026-08-03 —
+  // 8 Lands en même temps, peu importe quand chacune a été acquise). SOURCE
+  // UNIQUE = tour_lands (SPEEDIX Tour V2), holder_id + status in (owned,rented) —
+  // jamais l'ancienne table `lands` V1 juste au-dessus (vide depuis la bascule).
+  // MIROIR de checkBadges.ts (_shared) — garder synchro, NE PAS diverger.
+  var {count:landsOwnedCount}=await supabaseClient.from('tour_lands').select('idx',{count:'exact',head:true}).eq('holder_id',targetUuid).in('status',['owned','rented']);
+  var landsOwned=landsOwnedCount||0;
+
   // 4bis. Profil joueur (Cash Run, anciennete, onboarding objectifs) + defis collab gagnes
   // MIROIR de checkBadges.ts (_shared) — garder synchro, NE PAS diverger.
   var {data:pRow}=await supabaseClient.from('players').select('cashrun_jackpots,created_at,quests_onboarded_at').eq('id',targetUuid).single();
@@ -20908,10 +20927,9 @@ async function renderChallenges(){
     if(b.threshold_type==='cashrun_jackpots') return cashrunJackpots;
     if(b.threshold_type==='account_age_days') return (pRow&&pRow.created_at)?(Date.now()-new Date(pRow.created_at).getTime())/86400000:0;
     if(b.threshold_type==='collab_wins') return collabWinRows.length;
-    // lands_owned (PROSPECTEUR) : pas de source vivante depuis la bascule Tour V2
-    // (l'ancienne table `lands` V1 est vide, aucun signal de possession simultanée
-    // n'existe plus) -- reste honnêtement à 0 plutôt que d'afficher un faux chiffre.
-    if(b.threshold_type==='lands_owned') return 0;
+    // lands_owned (PROSPECTEUR, 2026-08-09 -- règle confirmée : 8 Lands en même
+    // temps, peu importe quand, cf landsOwned/tour_lands plus haut).
+    if(b.threshold_type==='lands_owned') return landsOwned;
     var q=activeQuestsMap[b.id];
     if(q){
       var live=statsSince(q.since)[b.threshold_type]||0;
