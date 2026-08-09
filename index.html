@@ -27022,6 +27022,19 @@ window.Tour.init = async function(){
             window._pendingLapCelebration = {laps: lapsGained};
           }
         }
+        // Sauvegarde IMMÉDIATE de la nouvelle position (2026-08-09, bug corrigé
+        // — signalé par l'user, Natchaan restée bloquée à sa case malgré une
+        // course créditée) : avant, seul le setInterval 4s (ou beforeunload/
+        // visibilitychange) écrivait tour_idx en base. myIdx est déjà mis à
+        // jour en mémoire dès le début de forceMove (ligne ~26905), donc si le
+        // RP ferme/quitte l'appli dans les toutes premières secondes après son
+        // arrivée -- avant le prochain tick ou sans que l'event de fermeture se
+        // déclenche fiablement (fréquent sur PWA mobile mise en arrière-plan) --
+        // le déplacement restait uniquement en mémoire et se perdait, alors que
+        // tour_run_seen_at avait déjà marqué la course comme consommée (donc
+        // plus jamais reproposée). On sauvegarde maintenant dès la fin réelle
+        // du déplacement, sans attendre le filet de sécurité périodique.
+        saveTourState();
         onArrive(toIdx);
       }
     }
