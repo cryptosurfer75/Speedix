@@ -366,17 +366,19 @@ body::after{
      pilotés par --medal-c1/--medal-c2, posés en inline style sur .my-row-tile.
      Transparent par défaut (aucun impact sur les RP sans medal_bg actif) —
      jamais de fond-color transparent lui-même, cf. technique biseau existante. */
-  /* Halo resserré (2026-08-10, demande explicite -- "réduire l'épaisseur") :
-     bande transparent->transparent passée de 40%-60% à 44%-56% (coeur violet/blanc
-     49-51% inchangé), soit ~40% de largeur en moins. */
-  background-image:linear-gradient(100deg,transparent 44%,rgba(228,84,255,.45) 49%,rgba(255,255,255,.35) 50%,rgba(228,84,255,.45) 51%,transparent 56%),
+  /* Halo resserré et éclairci (2026-08-10, demande explicite -- "encore réduire
+     la taille, plus transparent") : 2e passe après un 1er resserrage 40-60%->44-56%
+     le même jour -- bande passée à 46%-54% (coeur 49-51% inchangé) et opacités
+     baissées .45->.3 / .35->.2. */
+  background-image:linear-gradient(100deg,transparent 46%,rgba(228,84,255,.3) 49%,rgba(255,255,255,.2) 50%,rgba(228,84,255,.3) 51%,transparent 54%),
     linear-gradient(135deg, var(--medal-c1,transparent) 0%, transparent 60%),
     linear-gradient(315deg, var(--medal-c2,transparent) 0%, transparent 60%);
   background-size:200% 100%, 100% 100%, 100% 100%;
   background-repeat:no-repeat;
   /* Vitesse (2026-08-10, demande explicite -- "accélère un peu le passage") :
-     11s->9s, le balayage garde 50% du cycle (passe de 5,5s à 4,5s). */
-  animation:myRowShine 9s linear infinite;
+     11s->9s puis 9s->7.5s (2e passe le même jour), balayage à 50% du cycle
+     (passe de 5,5s à 3,75s). */
+  animation:myRowShine 7.5s linear infinite;
 }
 /* Barre lumineuse skin "gagnant de Challenge" sur la ligne "moi" du classement
    (2026-08-08, demande explicite -- "essaie de me faire le même bandeau sur la
@@ -387,11 +389,14 @@ body::after{
    n'anime que `left`). Ajoutée en HTML UNIQUEMENT si TEST_MEDAL_BG (cf
    buildRow), jamais présente sinon donc aucun impact sur les autres RP. */
 .mrt-shine-bar{
-  position:absolute;top:-25%;left:-40%;width:14%;height:150%;z-index:-1;pointer-events:none;
+  position:absolute;top:-25%;left:-40%;width:9%;height:150%;z-index:-1;pointer-events:none;
   /* Bande blanche encore élargie (2026-08-08, demande explicite -- "la bande
      blanche au milieu la plus large") : plateau à pleine opacité 35%-65%
-     (était 42%-58%). */
-  background:linear-gradient(100deg,transparent 0%,rgba(255,255,255,.3) 15%,rgba(255,255,255,.95) 35%,rgba(255,255,255,.95) 65%,rgba(255,255,255,.3) 85%,transparent 100%);
+     (était 42%-58%). RÉDUITE ET ÉCLAIRCIE (2026-08-10, demande explicite --
+     "plus transparent, moins lumineux" -- confusion levée avec le halo violet/
+     blanc "de tous les jours" de .mrt-fill, c'est bien CETTE barre qui était
+     visée) : width 14%->9%, plateau .95->.55, bords .3->.15. */
+  background:linear-gradient(100deg,transparent 0%,rgba(255,255,255,.15) 15%,rgba(255,255,255,.55) 35%,rgba(255,255,255,.55) 65%,rgba(255,255,255,.15) 85%,transparent 100%);
   transform:rotate(-14deg);
 }
 
@@ -1365,6 +1370,15 @@ body::after{
 .etape-marker.dir-l{ transform:translate(-100%,-50%); }
 .etape-marker.dir-t{ transform:translate(-50%,-100%); }
 .etape-marker.dir-b{ transform:translate(-50%,0); }
+/* Popup "propriétaire" d'une ville étape (2026-08-10, demande explicite — "cadre
+   doré fond noir, comme le simulateur de points") : le popup Leaflet par défaut
+   (blanc, jamais personnalisé jusqu'ici sur cette carte) est neutralisé -- le
+   HTML injecté (cf etapeOwnerPopupHtml) porte déjà son propre cadre biseauté.
+   Petite flèche Leaflet retirée (display:none) plutôt que redessinée en doré :
+   sa forme carrée pivotée aurait mal collé au clip-path polygonal du cadre. */
+.etape-popup .leaflet-popup-content-wrapper{ background:transparent; box-shadow:none; border-radius:0; padding:0; }
+.etape-popup .leaflet-popup-content{ margin:0; }
+.etape-popup .leaflet-popup-tip-container{ display:none; }
 /* Aperçu extension de boucle (2026-08-01) — villes "fantômes", pas de vraies
    Lands dessus, juste un nom en jaune très transparent pour visualiser le
    tracé possible. */
@@ -11219,7 +11233,8 @@ function renderLeaguePanel(){
         if(!bar) return;
         bar.style.animation='none';
         void bar.offsetWidth; // force reflow -- indispensable pour relancer l'animation depuis 0%
-        bar.style.animation='pcShineBarSweepRow 4s linear 1 both';
+        // Accéléré 4s->2.5s (2026-08-10, demande explicite "plus rapide ds le passage").
+        bar.style.animation='pcShineBarSweepRow 2.5s linear 1 both';
       };
       setTimeout(window._mrtSweep, 300); // 1er passage rapide, sans attendre le 1er tick
       window.__mrtShineTimer=setInterval(window._mrtSweep, 7000);
@@ -26422,6 +26437,49 @@ window.Tour.init = async function(){
     if(l.owner===ME) l.layer.unbindPopup(); else l.layer.bindPopup(popupHtml(l));
   }
 
+  // Visualisation d'une ville étape possédée (2026-08-10) : REVERT du 1er essai
+  // (violet fixe + badge rond séparé + gros halo, abandonné -- "ça me plaît pas,
+  // revient tout au début, on garde en doré"). Une étape possédée reste DORÉE
+  // comme à l'origine (même couleur que le contour d'une étape libre) -- juste
+  // remplie, avec un petit effet lumineux, plutôt que remplacée par une autre
+  // couleur. ETAPE_OWNED_COLOR = contour + halo (doré vif, cf stroke à l'origine).
+  // ETAPE_FILL_COLOR = remplissage, plus sombre (demande explicite -- "l'intérieur
+  // est trop clair") : le doré vif en fillColor à faible opacité rendait un lavis
+  // pâle, un ton plus foncé à opacité plus soutenue lit comme une vraie couleur
+  // pleine plutôt qu'un voile.
+  const ETAPE_OWNED_COLOR = '#f5c842';
+  const ETAPE_FILL_COLOR = '#7a5c10';
+  // Repère central (2026-08-10, demande explicite -- "le repère de distance,
+  // de toute façon pas vraiment visible, remets un point comme toutes les
+  // autres Lands doré") : simple point plein doré au centre, plus de pochoir
+  // pin.png (retiré, jugé pas assez lisible à cette taille).
+  function etapeStatBadgeIcon(){
+    return L.divIcon({
+      className:'', iconSize:[10,10], iconAnchor:[5,5],
+      html:`<div style="width:10px;height:10px;border-radius:50%;background:#f5c842;box-shadow:0 0 3px rgba(0,0,0,.85)"></div>`
+    });
+  }
+  // Fenêtre "propriétaire" au clic (2026-08-10, demande explicite — "le cadre
+  // qui s'ouvre avec les stats, tu le fais comme le cadre en bas du simulateur
+  // de points, à savoir tour dorée fond noir" puis "fais-moi un léger dégradé
+  // jaune comme on fait partout") : réutilise EXACTEMENT la technique de
+  // walletTotalFrame() (cf §WALLET plus bas dans ce fichier, déjà le "cadre
+  // jaune du simulateur de points") -- bordure biseautée + 4 accents d'angle +
+  // fond #0c0f1a + le même empilement de dégradés dorés en sourdine que son
+  // background-image, au lieu du popup Leaflet blanc par défaut (jamais
+  // personnalisé jusqu'ici, cf CSS .etape-popup ajoutée avec le reste du style).
+  function etapeOwnerPopupHtml(l, etapeNum){
+    const corner=(pos,transform)=>`<svg viewBox="0 0 32 32" style="position:absolute;${pos};width:14px;height:14px;z-index:2;pointer-events:none;${transform?'transform:'+transform+';':''}filter:drop-shadow(0 0 4px rgba(245,200,66,.65))"><path d="M2,30 L2,14 L14,2 L30,2" fill="none" stroke="#f5c842" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+    return `<div style="position:relative;min-width:190px">`
+      +corner('top:0;left:0','')+corner('top:0;right:0','scaleX(-1)')+corner('bottom:0;left:0','scaleY(-1)')+corner('bottom:0;right:0','scale(-1,-1)')
+      +`<div style="background:rgba(245,200,66,.55);clip-path:polygon(12px 0,calc(100% - 12px) 0,100% 12px,100% calc(100% - 12px),calc(100% - 12px) 100%,12px 100%,0 calc(100% - 12px),0 12px);padding:1.5px;box-shadow:0 0 14px rgba(245,200,66,.25)">`
+      +`<div style="background:#0c0f1a;clip-path:polygon(10.5px 0,calc(100% - 10.5px) 0,100% 10.5px,100% calc(100% - 10.5px),calc(100% - 10.5px) 100%,10.5px 100%,0 calc(100% - 10.5px),0 10.5px);background-image:radial-gradient(ellipse 38% 70% at 97% 25%,rgba(245,200,66,.16) 0%,rgba(245,200,66,.07) 40%,transparent 68%),radial-gradient(ellipse 32% 45% at 5% 88%,rgba(245,200,66,.16) 0%,rgba(245,200,66,.07) 35%,transparent 62%),linear-gradient(to bottom left,rgba(245,200,66,.09) 0%,transparent 26%),linear-gradient(to top right,rgba(245,200,66,.09) 0%,transparent 26%);padding:.6rem .85rem">`
+      +`<div style="font-family:'Bebas Neue',sans-serif;font-size:1.05rem;letter-spacing:1px;color:#f5c842">👑 ${l.name}</div>`
+      +`<div style="font-size:.7rem;color:#9aa3b8;margin-bottom:.4rem">Ville étape n°${etapeNum}</div>`
+      +`<div style="font-size:.8rem;color:#fff">Propriétaire : <b>${l.ownerEtape.name}</b> (${'★'.repeat(l.stars||0)})</div>`
+      +`<div style="font-size:.8rem;color:#fff">Redevance : <b style="color:#f5c842">${landRedevance(l)} RPC</b></div>`
+      +`</div></div></div>`;
+  }
   // Marqueurs étapes (grandes villes) — hexagone doré + label
   LANDS.forEach(l=>{
     if(l.type!=='etape') return;
@@ -26433,19 +26491,60 @@ window.Tour.init = async function(){
     // doré) pour bien les distinguer des autres étapes — ni louables ni
     // achetables, Paris ET Marseille.
     const isStartCity = START_CITIES.has(l.name);
+    // Remplissage doré dès qu'une étape est achetée (2026-08-10) : avant, une
+    // étape achetée gardait EXACTEMENT le même rendu (contour doré, aucun
+    // remplissage) qu'une étape libre -- aucune trace visuelle de l'acquisition.
+    const owned = !!l.ownerEtape;
+    // Petit effet lumineux (2026-08-10, demande explicite — "avec un petit effet
+    // lumineux comme sur l'arrière des défis"), PAS un gros halo comme au 1er
+    // essai : rendu Canvas (cf canvasRenderer plus haut), donc pas de
+    // filter:drop-shadow CSS possible par case (ça ne marche que sur du SVG) --
+    // 2e hexagone légèrement plus grand, fin et discret, posé EN DESSOUS.
+    if(owned){
+      L.polygon(hexVertices(l.lat,l.lng,l.etapeRadius*1.08,l.bearing), {
+        stroke:true, color:ETAPE_OWNED_COLOR, weight:4, opacity:.3, fill:false, interactive:false
+      }).addTo(map);
+    }
     const hex = L.polygon(hexVertices(l.lat,l.lng,l.etapeRadius,l.bearing), {
-      stroke:true, color: isStartCity ? '#20d0e0' : '#f5c842', weight:3, fillOpacity:0
+      stroke:true, color: isStartCity ? '#20d0e0' : '#f5c842', weight:3,
+      fillColor: owned ? ETAPE_FILL_COLOR : undefined, fillOpacity: owned ? .7 : 0
     }).addTo(map);
+    l.layer = hex; // absent avant (2026-08-10) : buyFromMarketplace() essayait déjà de
+    // restyler land.layer après achat d'une étape mais ne trouvait rien -- silencieux.
+    // Plus jaune au centre (2026-08-10, demande explicite) : pas de vrai dégradé
+    // radial possible par case sur ce rendu Canvas (cf commentaire halo plus haut)
+    // -- 2e hexagone plus petit et plus clair, posé PAR-DESSUS le remplissage
+    // sombre, simule un centre plus lumineux qui s'assombrit vers les bords.
+    if(owned){
+      L.polygon(hexVertices(l.lat,l.lng,l.etapeRadius*0.55,l.bearing), {
+        stroke:false, fill:true, fillColor:'#f5c842', fillOpacity:.4, interactive:false
+      }).addTo(map);
+      L.marker([l.lat,l.lng], {icon: etapeStatBadgeIcon(), zIndexOffset:500, interactive:false}).addTo(map);
+    }
+    // "n°X" d'une ville étape = son rang dans le parcours (Amiens = 2e étape du
+    // Tour), PAS son numéro de case brut (l.idx, qui peut être n'importe quoi
+    // selon la position sur les 800 cases) -- ETAPE_IDX est déjà dans l'ordre du
+    // tracé (cf sa construction plus haut dans le fichier).
+    const etapeNum = ETAPE_IDX.indexOf(l.idx) + 1;
     if(isStartCity){
       hex.bindPopup(`<b>🏁 ${l.name} — Départ</b><br>Case n°${l.idx}<br><span style="color:#20d0e0">Ni louable ni achetable</span>`);
+    } else if(l.ownerEtape){
+      // Posée que le propriétaire soit moi ou un autre RP -- contrairement aux
+      // Lands classiques (qui redirigent direct vers "Mes Lands" sans jamais
+      // montrer de popup sur les tiennes), le clic sur SA PROPRE étape ne
+      // redirige plus (cf hex.on('click',...) juste en dessous), donc rien
+      // n'empêche plus la popup de rester affichée.
+      hex.bindPopup(etapeOwnerPopupHtml(l, etapeNum), {className:'etape-popup'});
     } else {
       const tier = BIG_CITIES.has(l.name) ? 'Grosse ville' : 'Ville moyenne';
       hex.bindPopup(`<b>${l.name}</b><br>Étape officielle — case n°${l.idx} (${tier})<br><span style="color:#f5c842">⭐ Réservée aux RP Premium — ${etapePrice(l.name)} NYX</span>`);
     }
-    // Clic sur une étape que TU possèdes déjà (2026-08-01) : direct vers sa carte
-    // dans "Mes Lands". Vérifié au moment du clic (pas à la création) car
-    // l.ownerEtape n'est posé qu'au moment de l'achat, plus tard dans la partie.
-    hex.on('click', ()=>{ if(l.ownerEtape===ME){ hex.closePopup(); openMyLandsPage(l.idx); } });
+    // Avant (2026-08-01) : clic sur une étape que TU possèdes → direct vers "Mes
+    // Lands", sans jamais montrer de popup. RETIRÉ (2026-08-10, demande explicite
+    // — l'user veut justement voir la popup propriétaire au clic, y compris sur
+    // sa propre étape) : la redirection automatique empêchait cette popup de
+    // rester affichée (fermée par hex.closePopup() avant même d'être vue).
+    // "Mes Lands" reste accessible autrement (liste des Lands possédées).
     // Décalage du label PERPENDICULAIRE au sens du tracé à cet endroit précis.
     // ⚠️ 2 essais ratés avant celui-ci (2026-08-01) : le 1er utilisait l.bearing
     // brut (donc le nom poussait DANS le prolongement du tracé, pas sur le côté).
@@ -26461,19 +26560,39 @@ window.Tour.init = async function(){
     // rester du même côté que ce qui était déjà validé par dx/dy.
     const rad = (l.bearing||0) * Math.PI/180;
     const dx = Math.sin(rad), dy = Math.cos(rad); // vecteur écran (x=est, y=sud) — sert juste à choisir le côté (classe CSS)
-    const labelPt = destPoint(l.lat, l.lng, (l.bearing||0) - 90, l.etapeRadius * 1.6);
+    // Écart 1.6->2.6 (2026-08-10, demande explicite -- "Amiens passe sur le tracé
+    // qd on zoome") : la marge grandit déjà avec le zoom (cf commentaire ci-dessus),
+    // mais 1.6 restait trop juste là où le tracé courbe juste après/avant la ville
+    // (le nom revenait dessus). Vaut pour toutes les villes, pas juste Amiens.
     const GAP = 4; // petite marge résiduelle en pixels, juste pour l'aération du texte
-    let dirClass, ax, ay;
-    if(Math.abs(dx) >= Math.abs(dy)){
-      if(dx >= 0){ dirClass='dir-r'; ax=-GAP; ay=0; }
-      else { dirClass='dir-l'; ax=GAP; ay=0; }
+    let dirClass, ax, ay, labelPt;
+    // Correction manuelle par ville (2026-08-10, plusieurs essais infructueux sur
+    // Amiens avec le calcul générique ci-dessous -- l'user a fini par demander le
+    // repli explicite "au pire, mets le nom au-dessus de l'hexagone") : on sort
+    // complètement du calcul bearing/dx-dy pour Amiens, posé directement au NORD
+    // du centre de l'hexagone (bearing 90 dans la convention de destPoint, cf sa
+    // définition plus haut -- 0=est, 90=nord, PAS une boussole classique) avec la
+    // classe dir-t (le texte pousse vers le HAUT depuis son point d'ancrage,
+    // s'éloigne donc encore plus de l'hexagone). Même logique que Le Havre déjà
+    // retouché à la main ailleurs (cf PREVIEW_CITIES_NORD).
+    if(l.name==='Amiens'){
+      dirClass='dir-t'; ax=0; ay=GAP;
+      labelPt = destPoint(l.lat, l.lng, 90, l.etapeRadius * 1.3);
     } else {
-      if(dy < 0){ dirClass='dir-t'; ax=0; ay=GAP; }
-      else { dirClass='dir-b'; ax=0; ay=-GAP; }
+      labelPt = destPoint(l.lat, l.lng, (l.bearing||0) - 90, l.etapeRadius * 2.6);
+      if(Math.abs(dx) >= Math.abs(dy)){
+        if(dx >= 0){ dirClass='dir-r'; ax=-GAP; ay=0; }
+        else { dirClass='dir-l'; ax=GAP; ay=0; }
+      } else {
+        if(dy < 0){ dirClass='dir-t'; ax=0; ay=GAP; }
+        else { dirClass='dir-b'; ax=0; ay=-GAP; }
+      }
     }
     // Plus de "(DÉPART)" sur Paris (2026-08-02) : ce n'est plus le seul départ
     // possible depuis la rivalité Nord/Sud, juste le nom de la ville suffit.
     const labelText = l.name;
+    // REVERT (2026-08-10) : plus de violet sur le nom d'une étape possédée --
+    // cyan pour les 2 villes de départ, doré par défaut sinon (cf .etape-marker).
     const labelStyle = isStartCity ? ' style="color:#20d0e0"' : '';
     L.marker([labelPt.lat,labelPt.lng], {
       icon: L.divIcon({className:'', html:`<div class="etape-marker ${dirClass}"${labelStyle}>${labelText}</div>`, iconSize:[0,0], iconAnchor:[ax,ay]})
@@ -28514,7 +28633,30 @@ window.Tour.init = async function(){
     else { land.owner = ME; land.status = 'owned'; }
     delete land.forSale; delete land.salePrice; delete land.leaseMonths; delete land.freeMonthsLeft;
     land.mine = true;
-    if(land.layer){ land.layer.setStyle({fillColor: ME.color, fillOpacity:.95}); land.layer.unbindPopup(); }
+    // Étape : remplissage doré + petit effet lumineux posés tout de suite
+    // (2026-08-10, REVERT du violet -- cf boucle de dessin des étapes plus
+    // haut) -- sans ça le rendu ne se mettait à jour qu'au rechargement de la
+    // page (l.layer n'existait même pas avant ce jour-là).
+    if(isEtape && land.layer){
+      L.polygon(hexVertices(land.lat,land.lng,land.etapeRadius*1.08,land.bearing), {
+        stroke:true, color:ETAPE_OWNED_COLOR, weight:4, opacity:.3, fill:false, interactive:false
+      }).addTo(map);
+      L.polygon(hexVertices(land.lat,land.lng,land.etapeRadius*0.55,land.bearing), {
+        stroke:false, fill:true, fillColor:'#f5c842', fillOpacity:.4, interactive:false
+      }).addTo(map);
+      L.marker([land.lat,land.lng], {icon: etapeStatBadgeIcon(), zIndexOffset:500, interactive:false}).addTo(map);
+    }
+    if(land.layer){
+      land.layer.setStyle(isEtape
+        ? {fillColor: ETAPE_FILL_COLOR, fillOpacity:.7}
+        : {fillColor: ME.color, fillOpacity:.95});
+      // Étape : popup remise à jour avec le nouveau propriétaire, jamais retirée
+      // (2026-08-10, cf boucle de dessin des étapes -- l'user veut voir cette
+      // popup même sur SA PROPRE étape). Classique : comportement inchangé,
+      // toujours retirée (redirection directe vers "Mes Lands" au clic).
+      if(isEtape) land.layer.bindPopup(etapeOwnerPopupHtml(land, ETAPE_IDX.indexOf(land.idx)+1), {className:'etape-popup'});
+      else land.layer.unbindPopup();
+    }
     // Armé AVANT _tourSyncWallet() (2026-08-06, même bug que buyMyRentedLand) :
     // achat déclenché depuis la grille Marketplace, pas depuis une modale déjà
     // ouverte.
@@ -28661,14 +28803,23 @@ window.Tour.init = async function(){
   // "il redevient blanc lorsqu'on a consulté le tableau, il redevient bleu QUE
   // lorsqu'une nouvelle Land arrive en vente") : contrairement à Mes Lands
   // (état persistant tant qu'on détient une Land), ici l'état dépend de si le
-  // RP a DÉJÀ ouvert la page pour les voir -- pas de colonne DB nécessaire,
-  // juste un Set en mémoire d'onglet (repart à zéro au rechargement, ce qui est
-  // acceptable pour une simple pastille de notification, pas une règle de jeu).
+  // RP a DÉJÀ ouvert la page pour les voir.
+  // BUG CORRIGÉ (2026-08-10, signalé par l'user — "repasse en bleu alors qu'il
+  // n'y a pas de nouvelles Lands à vendre", contraire à la règle "les boutons
+  // ne repassent en couleur que sur un NOUVEL évènement") : le Set n'était
+  // gardé qu'en mémoire d'onglet, jamais persisté ("acceptable pour une simple
+  // pastille" au moment où ça a été écrit — faux, un rechargement de page
+  // suffisait à tout faire repasser "jamais vu" et donc rebleuir le bouton
+  // sans qu'aucune Land nouvelle ne soit réellement arrivée). Persisté en
+  // localStorage par compte (pas de colonne DB pour une pastille cosmétique).
+  function _seenForSaleKey(){ return 'tour-forsale-seen-'+(currentUser?currentUser.id:''); }
   let _seenForSaleIdx = new Set();
+  try{ _seenForSaleIdx = new Set(JSON.parse(localStorage.getItem(_seenForSaleKey())||'[]')); }catch(e){}
   function openForSalePage(){
     renderForSalePage();
     document.getElementById('tour-forsale-overlay').classList.add('open');
     LANDS.forEach(l => { if(l.forSale) _seenForSaleIdx.add(l.idx); });
+    try{ localStorage.setItem(_seenForSaleKey(), JSON.stringify([..._seenForSaleIdx])); }catch(e){}
     updatePlayerStatusPanel();
   }
   function closeForSalePage(){ document.getElementById('tour-forsale-overlay').classList.remove('open'); }
@@ -29048,7 +29199,23 @@ window.Tour.init = async function(){
       }
       _tourErrorToast(res.error); return;
     }
-    land.ownerEtape = ME; land.stars = 0; land.mine = true; // les étapes gardent leur rendu doré officiel, on note juste le propriétaire
+    land.ownerEtape = ME; land.stars = 0; land.mine = true;
+    // (2026-08-10, REVERT du violet -- avant ça : "les étapes gardent leur rendu
+    // doré officiel", aucune trace visuelle de l'achat sur la carte) : remplissage
+    // doré + petit effet lumineux (cf boucle de dessin des étapes plus haut).
+    // Popup remise à jour (jamais retirée) : montre le nouveau propriétaire au clic,
+    // y compris sur SA PROPRE étape.
+    if(land.layer){
+      land.layer.setStyle({fillColor: ETAPE_FILL_COLOR, fillOpacity:.7});
+      land.layer.bindPopup(etapeOwnerPopupHtml(land, ETAPE_IDX.indexOf(land.idx)+1), {className:'etape-popup'});
+      L.polygon(hexVertices(land.lat,land.lng,land.etapeRadius*1.08,land.bearing), {
+        stroke:true, color:ETAPE_OWNED_COLOR, weight:4, opacity:.3, fill:false, interactive:false
+      }).addTo(map);
+      L.polygon(hexVertices(land.lat,land.lng,land.etapeRadius*0.55,land.bearing), {
+        stroke:false, fill:true, fillColor:'#f5c842', fillOpacity:.4, interactive:false
+      }).addTo(map);
+      L.marker([land.lat,land.lng], {icon: etapeStatBadgeIcon(), zIndexOffset:500, interactive:false}).addTo(map);
+    }
     await _tourSyncWallet();
     showCelebrationModal('🎉 Félicitations !', `Tu es à présent propriétaire de la Land étape <b class="rm-gold">${land.name}</b> — une des Lands les plus rares du SPEEDIX Tour. Bravo et bonne course à toi !`);
   }
@@ -29236,16 +29403,35 @@ window.Tour.init = async function(){
     if(error || !allRuns || !allRuns.length) return null;
     const totalCellsTravelled = (ME.laps||0)*TOTAL_CELLS + (((myIdx-ME.startIdx)%TOTAL_CELLS)+TOTAL_CELLS)%TOTAL_CELLS;
     if(totalCellsTravelled<=0) return [];
-    let acc = 0, cutIdx = 0;
+    // BUG CORRIGÉ (2026-08-10, signalé par l'user -- "je m'arrête 3 cases avant
+    // Amiens [ville étape achetée -- donc forcément atterri PILE dessus en vrai],
+    // je passe au-dessus") : la vraie avance sur le plateau (cf checkPendingTourAdvance/
+    // runKm) arrondit la SOMME de tout un rattrapage EN UNE SEULE FOIS ("j'ouvre
+    // l'appli, X courses en attente valent Y km d'un coup" -> Math.round(Y) une
+    // fois), jamais course par course. Arrondir CHAQUE course séparément puis
+    // les additionner (l'ancienne méthode ci-dessous) dérive donc peu à peu : un
+    // arrondi individuel peut être décalé de jusqu'à 0,5 case, et ces décalages
+    // s'accumulent dans le même sens au fil des courses -- sur des dizaines de
+    // courses, l'écart peut atteindre plusieurs cases de retard ou d'avance,
+    // exactement le symptôme observé. Fix : cumuler les distances BRUTES (non
+    // arrondies) et n'arrondir QUE le total cumulé à chaque étape -- colle
+    // beaucoup plus près de la vraie trajectoire (l'arrondi ne dérive jamais audelà
+    // de ±0,5 case à aucun moment, au lieu de s'accumuler course après course).
+    // ⚠️ Reste une approximation par nature (cf limite ci-dessus, toujours vraie :
+    // on ne sait pas EXACTEMENT quelles courses ont été regroupées dans quel
+    // rattrapage) -- mais bien plus fidèle qu'avant, et l'arrivée reste toujours
+    // exacte (plafond à totalCellsTravelled, cf Math.min ci-dessous, inchangé).
+    let accRaw = 0, cutIdx = 0;
     for(let i=allRuns.length-1; i>=0; i--){
       cutIdx = i;
-      acc += Math.max(1, Math.round(allRuns[i].distance||0));
-      if(acc >= totalCellsTravelled) break;
+      accRaw += Math.max(0.5, allRuns[i].distance||0);
+      if(Math.round(accRaw) >= totalCellsTravelled) break;
     }
     const stops = [];
-    let cum = 0;
+    let cumRaw = 0, cum = 0;
     for(let i=cutIdx; i<allRuns.length && cum<totalCellsTravelled; i++){
-      cum = Math.min(totalCellsTravelled, cum + Math.max(1, Math.round(allRuns[i].distance||0)));
+      cumRaw += Math.max(0.5, allRuns[i].distance||0);
+      cum = Math.min(totalCellsTravelled, Math.round(cumRaw));
       stops.push({idx: ME.startIdx+cum, date:allRuns[i].run_date, km:allRuns[i].distance});
     }
     return stops;
@@ -29317,6 +29503,23 @@ window.Tour.init = async function(){
       from = stop.idx;
       if(_historyAbort) break;
       await _sleep(650);
+    }
+    // BUG CORRIGÉ (2026-08-10, signalé par l'user -- "le point s'arrête sur une
+    // étape et jump directement sur l'arrivée") : la limite déjà documentée
+    // ci-dessus ("compte contaminé par du mouvement hors-course") faisait
+    // exactement ça -- dès que les vraies courses ne couvraient pas tout
+    // totalCellsTravelled (case mystère "Avancez de N Lands", outil de test
+    // admin...), le dernier arrêt tombait AVANT myIdx, la boucle se terminait,
+    // et le code juste en dessous révélait directement le VRAI pion (déjà
+    // positionné sur myIdx depuis le début, seulement masqué) -- vu comme un
+    // saut. Fix : s'il reste un écart entre le dernier arrêt affiché et la
+    // vraie position, on l'anime aussi (même fonction, mêmes cases une par
+    // une), au lieu de le sauter en silence -- toujours une progression
+    // linéaire jusqu'au bout, quelle que soit l'origine du déplacement.
+    if(!_historyAbort && from!==myIdx){
+      label.textContent = 'Autres évènements (cases mystère, tests…)';
+      await _animateGhost(ghost, from, myIdx);
+      from = myIdx;
     }
     map.removeLayer(ghost);
     playerMarker.setOpacity(1);
