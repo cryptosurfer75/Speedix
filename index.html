@@ -366,12 +366,17 @@ body::after{
      pilotés par --medal-c1/--medal-c2, posés en inline style sur .my-row-tile.
      Transparent par défaut (aucun impact sur les RP sans medal_bg actif) —
      jamais de fond-color transparent lui-même, cf. technique biseau existante. */
-  background-image:linear-gradient(100deg,transparent 40%,rgba(228,84,255,.45) 49%,rgba(255,255,255,.35) 50%,rgba(228,84,255,.45) 51%,transparent 60%),
+  /* Halo resserré (2026-08-10, demande explicite -- "réduire l'épaisseur") :
+     bande transparent->transparent passée de 40%-60% à 44%-56% (coeur violet/blanc
+     49-51% inchangé), soit ~40% de largeur en moins. */
+  background-image:linear-gradient(100deg,transparent 44%,rgba(228,84,255,.45) 49%,rgba(255,255,255,.35) 50%,rgba(228,84,255,.45) 51%,transparent 56%),
     linear-gradient(135deg, var(--medal-c1,transparent) 0%, transparent 60%),
     linear-gradient(315deg, var(--medal-c2,transparent) 0%, transparent 60%);
   background-size:200% 100%, 100% 100%, 100% 100%;
   background-repeat:no-repeat;
-  animation:myRowShine 11s linear infinite;
+  /* Vitesse (2026-08-10, demande explicite -- "accélère un peu le passage") :
+     11s->9s, le balayage garde 50% du cycle (passe de 5,5s à 4,5s). */
+  animation:myRowShine 9s linear infinite;
 }
 /* Barre lumineuse skin "gagnant de Challenge" sur la ligne "moi" du classement
    (2026-08-08, demande explicite -- "essaie de me faire le même bandeau sur la
@@ -29211,9 +29216,22 @@ window.Tour.init = async function(){
   // sur un compte contaminé par du mouvement hors-course, jamais la position.
   async function _buildHistoryStops(){
     if(!currentUser || !currentUser.id || ME.startIdx==null) return null;
+    // ⚠️ Filtre run_date > TOUR_V2_LAUNCH_ISO (2026-08-10, cas vécu -- "les
+    // cases étapes ne sont pas respectées") : SOURCE UNIQUE de la conversion
+    // km→cases = checkPendingTourAdvance(), qui ne compte QUE les courses
+    // postérieures au lancement du Tour V2 (rien avant n'a jamais fait avancer
+    // le pion). Sans ce même filtre ici, _buildHistoryStops() remontait TOUTE
+    // l'historique du compte (parfois des mois de courses pré-Tour, cf compte
+    // testé : 1202 km cumulés vie entière contre 25,7 km réellement "marchés"
+    // sur le plateau depuis le 07/08) pour deviner quelles courses comptent --
+    // ça décalait complètement l'attribution des arrêts intermédiaires, donc
+    // les cases étapes traversées pendant le replay ne correspondaient plus à
+    // la réalité (seule la position FINALE restait juste, calée sur myIdx).
+    // MIROIR de checkPendingTourAdvance() -- garder synchro, NE PAS diverger.
     const {data:allRuns, error} = await supabaseClient.from('runs')
       .select('distance,run_date')
       .eq('player_id', currentUser.id)
+      .gt('run_date', TOUR_V2_LAUNCH_ISO)
       .order('run_date', {ascending:true});
     if(error || !allRuns || !allRuns.length) return null;
     const totalCellsTravelled = (ME.laps||0)*TOTAL_CELLS + (((myIdx-ME.startIdx)%TOTAL_CELLS)+TOTAL_CELLS)%TOTAL_CELLS;
