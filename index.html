@@ -741,7 +741,7 @@ body::after{
 .modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(6px);z-index:400;align-items:center;justify-content:center;padding:env(safe-area-inset-top) .75rem env(safe-area-inset-bottom)}
 .modal.open{display:flex;animation:fadeUp .2s}
 /* modal-box : 85dvh = se base sur la hauteur viewport DYNAMIQUE (exclut les barres système quand visibles) */
-.modal-box{background:var(--card-grad);border:1px solid var(--border2);border-radius:10px;padding:1.5rem;max-width:480px;width:92%;max-height:85dvh;overflow-y:auto;position:relative}
+.modal-box{background:var(--card-grad);border:1px solid var(--border2);border-radius:10px;padding:1.5rem;max-width:480px;width:92%;max-height:85vh;max-height:85dvh;overflow-y:auto;-webkit-overflow-scrolling:touch;position:relative}
 .modal-title{font-family:'Bebas Neue',sans-serif;font-size:1.2rem;letter-spacing:2px;color:var(--gold);margin-bottom:.25rem}
 .modal-sub{font-size:.78rem;color:var(--muted2);margin-bottom:1.1rem}
 .modal-close{position:absolute;top:.55rem;right:.7rem;width:32px;height:32px;border:none;background:url('icon-close-x.png') center/contain no-repeat;color:transparent;cursor:pointer;transition:transform .2s;z-index:5}
@@ -3517,7 +3517,7 @@ select option{background:#040c1c}
             <div style="background:#0c0f1a;clip-path:polygon(9px 0,calc(100% - 9px) 0,100% 9px,100% calc(100% - 9px),calc(100% - 9px) 100%,9px 100%,0 calc(100% - 9px),0 9px);padding:.2rem .55rem;height:100%;box-sizing:border-box;display:flex;align-items:center;gap:.6rem">
               <img src="ai-icons/sim/clock-green.png" alt="" style="width:1.9rem;height:1.9rem;object-fit:contain;flex-shrink:0">
               <div style="min-width:0;flex:1">
-              <input type="text" id="c-pace" value="" placeholder="0:00" inputmode="numeric" oninput="simPaceInput()" style="width:100%;background:transparent;border:none;outline:none;color:#fff;font-family:'Rajdhani',sans-serif;font-size:1.02rem;font-weight:700;padding:0">
+              <input type="text" id="c-pace" value="" placeholder="0:00" oninput="simPaceInput()" style="width:100%;background:transparent;border:none;outline:none;color:#fff;font-family:'Rajdhani',sans-serif;font-size:1.02rem;font-weight:700;padding:0">
               <div data-i18n="runs.sim.pace" style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:.62rem;letter-spacing:.5px;text-transform:uppercase;color:var(--muted2);margin-top:.2rem">Allure (min/km)</div>
               </div>
             </div>
@@ -3526,7 +3526,7 @@ select option{background:#040c1c}
             <div style="background:#0c0f1a;clip-path:polygon(9px 0,calc(100% - 9px) 0,100% 9px,100% calc(100% - 9px),calc(100% - 9px) 100%,9px 100%,0 calc(100% - 9px),0 9px);padding:.2rem .55rem;height:100%;box-sizing:border-box;display:flex;align-items:center;gap:.6rem">
               <img src="ai-icons/sim/clock-blue.png" alt="" style="width:1.9rem;height:1.9rem;object-fit:contain;flex-shrink:0">
               <div style="min-width:0;flex:1">
-              <input type="text" id="c-time" value="" placeholder="0:00:00" inputmode="numeric" oninput="simTimeInput()" style="width:100%;background:transparent;border:none;outline:none;color:#fff;font-family:'Rajdhani',sans-serif;font-size:1.02rem;font-weight:700;padding:0">
+              <input type="text" id="c-time" value="" placeholder="0:00:00" oninput="simTimeInput()" style="width:100%;background:transparent;border:none;outline:none;color:#fff;font-family:'Rajdhani',sans-serif;font-size:1.02rem;font-weight:700;padding:0">
               <div data-i18n="runs.sim.time" style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:.62rem;letter-spacing:.5px;text-transform:uppercase;color:var(--muted2);margin-top:.2rem">Temps de course</div>
               </div>
             </div>
@@ -17489,7 +17489,14 @@ async function showWalletBreakdown(){
     // de sommer les tx "Cash Run" une par une. On y ajoute aussi son prédécesseur
     // "Quizz quotidien"/"Daily quiz" (retiré le 2026-06-08, 2026-08-02 demande
     // explicite) — le joueur voit ça comme une seule et même activité.
-    var streakRpc=0, autreRpc=0, achatRpc=0, collabRpc=0, referralRpc=0, gradeRpc=0, prizeRpc=0, premiumRpc=0, cashrunRpc=currentUser.cashrun_total_rpc||0;
+    // Bug corrigé (2026-08-11, signalé par l'user -- "le compte des RPC au cash
+    // run n'est toujours pas bon") : currentUser.cashrun_total_rpc n'était JAMAIS
+    // peuplé (seul cashrun_last_played_at l'est, cf onLoginSuccess) -- la ligne
+    // valait donc toujours 0 + les vieux tx "Quizz quotidien" d'avant le
+    // 2026-06-08, sans jamais refléter les vrais gains Cash Run actuels. Relu
+    // frais depuis players à chaque ouverture du détail wallet.
+    var {data:_cashrunRow}=await supabaseClient.from('players').select('cashrun_total_rpc').eq('id',currentUser.id).maybeSingle();
+    var streakRpc=0, autreRpc=0, achatRpc=0, collabRpc=0, referralRpc=0, gradeRpc=0, prizeRpc=0, premiumRpc=0, cashrunRpc=(_cashrunRow&&_cashrunRow.cashrun_total_rpc)||0;
     (txs||[]).forEach(function(tx){
       var r=tx.reason||'';
       var d=tx.rpc_delta||0;
@@ -20947,19 +20954,29 @@ async function renderChallenges(){
       _mbUntil.setHours(_mbUntil.getHours()+48);
       if(_mbUntil.getTime()>Date.now()){
         var _mbUntilIso=_mbUntil.toISOString();
-        // Le RP a explicitement écarté CE skin auto précis (bouton CHOISIR sur
-        // un autre Challenge pendant que celui-ci tournait, cf equipChallengeBg)
-        // -- comparaison sur l'échéance exacte (medal_bg_dismissed_until), pas
-        // sur l'id du badge seul : un futur nouveau gain du MÊME Challenge aura
-        // une échéance différente et redéclenchera normalement le skin auto.
-        var _dismissedThis=window.__myPlayer && window.__myPlayer.medalBgDismissedUntil===_mbUntilIso;
+        // SOURCE UNIQUE côté base (2026-08-11, bug corrigé -- "au moindre
+        // refresh c'est celui de Cali qui revient indéfiniment" malgré un
+        // skin manuel choisi juste avant) : l'ancien check comparait contre
+        // window.__myPlayer.medalBgDismissedUntil, une copie mémoire pas
+        // toujours encore hydratée depuis la base à ce stade du rendu (course
+        // avec le fetch de onLoginSuccess) -- ce qui réécrivait medal_bg_c1/
+        // c2/until même quand medal_bg_dismissed_until était déjà correctement
+        // posé en base (vérifié : les deux colonnes contenaient la même
+        // échéance alors que le skin Cali était pourtant réapparu). La
+        // fonction apply_medal_bg_from_win fait le check ET l'écriture dans
+        // la MÊME requête SQL, contre la vraie valeur en base -- plus jamais
+        // contre une copie potentiellement périmée. _alreadySet reste un
+        // simple raccourci d'optimisation (évite un aller-retour réseau
+        // inutile quand rien n'a changé) : s'il se trompe par staleness, au
+        // pire un appel RPC de plus, jamais une écriture incorrecte.
         var _alreadySet=window.__myPlayer && window.__myPlayer.medalBgUntil===_mbUntilIso
           && window.__myPlayer.medalBgC1===_mb.ribbonColors[0];
-        if(!_alreadySet && !_dismissedThis){
-          supabaseClient.from('players').update({
-            medal_bg_c1:_mb.ribbonColors[0], medal_bg_c2:_mb.ribbonColors[1], medal_bg_until:_mbUntilIso,
-            medal_bg_dist:_mb.threshold_value!=null?Math.round(_mb.threshold_value):null
-          }).eq('id',currentUser.id).then(function(){
+        if(!_alreadySet){
+          supabaseClient.rpc('apply_medal_bg_from_win',{
+            p_player_id:currentUser.id, p_c1:_mb.ribbonColors[0], p_c2:_mb.ribbonColors[1],
+            p_until:_mbUntilIso, p_dist:_mb.threshold_value!=null?Math.round(_mb.threshold_value):null
+          }).then(function(res){
+            if(!res || !res.data) return; // pas appliqué : déjà écarté par le RP, ou déjà à jour
             if(window.__myPlayer){
               window.__myPlayer.medalBgC1=_mb.ribbonColors[0];
               window.__myPlayer.medalBgC2=_mb.ribbonColors[1];
