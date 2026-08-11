@@ -1751,7 +1751,7 @@ body::after{
 .mylands-overlay{
   display:none; position:fixed; inset:0; z-index:1900;
   background:rgba(6,8,16,.92); backdrop-filter:blur(6px);
-  padding:24px; overflow-y:auto;
+  padding:calc(env(safe-area-inset-top) + 24px) 24px 24px; overflow-y:auto;
 }
 .mylands-overlay.open{ display:block; }
 .mylands-head{
@@ -1764,9 +1764,13 @@ body::after{
 .mylands-head h2 .gold{ color:var(--gold); }
 /* Croix de fermeture standard (2026-08-01, même icône que rent-modal-close) —
    remplace le bouton "✕ Fermer" qui faisait doublon. En position:fixed (pas
-   dans le flux) car la grille peut défiler — elle reste visible tout du long. */
+   dans le flux) car la grille peut défiler — elle reste visible tout du long.
+   top calé sur env(safe-area-inset-top) (2026-08-11, bug corrigé -- signalé
+   par l'user sur iPhone : "je ne peux plus cliquer dessus, elle est beaucoup
+   trop haute" -- sans ce calc, top:24px pur passait sous l'encoche/Dynamic
+   Island qui intercepte les touchs, la croix devenait inatteignable). */
 .mylands-close{
-  position:fixed; top:24px; right:24px; width:30px; height:30px; z-index:1901;
+  position:fixed; top:calc(env(safe-area-inset-top) + 24px); right:24px; width:30px; height:30px; z-index:1901;
   background:url('icon-close-x.png') center/contain no-repeat; border:none;
   color:transparent; cursor:pointer;
 }
@@ -1796,15 +1800,17 @@ body::after{
 .rules-overlay{
   display:none; position:fixed; inset:0; z-index:1900;
   background:rgba(6,8,16,.92); backdrop-filter:blur(6px);
-  padding:24px; overflow-y:auto;
+  padding:calc(env(safe-area-inset-top) + 24px) 24px 24px; overflow-y:auto;
 }
 .rules-overlay.open{ display:block; }
 .rules-head{ max-width:640px; margin:0 auto 18px; }
 .rules-head h2{ font-family:'Bebas Neue',sans-serif; font-size:22px; letter-spacing:.5px; }
 .rules-head h2 .white{ color:var(--text); }
 .rules-head h2 .gold{ color:var(--gold); }
+/* top calé sur env(safe-area-inset-top), même correctif que .mylands-close
+   (2026-08-11) -- même bug, même cause (encoche/Dynamic Island). */
 .rules-close{
-  position:fixed; top:24px; right:24px; width:30px; height:30px; z-index:1901;
+  position:fixed; top:calc(env(safe-area-inset-top) + 24px); right:24px; width:30px; height:30px; z-index:1901;
   background:url('icon-close-x.png') center/contain no-repeat; border:none;
   color:transparent; cursor:pointer;
 }
@@ -3290,7 +3296,7 @@ select option{background:#040c1c}
         </div>
         <img src="league-title-chevron-right.png" alt="" style="height:30px;width:auto;max-width:25vw;object-fit:contain;flex-shrink:0;min-width:0;pointer-events:none;user-select:none">
       </div>
-      <button onclick="nav('dashboard')" title="Fermer" style="position:relative;width:40px;height:40px;border:none;background:transparent;padding:0;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center"><span style="position:absolute;inset:5px;transform:translate(8px,-34px);background:url('icon-close-x.png') center/contain no-repeat"></span></button>
+      <button onclick="nav('dashboard')" title="Fermer" style="position:relative;width:40px;height:40px;border:none;background:transparent;padding:0;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;transform:translate(8px,-34px)"><span style="position:absolute;inset:5px;background:url('icon-close-x.png') center/contain no-repeat"></span></button>
     </div>
     <div style="height:1px;width:100%;margin:.15rem auto 0;background:linear-gradient(90deg,transparent,#fff 15%,var(--gold) 50%,#fff 85%,transparent)"></div>
   </div>
@@ -3435,7 +3441,7 @@ select option{background:#040c1c}
         </div>
         <img src="league-title-chevron-right.png" alt="" style="height:30px;width:auto;max-width:25vw;object-fit:contain;flex-shrink:0;min-width:0;pointer-events:none;user-select:none">
       </div>
-      <button onclick="nav('dashboard')" title="Fermer" style="position:relative;width:40px;height:40px;border:none;background:transparent;padding:0;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center"><span style="position:absolute;inset:5px;transform:translate(8px,-34px);background:url('icon-close-x.png') center/contain no-repeat"></span></button>
+      <button onclick="nav('dashboard')" title="Fermer" style="position:relative;width:40px;height:40px;border:none;background:transparent;padding:0;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;transform:translate(8px,-34px)"><span style="position:absolute;inset:5px;background:url('icon-close-x.png') center/contain no-repeat"></span></button>
     </div>
     <div style="height:1px;width:100%;margin:.15rem auto 0;background:linear-gradient(90deg,transparent,#fff 15%,var(--gold) 50%,#fff 85%,transparent)"></div>
   </div>
@@ -3584,7 +3590,7 @@ select option{background:#040c1c}
         </div>
         <img src="league-title-chevron-right.png" alt="" style="height:30px;width:auto;max-width:25vw;object-fit:contain;flex-shrink:0;min-width:0;pointer-events:none;user-select:none">
       </div>
-      <button onclick="nav('dashboard')" title="Fermer" style="position:relative;width:40px;height:40px;border:none;background:transparent;padding:0;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center"><span style="position:absolute;inset:5px;transform:translate(8px,-34px);background:url('icon-close-x.png') center/contain no-repeat"></span></button>
+      <button onclick="nav('dashboard')" title="Fermer" style="position:relative;width:40px;height:40px;border:none;background:transparent;padding:0;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;transform:translate(8px,-34px)"><span style="position:absolute;inset:5px;background:url('icon-close-x.png') center/contain no-repeat"></span></button>
     </div>
     <div style="height:1px;width:100%;margin:.15rem auto 0;background:linear-gradient(90deg,transparent,#fff 15%,var(--gold) 50%,#fff 85%,transparent)"></div>
   </div>
@@ -3690,7 +3696,7 @@ select option{background:#040c1c}
         </div>
         <img src="league-title-chevron-right.png" alt="" style="height:30px;width:auto;max-width:25vw;object-fit:contain;flex-shrink:0;min-width:0;pointer-events:none;user-select:none">
       </div>
-      <button onclick="nav('league')" title="Fermer" style="position:relative;width:40px;height:40px;border:none;background:transparent;padding:0;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center"><span style="position:absolute;inset:5px;transform:translate(8px,-34px);background:url('icon-close-x.png') center/contain no-repeat"></span></button>
+      <button onclick="nav('league')" title="Fermer" style="position:relative;width:40px;height:40px;border:none;background:transparent;padding:0;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;transform:translate(8px,-34px)"><span style="position:absolute;inset:5px;background:url('icon-close-x.png') center/contain no-repeat"></span></button>
     </div>
     <div style="height:1px;width:100%;margin:.15rem auto 0;background:linear-gradient(90deg,transparent,#fff 15%,var(--gold) 50%,#fff 85%,transparent)"></div>
   </div>
@@ -3719,7 +3725,7 @@ select option{background:#040c1c}
         </div>
         <img src="league-title-chevron-right.png" alt="" style="height:30px;width:auto;max-width:25vw;object-fit:contain;flex-shrink:0;min-width:0;pointer-events:none;user-select:none">
       </div>
-      <button onclick="nav('dashboard')" title="Fermer" style="position:relative;width:40px;height:40px;border:none;background:transparent;padding:0;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center"><span style="position:absolute;inset:5px;transform:translate(8px,-34px);background:url('icon-close-x.png') center/contain no-repeat"></span></button>
+      <button onclick="nav('dashboard')" title="Fermer" style="position:relative;width:40px;height:40px;border:none;background:transparent;padding:0;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;transform:translate(8px,-34px)"><span style="position:absolute;inset:5px;background:url('icon-close-x.png') center/contain no-repeat"></span></button>
     </div>
     <div style="height:1px;width:100%;margin:.15rem auto 0;background:linear-gradient(90deg,transparent,#fff 15%,var(--gold) 50%,#fff 85%,transparent)"></div>
   </div>
@@ -3978,7 +3984,7 @@ select option{background:#040c1c}
         </div>
         <img src="league-title-chevron-right.png" alt="" style="height:30px;width:auto;max-width:25vw;object-fit:contain;flex-shrink:0;min-width:0;pointer-events:none;user-select:none">
       </div>
-      <button onclick="nav('dashboard')" title="Fermer" style="position:relative;width:40px;height:40px;border:none;background:transparent;padding:0;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center"><span style="position:absolute;inset:5px;transform:translate(8px,-34px);background:url('icon-close-x.png') center/contain no-repeat"></span></button>
+      <button onclick="nav('dashboard')" title="Fermer" style="position:relative;width:40px;height:40px;border:none;background:transparent;padding:0;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;transform:translate(8px,-34px)"><span style="position:absolute;inset:5px;background:url('icon-close-x.png') center/contain no-repeat"></span></button>
     </div>
     <div style="height:1px;width:100%;margin:.15rem auto 0;background:linear-gradient(90deg,transparent,#fff 15%,var(--gold) 50%,#fff 85%,transparent)"></div>
   </div>
@@ -4156,7 +4162,7 @@ select option{background:#040c1c}
         </div>
         <img src="league-title-chevron-right.png" alt="" style="height:30px;width:auto;max-width:25vw;object-fit:contain;flex-shrink:0;min-width:0;pointer-events:none;user-select:none">
       </div>
-      <button onclick="nav('dashboard')" title="Fermer" style="position:relative;width:40px;height:40px;border:none;background:transparent;padding:0;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center"><span style="position:absolute;inset:5px;transform:translate(8px,-34px);background:url('icon-close-x.png') center/contain no-repeat"></span></button>
+      <button onclick="nav('dashboard')" title="Fermer" style="position:relative;width:40px;height:40px;border:none;background:transparent;padding:0;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;transform:translate(8px,-34px)"><span style="position:absolute;inset:5px;background:url('icon-close-x.png') center/contain no-repeat"></span></button>
     </div>
     <div style="height:1px;width:100%;margin:.15rem auto 0;background:linear-gradient(90deg,transparent,#fff 15%,var(--gold) 50%,#fff 85%,transparent)"></div>
   </div>
@@ -4188,7 +4194,7 @@ select option{background:#040c1c}
           </div>
           <img src="league-title-chevron-right.png" alt="" style="height:30px;width:auto;max-width:25vw;object-fit:contain;flex-shrink:0;min-width:0;pointer-events:none;user-select:none">
         </div>
-        <button onclick="nav('dashboard')" title="Fermer" style="position:relative;width:40px;height:40px;border:none;background:transparent;padding:0;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center"><span style="position:absolute;inset:5px;transform:translate(8px,-34px);background:url('icon-close-x.png') center/contain no-repeat"></span></button>
+        <button onclick="nav('dashboard')" title="Fermer" style="position:relative;width:40px;height:40px;border:none;background:transparent;padding:0;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;transform:translate(8px,-34px)"><span style="position:absolute;inset:5px;background:url('icon-close-x.png') center/contain no-repeat"></span></button>
       </div>
       <div style="height:1px;width:100%;margin:.15rem auto 0;background:linear-gradient(90deg,transparent,#fff 15%,var(--gold) 50%,#fff 85%,transparent)"></div>
     </div>
@@ -4253,7 +4259,7 @@ select option{background:#040c1c}
         </div>
         <img src="league-title-chevron-right.png" alt="" style="height:30px;width:auto;max-width:25vw;object-fit:contain;flex-shrink:0;min-width:0;pointer-events:none;user-select:none">
       </div>
-      <button onclick="nav('dashboard')" title="Fermer" style="position:relative;width:40px;height:40px;border:none;background:transparent;padding:0;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center"><span style="position:absolute;inset:5px;transform:translate(8px,-34px);background:url('icon-close-x.png') center/contain no-repeat"></span></button>
+      <button onclick="nav('dashboard')" title="Fermer" style="position:relative;width:40px;height:40px;border:none;background:transparent;padding:0;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;transform:translate(8px,-34px)"><span style="position:absolute;inset:5px;background:url('icon-close-x.png') center/contain no-repeat"></span></button>
     </div>
     <div style="height:1px;width:100%;margin:.15rem auto 0;background:linear-gradient(90deg,transparent,#fff 15%,var(--gold) 50%,#fff 85%,transparent)"></div>
   </div>
@@ -4376,7 +4382,7 @@ select option{background:#040c1c}
         </div>
         <img src="league-title-chevron-right.png" alt="" style="height:30px;width:auto;max-width:25vw;object-fit:contain;flex-shrink:0;min-width:0;pointer-events:none;user-select:none">
       </div>
-      <button onclick="nav('dashboard')" title="Fermer" style="position:relative;width:40px;height:40px;border:none;background:transparent;padding:0;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center"><span style="position:absolute;inset:5px;transform:translate(8px,-34px);background:url('icon-close-x.png') center/contain no-repeat"></span></button>
+      <button onclick="nav('dashboard')" title="Fermer" style="position:relative;width:40px;height:40px;border:none;background:transparent;padding:0;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;transform:translate(8px,-34px)"><span style="position:absolute;inset:5px;background:url('icon-close-x.png') center/contain no-repeat"></span></button>
     </div>
     <div style="height:1px;width:100%;margin:.15rem auto 0;background:linear-gradient(90deg,transparent,#fff 15%,var(--gold) 50%,#fff 85%,transparent)"></div>
   </div>
@@ -4524,7 +4530,7 @@ select option{background:#040c1c}
         </div>
         <img src="league-title-chevron-right.png" alt="" style="height:30px;width:auto;max-width:25vw;object-fit:contain;flex-shrink:0;min-width:0;pointer-events:none;user-select:none">
       </div>
-      <button onclick="nav('dashboard')" title="Fermer" style="position:relative;width:40px;height:40px;border:none;background:transparent;padding:0;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center"><span style="position:absolute;inset:5px;transform:translate(8px,-34px);background:url('icon-close-x.png') center/contain no-repeat"></span></button>
+      <button onclick="nav('dashboard')" title="Fermer" style="position:relative;width:40px;height:40px;border:none;background:transparent;padding:0;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;transform:translate(8px,-34px)"><span style="position:absolute;inset:5px;background:url('icon-close-x.png') center/contain no-repeat"></span></button>
     </div>
     <div style="height:1px;width:100%;margin:.15rem auto 0;background:linear-gradient(90deg,transparent,#fff 15%,var(--gold) 50%,#fff 85%,transparent)"></div>
   </div>
@@ -4659,7 +4665,7 @@ select option{background:#040c1c}
         </div>
         <img src="league-title-chevron-right.png" alt="" style="height:30px;width:auto;max-width:25vw;object-fit:contain;flex-shrink:0;min-width:0;pointer-events:none;user-select:none">
       </div>
-      <button onclick="nav('dashboard')" title="Fermer" style="position:relative;width:40px;height:40px;border:none;background:transparent;padding:0;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center"><span style="position:absolute;inset:5px;transform:translate(8px,-34px);background:url('icon-close-x.png') center/contain no-repeat"></span></button>
+      <button onclick="nav('dashboard')" title="Fermer" style="position:relative;width:40px;height:40px;border:none;background:transparent;padding:0;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;transform:translate(8px,-34px)"><span style="position:absolute;inset:5px;background:url('icon-close-x.png') center/contain no-repeat"></span></button>
     </div>
     <div style="height:1px;width:100%;margin:.15rem auto 0;background:linear-gradient(90deg,transparent,#fff 15%,var(--gold) 50%,#fff 85%,transparent)"></div>
   </div>
@@ -5190,7 +5196,7 @@ function askConfirm(message, opts){
           </div>
           <img src="league-title-chevron-right.png" alt="" style="height:30px;width:auto;max-width:25vw;object-fit:contain;flex-shrink:0;min-width:0;pointer-events:none;user-select:none">
         </div>
-        <button onclick="nav('dashboard')" title="Fermer" style="position:relative;width:40px;height:40px;border:none;background:transparent;padding:0;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center"><span style="position:absolute;inset:5px;transform:translate(8px,-34px);background:url('icon-close-x.png') center/contain no-repeat"></span></button>
+        <button onclick="nav('dashboard')" title="Fermer" style="position:relative;width:40px;height:40px;border:none;background:transparent;padding:0;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;transform:translate(8px,-34px)"><span style="position:absolute;inset:5px;background:url('icon-close-x.png') center/contain no-repeat"></span></button>
       </div>
       <div style="height:1px;width:100%;margin:.15rem auto 0;background:linear-gradient(90deg,transparent,#fff 15%,var(--gold) 50%,#fff 85%,transparent)"></div>
     </div>
@@ -5373,7 +5379,7 @@ function askConfirm(message, opts){
         </div>
         <img src="league-title-chevron-right.png" alt="" style="height:30px;width:auto;max-width:25vw;object-fit:contain;flex-shrink:0;min-width:0;pointer-events:none;user-select:none">
       </div>
-      <button onclick="nav('dashboard')" title="Fermer" style="position:relative;width:40px;height:40px;border:none;background:transparent;padding:0;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center"><span style="position:absolute;inset:5px;transform:translate(8px,-34px);background:url('icon-close-x.png') center/contain no-repeat"></span></button>
+      <button onclick="nav('dashboard')" title="Fermer" style="position:relative;width:40px;height:40px;border:none;background:transparent;padding:0;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;transform:translate(8px,-34px)"><span style="position:absolute;inset:5px;background:url('icon-close-x.png') center/contain no-repeat"></span></button>
     </div>
     <div style="height:1px;width:100%;margin:.15rem auto 0;background:linear-gradient(90deg,transparent,#fff 15%,var(--gold) 50%,#fff 85%,transparent)"></div>
   </div>
@@ -5555,7 +5561,7 @@ function askConfirm(message, opts){
           </div>
           <img src="league-title-chevron-right.png" alt="" style="height:30px;width:auto;max-width:25vw;object-fit:contain;flex-shrink:0;min-width:0;pointer-events:none;user-select:none">
         </div>
-        <button onclick="nav('dashboard')" title="Fermer" style="position:relative;width:40px;height:40px;border:none;background:transparent;padding:0;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center"><span style="position:absolute;inset:5px;transform:translate(8px,-34px);background:url('icon-close-x.png') center/contain no-repeat"></span></button>
+        <button onclick="nav('dashboard')" title="Fermer" style="position:relative;width:40px;height:40px;border:none;background:transparent;padding:0;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;transform:translate(8px,-34px)"><span style="position:absolute;inset:5px;background:url('icon-close-x.png') center/contain no-repeat"></span></button>
       </div>
       <div style="height:1px;width:100%;margin:.15rem auto 0;background:linear-gradient(90deg,transparent,#fff 15%,var(--gold) 50%,#fff 85%,transparent)"></div>
     </div>
@@ -5738,7 +5744,7 @@ function askConfirm(message, opts){
           </div>
           <img src="league-title-chevron-right.png" alt="" style="height:30px;width:auto;max-width:25vw;object-fit:contain;flex-shrink:0;min-width:0;pointer-events:none;user-select:none">
         </div>
-        <button onclick="nav('dashboard')" title="Fermer" style="position:relative;width:40px;height:40px;border:none;background:transparent;padding:0;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center"><span style="position:absolute;inset:5px;transform:translate(8px,-34px);background:url('icon-close-x.png') center/contain no-repeat"></span></button>
+        <button onclick="nav('dashboard')" title="Fermer" style="position:relative;width:40px;height:40px;border:none;background:transparent;padding:0;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;transform:translate(8px,-34px)"><span style="position:absolute;inset:5px;background:url('icon-close-x.png') center/contain no-repeat"></span></button>
       </div>
       <div style="height:1px;width:100%;margin:.15rem auto 0;background:linear-gradient(90deg,transparent,#fff 15%,var(--gold) 50%,#fff 85%,transparent)"></div>
     </div>
@@ -25878,7 +25884,7 @@ window.Tour.init = async function(){
   let _tourPlayerRow = null;
   if(currentUser && currentUser.id){
     const {data} = await supabaseClient.from('players')
-      .select('rpc_balance,nyx_balance,tour_acquisition_rights,premium,username,grade,tour_idx,tour_laps,tour_start_city,tour_start_idx')
+      .select('rpc_balance,nyx_balance,tour_acquisition_rights,premium,username,grade,tour_idx,tour_laps,tour_start_city,tour_start_idx,tour_forsale_seen_at')
       .eq('id', currentUser.id).single();
     _tourPlayerRow = data || null;
   }
@@ -25907,7 +25913,15 @@ window.Tour.init = async function(){
     // désormais, une ligne par compte réel.
     startCity: (_tourPlayerRow && _tourPlayerRow.tour_start_city) || null,
     startIdx: (_tourPlayerRow && _tourPlayerRow.tour_start_idx) || 0,
-    laps: (_tourPlayerRow && _tourPlayerRow.tour_laps) || 0
+    laps: (_tourPlayerRow && _tourPlayerRow.tour_laps) || 0,
+    // Vu/pas vu du bouton "Lands à vendre" (2026-08-11, remplace le localStorage
+    // _seenForSaleIdx — même classe de bug que la position ci-dessus : un Set
+    // par NAVIGATEUR, jamais lié au compte, qui repartait vide à chaque
+    // reconnexion (autre appareil, PWA relancée, cache vidé…) et rallumait le
+    // bouton bleu sans qu'aucune Land nouvelle ne soit réellement arrivée.
+    // players.tour_forsale_seen_at = SOURCE UNIQUE désormais, comparée à
+    // tour_lands.listed_at (posé par tour_list_for_sale) pour chaque Land.
+    forSaleSeenAt: (_tourPlayerRow && _tourPlayerRow.tour_forsale_seen_at) || null
   };
   // Marque les 50 étapes en base (idempotent, cf tour_sync_etapes : ne touche
   // que les lignes pas encore type='etape') puis charge la VRAIE propriété des
@@ -25931,7 +25945,7 @@ window.Tour.init = async function(){
     try{
       await supabaseClient.rpc('tour_sync_etapes', {p_indices: ETAPE_IDX, p_names: ETAPE_IDX.map(i=>LANDS[i].name)});
       const {data:dbLands} = await supabaseClient.from('tour_lands')
-        .select('idx,type,status,holder_id,etape_owner_id,stars,lease_months,free_months_left,for_sale,sale_price,visits,earned');
+        .select('idx,type,status,holder_id,etape_owner_id,stars,lease_months,free_months_left,for_sale,sale_price,listed_at,visits,earned');
       const _ids = new Set();
       (dbLands||[]).forEach(r=>{ if(r.holder_id) _ids.add(r.holder_id); if(r.etape_owner_id) _ids.add(r.etape_owner_id); });
       _ids.delete(currentUser.id);
@@ -25962,6 +25976,7 @@ window.Tour.init = async function(){
           // juste jamais rechargée côté client au démarrage.
           l.forSale = !!row.for_sale;
           l.salePrice = row.sale_price || null;
+          l.listedAt = row.listed_at || null;
           l.visits = row.visits||0;
           l.earned = row.earned||0;
           return;
@@ -25976,7 +25991,7 @@ window.Tour.init = async function(){
         // fausse valeur locale posée par simulate150() (jamais persistée).
         l.visits = row.visits||0;
         l.earned = row.earned||0;
-        if(row.for_sale){ l.forSale=true; l.salePrice=row.sale_price; }
+        if(row.for_sale){ l.forSale=true; l.salePrice=row.sale_price; l.listedAt=row.listed_at||null; }
         if(row.holder_id){ l.owner=_tourOwnerObj(row.holder_id,_names,_elig,_startIdx); if(l.owner===ME) l.mine=true; }
       });
     }catch(e){ console.warn('[Tour] chargement tour_lands échoué, plateau vide affiché', e); }
@@ -27919,8 +27934,11 @@ window.Tour.init = async function(){
       // "redevient blanc quand on a consulté le tableau, redevient bleu QUE
       // lorsqu'une nouvelle Land arrive en vente") : contrairement à Mes Lands,
       // ce n'est pas "il y a ≥1 en vente" mais "il y a ≥1 en vente jamais vue"
-      // -- cf _seenForSaleIdx, rempli par openForSalePage().
-      const hasNewForSale = LANDS.some(l => l.forSale && !_seenForSaleIdx.has(l.idx));
+      // -- comparaison ME.forSaleSeenAt (players.tour_forsale_seen_at) contre
+      // l.listedAt (tour_lands.listed_at, posé par tour_list_for_sale), posée
+      // à jour par openForSalePage(). PAS de localStorage ici (2026-08-11, bug
+      // corrigé, cf commentaire sur ME.forSaleSeenAt plus haut).
+      const hasNewForSale = LANDS.some(l => l.forSale && l.listedAt && (!ME.forSaleSeenAt || new Date(l.listedAt) > new Date(ME.forSaleSeenAt)));
       forsaleBtn.classList.toggle('glass-blue', hasNewForSale);
       forsaleBtn.classList.toggle('white', !hasNewForSale);
     }
@@ -28738,7 +28756,7 @@ window.Tour.init = async function(){
     if(!price || price < 1) return; // "Entre un prix valide" côté prod
     const res = await _tourCall('tour_list_for_sale', {p_idx: land.idx, p_price: price});
     if(!res.ok){ _tourErrorToast(res.error); return; }
-    land.forSale = true; land.salePrice = price;
+    land.forSale = true; land.salePrice = price; land.listedAt = new Date().toISOString();
     closeRentModal();
     // Titre 2 tons (2026-08-04) + 2e phrase retirée (déjà rappelée dans "Land
     // vendue !" au moment réel de la vente, inutile de l'annoncer 2 fois).
@@ -28979,22 +28997,22 @@ window.Tour.init = async function(){
   // lorsqu'une nouvelle Land arrive en vente") : contrairement à Mes Lands
   // (état persistant tant qu'on détient une Land), ici l'état dépend de si le
   // RP a DÉJÀ ouvert la page pour les voir.
-  // BUG CORRIGÉ (2026-08-10, signalé par l'user — "repasse en bleu alors qu'il
-  // n'y a pas de nouvelles Lands à vendre", contraire à la règle "les boutons
-  // ne repassent en couleur que sur un NOUVEL évènement") : le Set n'était
-  // gardé qu'en mémoire d'onglet, jamais persisté ("acceptable pour une simple
-  // pastille" au moment où ça a été écrit — faux, un rechargement de page
-  // suffisait à tout faire repasser "jamais vu" et donc rebleuir le bouton
-  // sans qu'aucune Land nouvelle ne soit réellement arrivée). Persisté en
-  // localStorage par compte (pas de colonne DB pour une pastille cosmétique).
-  function _seenForSaleKey(){ return 'tour-forsale-seen-'+(currentUser?currentUser.id:''); }
-  let _seenForSaleIdx = new Set();
-  try{ _seenForSaleIdx = new Set(JSON.parse(localStorage.getItem(_seenForSaleKey())||'[]')); }catch(e){}
+  // BUG CORRIGÉ 2x (2026-08-10 puis 2026-08-11, signalé par l'user à chaque
+  // fois — "repasse en bleu alors qu'il n'y a pas de nouvelles Lands à
+  // vendre") : un Set en localStorage, même persisté, reste par NAVIGATEUR —
+  // repart vide à chaque reconnexion sur un autre appareil, une PWA relancée
+  // ou un cache vidé (même classe de bug que myIdx à l'époque, cf commentaire
+  // sur ME.forSaleSeenAt plus haut). SOURCE UNIQUE désormais en base :
+  // players.tour_forsale_seen_at comparée à tour_lands.listed_at.
   function openForSalePage(){
     renderForSalePage();
     document.getElementById('tour-forsale-overlay').classList.add('open');
-    LANDS.forEach(l => { if(l.forSale) _seenForSaleIdx.add(l.idx); });
-    try{ localStorage.setItem(_seenForSaleKey(), JSON.stringify([..._seenForSaleIdx])); }catch(e){}
+    const _now = new Date().toISOString();
+    ME.forSaleSeenAt = _now;
+    if(currentUser && currentUser.id){
+      supabaseClient.from('players').update({tour_forsale_seen_at:_now}).eq('id',currentUser.id)
+        .then(function(res){ if(res && res.error) console.warn('[Tour] forsale seen PATCH failed', res.error); });
+    }
     updatePlayerStatusPanel();
   }
   function closeForSalePage(){ document.getElementById('tour-forsale-overlay').classList.remove('open'); }
