@@ -10111,7 +10111,15 @@ function renderDashboard(){
         // exclue du compte "propriété" (le RP a initié son désengagement).
         var {data:myLandsLoc}=await supabaseClient.from('tour_lands').select('idx').eq('holder_id',_statUid).eq('status','rented');
         var {data:myLandsPropRaw}=await supabaseClient.from('tour_lands').select('idx,for_sale').eq('holder_id',_statUid).eq('status','owned');
-        var nbPropEffective=(myLandsPropRaw||[]).filter(function(l){return !l.for_sale;}).length;
+        // Villes étapes possédées (2026-08-11, bug corrigé -- signalé par l'user,
+        // "zéro propriétaire alors que je suis propriétaire de la ville
+        // d'Amiens") : une étape achetée (tour_buy_etape) enregistre son
+        // propriétaire dans etape_owner_id, JAMAIS dans holder_id/status='owned'
+        // (réservés aux Lands classiques) -- la requête ci-dessus les ratait
+        // donc systématiquement. Comptées avec le reste des Lands propriétaire.
+        var {data:myEtapesProp}=await supabaseClient.from('tour_lands').select('idx,for_sale').eq('etape_owner_id',_statUid);
+        var nbPropEffective=(myLandsPropRaw||[]).filter(function(l){return !l.for_sale;}).length
+          + (myEtapesProp||[]).filter(function(l){return !l.for_sale;}).length;
         set('stat-lands-loc',(myLandsLoc?myLandsLoc.length:0));
         set('stat-lands-prop',nbPropEffective);
       })();
