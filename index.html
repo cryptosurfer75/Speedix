@@ -17358,9 +17358,24 @@ function showTourProgressPrompt(km){
     + '</div>';
   openModal('land-modal');
 }
+// Verrou anti-double-avancée (2026-08-11, bug corrigé -- signalé par l'user,
+// "deux cases distinctes alors que je n'ai fait qu'une course") : la popup
+// automatique (consumeTourAdvance) ET le bouton "Vérifier mes courses"
+// (manualSyncTourAdvance) lisent tous les deux tour_run_seen_at puis
+// n'écrivent la nouvelle valeur qu'APRÈS le déplacement (~1500ms plus tard,
+// délai nécessaire pour ne jamais perdre une course si le Tour n'est pas
+// encore prêt, cf plus bas) -- si le RP déclenche les deux dans cette
+// fenêtre (popup cliquée PUIS bouton "Vérifier" avant l'écriture), les deux
+// lisaient le même tour_run_seen_at périmé et rejouaient CHACUN la même
+// avancée en km, faisant sauter le pion deux fois plus loin que prévu. Un
+// simple verrou en mémoire suffit : un seul déclenchement à la fois, l'autre
+// se contente d'un no-op / toast au lieu de rejouer l'avancée.
+var _tourConsumeLock = false;
 function consumeTourAdvance(){
+  if(_tourConsumeLock) return;
   var km = _pendingTourKm;
   if(!km || km<=0) return;
+  _tourConsumeLock = true;
   _pendingTourKm = 0;
   // nav('lands') déclenche déjà Tour.init() tout seul (cf nav(), ~50ms puis
   // onShow() à 200/500/1200ms) — ne PAS le rappeler ici, sinon double init
@@ -17385,11 +17400,12 @@ function consumeTourAdvance(){
       // toujours (plus jamais réoffert par checkPendingTourAdvance).
       if(currentUser){
         supabaseClient.from('players').update({tour_run_seen_at:new Date().toISOString()}).eq('id',currentUser.id)
-          .then(function(){}, function(e){ console.warn('[tour-advance] consume write failed:', e); });
-      }
+          .then(function(){ _tourConsumeLock=false; }, function(e){ console.warn('[tour-advance] consume write failed:', e); _tourConsumeLock=false; });
+      } else { _tourConsumeLock=false; }
     } else {
       // Tour pas prêt : on remet le km en attente pour ne pas le perdre.
       _pendingTourKm = km;
+      _tourConsumeLock = false;
       console.warn('[tour-advance] Tour pas prêt, avancée reportée');
     }
   }, 1500);
@@ -17424,20 +17440,32 @@ async function _refreshTourSyncDot(){
 }
 async function manualSyncTourAdvance(){
   if(!currentUser) return;
+  // Même verrou que consumeTourAdvance (2026-08-11, cf commentaire là-bas) --
+  // évite de rejouer l'avancée si la popup automatique est déjà en train de
+  // la consommer au moment où le RP clique sur ce bouton.
+  if(_tourConsumeLock){
+    if(typeof showToast==='function') showToast('⏳ Synchronisation déjà en cours...');
+    return;
+  }
   var km = await checkPendingTourAdvance();
   if(!km || km<=0){
     _setTourSyncDot(false);
     if(typeof showToast==='function') showToast('✅ Tu es déjà à jour, rien à synchroniser.');
     return;
   }
+  if(_tourConsumeLock){
+    if(typeof showToast==='function') showToast('⏳ Synchronisation déjà en cours...');
+    return;
+  }
   if(window.Tour && typeof Tour.runKmWhenReady==='function'){
+    _tourConsumeLock = true;
     _pendingTourKm = 0;
     Tour.runKmWhenReady(km);
     _setTourSyncDot(false);
     // Même règle que consumeTourAdvance (2026-08-09) : marqué "vu" seulement
     // une fois l'avancée réellement déclenchée, jamais avant.
     supabaseClient.from('players').update({tour_run_seen_at:new Date().toISOString()}).eq('id',currentUser.id)
-      .then(function(){}, function(e){ console.warn('[tour-advance] manual sync write failed:', e); });
+      .then(function(){ _tourConsumeLock=false; }, function(e){ console.warn('[tour-advance] manual sync write failed:', e); _tourConsumeLock=false; });
   } else if(typeof showToast==='function') {
     showToast('⚠️ Le Tour n\'est pas encore prêt, réessaie dans un instant.');
   }
@@ -25960,10 +25988,26 @@ window.Tour.init = async function(){
   // fonction Postgres) — nécessaire pour que le bouton "Préempter" (qui checke
   // land.owner.eligible) s'affiche correctement pour de VRAIS autres RP, pas
   // seulement pour les anciennes entrées DEMO_OWNERS qui portaient ce champ en dur.
-  function _tourOwnerObj(id, nameMap, eligMap, startIdxMap){
+  // colorMap (2026-08-11, bug corrigé -- signalé par l'user, "la mémorisation de
+  // la couleur de mes amis sur le tracé a encore sauté") : la couleur était
+  // recalculée à CHAQUE Tour.init() via un simple compteur (_otherColorIdx)
+  // incrémenté dans l'ordre où les lignes tour_lands revenaient de la requête
+  // -- un ordre PostgREST jamais garanti, qui se décale dès qu'une Land change
+  // de main. Résultat : la même personne pouvait changer de couleur d'une
+  // session à l'autre. players.tour_color = SOURCE UNIQUE désormais, posée une
+  // fois pour toutes au 1er croisement et jamais recalculée après.
+  function _tourOwnerObj(id, nameMap, eligMap, startIdxMap, colorMap){
     if(!id) return null;
     if(currentUser && id===currentUser.id) return ME;
-    if(!_tourOwnerCache[id]) _tourOwnerCache[id] = {id:id, name:(nameMap&&nameMap[id])||'RP', color:OTHER_TOUR_COLORS[_otherColorIdx++ % OTHER_TOUR_COLORS.length], eligible:!!(eligMap&&eligMap[id]), real:true, startIdx:(startIdxMap&&startIdxMap[id])||0};
+    if(!_tourOwnerCache[id]){
+      var _existingColor=colorMap&&colorMap[id];
+      var _color=_existingColor||OTHER_TOUR_COLORS[_otherColorIdx++ % OTHER_TOUR_COLORS.length];
+      _tourOwnerCache[id] = {id:id, name:(nameMap&&nameMap[id])||'RP', color:_color, eligible:!!(eligMap&&eligMap[id]), real:true, startIdx:(startIdxMap&&startIdxMap[id])||0};
+      if(!_existingColor){
+        supabaseClient.from('players').update({tour_color:_color}).eq('id',id).is('tour_color',null)
+          .then(function(res){ if(res && res.error) console.warn('[Tour] tour_color PATCH failed', res.error); });
+      }
+    }
     return _tourOwnerCache[id];
   }
   if(currentUser && currentUser.id){
@@ -25979,20 +26023,21 @@ window.Tour.init = async function(){
       // numéro de case seul (l.idx) n'est parlant QUE pour un départ Paris (idx 0,
       // case=km). Pour un départ Marseille (idx 451 par ex.), il faut soustraire
       // le vrai tour_start_idx de CE propriétaire pour retrouver sa distance.
-      let _names = {}, _elig = {}, _startIdx = {};
+      let _names = {}, _elig = {}, _startIdx = {}, _colors = {};
       if(_ids.size){
-        const {data:ownerRows} = await supabaseClient.from('players').select('id,username,premium,tour_acquisition_rights,grade,tour_start_idx').in('id', Array.from(_ids));
+        const {data:ownerRows} = await supabaseClient.from('players').select('id,username,premium,tour_acquisition_rights,grade,tour_start_idx,tour_color').in('id', Array.from(_ids));
         (ownerRows||[]).forEach(p=>{
           _names[p.id]=p.username;
           _elig[p.id] = !!p.premium || !!p.tour_acquisition_rights || TOUR_ELIGIBLE_GRADES.includes(p.grade);
           _startIdx[p.id] = p.tour_start_idx||0;
+          if(p.tour_color) _colors[p.id] = p.tour_color;
         });
       }
       (dbLands||[]).forEach(row=>{
         const l = LANDS[row.idx];
         if(!l) return;
         if(row.type==='etape'){
-          if(row.etape_owner_id){ l.ownerEtape=_tourOwnerObj(row.etape_owner_id,_names,_elig,_startIdx); l.stars=row.stars||0; if(l.ownerEtape===ME) l.mine=true; }
+          if(row.etape_owner_id){ l.ownerEtape=_tourOwnerObj(row.etape_owner_id,_names,_elig,_startIdx,_colors); l.stars=row.stars||0; if(l.ownerEtape===ME) l.mine=true; }
           // Bug corrigé (2026-08-06, signalé par l'user — "je mets Angers en
           // vente, ça revient dans Mes Lands après un refresh") : for_sale/
           // sale_price (et visits/earned) n'étaient jamais relus pour les
@@ -26017,7 +26062,7 @@ window.Tour.init = async function(){
         l.visits = row.visits||0;
         l.earned = row.earned||0;
         if(row.for_sale){ l.forSale=true; l.salePrice=row.sale_price; l.listedAt=row.listed_at||null; }
-        if(row.holder_id){ l.owner=_tourOwnerObj(row.holder_id,_names,_elig,_startIdx); if(l.owner===ME) l.mine=true; }
+        if(row.holder_id){ l.owner=_tourOwnerObj(row.holder_id,_names,_elig,_startIdx,_colors); if(l.owner===ME) l.mine=true; }
       });
     }catch(e){ console.warn('[Tour] chargement tour_lands échoué, plateau vide affiché', e); }
   }
