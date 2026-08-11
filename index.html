@@ -17664,18 +17664,24 @@ function checkBirthdayGift(){
 }
 async function claimBirthdayGift(){
   if(!currentUser || !window.__myPlayer) return;
-  var curYear=parseInt(getParisTodayStr().slice(0,4),10);
   var btn=document.getElementById('birthday-gift-btn');
   if(btn){ btn.disabled=true; btn.style.opacity='.6'; }
-  var ok=await walletCredit(3000,5,'Cadeau anniversaire');
-  if(!ok){
+  // SOURCE UNIQUE de l'octroi : claim_birthday_gift (fonction Postgres,
+  // SECURITY DEFINER, row verrouillée FOR UPDATE) revérifie ELLE-MÊME la
+  // date de naissance ET l'année déjà réclamée avant de créditer -- jamais
+  // confiance au client. Sans ça, rappeler cette fonction depuis la console
+  // (ou rejouer le clic) permettait de repartir avec le cadeau à volonté,
+  // le check `checkBirthdayGift()` n'étant qu'un filtre d'AFFICHAGE, pas
+  // une garantie serveur (faille signalée par l'user 2026-08-11).
+  var {data:granted,error}=await supabaseClient.rpc('claim_birthday_gift',{p_player_id:currentUser.id});
+  if(error || !granted){
     if(btn){ btn.disabled=false; btn.style.opacity='1'; }
-    showToast('⚠️ Erreur, réessaie');
+    showToast(error?'⚠️ Erreur, réessaie':'⚠️ Cadeau déjà réclamé ou pas le bon jour');
+    closeModal('birthday-gift-modal');
     return;
   }
-  var {error}=await supabaseClient.from('players').update({birthday_gift_year:curYear}).eq('id',currentUser.id);
-  if(error) console.warn('[birthday gift] flag write failed', error);
-  window.__myPlayer.birthdayGiftYear=curYear;
+  await walletLoad(); // resynchronise le solde affiché sur la vraie valeur en base
+  window.__myPlayer.birthdayGiftYear=parseInt(getParisTodayStr().slice(0,4),10);
   closeModal('birthday-gift-modal');
   showToast('🎉 Joyeux anniversaire ! +3 000 💰 RPC · +5 💎 NYX');
 }
