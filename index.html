@@ -5046,6 +5046,20 @@ function askConfirm(message, opts){
   </div>
 </div>
 
+<!-- Modal Alerte admin (2026-08-11) : message posé par un admin sur le compte
+     d'un RP (ex. course supprimée pour suspicion de triche), affiché une
+     seule fois à la prochaine connexion puis effacé -- cf checkAdminAlert()/
+     dismissAdminAlert(). Même mécanique que le cadeau d'anniversaire, sans le
+     crédit RPC/NYX. -->
+<div class="modal" id="admin-alert-modal">
+  <div class="modal-box" style="max-width:380px;text-align:center;padding:2rem 1.5rem">
+    <div style="font-size:3rem;margin-bottom:.5rem">⚠️</div>
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:1.4rem;letter-spacing:2px;color:var(--red);margin-bottom:.75rem">Message de Speedix</div>
+    <div id="admin-alert-text" style="font-size:.85rem;color:var(--text);margin-bottom:1.25rem;line-height:1.6;text-align:left"></div>
+    <button onclick="dismissAdminAlert()" style="padding:.5rem 2rem;border-radius:8px;border:1.5px solid var(--green);background:linear-gradient(135deg,rgba(45,219,128,.15),rgba(32,180,100,.08));color:var(--green);font-weight:700;font-size:.85rem;cursor:pointer;letter-spacing:.5px">J'AI COMPRIS</button>
+  </div>
+</div>
+
 <!-- Modal "Objectif validé" — dédiée (2026-07-20), pas le pop-up générique
      land-modal partagé par plein d'autres écrans : un badge qu'on a consciemment
      choisi comme objectif mérite un vrai moment, comme la série ou la montée
@@ -8200,7 +8214,8 @@ async function onLoginSuccess(user, isNew){
       birthDate:pd.birth_date||null, birthdayGiftYear:pd.birthday_gift_year||null,
       equippedBgC1:pd.equipped_bg_c1||null, equippedBgC2:pd.equipped_bg_c2||null,
       medalBgC1:pd.medal_bg_c1||null, medalBgC2:pd.medal_bg_c2||null, medalBgUntil:pd.medal_bg_until||null, medalBgDist:pd.medal_bg_dist||null,
-      medalBgDismissedUntil:pd.medal_bg_dismissed_until||null
+      medalBgDismissedUntil:pd.medal_bg_dismissed_until||null,
+      adminAlertMessage:pd.admin_alert_message||null
     };
     var exi=PLAYERS.findIndex(function(p){return p.id===1;});
     if(exi>=0)PLAYERS[exi]=window.__myPlayer; else PLAYERS.unshift(window.__myPlayer);
@@ -8336,6 +8351,11 @@ async function onLoginSuccess(user, isNew){
   // ACCEPTER qui pose la colonne, ce check ne fait qu'ouvrir la popup).
   if(typeof checkBirthdayGift==='function'){
     setTimeout(function(){ checkBirthdayGift(); }, 2800);
+  }
+  // Alerte admin (course suspecte supprimée, etc.) — popup unique dès la
+  // prochaine connexion si un admin en a posé une sur ce compte.
+  if(typeof checkAdminAlert==='function'){
+    setTimeout(function(){ checkAdminAlert(); }, 3200);
   }
   if(typeof checkCollabPendingBanner==='function'){
     setTimeout(function(){ checkCollabPendingBanner(); }, 3500);
@@ -15513,7 +15533,19 @@ async function adminDeleteRun(runId){
       }
     }
   }
-  showToast('✕ Course supprimée'+(rpcDebit>0?' · −'+rpcDebit.toLocaleString(SPEEDIX_LANG)+' RPC':''));
+  // Alerte au RP (2026-08-11, demande explicite) : ce bouton de suppression
+  // n'a qu'un seul usage (course jugée suspecte/frauduleuse), donc le message
+  // s'écrit systématiquement, pas besoin d'un réglage à part. Affichée une
+  // seule fois à sa prochaine connexion (cf checkAdminAlert()). Écrase une
+  // éventuelle alerte déjà en attente non lue -- cas rare, acceptable.
+  if(run.player_id){
+    supabaseClient.from('players').update({
+      admin_alert_message:"Speedix a détecté une course suspecte et l'a supprimée. Ne pouvant la vérifier via Strava, si cette course est réelle, merci de contacter le support contact@speedixleague.com pour la justifier."
+    }).eq('id',run.player_id).then(function(res){
+      if(res && res.error) console.warn('adminDeleteRun alert write failed:',res.error);
+    });
+  }
+  showToast('✕ Course supprimée'+(rpcDebit>0?' · −'+rpcDebit.toLocaleString(SPEEDIX_LANG)+' RPC':'')+' · RP alerté');
   if(typeof adminLoadFlagged==='function') adminLoadFlagged();
   if(typeof loadPlayersFromSupabase==='function') loadPlayersFromSupabase();
 }
@@ -17733,6 +17765,28 @@ async function claimBirthdayGift(){
   window.__myPlayer.birthdayGiftYear=parseInt(getParisTodayStr().slice(0,4),10);
   closeModal('birthday-gift-modal');
   showToast('🎉 Joyeux anniversaire ! +3 000 💰 RPC · +5 💎 NYX');
+}
+
+// Alerte admin (2026-08-11, demande explicite — "il faudrait qu'on puisse
+// envoyer un message au RP quand on voit une course suspecte") : posée par
+// adminDeleteRun() sur players.admin_alert_message, affichée une seule fois
+// à la prochaine connexion du RP concerné puis effacée. Pas de garde côté
+// écriture nécessaire ici (contrairement au cadeau anniversaire) : ce n'est
+// qu'un texte affiché, aucun crédit/avantage en jeu qu'on pourrait rejouer.
+function checkAdminAlert(){
+  try{
+    if(!currentUser || !window.__myPlayer || !window.__myPlayer.adminAlertMessage) return;
+    var el=document.getElementById('admin-alert-text');
+    if(el) el.textContent=window.__myPlayer.adminAlertMessage;
+    openModal('admin-alert-modal');
+  }catch(e){ console.warn('[admin alert] check failed', e); }
+}
+async function dismissAdminAlert(){
+  closeModal('admin-alert-modal');
+  if(!currentUser) return;
+  window.__myPlayer.adminAlertMessage=null;
+  var {error}=await supabaseClient.from('players').update({admin_alert_message:null}).eq('id',currentUser.id);
+  if(error) console.warn('[admin alert] dismiss write failed', error);
 }
 
 // Débiter NYX (vérification solde)
