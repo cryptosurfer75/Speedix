@@ -5024,6 +5024,22 @@ function askConfirm(message, opts){
   </div>
 </div>
 
+<!-- Modal Cadeau d'anniversaire -->
+<div class="modal" id="birthday-gift-modal">
+  <div class="modal-box" style="max-width:380px;text-align:center;padding:2rem 1.5rem">
+    <button class="modal-close" onclick="closeModal('birthday-gift-modal')">✕</button>
+    <div style="font-size:3.5rem;margin-bottom:.5rem;animation:blasonPop .5s cubic-bezier(.22,.68,0,1.2) both">🎉🎂</div>
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:1.6rem;letter-spacing:3px;color:var(--gold);margin-bottom:.25rem">C'est un jour spécial !</div>
+    <div style="font-size:.85rem;color:var(--text);margin-bottom:.75rem;line-height:1.5">Speedix te souhaite un joyeux anniversaire 🎉🎂 et t'offre :</div>
+    <div style="font-family:'Space Mono',monospace;font-size:1.3rem;font-weight:700;margin-bottom:.5rem">
+      <span style="color:var(--gold);text-shadow:0 0 12px rgba(245,200,66,.4)">💰 5 000 RPC</span>
+      <span style="color:var(--muted2);margin:0 .3rem">·</span>
+      <span style="color:var(--green);text-shadow:0 0 12px rgba(45,219,128,.4)">💎 10 NYX</span>
+    </div>
+    <button id="birthday-gift-btn" onclick="claimBirthdayGift()" style="margin-top:1rem;padding:.5rem 2rem;border-radius:8px;border:1.5px solid var(--green);background:linear-gradient(135deg,rgba(45,219,128,.15),rgba(32,180,100,.08));color:var(--green);font-weight:700;font-size:.85rem;cursor:pointer;letter-spacing:.5px">ACCEPTER</button>
+  </div>
+</div>
+
 <!-- Modal "Objectif validé" — dédiée (2026-07-20), pas le pop-up générique
      land-modal partagé par plein d'autres écrans : un badge qu'on a consciemment
      choisi comme objectif mérite un vrai moment, comme la série ou la montée
@@ -8175,7 +8191,7 @@ async function onLoginSuccess(user, isNew){
       premium:pd.premium||false, premiumUntil:pd.premium_until||null, premiumTrial:pd.premium_trial||false,
       boostActiveUntil:pd?(pd.boost_active_until||null):null,
       gelActiveUntil:pd?(pd.gel_active_until||null):null,
-      birthDate:pd.birth_date||null,
+      birthDate:pd.birth_date||null, birthdayGiftYear:pd.birthday_gift_year||null,
       equippedBgC1:pd.equipped_bg_c1||null, equippedBgC2:pd.equipped_bg_c2||null,
       medalBgC1:pd.medal_bg_c1||null, medalBgC2:pd.medal_bg_c2||null, medalBgUntil:pd.medal_bg_until||null, medalBgDist:pd.medal_bg_dist||null,
       medalBgDismissedUntil:pd.medal_bg_dismissed_until||null
@@ -8308,6 +8324,12 @@ async function onLoginSuccess(user, isNew){
   // Défis collaboratifs voisins — pastille onglet + bandeau si défi en attente
   if(typeof refreshCollabBadge==='function'){
     setTimeout(function(){ refreshCollabBadge(); }, 2200);
+  }
+  // Cadeau d'anniversaire — popup si le RP se connecte le jour J (une seule
+  // fois par an, cf birthday_gift_year, MIROIR : la vérité vient du clic
+  // ACCEPTER qui pose la colonne, ce check ne fait qu'ouvrir la popup).
+  if(typeof checkBirthdayGift==='function'){
+    setTimeout(function(){ checkBirthdayGift(); }, 2800);
   }
   if(typeof checkCollabPendingBanner==='function'){
     setTimeout(function(){ checkCollabPendingBanner(); }, 3500);
@@ -17623,6 +17645,41 @@ async function walletCredit(rpc, nyx, reason){
   return true;
 }
 
+// Cadeau d'anniversaire (2026-08-11, demande explicite) : popup uniquement
+// le jour J (mois+jour de players.birth_date == aujourd'hui, heure Paris),
+// une seule fois par an -- players.birthday_gift_year mémorise l'année déjà
+// réclamée (posée par claimBirthdayGift, SOURCE UNIQUE de l'octroi, jamais
+// recalculée ailleurs). Pas de birth_date renseigné → pas de popup.
+function checkBirthdayGift(){
+  try{
+    if(!currentUser || !window.__myPlayer || !window.__myPlayer.birthDate) return;
+    var todayStr=getParisTodayStr(); // 'AAAA-MM-JJ'
+    var todayMD=todayStr.slice(5);   // 'MM-JJ'
+    var birthMD=String(window.__myPlayer.birthDate).slice(5,10);
+    if(todayMD!==birthMD) return;
+    var curYear=parseInt(todayStr.slice(0,4),10);
+    if(window.__myPlayer.birthdayGiftYear===curYear) return; // déjà réclamé cette année
+    openModal('birthday-gift-modal');
+  }catch(e){ console.warn('[birthday gift] check failed', e); }
+}
+async function claimBirthdayGift(){
+  if(!currentUser || !window.__myPlayer) return;
+  var curYear=parseInt(getParisTodayStr().slice(0,4),10);
+  var btn=document.getElementById('birthday-gift-btn');
+  if(btn){ btn.disabled=true; btn.style.opacity='.6'; }
+  var ok=await walletCredit(5000,10,'Cadeau anniversaire');
+  if(!ok){
+    if(btn){ btn.disabled=false; btn.style.opacity='1'; }
+    showToast('⚠️ Erreur, réessaie');
+    return;
+  }
+  var {error}=await supabaseClient.from('players').update({birthday_gift_year:curYear}).eq('id',currentUser.id);
+  if(error) console.warn('[birthday gift] flag write failed', error);
+  window.__myPlayer.birthdayGiftYear=curYear;
+  closeModal('birthday-gift-modal');
+  showToast('🎉 Joyeux anniversaire ! +5 000 💰 RPC · +10 💎 NYX');
+}
+
 // Débiter NYX (vérification solde)
 async function walletDebitNyx(amount, reason){
   if(!currentUser) return false;
@@ -18647,9 +18704,20 @@ async function handleStravaCallback(){
   var params=new URLSearchParams(window.location.search);
   var code=params.get('code');
   var state=params.get('state');
+  // Strava renvoie les autorisations RÉELLEMENT accordées dans ce paramètre
+  // (le RP peut décocher "Voir tes activités" dans l'écran de consentement,
+  // même si on a demandé activity:read_all). Sans lecture des activités,
+  // SPEEDIX ne pourra JAMAIS rien importer pour ce compte — on bloque donc
+  // la connexion tout de suite plutôt que de laisser un compte "connecté"
+  // mais inutilisable occuper une place dans le quota Strava.
+  var grantedScope=params.get('scope')||'';
   if(!code) return;
   // Nettoyer l'URL
   window.history.replaceState({},'',window.location.pathname);
+  if(grantedScope.indexOf('activity:read')<0){
+    showToast('⚠️ Autorisation incomplète — accepte l\'accès à tes activités pour connecter Strava');
+    return;
+  }
   showToast('🔴 Connexion Strava en cours…');
   // Échanger le code contre un token via l'Edge Function (secret côté serveur)
   try{
