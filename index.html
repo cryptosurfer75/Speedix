@@ -6083,6 +6083,9 @@ const I18N = {
     'settings.sub.manage'       : 'Gérer',
     'settings.sub.free'         : 'Free',
     'settings.sub.goPremium'    : 'Passer Premium',
+    'settings.sub.restoreLabel' : 'Achats',
+    'settings.sub.restoreHint'  : 'Achat non reconnu ?',
+    'settings.sub.restore'      : 'Restaurer mes achats',
     'gender.male'               : 'Homme',
     'gender.female'             : 'Femme',
     'gender.other'              : 'Autre',
@@ -6842,6 +6845,9 @@ const I18N = {
     'settings.sub.manage'       : 'Manage',
     'settings.sub.free'         : 'Free',
     'settings.sub.goPremium'    : 'Go Premium',
+    'settings.sub.restoreLabel' : 'Purchases',
+    'settings.sub.restoreHint'  : 'Purchase not showing up?',
+    'settings.sub.restore'      : 'Restore purchases',
     'gender.male'               : 'Male',
     'gender.female'             : 'Female',
     'gender.other'              : 'Other',
@@ -16098,6 +16104,26 @@ function _pollPremiumActivation(){
   [2000,5000,10000].forEach(function(delay){ setTimeout(_refreshMyPlayerPremium, delay); });
 }
 
+// Restaurer mes achats (exigé par Apple pour les abonnements auto-renouvelables).
+// Le statut Premium vit dans players.premium (Supabase, lié au compte, pas à
+// l'appareil) : cette action resynchronise RevenueCat avec le store, PUIS relit
+// la base pour rafraîchir l'affichage — utile si le webhook grant-iap a été
+// manqué ou si le RP change d'appareil.
+async function _restorePurchases(){
+  if(!_hasRevenueCat()){
+    showToast('⚠️ Disponible uniquement dans l\'app mobile');
+    return;
+  }
+  showToast('⏳ Restauration en cours...');
+  try{
+    await window.Capacitor.Plugins.Purchases.restorePurchases();
+    await _refreshMyPlayerPremium();
+    showToast(isPremium() ? '✓ Achats restaurés !' : 'Aucun achat actif trouvé');
+  }catch(e){
+    showToast('⚠️ Restauration impossible, réessaie plus tard');
+  }
+}
+
 function buyPack(type, amount, price){
   if(!currentUser){showToast('⚠️ Connecte-toi d\'abord');return;}
   var label=type==='rpc'?amount.toLocaleString('de-DE')+' RPC':amount+' NYX';
@@ -16234,6 +16260,7 @@ function handlePremiumClick(){
       +'<button onclick="_buyPremium(\'premium_monthly\')" style="padding:.6rem 1rem;border-radius:8px;border:1.5px solid var(--gold);background:rgba(245,200,66,.12);color:var(--gold);font-weight:700;font-size:.85rem;cursor:pointer">Mensuel — 5,99€/mois</button>'
       +'<button onclick="_buyPremium(\'premium_yearly\')" style="padding:.6rem 1rem;border-radius:8px;border:1.5px solid var(--gold);background:rgba(245,200,66,.12);color:var(--gold);font-weight:700;font-size:.85rem;cursor:pointer">Annuel — 59,99€/an</button>'
       +'</div>'
+      +'<div style="text-align:center;margin-top:.9rem"><span onclick="_restorePurchases()" style="font-size:.68rem;color:var(--muted2);text-decoration:underline;cursor:pointer">Restaurer mes achats</span></div>'
       +'</div>';
     openModal('land-modal');
     return;
@@ -22948,7 +22975,17 @@ async function pickQuestDirect(badgeId){
       var {data:pd}=await supabaseClient.from('players').select('quests_onboarded_at,created_at').eq('id',currentUser.id).single();
       var isFirstEverBatch=!(pd&&pd.quests_onboarded_at);
       var isReplay=!!(unlockedMapGlobal && unlockedMapGlobal[badgeId]);
-      var since=(!isReplay && pd && pd.created_at)?pd.created_at:nowIso;
+      // Série (streak_days) exclue du grandfathering (2026-08-10, demande explicite
+      // -- "dès qu'on change de défi, on repart à zéro sur la série") : le
+      // grandfathering "depuis la création du compte" a du sens pour un défi
+      // cumulatif (ex. distance totale) où les courses déjà faites doivent
+      // compter, mais PAS pour une série de jours consécutifs -- sinon choisir
+      // SÉRIE 30 après avoir déjà terminé SÉRIE 7 recalculait la plus longue
+      // série depuis la création du compte et affichait direct "8/30" au lieu
+      // de "0/30", contraire au message même du jeu ("ta série repart à zéro")
+      // et signalé par l'user sur le cas Pi-r_Bouh-rz. Toujours nowIso pour ce type.
+      var isStreakType = b.threshold_type==='streak_days';
+      var since=(!isStreakType && !isReplay && pd && pd.created_at)?pd.created_at:nowIso;
       await supabaseClient.from('player_active_quests').insert({player_id:currentUser.id,badge_id:badgeId,picked_at:nowIso,progress_since:since,active:true,banked_progress:0});
       if(isFirstEverBatch){
         await supabaseClient.from('players').update({quests_onboarded_at:nowIso}).eq('id',currentUser.id);
@@ -23946,9 +23983,14 @@ function _renderSettingsSubscription(p){
     statusHtml='<span style="color:var(--muted2)">'+t('settings.sub.free')+'</span>';
     actionBtn='<button onclick="navMenu(\'access\')" style="padding:.25rem .55rem;border-radius:5px;border:1px solid rgba(245,200,66,.4);background:rgba(245,200,66,.08);color:var(--gold);font-size:.65rem;font-weight:700;cursor:pointer">'+t('settings.sub.goPremium')+'</button>';
   }
-  _setRowsHtml('settings-subscription',[
+  var rows=[
     {label:t('settings.row.status'), html:statusHtml, action:actionBtn},
-  ]);
+  ];
+  if(_hasRevenueCat()){
+    var restoreBtn='<button onclick="_restorePurchases()" style="padding:.25rem .55rem;border-radius:5px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.04);color:var(--muted2);font-size:.65rem;font-weight:700;cursor:pointer">'+t('settings.sub.restore')+'</button>';
+    rows.push({label:t('settings.sub.restoreLabel'), html:'<span style="color:var(--muted2);font-size:.68rem">'+t('settings.sub.restoreHint')+'</span>', action:restoreBtn});
+  }
+  _setRowsHtml('settings-subscription', rows);
 }
 
 function _renderSettingsPrefs(p){
