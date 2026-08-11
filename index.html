@@ -5030,11 +5030,11 @@ function askConfirm(message, opts){
     <button class="modal-close" onclick="closeModal('birthday-gift-modal')">✕</button>
     <div style="font-size:3.5rem;margin-bottom:.5rem;animation:blasonPop .5s cubic-bezier(.22,.68,0,1.2) both">🎉🎂</div>
     <div style="font-family:'Bebas Neue',sans-serif;font-size:1.6rem;letter-spacing:3px;color:var(--gold);margin-bottom:.25rem">C'est un jour spécial !</div>
-    <div style="font-size:.85rem;color:var(--text);margin-bottom:.75rem;line-height:1.5">Speedix te souhaite un joyeux anniversaire 🎉🎂 et t'offre :</div>
+    <div style="font-size:.85rem;color:var(--text);margin-bottom:.75rem;line-height:1.5">Speedix te souhaite un joyeux anniversaire 🎉🎂<br>et t'offre :</div>
     <div style="font-family:'Space Mono',monospace;font-size:1.3rem;font-weight:700;margin-bottom:.5rem">
-      <span style="color:var(--gold);text-shadow:0 0 12px rgba(245,200,66,.4)">💰 5 000 RPC</span>
+      <span style="color:var(--gold);text-shadow:0 0 12px rgba(245,200,66,.4);white-space:nowrap">💰 3 000 RPC</span>
       <span style="color:var(--muted2);margin:0 .3rem">·</span>
-      <span style="color:var(--green);text-shadow:0 0 12px rgba(45,219,128,.4)">💎 10 NYX</span>
+      <span style="color:var(--green);text-shadow:0 0 12px rgba(45,219,128,.4);white-space:nowrap">💎 5 NYX</span>
     </div>
     <button id="birthday-gift-btn" onclick="claimBirthdayGift()" style="margin-top:1rem;padding:.5rem 2rem;border-radius:8px;border:1.5px solid var(--green);background:linear-gradient(135deg,rgba(45,219,128,.15),rgba(32,180,100,.08));color:var(--green);font-weight:700;font-size:.85rem;cursor:pointer;letter-spacing:.5px">ACCEPTER</button>
   </div>
@@ -17667,7 +17667,7 @@ async function claimBirthdayGift(){
   var curYear=parseInt(getParisTodayStr().slice(0,4),10);
   var btn=document.getElementById('birthday-gift-btn');
   if(btn){ btn.disabled=true; btn.style.opacity='.6'; }
-  var ok=await walletCredit(5000,10,'Cadeau anniversaire');
+  var ok=await walletCredit(3000,5,'Cadeau anniversaire');
   if(!ok){
     if(btn){ btn.disabled=false; btn.style.opacity='1'; }
     showToast('⚠️ Erreur, réessaie');
@@ -17677,7 +17677,7 @@ async function claimBirthdayGift(){
   if(error) console.warn('[birthday gift] flag write failed', error);
   window.__myPlayer.birthdayGiftYear=curYear;
   closeModal('birthday-gift-modal');
-  showToast('🎉 Joyeux anniversaire ! +5 000 💰 RPC · +10 💎 NYX');
+  showToast('🎉 Joyeux anniversaire ! +3 000 💰 RPC · +5 💎 NYX');
 }
 
 // Débiter NYX (vérification solde)
