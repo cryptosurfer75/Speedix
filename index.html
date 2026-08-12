@@ -13441,6 +13441,13 @@ async function loadTeamChat(teamId){
   // Afficher du plus ancien au plus récent
   msgs.reverse();
   var _myUid=currentUser.id;
+  // Ne re-scroller en bas qu'au sondage 3s (setInterval) où le RP était déjà en
+  // bas — sinon on lui arrache la lecture d'un ancien message toutes les 3s
+  // (signalé par l'user, 2026-08-12). S'il a remonté pour lire, on préserve sa
+  // position (les nouveaux messages ne s'ajoutent qu'en bas, donc le même
+  // scrollTop en pixels rattrape à peu près les mêmes messages après re-render).
+  var _wasAtBottom=el.scrollTop+el.clientHeight>=el.scrollHeight-40;
+  var _prevScrollTop=el.scrollTop;
   el.innerHTML=msgs.map(function(m){
     var p=pMap[m.player_id]||{username:'?',avatar:null};
     var isMe=m.player_id===_myUid;
@@ -13458,8 +13465,7 @@ async function loadTeamChat(teamId){
       +'<div style="font-size:.72rem;color:var(--text);line-height:1.4;word-break:break-word">'+escapeHtml(m.content)+'</div>'
       +'</div></div>';
   }).join('');
-  // Scroll en bas
-  el.scrollTop=el.scrollHeight;
+  el.scrollTop=_wasAtBottom?el.scrollHeight:_prevScrollTop;
 }
 
 async function sendTeamMessage(){
@@ -13602,6 +13608,11 @@ async function loadLeagueChat(key){
   }
   msgs.reverse();
   var _myUid=currentUser.id;
+  // Ne re-scroller en bas qu'au sondage 3s où le RP était déjà en bas — sinon
+  // on lui arrache la lecture d'un ancien message toutes les 3s (signalé par
+  // l'user, 2026-08-12). Même correctif que loadTeamChat.
+  var _wasAtBottom=el.scrollTop+el.clientHeight>=el.scrollHeight-40;
+  var _prevScrollTop=el.scrollTop;
   el.innerHTML=msgs.map(function(m){
     var p=pMap[m.player_id]||{username:'?',avatar:null};
     var isMe=m.player_id===_myUid;
@@ -13625,7 +13636,7 @@ async function loadLeagueChat(key){
       +'</div>'
       +'</div></div>';
   }).join('');
-  el.scrollTop=el.scrollHeight;
+  el.scrollTop=_wasAtBottom?el.scrollHeight:_prevScrollTop;
 }
 
 async function toggleLeagueMessageLike(msgId,el){
