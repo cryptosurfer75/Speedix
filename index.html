@@ -29806,15 +29806,6 @@ window.Tour.init = async function(){
     }
     const stops = await _loadHistoryStops();
     _historyAbort = false;
-    const bar = document.createElement('div');
-    bar.id = 'tour-history-bar';
-    bar.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:2200;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 14px;background:#0c0f1aee;border-bottom:1.5px solid var(--gold);font-family:\'Rajdhani\',sans-serif;color:#fff';
-    bar.innerHTML = '<span style="font-family:\'Bebas Neue\',sans-serif;letter-spacing:1px;color:var(--gold)">🕓 HISTORIQUE DU TRAJET</span>'
-      + '<span id="tour-history-label" style="font-size:.82rem;color:var(--muted2);flex:1;text-align:center"></span>'
-      + '<button id="tour-history-close" style="border:1.5px solid var(--gold);background:transparent;color:var(--gold);font-weight:700;padding:.3rem .7rem;border-radius:6px;cursor:pointer;text-transform:uppercase;font-size:.75rem">✕ Fermer</button>';
-    document.body.appendChild(bar);
-    const label = bar.querySelector('#tour-history-label');
-    bar.querySelector('#tour-history-close').onclick = function(){ _historyAbort = true; };
 
     if(map.getZoom() < RUN_ZOOM) map.setView(posAt(ME.startIdx), RUN_ZOOM, {animate:false});
     else map.setView(posAt(ME.startIdx), map.getZoom(), {animate:false});
@@ -29837,24 +29828,23 @@ window.Tour.init = async function(){
         let delta = stop.idx - curWrapped;
         if(delta < 0) delta += TOTAL_CELLS;
         const nextVirtual = virtual + delta;
-        const d = stop.date ? new Date(stop.date).toLocaleDateString('fr-FR') : '';
-        label.textContent = 'Arrêt '+(i+1)+'/'+stops.length+(d?' — '+d:'')+' — case n°'+stop.idx;
         await _animateGhost(ghost, virtual, nextVirtual);
         virtual = nextVirtual;
+        // Temps d'arrêt visible sur chaque case enregistrée (2026-08-12, demande
+        // explicite -- remplace la barre/label retirée) : pas de pause après le
+        // tout dernier arrêt, ni si l'user a fermé entre-temps.
+        if(!_historyAbort && i<stops.length-1) await new Promise(function(r){ setTimeout(r, 900); });
       }
       // S'il reste un écart (trajet antérieur au journal, cf commentaire plus
       // haut), on comble en une seule animation jusqu'à la vraie position.
       if(!_historyAbort && virtual!==myIdx){
-        label.textContent = 'Trajet antérieur au journal détaillé...';
         await _animateGhost(ghost, virtual, myIdx);
       }
     } else {
-      label.textContent = 'Retour sur ton trajet...';
       if(!_historyAbort) await _animateGhost(ghost, ME.startIdx, myIdx);
     }
     map.removeLayer(ghost);
     playerMarker.setOpacity(1);
-    bar.remove();
     map.setView(posAt(myIdx), map.getZoom(), {animate:false});
   }
   // Helper dédié (2026-08-02) : PARIS_STARTS est un nombre, pas un objet/
