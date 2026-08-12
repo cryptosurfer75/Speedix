@@ -16161,12 +16161,21 @@ async function _purchaseProduct(productId, label, emoji, priceLabel, onSuccessPo
     +'</div>';
   openModal('land-modal');
   var Purchases=window.Capacitor.Plugins.Purchases;
+  // Diagnostic temporaire (2026-08-12, demande explicite — achats Android
+  // toujours "produit indispo" malgré config Google Play + RevenueCat
+  // vérifiées saines des deux côtés) : au lieu du toast générique qui
+  // disparaît, on affiche le détail brut renvoyé par le SDK dans la modale
+  // déjà ouverte, pour que le RP puisse le lire/capturer et nous le
+  // transmettre. À retirer une fois le vrai blocage identifié.
   try{
     var got=await Purchases.getProducts({productIdentifiers:[productId]});
     var product=got && got.products && got.products[0];
     if(!product){
-      showToast('⚠️ Produit indisponible pour le moment');
-      closeModal('land-modal');
+      document.getElementById('lm-body').innerHTML=
+        '<div style="padding:1rem;text-align:left">'
+        +'<div style="font-size:.85rem;color:var(--text);margin-bottom:.5rem">⚠️ Produit indisponible — détail technique :</div>'
+        +'<div style="font-size:.65rem;color:var(--muted2);word-break:break-word;background:rgba(0,0,0,.25);padding:.5rem;border-radius:6px">ID demandé : '+escapeHtml(productId)+'<br>Réponse SDK : '+escapeHtml(JSON.stringify(got))+'</div>'
+        +'</div>';
       return;
     }
     await Purchases.purchaseStoreProduct({product:product});
@@ -16178,8 +16187,12 @@ async function _purchaseProduct(productId, label, emoji, priceLabel, onSuccessPo
     if(onSuccessPoll) onSuccessPoll();
   }catch(e){
     var userCancelled=!!(e && (e.userCancelled || (e.message&&e.message.toLowerCase().indexOf('cancel')>=0)));
-    if(!userCancelled) showToast('⚠️ Paiement annulé ou échoué');
-    closeModal('land-modal');
+    if(userCancelled){ closeModal('land-modal'); return; }
+    document.getElementById('lm-body').innerHTML=
+      '<div style="padding:1rem;text-align:left">'
+      +'<div style="font-size:.85rem;color:var(--text);margin-bottom:.5rem">⚠️ Paiement échoué — détail technique :</div>'
+      +'<div style="font-size:.65rem;color:var(--muted2);word-break:break-word;background:rgba(0,0,0,.25);padding:.5rem;border-radius:6px">'+escapeHtml((e&&(e.message||e.code||JSON.stringify(e)))||'erreur inconnue')+'</div>'
+      +'</div>';
   }
 }
 
