@@ -9282,7 +9282,7 @@ const LEAGUE_MEDAL_MIN_COMPETITORS = 50;
 // RPC/NYX rééquilibré le 2026-08-07 (100 RPC/km, NYX dès les petites
 // distances) + défi parrainage (CC12) retiré — ce ne sont que des défis
 // sportifs ici.
-// 10 défis. Tirage aléatoire au moment de proposer à une paire (avec
+// 12 défis. Tirage aléatoire au moment de proposer à une paire (avec
 // anti-répétition par rapport au défi précédent de cette même paire).
 //
 // Champs :
@@ -9304,6 +9304,7 @@ const LEAGUE_MEDAL_MIN_COMPETITORS = 50;
 //   long_run_each      chaque RP doit faire 1 sortie ≥ `value` km
 //   long_run_same_day  chaque RP doit faire 1 sortie ≥ `value` km le même jour
 //   streak_each        chaque RP doit avoir `value` jours de course consécutifs
+//   time_total         les 2 RPs ensemble doivent cumuler `value` minutes de course/marche
 const COLLAB_CHALLENGE_CATALOG = [
   { code:'CC01', title:'Cours 10 km chacun en 48h',
     title_en:'Run 10 km each in 48h',
@@ -9349,12 +9350,22 @@ const COLLAB_CHALLENGE_CATALOG = [
     title_en:'200 km accumulated in 30 days',
     description:'Cumulez 200 km à deux en 30 jours (100 chacun) après acceptation du défi.',
     description_en:'Accumulate 200 km together in 30 days (100 each) after accepting the challenge.',
-    duration_hours:24*30, criteria:{type:'km_each',value:100}, reward_rpc:20000, reward_nyx:30, reward_type:'rpc' },
+    duration_hours:24*30, criteria:{type:'km_each',value:100}, reward_rpc:20000, reward_nyx:20, reward_type:'rpc' },
   { code:'CC11', title:'Sortie de 21 km (semi) chacun',
     title_en:'21 km (half-marathon) run each',
     description:'Faites chacun une sortie d\'au moins 21 km dans les 15 jours après acceptation du défi.',
     description_en:'Each complete a run of at least 21 km within 15 days after accepting the challenge.',
-    duration_hours:24*15, criteria:{type:'long_run_each',value:21}, reward_rpc:4200, reward_nyx:20, reward_type:'rpc' }
+    duration_hours:24*15, criteria:{type:'long_run_each',value:21}, reward_rpc:4200, reward_nyx:20, reward_type:'rpc' },
+  { code:'CC13', title:'Défi flash : 5 km chacun en 24h',
+    title_en:'Flash challenge: 5 km each in 24h',
+    description:'Réalisez 5 km chacun dans les 24h après acceptation du défi — un gain rapide et facile.',
+    description_en:'Complete 5 km each within 24h after accepting the challenge — a quick, easy win.',
+    duration_hours:24, criteria:{type:'km_each',value:5}, reward_rpc:1000, reward_nyx:2, reward_type:'rpc' },
+  { code:'CC14', title:'4h à deux cette semaine (course ou marche)',
+    title_en:'4h together this week (run or walk)',
+    description:'Cumulez 4h de course ou de marche à vous deux dans les 7 jours après acceptation du défi — répartition libre, chacun à son rythme.',
+    description_en:'Accumulate 4h of running or walking together within 7 days after accepting the challenge — free split, everyone at their own pace.',
+    duration_hours:24*7, criteria:{type:'time_total',value:240}, reward_rpc:5000, reward_nyx:8, reward_type:'rpc' }
 ];
 
 // Renvoie {title, description} dans la langue courante, avec fallback FR.
