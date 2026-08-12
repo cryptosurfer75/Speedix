@@ -16233,7 +16233,7 @@ function buyPack(type, amount, price){
 }
 
 function renderEconomy(){
-  const rpcBuy=[[10000,'2,49€'],[50000,'9,99€'],[100000,'19,99€'],[500000,'79,99€']];
+  const rpcBuy=[[10000,'2,99€'],[50000,'9,99€'],[100000,'19,99€'],[500000,'79,99€']];
   const elRpcBuy=document.getElementById('rpc-buy');
   if(elRpcBuy) elRpcBuy.innerHTML=rpcBuy.map(r=>`<div class="eco-row" style="display:flex;align-items:center;justify-content:space-between"><span>${r[0].toLocaleString('de-DE')} RPC</span><button onclick="buyPack('rpc',${r[0]},'${r[1]}')" style="padding:.25rem .6rem;border-radius:20px;border:1px solid rgba(245,200,66,.4);background:linear-gradient(175deg,rgba(245,200,66,.12),rgba(245,200,66,.04));color:var(--gold);font-size:.65rem;font-weight:800;letter-spacing:.5px;cursor:pointer;white-space:nowrap;box-shadow:0 1px 4px rgba(245,200,66,.15);transition:all .15s" onmouseover="this.style.background='linear-gradient(175deg,rgba(245,200,66,.25),rgba(245,200,66,.1))';this.style.boxShadow='0 2px 8px rgba(245,200,66,.25)'" onmouseout="this.style.background='linear-gradient(175deg,rgba(245,200,66,.12),rgba(245,200,66,.04))';this.style.boxShadow='0 1px 4px rgba(245,200,66,.15)'">${r[1]}</button></div>`).join('');
   const nyxBuy=[[10,'1,29€'],[50,'4,99€'],[100,'9,99€'],[500,'44,99€']];
