@@ -18755,7 +18755,13 @@ async function activateGelOnTarget(){
   // Gel actif de façon atomique).
   var {data:_gelRes,error:_gelErr}=await supabaseClient.rpc('apply_gel_to_target',{p_target_id:vp._uuid});
   if(_gelErr||!_gelRes||!_gelRes.ok){
-    showToast(_gelRes&&_gelRes.reason==='already_gelled' ? '⚠️ Ce RP est déjà gelé' : '⚠️ Erreur lors du gel');
+    var _gelMsg='⚠️ Erreur lors du gel';
+    if(_gelRes&&_gelRes.reason==='already_gelled') _gelMsg='⚠️ Ce RP est déjà gelé';
+    // Plafond mensuel (6 Gels reçus max par RP, demande explicite 2026-08-12) :
+    // source unique = apply_gel_to_target (gel_received_month/_count), le
+    // client ne fait qu'afficher le refus renvoyé par la recette base.
+    else if(_gelRes&&_gelRes.reason==='monthly_cap_reached') _gelMsg='⚠️ Ce RP a déjà reçu 6 Gels ce mois-ci, il ne peut plus en recevoir';
+    showToast(_gelMsg);
     renderGelRow();
     return;
   }
