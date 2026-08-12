@@ -26032,7 +26032,7 @@ window.Tour.init = async function(){
   let _tourPlayerRow = null;
   if(currentUser && currentUser.id){
     const {data} = await supabaseClient.from('players')
-      .select('rpc_balance,nyx_balance,tour_acquisition_rights,premium,username,grade,tour_idx,tour_laps,tour_start_city,tour_start_idx,tour_forsale_seen_at')
+      .select('rpc_balance,nyx_balance,tour_acquisition_rights,premium,username,grade,tour_idx,tour_laps,tour_start_city,tour_start_idx,tour_forsale_seen_at,tour_friend_colors')
       .eq('id', currentUser.id).single();
     _tourPlayerRow = data || null;
   }
@@ -26069,7 +26069,13 @@ window.Tour.init = async function(){
     // bouton bleu sans qu'aucune Land nouvelle ne soit réellement arrivée.
     // players.tour_forsale_seen_at = SOURCE UNIQUE désormais, comparée à
     // tour_lands.listed_at (posé par tour_list_for_sale) pour chaque Land.
-    forSaleSeenAt: (_tourPlayerRow && _tourPlayerRow.tour_forsale_seen_at) || null
+    forSaleSeenAt: (_tourPlayerRow && _tourPlayerRow.tour_forsale_seen_at) || null,
+    // Couleurs choisies pour les amis suivis (2026-08-12, remplace le
+    // localStorage friend-colors-<uid> — même classe de bug que color/position
+    // ci-dessus : propre à CHAQUE appareil, donc perdu au changement de
+    // téléphone alors que l'user pensait le choix persistant). SOURCE UNIQUE
+    // désormais players.tour_friend_colors (jsonb {playerId: colorIdx}).
+    friendColorOverrides: (_tourPlayerRow && _tourPlayerRow.tour_friend_colors) || {}
   };
   // Marque les 50 étapes en base (idempotent, cf tour_sync_etapes : ne touche
   // que les lignes pas encore type='etape') puis charge la VRAIE propriété des
@@ -26209,24 +26215,22 @@ window.Tour.init = async function(){
   // Couleurs choisies manuellement par CE user pour ses amis suivis (2026-08-08,
   // demande explicite — "ne reste pas au refresh/en sortant de l'app") : avant,
   // c'était volontairement éphémère (cf ancien commentaire de setRealFriendColor
-  // plus bas), remis au hash par défaut à chaque rechargement. Persisté en
-  // localStorage, même principe que seen-challenges-<uid> un peu plus haut dans
-  // le fichier — un choix de couleur est une préférence PERSO du viewer sur SES
-  // amis, pas une donnée de jeu partagée, localStorage suffit (pas de table dédiée).
-  function _friendColorOverridesKey(){
-    return currentUser ? ('friend-colors-'+currentUser.id) : null;
-  }
+  // plus bas), remis au hash par défaut à chaque rechargement. Repassé de
+  // localStorage à players.tour_friend_colors le 2026-08-12 (bug signalé —
+  // "j'ai changé de téléphone et les couleurs de mes favoris ont changé") :
+  // même classe de bug que tour_color/tour_idx/tour_forsale_seen_at plus haut,
+  // localStorage est propre à CHAQUE appareil. ME.friendColorOverrides = SOURCE
+  // UNIQUE en mémoire (chargée depuis la base au Tour.init()).
   function _getFriendColorOverrides(){
-    var k=_friendColorOverridesKey();
-    if(!k) return {};
-    try { return JSON.parse(localStorage.getItem(k)||'{}'); } catch(e) { return {}; }
+    return ME.friendColorOverrides || {};
   }
   function _setFriendColorOverride(playerId, colorIdx){
-    var k=_friendColorOverridesKey();
-    if(!k) return;
+    if(!currentUser) return;
     var overrides=_getFriendColorOverrides();
     overrides[playerId]=colorIdx;
-    localStorage.setItem(k, JSON.stringify(overrides));
+    ME.friendColorOverrides = overrides;
+    supabaseClient.from('players').update({tour_friend_colors:overrides}).eq('id',currentUser.id)
+      .then(function(res){ if(res && res.error) console.warn('[Tour] tour_friend_colors PATCH failed', res.error); });
   }
   function _friendColorForId(id){
     var overrides=_getFriendColorOverrides();
@@ -29739,62 +29743,28 @@ window.Tour.init = async function(){
   // toujours exactement sur la vraie position actuelle, jamais au-delà --
   // seul le détail affiché pour cette toute dernière course peut être imprécis
   // sur un compte contaminé par du mouvement hors-course, jamais la position.
-  async function _buildHistoryStops(){
-    if(!currentUser || !currentUser.id || ME.startIdx==null) return null;
-    // ⚠️ Filtre run_date > TOUR_V2_LAUNCH_ISO (2026-08-10, cas vécu -- "les
-    // cases étapes ne sont pas respectées") : SOURCE UNIQUE de la conversion
-    // km→cases = checkPendingTourAdvance(), qui ne compte QUE les courses
-    // postérieures au lancement du Tour V2 (rien avant n'a jamais fait avancer
-    // le pion). Sans ce même filtre ici, _buildHistoryStops() remontait TOUTE
-    // l'historique du compte (parfois des mois de courses pré-Tour, cf compte
-    // testé : 1202 km cumulés vie entière contre 25,7 km réellement "marchés"
-    // sur le plateau depuis le 07/08) pour deviner quelles courses comptent --
-    // ça décalait complètement l'attribution des arrêts intermédiaires, donc
-    // les cases étapes traversées pendant le replay ne correspondaient plus à
-    // la réalité (seule la position FINALE restait juste, calée sur myIdx).
-    // MIROIR de checkPendingTourAdvance() -- garder synchro, NE PAS diverger.
-    const {data:allRuns, error} = await supabaseClient.from('runs')
-      .select('distance,run_date')
+  // Reconstruction par déduction (km cumulés) SUPPRIMÉE (2026-08-12, demande
+  // explicite de l'user après plusieurs bugs de fidélité) : deviner les arrêts
+  // à partir du seul total de km restait TOUJOURS une approximation (cases
+  // mystère, rattrapages groupés, corrections admin...), peu importe la
+  // finesse du calcul déjà tentée deux fois avant. Remplacé par un vrai
+  // journal (tour_position_log, rempli par tour_record_landing à CHAQUE
+  // atterrissage réel, cf onArrive plus haut) : chaque arrêt est désormais
+  // enregistré au moment où il se produit, donc le replay peut re-suivre
+  // exactement la même suite de cases. Ne couvre que les atterrissages
+  // survenus APRÈS la mise en place du journal (2026-08-12) — pour un trajet
+  // plus ancien sans aucune ligne, on retombe sur une seule animation
+  // continue jusqu'à la position actuelle, sans prétendre à une précision
+  // qu'on n'a pas pour cette période-là.
+  async function _loadHistoryStops(){
+    if(!currentUser || !currentUser.id) return [];
+    const {data, error} = await supabaseClient.from('tour_position_log')
+      .select('position_idx,laps,landed_at')
       .eq('player_id', currentUser.id)
-      .gt('run_date', TOUR_V2_LAUNCH_ISO)
-      .order('run_date', {ascending:true});
-    if(error || !allRuns || !allRuns.length) return null;
-    const totalCellsTravelled = (ME.laps||0)*TOTAL_CELLS + (((myIdx-ME.startIdx)%TOTAL_CELLS)+TOTAL_CELLS)%TOTAL_CELLS;
-    if(totalCellsTravelled<=0) return [];
-    // BUG CORRIGÉ (2026-08-10, signalé par l'user -- "je m'arrête 3 cases avant
-    // Amiens [ville étape achetée -- donc forcément atterri PILE dessus en vrai],
-    // je passe au-dessus") : la vraie avance sur le plateau (cf checkPendingTourAdvance/
-    // runKm) arrondit la SOMME de tout un rattrapage EN UNE SEULE FOIS ("j'ouvre
-    // l'appli, X courses en attente valent Y km d'un coup" -> Math.round(Y) une
-    // fois), jamais course par course. Arrondir CHAQUE course séparément puis
-    // les additionner (l'ancienne méthode ci-dessous) dérive donc peu à peu : un
-    // arrondi individuel peut être décalé de jusqu'à 0,5 case, et ces décalages
-    // s'accumulent dans le même sens au fil des courses -- sur des dizaines de
-    // courses, l'écart peut atteindre plusieurs cases de retard ou d'avance,
-    // exactement le symptôme observé. Fix : cumuler les distances BRUTES (non
-    // arrondies) et n'arrondir QUE le total cumulé à chaque étape -- colle
-    // beaucoup plus près de la vraie trajectoire (l'arrondi ne dérive jamais audelà
-    // de ±0,5 case à aucun moment, au lieu de s'accumuler course après course).
-    // ⚠️ Reste une approximation par nature (cf limite ci-dessus, toujours vraie :
-    // on ne sait pas EXACTEMENT quelles courses ont été regroupées dans quel
-    // rattrapage) -- mais bien plus fidèle qu'avant, et l'arrivée reste toujours
-    // exacte (plafond à totalCellsTravelled, cf Math.min ci-dessous, inchangé).
-    let accRaw = 0, cutIdx = 0;
-    for(let i=allRuns.length-1; i>=0; i--){
-      cutIdx = i;
-      accRaw += Math.max(0.5, allRuns[i].distance||0);
-      if(Math.round(accRaw) >= totalCellsTravelled) break;
-    }
-    const stops = [];
-    let cumRaw = 0, cum = 0;
-    for(let i=cutIdx; i<allRuns.length && cum<totalCellsTravelled; i++){
-      cumRaw += Math.max(0.5, allRuns[i].distance||0);
-      cum = Math.min(totalCellsTravelled, Math.round(cumRaw));
-      stops.push({idx: ME.startIdx+cum, date:allRuns[i].run_date, km:allRuns[i].distance});
-    }
-    return stops;
+      .order('landed_at', {ascending:true});
+    if(error || !data) return [];
+    return data.map(function(r){ return {idx:r.position_idx, laps:r.laps||0, date:r.landed_at}; });
   }
-  function _sleep(ms){ return new Promise(r=>setTimeout(r,ms)); }
   let _historyAbort = false;
   function _animateGhost(marker, fromIdx, toIdx){
     return new Promise(resolve=>{
@@ -29825,15 +29795,11 @@ window.Tour.init = async function(){
       if(typeof showToast==='function') showToast('Choisis d\'abord ta ville de départ.');
       return;
     }
-    const stops = await _buildHistoryStops();
-    if(!stops){
-      if(typeof showToast==='function') showToast('⚠️ Impossible de charger ton historique, réessaie plus tard.');
-      return;
-    }
-    if(!stops.length){
+    if(myIdx===ME.startIdx){
       if(typeof showToast==='function') showToast('Pas encore de course enregistrée sur ce Tour.');
       return;
     }
+    const stops = await _loadHistoryStops();
     _historyAbort = false;
     const bar = document.createElement('div');
     bar.id = 'tour-history-bar';
@@ -29852,32 +29818,34 @@ window.Tour.init = async function(){
       icon: L.divIcon({className:'', html:'<div class="history-marker"></div>', iconSize:[18,18], iconAnchor:[9,9]}),
       zIndexOffset: 1200
     }).addTo(map);
-    let from = ME.startIdx;
-    for(let i=0; i<stops.length && !_historyAbort; i++){
-      const stop = stops[i];
-      const d = stop.date ? new Date(stop.date).toLocaleDateString('fr-FR') : '';
-      label.textContent = 'Course '+(i+1)+'/'+stops.length+(d?' — '+d:'')+(stop.km?' — '+Number(stop.km).toLocaleString(SPEEDIX_LANG,{maximumFractionDigits:1})+' km':'');
-      await _animateGhost(ghost, from, stop.idx);
-      from = stop.idx;
-      if(_historyAbort) break;
-      await _sleep(650);
-    }
-    // BUG CORRIGÉ (2026-08-10, signalé par l'user -- "le point s'arrête sur une
-    // étape et jump directement sur l'arrivée") : la limite déjà documentée
-    // ci-dessus ("compte contaminé par du mouvement hors-course") faisait
-    // exactement ça -- dès que les vraies courses ne couvraient pas tout
-    // totalCellsTravelled (case mystère "Avancez de N Lands", outil de test
-    // admin...), le dernier arrêt tombait AVANT myIdx, la boucle se terminait,
-    // et le code juste en dessous révélait directement le VRAI pion (déjà
-    // positionné sur myIdx depuis le début, seulement masqué) -- vu comme un
-    // saut. Fix : s'il reste un écart entre le dernier arrêt affiché et la
-    // vraie position, on l'anime aussi (même fonction, mêmes cases une par
-    // une), au lieu de le sauter en silence -- toujours une progression
-    // linéaire jusqu'au bout, quelle que soit l'origine du déplacement.
-    if(!_historyAbort && from!==myIdx){
-      label.textContent = 'Autres évènements (cases mystère, tests…)';
-      await _animateGhost(ghost, from, myIdx);
-      from = myIdx;
+    if(stops.length){
+      // Reconstruction non-wrappée (2026-08-12) : position_idx en base est
+      // toujours 0-799 (cf posAt().i), donc chaque saut est ré-exprimé en
+      // "combien de cases en avant depuis la dernière position" (les
+      // atterrissages du Tour sont quasi toujours en avant -- cases "Reculez"
+      // exceptées, non représentées ici) pour permettre à _animateGhost de
+      // franchir correctement un passage par la case 0 (nouveau tour).
+      let virtual = ME.startIdx;
+      for(let i=0; i<stops.length && !_historyAbort; i++){
+        const stop = stops[i];
+        const curWrapped = ((virtual % TOTAL_CELLS) + TOTAL_CELLS) % TOTAL_CELLS;
+        let delta = stop.idx - curWrapped;
+        if(delta < 0) delta += TOTAL_CELLS;
+        const nextVirtual = virtual + delta;
+        const d = stop.date ? new Date(stop.date).toLocaleDateString('fr-FR') : '';
+        label.textContent = 'Arrêt '+(i+1)+'/'+stops.length+(d?' — '+d:'')+' — case n°'+stop.idx;
+        await _animateGhost(ghost, virtual, nextVirtual);
+        virtual = nextVirtual;
+      }
+      // S'il reste un écart (trajet antérieur au journal, cf commentaire plus
+      // haut), on comble en une seule animation jusqu'à la vraie position.
+      if(!_historyAbort && virtual!==myIdx){
+        label.textContent = 'Trajet antérieur au journal détaillé...';
+        await _animateGhost(ghost, virtual, myIdx);
+      }
+    } else {
+      label.textContent = 'Retour sur ton trajet...';
+      if(!_historyAbort) await _animateGhost(ghost, ME.startIdx, myIdx);
     }
     map.removeLayer(ghost);
     playerMarker.setOpacity(1);
