@@ -17438,11 +17438,22 @@ function showTourProgressPrompt(km){
 // project_speedix_session_persistante_stores) qui liraient chacun
 // tour_run_seen_at avant que l'autre ait fini d'écrire sa propre avancée --
 // re-signalé le 2026-08-13 sur Nakamoto-75. 2e correctif (2026-08-13) :
-// tour_claim_pending_km() fait le lire+marquer en UNE SEULE transaction
+// tour_claim_pending_km() faisait le lire+marquer en UNE SEULE transaction
 // verrouillée côté base (SELECT...FOR UPDATE, même patron que
 // cashrun_bump_streak) -- un 2e appel concurrent, peu importe l'onglet ou
-// l'appareil, attend que le 1er ait fini puis retombe forcément sur 0 km à
-// réclamer. Le verrou JS est gardé en plus (évite un aller-retour réseau
+// l'appareil, attendait que le 1er ait fini puis retombait forcément sur 0 km
+// à réclamer. Insuffisant EN VRAI : ce correctif ne protégeait que le
+// COMPTAGE des km, pas l'écriture de la position elle-même, qui restait
+// pilotée par le téléphone (myIdx en mémoire JS, écrit toutes les 4s + à la
+// fermeture + à chaque petite action) -- un onglet resté ouvert avec une
+// position plus ancienne en mémoire pouvait donc encore écraser une position
+// plus récente écrite par un autre appareil. 3e correctif, définitif
+// (2026-08-13) : tour_claim_pending_km() remplacée par
+// tour_advance_position(), qui fait TOUT en une seule transaction verrouillée
+// -- réclame les km ET décide/écrit la nouvelle position. Le téléphone ne
+// calcule et n'écrit plus jamais tour_idx lui-même (cf applyServerMove), donc
+// plus aucun canal ne peut écraser la position avec une valeur locale
+// périmée. Le verrou JS est gardé en plus (évite un aller-retour réseau
 // inutile dans le cas simple, même onglet).
 var _tourConsumeLock = false;
 function consumeTourAdvance(){
@@ -17456,19 +17467,21 @@ function consumeTourAdvance(){
   // (calques de carte dupliqués). On se cale après le dernier onShow().
   nav('lands');
   setTimeout(function(){
-    // runKmWhenReady (pas runKm direct) : si c'est la 1ère visite du RP sur le
+    // applyServerMove (pas runKm direct) : si c'est la 1ère visite du RP sur le
     // Tour, Tour.init() vient d'ouvrir la modale de choix Paris/Marseille — il
     // ne faut PAS déplacer le pion avant que ce choix soit fait, sinon la
     // modale d'arrivée sur une Land écrase la modale de départ en plein milieu
     // (bug signalé 2026-08-07 : "je n'ai pas eu le temps de choisir mon départ").
-    if(window.Tour && typeof Tour.runKmWhenReady==='function' && currentUser){
-      // Réclamation atomique : ne marque "vu" QUE si des km sont réellement
-      // réclamés ici, jamais avant (même garantie que l'ancien correctif
-      // Gaby34 -- si Tour n'était pas prêt, on ne réclame rien, cf branche
-      // else plus bas).
-      supabaseClient.rpc('tour_claim_pending_km', {p_player_id: currentUser.id}).then(function(res){
-        var km = (res && typeof res.data==='number') ? res.data : 0;
-        if(km>0) Tour.runKmWhenReady(km);
+    if(window.Tour && typeof Tour.applyServerMove==='function' && currentUser){
+      // Réclamation + déplacement ATOMIQUES, faits d'un coup côté base par
+      // tour_advance_position (2026-08-13, remplace tour_claim_pending_km +
+      // le calcul client de la case d'arrivée -- cf mémoire double-avancée).
+      // Le téléphone ne calcule et n'écrit plus jamais tour_idx lui-même :
+      // il reçoit from_idx/to_idx déjà décidés par le serveur et se contente
+      // d'animer entre les deux.
+      supabaseClient.rpc('tour_advance_position', {p_player_id: currentUser.id}).then(function(res){
+        var d = res && res.data;
+        if(d && d.ok && d.moved>0) Tour.applyServerMove(d);
         _tourConsumeLock = false;
       }, function(e){ console.warn('[tour-advance] claim failed:', e); _tourConsumeLock=false; });
     } else {
@@ -17488,7 +17501,7 @@ function consumeTourAdvance(){
 // fenêtre auto (12s après connexion, qui ne se redéclenche pas tant que
 // l'appli reste ouverte en arrière-plan sur une session persistante). Déjà
 // SUR la page Tour ici (pas besoin de nav('lands') + délai comme dans
-// consumeTourAdvance) : Tour.runKmWhenReady est appelable tout de suite.
+// consumeTourAdvance) : Tour.applyServerMove est appelable tout de suite.
 // Pastille verte du bouton "Départ de course" (2026-08-09, demande explicite) :
 // même détection que le popup auto (checkPendingTourAdvance), juste affichée en
 // discret sur la tuile au lieu d'attendre l'ouverture d'une fenêtre. Appelée à
@@ -17518,9 +17531,9 @@ async function manualSyncTourAdvance(){
     return;
   }
   // Pré-check juste pour l'UX (dire "déjà à jour" tout de suite sans passer
-  // par la base) -- la réclamation réelle, verrouillée, se fait plus bas via
-  // tour_claim_pending_km (cf commentaire détaillé dans consumeTourAdvance,
-  // 2026-08-13).
+  // par la base) -- la réclamation + le déplacement réels, atomiques, se font
+  // plus bas via tour_advance_position (cf commentaire détaillé dans
+  // consumeTourAdvance, 2026-08-13).
   var kmHint = await checkPendingTourAdvance();
   if(!kmHint || kmHint<=0){
     _setTourSyncDot(false);
@@ -17531,12 +17544,12 @@ async function manualSyncTourAdvance(){
     if(typeof showToast==='function') showToast('⏳ Synchronisation déjà en cours...');
     return;
   }
-  if(window.Tour && typeof Tour.runKmWhenReady==='function'){
+  if(window.Tour && typeof Tour.applyServerMove==='function'){
     _tourConsumeLock = true;
     _pendingTourKm = 0;
-    var _res = await supabaseClient.rpc('tour_claim_pending_km', {p_player_id: currentUser.id}).catch(function(e){ console.warn('[tour-advance] claim failed:', e); return null; });
-    var km = (_res && typeof _res.data==='number') ? _res.data : 0;
-    if(km>0) Tour.runKmWhenReady(km);
+    var _res = await supabaseClient.rpc('tour_advance_position', {p_player_id: currentUser.id}).catch(function(e){ console.warn('[tour-advance] claim failed:', e); return null; });
+    var d = _res && _res.data;
+    if(d && d.ok && d.moved>0) Tour.applyServerMove(d);
     else if(typeof showToast==='function') showToast('✅ Tu es déjà à jour, rien à synchroniser.');
     _setTourSyncDot(false);
     _tourConsumeLock = false;
@@ -26475,12 +26488,17 @@ window.Tour.init = async function(){
       if(res && res.error) console.warn('[Tour] saveTourState PATCH failed', res.error);
     });
   }
-  // Filet de sécurité : sauvegarde périodique + juste avant de quitter/masquer la
-  // page — couvre les mutations de LANDS (achats, étoiles…) qui ne passent pas
-  // toutes par updatePlayerStatusPanel() (cf appel explicite ajouté là-bas aussi).
-  setInterval(saveTourState, 4000);
-  window.addEventListener('beforeunload', saveTourState);
-  document.addEventListener('visibilitychange', function(){ if(document.visibilityState==='hidden') saveTourState(); });
+  // ⚠️ SUPPRIMÉ (2026-08-13, cause racine du bug double-avancée/retard cross-
+  // appareil) : ce "filet de sécurité" réécrivait tour_idx/tour_laps toutes
+  // les 4s, à la fermeture ET à la mise en arrière-plan de l'onglet, depuis
+  // myIdx en mémoire JS. Si un 2e appareil/onglet restait ouvert avec une
+  // position PLUS ANCIENNE en mémoire (chargée avant qu'un autre appareil ait
+  // fait avancer le pion), un de ces 3 déclencheurs écrasait la vraie
+  // position en base avec cette ancienne valeur, sans le savoir. tour_idx
+  // n'est plus écrit QUE par tour_advance_position (en base, atomique) et par
+  // saveTourState() appelé explicitement juste après un déplacement RÉEL
+  // (forceMove) ou juste après le choix de la ville de départ (chooseStartCity)
+  // — jamais plus par un minuteur ou un event générique.
   // Classement réel : 1er chargement + rafraîchi toutes les 20s (pas besoin de
   // temps réel seconde par seconde pour un classement de progression sur des km).
   setInterval(_refreshTourOthersDist, 20000);
@@ -27896,18 +27914,15 @@ window.Tour.init = async function(){
             window._pendingLapCelebration = {laps: lapsGained};
           }
         }
-        // Sauvegarde IMMÉDIATE de la nouvelle position (2026-08-09, bug corrigé
-        // — signalé par l'user, Natchaan restée bloquée à sa case malgré une
-        // course créditée) : avant, seul le setInterval 4s (ou beforeunload/
-        // visibilitychange) écrivait tour_idx en base. myIdx est déjà mis à
-        // jour en mémoire dès le début de forceMove (ligne ~26905), donc si le
-        // RP ferme/quitte l'appli dans les toutes premières secondes après son
-        // arrivée -- avant le prochain tick ou sans que l'event de fermeture se
-        // déclenche fiablement (fréquent sur PWA mobile mise en arrière-plan) --
-        // le déplacement restait uniquement en mémoire et se perdait, alors que
-        // tour_run_seen_at avait déjà marqué la course comme consommée (donc
-        // plus jamais reproposée). On sauvegarde maintenant dès la fin réelle
-        // du déplacement, sans attendre le filet de sécurité périodique.
+        // Sauvegarde IMMÉDIATE de la nouvelle position, dès la fin réelle du
+        // déplacement (2026-08-09, bug corrigé — Natchaan restée bloquée à sa
+        // case malgré une course créditée si l'appli fermait juste après).
+        // C'EST DÉSORMAIS LE SEUL ENDROIT (avec chooseStartCity) qui écrit
+        // tour_idx/tour_laps depuis le client (2026-08-13, cf mémoire
+        // double-avancée) : myIdx vient d'être resynchronisé sur la valeur
+        // renvoyée par tour_advance_position juste avant l'appel à forceMove
+        // (cf applyServerMove), donc plus aucun risque de sauver une position
+        // locale qui aurait dérivé.
         saveTourState();
         onArrive(toIdx);
       }
@@ -28125,7 +28140,11 @@ window.Tour.init = async function(){
       forsaleBtn.classList.toggle('glass-blue', hasNewForSale);
       forsaleBtn.classList.toggle('white', !hasNewForSale);
     }
-    saveTourState();
+    // ⚠️ saveTourState() RETIRÉ d'ici (2026-08-13) : cette fonction est
+    // appelée après CHAQUE petite action (achat, étoile, vente...), donc
+    // réécrivait tour_idx/tour_laps en boucle depuis myIdx en mémoire — le
+    // 2e canal qui causait le bug double-avancée cross-appareil, cf le
+    // commentaire détaillé là où setInterval(saveTourState...) a été retiré.
   }
   // Déclenche la révélation différée si armée — appelée à chaque fermeture de
   // #tour-rent-modal, cf closeRentModal().
@@ -29702,25 +29721,40 @@ window.Tour.init = async function(){
     closeRentModal();
     resetDemo();
     updatePlayerStatusPanel();
-    // Rattrapage km en attente (cf runKmWhenReady) : posé si le RP avait déjà
-    // des km à faire avancer AVANT d'avoir choisi son départ — on ne les
-    // applique que maintenant, une fois la ville connue.
-    if(_queuedKmAfterStart>0){
-      var _qk=_queuedKmAfterStart;
-      _queuedKmAfterStart=0;
-      setTimeout(function(){ runKm(_qk); }, 500);
-    }
+    // Persiste le choix de départ (position 0, tours 0, ville) — seule
+    // écriture EXPLICITE de tour_idx/tour_laps qui reste côté client, posée
+    // ici une seule fois, en réaction directe et synchrone au clic du RP (donc
+    // jamais sujette à la course entre appareils/onglets qui touchait les
+    // anciens déclencheurs automatiques, cf mémoire double-avancée).
+    saveTourState();
+    // Rattrapage km en attente : posé si le RP avait déjà des km à faire
+    // avancer AVANT d'avoir choisi son départ (2026-08-07, bug corrigé — un
+    // nouveau RP avec des km déjà crédités se voyait déplacé avant d'avoir pu
+    // choisir Paris/Marseille, la modale d'arrivée écrasant celle du choix).
+    // tour_advance_position n'a jamais rien réclamé tant que tour_idx était
+    // NULL (cf la fonction en base), donc rien n'est perdu : on demande
+    // simplement au serveur de rattraper maintenant, une fois la ville connue
+    // — remplace l'ancienne file d'attente purement en mémoire JS
+    // (_queuedKmAfterStart), qui pouvait se perdre si l'onglet fermait entre
+    // temps.
+    setTimeout(function(){
+      if(!currentUser) return;
+      supabaseClient.rpc('tour_advance_position', {p_player_id: currentUser.id}).then(function(res){
+        var d = res && res.data;
+        if(d && d.ok && d.moved>0) applyServerMove(d);
+      }, function(e){ console.warn('[tour-advance] claim failed:', e); });
+    }, 500);
   }
-  // Km en attente d'un choix de départ (2026-08-07, bug corrigé — un nouveau RP
-  // avec des km déjà crédités se voyait déplacé par runKm() AVANT d'avoir choisi
-  // Paris/Marseille : la modale de choix de départ était alors immédiatement
-  // écrasée par la modale d'arrivée sur une Land, sans que le RP ait eu le temps
-  // de lire/choisir. runKmWhenReady() remplace tout appel externe à runKm() qui
-  // peut survenir avant que le départ soit choisi (ex. consumeTourAdvance()).
-  let _queuedKmAfterStart=0;
-  function runKmWhenReady(km){
-    if(ME.startCity){ runKm(km); return; }
-    _queuedKmAfterStart += km;
+  // Déplacement du pion piloté par le SERVEUR (2026-08-13, remplace
+  // runKmWhenReady) : tour_advance_position est la SOURCE UNIQUE qui décide
+  // combien de cases on avance et où on atterrit — le téléphone ne calcule
+  // plus jamais lui-même la case d'arrivée. On resynchronise myIdx sur la
+  // position renvoyée par le serveur AVANT d'animer, pour ne jamais partir
+  // d'une valeur locale qui aurait dérivé (double-avancée cross-appareil).
+  function applyServerMove(d){
+    if(!ME.startCity) return; // ne devrait pas arriver : le serveur refuse (not_started) tant que la ville de départ n'est pas choisie
+    myIdx = d.from_idx;
+    forceMove(d.to_idx - d.from_idx);
   }
 
   // ── Replay "Historique" du trajet (2026-08-09, demande explicite) ──────────
@@ -29950,7 +29984,9 @@ window.Tour.init = async function(){
     showCelebrationModal(titleHtml, bodyHtml, hasPreempt ? 'neutral' : undefined);
     ME.pendingRentEvents = [];
     updateTourNotifBadge();
-    saveTourState();
+    // saveTourState() RETIRÉ d'ici (2026-08-13, même raison que dans
+    // updatePlayerStatusPanel()) : fermer cette fenêtre ne fait bouger ni la
+    // position ni les tours, aucune raison de réécrire tour_idx/tour_laps.
   }
   // ── Taxe foncière v2 (2026-08-06, demande explicite — remplace la v1 "flat
   // 10 NYX + 40 pts") : 5 NYX/Land, prélevée le 15 du mois APRÈS 10 jours sans
@@ -30104,7 +30140,7 @@ window.Tour.init = async function(){
   // copie, donc les mutations restent visibles au travers de Tour.LANDS/Tour.ME.
   Object.assign(window.Tour, {
     LANDS, ME,
-    runKm, runKmWhenReady, runKmFromInput, resetDemo, simulateFreeLanding, simulateEtapeLanding,
+    runKm, applyServerMove, runKmFromInput, resetDemo, simulateFreeLanding, simulateEtapeLanding,
     buyAcquisitionRightDemo, openMyLandsPage, closeMyLandsPage,
     confirmRent, closeRentModal, goToRpcMarket,
     preemptLand, preemptGoPremium, preemptBuyAcquisitionRight, preemptGoToNyxMarket,
