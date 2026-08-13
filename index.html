@@ -17430,23 +17430,25 @@ function showTourProgressPrompt(km){
     + '</div>';
   openModal('land-modal');
 }
-// Verrou anti-double-avancée (2026-08-11, bug corrigé -- signalé par l'user,
-// "deux cases distinctes alors que je n'ai fait qu'une course") : la popup
-// automatique (consumeTourAdvance) ET le bouton "Vérifier mes courses"
-// (manualSyncTourAdvance) lisent tous les deux tour_run_seen_at puis
-// n'écrivent la nouvelle valeur qu'APRÈS le déplacement (~1500ms plus tard,
-// délai nécessaire pour ne jamais perdre une course si le Tour n'est pas
-// encore prêt, cf plus bas) -- si le RP déclenche les deux dans cette
-// fenêtre (popup cliquée PUIS bouton "Vérifier" avant l'écriture), les deux
-// lisaient le même tour_run_seen_at périmé et rejouaient CHACUN la même
-// avancée en km, faisant sauter le pion deux fois plus loin que prévu. Un
-// simple verrou en mémoire suffit : un seul déclenchement à la fois, l'autre
-// se contente d'un no-op / toast au lieu de rejouer l'avancée.
+// Verrou anti-double-avancée (2026-08-11, 1er correctif -- signalé par l'user,
+// "deux cases distinctes alors que je n'ai fait qu'une course") : empêchait
+// bien 2 déclencheurs rapprochés SUR LE MÊME onglet de rejouer la même
+// avancée. Insuffisant : ce verrou vit en mémoire JS, donc rien ne protège
+// 2 onglets/appareils différents (session persistante, cf
+// project_speedix_session_persistante_stores) qui liraient chacun
+// tour_run_seen_at avant que l'autre ait fini d'écrire sa propre avancée --
+// re-signalé le 2026-08-13 sur Nakamoto-75. 2e correctif (2026-08-13) :
+// tour_claim_pending_km() fait le lire+marquer en UNE SEULE transaction
+// verrouillée côté base (SELECT...FOR UPDATE, même patron que
+// cashrun_bump_streak) -- un 2e appel concurrent, peu importe l'onglet ou
+// l'appareil, attend que le 1er ait fini puis retombe forcément sur 0 km à
+// réclamer. Le verrou JS est gardé en plus (évite un aller-retour réseau
+// inutile dans le cas simple, même onglet).
 var _tourConsumeLock = false;
 function consumeTourAdvance(){
   if(_tourConsumeLock) return;
-  var km = _pendingTourKm;
-  if(!km || km<=0) return;
+  var kmHint = _pendingTourKm; // juste pour savoir s'il y a quelque chose à tenter
+  if(!kmHint || kmHint<=0) return;
   _tourConsumeLock = true;
   _pendingTourKm = 0;
   // nav('lands') déclenche déjà Tour.init() tout seul (cf nav(), ~50ms puis
@@ -17459,24 +17461,20 @@ function consumeTourAdvance(){
     // ne faut PAS déplacer le pion avant que ce choix soit fait, sinon la
     // modale d'arrivée sur une Land écrase la modale de départ en plein milieu
     // (bug signalé 2026-08-07 : "je n'ai pas eu le temps de choisir mon départ").
-    if(window.Tour && typeof Tour.runKmWhenReady==='function'){
-      Tour.runKmWhenReady(km);
-      // Marqué "vu" ICI SEULEMENT, une fois l'avancée réellement déclenchée
-      // (2026-08-09, 2e bug corrigé sur le même mécanisme -- signalé sur
-      // Gaby34, course perdue MALGRÉ le 1er correctif du jour, cf saveTourState
-      // immédiat dans forceMove). Avant, ce marqueur s'écrivait tout en haut de
-      // la fonction, AVANT même d'être sûr que Tour serait prêt (nav('lands')
-      // + Tour.init() encore en cours) -- si quoi que ce soit échouait entre
-      // les deux (Tour pas chargé à temps, erreur JS...), la course était
-      // marquée consommée sans jamais avoir fait avancer le pion, perdue pour
-      // toujours (plus jamais réoffert par checkPendingTourAdvance).
-      if(currentUser){
-        supabaseClient.from('players').update({tour_run_seen_at:new Date().toISOString()}).eq('id',currentUser.id)
-          .then(function(){ _tourConsumeLock=false; }, function(e){ console.warn('[tour-advance] consume write failed:', e); _tourConsumeLock=false; });
-      } else { _tourConsumeLock=false; }
+    if(window.Tour && typeof Tour.runKmWhenReady==='function' && currentUser){
+      // Réclamation atomique : ne marque "vu" QUE si des km sont réellement
+      // réclamés ici, jamais avant (même garantie que l'ancien correctif
+      // Gaby34 -- si Tour n'était pas prêt, on ne réclame rien, cf branche
+      // else plus bas).
+      supabaseClient.rpc('tour_claim_pending_km', {p_player_id: currentUser.id}).then(function(res){
+        var km = (res && typeof res.data==='number') ? res.data : 0;
+        if(km>0) Tour.runKmWhenReady(km);
+        _tourConsumeLock = false;
+      }, function(e){ console.warn('[tour-advance] claim failed:', e); _tourConsumeLock=false; });
     } else {
-      // Tour pas prêt : on remet le km en attente pour ne pas le perdre.
-      _pendingTourKm = km;
+      // Tour pas prêt (ou pas de currentUser) : on remet le km en attente pour
+      // ne pas le perdre -- rien n'a été réclamé en base.
+      _pendingTourKm = kmHint;
       _tourConsumeLock = false;
       console.warn('[tour-advance] Tour pas prêt, avancée reportée');
     }
@@ -17519,8 +17517,12 @@ async function manualSyncTourAdvance(){
     if(typeof showToast==='function') showToast('⏳ Synchronisation déjà en cours...');
     return;
   }
-  var km = await checkPendingTourAdvance();
-  if(!km || km<=0){
+  // Pré-check juste pour l'UX (dire "déjà à jour" tout de suite sans passer
+  // par la base) -- la réclamation réelle, verrouillée, se fait plus bas via
+  // tour_claim_pending_km (cf commentaire détaillé dans consumeTourAdvance,
+  // 2026-08-13).
+  var kmHint = await checkPendingTourAdvance();
+  if(!kmHint || kmHint<=0){
     _setTourSyncDot(false);
     if(typeof showToast==='function') showToast('✅ Tu es déjà à jour, rien à synchroniser.');
     return;
@@ -17532,12 +17534,12 @@ async function manualSyncTourAdvance(){
   if(window.Tour && typeof Tour.runKmWhenReady==='function'){
     _tourConsumeLock = true;
     _pendingTourKm = 0;
-    Tour.runKmWhenReady(km);
+    var _res = await supabaseClient.rpc('tour_claim_pending_km', {p_player_id: currentUser.id}).catch(function(e){ console.warn('[tour-advance] claim failed:', e); return null; });
+    var km = (_res && typeof _res.data==='number') ? _res.data : 0;
+    if(km>0) Tour.runKmWhenReady(km);
+    else if(typeof showToast==='function') showToast('✅ Tu es déjà à jour, rien à synchroniser.');
     _setTourSyncDot(false);
-    // Même règle que consumeTourAdvance (2026-08-09) : marqué "vu" seulement
-    // une fois l'avancée réellement déclenchée, jamais avant.
-    supabaseClient.from('players').update({tour_run_seen_at:new Date().toISOString()}).eq('id',currentUser.id)
-      .then(function(){ _tourConsumeLock=false; }, function(e){ console.warn('[tour-advance] manual sync write failed:', e); _tourConsumeLock=false; });
+    _tourConsumeLock = false;
   } else if(typeof showToast==='function') {
     showToast('⚠️ Le Tour n\'est pas encore prêt, réessaie dans un instant.');
   }
@@ -17626,7 +17628,12 @@ async function showWalletBreakdown(){
       else if(/^Parrainage/i.test(r)) referralRpc+=d;
       else if(/^Passage grade/i.test(r)) gradeRpc+=d;
       else if(/^Prize pool/i.test(r)) prizeRpc+=d;
-      else if(/^Bonus mensuel Premium/i.test(r)) premiumRpc+=d;
+      // Bonus Premium mensuel : PAS ENCORE distribué (rotation §12 ne crédite que
+      // boost/gel, "Pas de RPC/NYX tant que la compétition n'est pas lancée").
+      // Ligne volontairement à 0 pour tout le monde (2026-08-13, demande user :
+      // "personne ne les a reçu") — à réactiver (remettre premiumRpc+=d) le jour
+      // où le Premium payant crédite vraiment du RPC mensuel.
+      else if(/^Bonus mensuel Premium/i.test(r)) autreRpc+=d;
       else if(/^(Quizz quotidien|Daily quiz)/i.test(r)) cashrunRpc+=d;
       else if(/^Achat RPC/i.test(r) || /^IAP/i.test(r) || /^Pack RPC/i.test(r)) achatRpc+=d;
       // "Remboursement ..." (2026-08-02, demande explicite) : ça ne mérite pas sa
@@ -17710,7 +17717,9 @@ async function showNyxBreakdown(){
       else if(/^Cash Run/i.test(r) || /^(Quizz quotidien|Daily quiz)/i.test(r)) cashrunNyx+=d;
       else if(/^Passage grade/i.test(r)) gradeNyx+=d;
       else if(/^Prize pool/i.test(r)) prizeNyx+=d;
-      else if(/^Bonus mensuel Premium/i.test(r)) premiumNyx+=d;
+      // Bonus Premium mensuel : voir commentaire identique dans showWalletBreakdown
+      // (RPC) — pas encore distribué, ligne volontairement à 0 (2026-08-13).
+      else if(/^Bonus mensuel Premium/i.test(r)) autreNyx+=d;
       else if(/^Achat NYX/i.test(r) || /^IAP NYX/i.test(r) || /^Pack NYX/i.test(r)) achatNyx+=d;
       // "Remboursement ..." (2026-08-02) : pas de ligne dédiée, rangé avec le reste.
       else autreNyx+=d;
