@@ -14268,12 +14268,11 @@ function removeRunDesc(runId){
 // suit featured_at décroissant → la dernière course mise à la une passe tout en haut.
 function togglePinRun(runId,pin){
   if(!currentUser||!isAdmin()) return;
-  window.fetch(supabaseUrl+'/rest/v1/runs?id=eq.'+encodeURIComponent(runId),{
-    method:'PATCH',
-    headers:{'apikey':supabaseKey,'Authorization':'Bearer '+(window.__sessionToken||supabaseKey),'Content-Type':'application/json'},
-    body:JSON.stringify({featured_at: pin ? new Date().toISOString() : null})
-  }).then(function(resp){
-    if(resp.ok){
+  // admin_set_run_featured (2026-08-14) remplace le PATCH direct — même effet,
+  // mais revérifie ADMIN_UID côté serveur (nécessaire pour fermer runs à toute
+  // écriture directe côté joueur).
+  supabaseClient.rpc('admin_set_run_featured',{p_run_id:runId,p_pin:pin}).then(function(res){
+    if(res && res.data && res.data.ok){
       showToast(pin?'📌 Course mise à la une':'Course retirée de la une');
       renderSocialFeed();
     } else {
@@ -15507,11 +15506,9 @@ async function adminLoadFlagged(){
 }
 
 async function adminUnflagRun(runId){
-  await window.fetch(supabaseUrl+'/rest/v1/runs?id=eq.'+encodeURIComponent(runId),{
-    method:'PATCH',
-    headers:{'apikey':supabaseKey,'Authorization':'Bearer '+(window.__sessionToken||supabaseKey),'Content-Type':'application/json'},
-    body:JSON.stringify({flagged:false})
-  });
+  // admin_unflag_run (2026-08-14) remplace le PATCH direct — revérifie ADMIN_UID
+  // côté serveur (nécessaire pour fermer runs à toute écriture directe côté joueur).
+  await supabaseClient.rpc('admin_unflag_run',{p_run_id:runId});
   showToast('✓ Course validée');
   adminLoadFlagged();
 }
@@ -15520,11 +15517,7 @@ async function adminUnflagRun(runId){
 // adminUnflagRun, juste appliquée à tout `flagged=eq.true` au lieu d'un seul id.
 async function adminUnflagAllRuns(){
   if(!isAdmin()) return;
-  await window.fetch(supabaseUrl+'/rest/v1/runs?flagged=eq.true',{
-    method:'PATCH',
-    headers:{'apikey':supabaseKey,'Authorization':'Bearer '+(window.__sessionToken||supabaseKey),'Content-Type':'application/json'},
-    body:JSON.stringify({flagged:false})
-  });
+  await supabaseClient.rpc('admin_unflag_run',{p_run_id:null});
   showToast('✓ Toutes les courses flaggées ont été validées');
   adminLoadFlagged();
 }
@@ -15701,21 +15694,17 @@ async function adminAddRun(){
   var msg=document.getElementById('admin-run-msg');
   if(!playerId){msg.style.color='var(--red)';msg.textContent='Choisis un joueur';return;}
   if(km<=0){msg.style.color='var(--red)';msg.textContent='Distance invalide';return;}
-  // Vérifier si le joueur a un boost / gel actif AU MOMENT DE LA COURSE (now
-  // pour les courses admin, qui sont créées en temps réel sans date passée).
-  var {data:pBoost}=await supabaseClient.from('players').select('boost_active_until,boost_activated_at,gel_active_until,gel_activated_at').eq('id',playerId).single();
-  var nowIso=new Date().toISOString();
-  var hasBoost=pBoost?wasBoostActiveAt(nowIso,pBoost.boost_activated_at,pBoost.boost_active_until):false;
-  var hasGel=pBoost?wasGelActiveAt(nowIso,pBoost.gel_activated_at,pBoost.gel_active_until):false;
-  var pts=Math.round(computePts(km,spd,elv,hasBoost,hasGel));
-  var timeMin=spd>0?Math.round(km/spd*60):0;
-  // Insérer dans runs
-  var {error}=await supabaseClient.from('runs').insert({
-    player_id:playerId, points:pts, distance:km, time:timeMin, elevation:Math.round(elv), period:0
+  // admin_add_run (2026-08-14) remplace l'INSERT direct + walletCreditOther :
+  // même effet (points recalculés depuis Boost/Gel réels, crédit ×6/pt), mais
+  // exécuté en base — nécessaire pour pouvoir fermer runs à toute écriture
+  // directe côté joueur (cf submit_strava_run, faille corrigée le même soir).
+  var {data:_addRes,error:_addErr}=await supabaseClient.rpc('admin_add_run',{
+    p_player_id:playerId, p_km:km, p_spd:spd, p_elv:elv
   });
-  if(error){msg.style.color='var(--red)';msg.textContent='Erreur : '+error.message;return;}
-  // Créditer les RPC de course (6 RPC par point gagné)
-  await walletCreditOther(playerId, pts * 6, 0, 'Course admin · ' + pts + ' pts');
+  if(_addErr || !_addRes || !_addRes.ok){
+    msg.style.color='var(--red)';msg.textContent='Erreur : '+(_addErr?_addErr.message:(_addRes&&_addRes.error)||'inconnue');return;
+  }
+  var pts=_addRes.points;
   // Trouver le nom du joueur
   var sel=document.getElementById('admin-player');
   var playerName=sel.options[sel.selectedIndex].text;
@@ -17972,16 +17961,18 @@ async function buyLicence(qty,price){
   var w=window.__wallet||{nyx:0};
   if(w.nyx<price){showToast('⚠️ Solde insuffisant ('+price+' NYX requis)');return;}
   if(!await askConfirm(t('shop.price')+' <strong style="color:var(--gold)">'+price+' NYX</strong>',{title:t('shop.buy.places.title').replace('{n}',qty).replace(/\{s\}/g,qty>1?'s':''),emoji:'➕',success:true,okLabel:t('shop.buy.btn').replace(' ({n} NYX)','')})) return;
-  var {data:team}=await supabaseClient.from('teams').select('extra_slots').eq('id',teamId).single();
-  if(!team){showToast('⚠️ Team introuvable');return;}
-  var current=team.extra_slots||0;
-  var newSlots=Math.min(current+qty,TEAM_MAX_SLOTS-TEAM_BASE_SLOTS);
-  if(newSlots<=current){showToast('⚠️ Capacité max déjà atteinte ('+TEAM_MAX_SLOTS+' RP)');return;}
-  var realQty=newSlots-current;
-  var ok=await walletDebitNyx(price,'Licence +'+realQty+' RP');
-  if(!ok) return;
-  await supabaseClient.from('teams').update({extra_slots:newSlots}).eq('id',teamId);
-  showToast('🪪 +'+realQty+' place'+(realQty>1?'s':'')+' ! Capacité : '+(TEAM_BASE_SLOTS+newSlots)+'/'+TEAM_MAX_SLOTS+' RP');
+  // team_buy_licence (2026-08-14, faille corrigée) : avant, le débit NYX était
+  // bien atomique (debit_player_nyx) mais l'écriture de extra_slots qui suivait
+  // était un PATCH direct sans aucune vérification — un capitaine pouvait
+  // sauter le paiement et fixer la capacité de son choix. Prix/qté + paiement
+  // + écriture sont désormais dans la même fonction serveur.
+  var {data:_buyRes,error:_buyErr}=await supabaseClient.rpc('team_buy_licence',{p_team_id:teamId,p_qty:qty,p_cost_nyx:price});
+  if(_buyErr || !_buyRes || !_buyRes.ok){
+    showToast('⚠️ '+(_buyRes&&_buyRes.error==='insufficient_nyx'?'Solde insuffisant':_buyRes&&_buyRes.error==='max_capacity'?'Capacité max déjà atteinte ('+TEAM_MAX_SLOTS+' RP)':'Achat impossible'));
+    return;
+  }
+  await walletLoad();
+  showToast('🪪 +'+_buyRes.real_qty+' place'+(_buyRes.real_qty>1?'s':'')+' ! Capacité : '+(TEAM_BASE_SLOTS+_buyRes.new_slots)+'/'+TEAM_MAX_SLOTS+' RP');
   renderTeams();
 }
 
@@ -19341,25 +19332,32 @@ async function syncStravaActivities(silent){
       // Calculer les points : boost/gel basés sur la DATE DE DÉPART de la
       // course (et non NOW()) pour gérer correctement les imports décalés.
       var _b=window.__boost||{};
-      var _g=window.__gel||{};
-      var hasBoost=wasBoostActiveAt(runDateFull, _b.activatedAt, _b.activeUntil);
-      var hasGel=(typeof wasGelActiveAt==='function')?wasGelActiveAt(runDateFull, _g.activatedAt, _g.activeUntil):false;
-      var pts=Math.round(computePts(km,spd,elv,hasBoost,hasGel));
-      // Insérer la course
-      var _insertResp=await window.fetch(supabaseUrl+'/rest/v1/runs',{
-        method:'POST',
-        headers:{'apikey':supabaseKey,'Authorization':'Bearer '+(window.__sessionToken||supabaseKey),'Content-Type':'application/json','Prefer':'return=minimal'},
-        body:JSON.stringify({player_id:currentUser.id,points:pts,distance:Math.round(km*100)/100,time:Math.round(timeMin*10)/10,elevation:Math.round(elv),run_date:runDateFull,period:0,name:a.name||null,avg_hr:a.average_heartrate?Math.round(a.average_heartrate):null,max_hr:a.max_heartrate?Math.round(a.max_heartrate):null,calories:a.kilojoules?Math.round(a.kilojoules*0.239):a.calories||null,avg_cadence:a.average_cadence||null,flagged:_accelFlag,strava_activity_id:a.id||null,polyline:polyline||null,is_private:isPrivate})
+      // submit_strava_run (2026-08-14, faille corrigée) : avant, le client
+      // calculait les points ET les envoyait tels quels dans un POST direct
+      // sur runs — n'importe qui pouvait poster un montant de points inventé,
+      // ou un Boost/Gel fictif, sans jamais toucher Strava. Désormais, les
+      // points sont RECALCULÉS côté serveur (même formule, compute_run_points)
+      // depuis la distance/durée/dénivelé envoyés, et le Boost/Gel actif est
+      // relu depuis players.boost_*/gel_* en base, jamais transmis par le
+      // client. Le crédit RPC (×6/pt) est fait dans la même fonction, atomique
+      // avec l'insertion.
+      var {data:_subRes,error:_subErr}=await supabaseClient.rpc('submit_strava_run',{
+        p_distance_km:km, p_time_min:timeMin, p_elevation:elv, p_run_date:runDateFull,
+        p_name:a.name||null,
+        p_avg_hr:a.average_heartrate?Math.round(a.average_heartrate):null,
+        p_max_hr:a.max_heartrate?Math.round(a.max_heartrate):null,
+        p_calories:a.kilojoules?Math.round(a.kilojoules*0.239):a.calories||null,
+        p_avg_cadence:a.average_cadence||null,
+        p_flagged:_accelFlag, p_strava_activity_id:a.id||null,
+        p_polyline:polyline||null, p_is_private:isPrivate
       });
-      if(!_insertResp.ok){
-        // Insert rejeté (probable contrainte d'unicité runs_player_strava_unique après
-        // race condition avec le webhook strava-webhook). On saute le crédit RPC et le
-        // calcul des hexes pour éviter un double crédit fantôme.
+      if(_subErr || !_subRes || !_subRes.ok){
+        // Rejeté (doublon runs_player_strava_unique après race condition avec le
+        // webhook strava-webhook, ou données invalides). On saute au suivant.
         resultsHtml+='<div style="padding:.35rem .3rem;font-size:.72rem;color:var(--muted2);border-bottom:1px solid rgba(30,37,53,.6)">⏭️ '+a.name+' — déjà importée (race condition webhook)</div>';
         continue;
       }
-      // Créditer les RPC de course (6 RPC par point gagné)
-      await walletCredit(pts * 6, 0, 'Course ' + (a.name || 'Strava') + ' · ' + pts + ' pts');
+      var pts=_subRes.points;
       newActivities.push({name:a.name,pts:pts,km:km});
       resultsHtml+='<div style="display:flex;justify-content:space-between;padding:.35rem .3rem;border-bottom:1px solid rgba(30,37,53,.6);font-size:.72rem;border-radius:4px">'
         +'<span style="color:var(--text)">'+escapeHtml(a.name)+' <span style="color:var(--muted2)">'+Math.round(km*10)/10+'km</span></span>'
