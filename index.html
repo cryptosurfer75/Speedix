@@ -17641,8 +17641,18 @@ async function showWalletBreakdown(){
     (txs||[]).forEach(function(tx){
       var r=tx.reason||'';
       var d=tx.rpc_delta||0;
-      // On ignore Course et Land (déjà comptés via runs et land_passages)
-      if(/^Course/i.test(r) || /Land/i.test(r)) return;
+      // On ignore Course (déjà compté via runs).
+      if(/^Course/i.test(r)) return;
+      // Lands V1 (ancienne carte hex GPS, "Land — revenu de passage" / "Passage
+      // Land 8a...") : déjà comptées via landsRpc plus haut (table land_passages).
+      if(/^Land\b/i.test(r) || /Land 8a/i.test(r)) return;
+      // Lands V2 (SPEEDIX Tour, cf tour_pay_toll) : redevance perçue par le
+      // propriétaire quand un RP atterrit sur sa Land — même ligne "🗺️ Lands"
+      // que le V1, additionnée ici car ces tx ne sont PAS dans land_passages
+      // (bug corrigé 2026-08-14, signalé par l'user — "Nat ne voit pas le crédit
+      // de ses passages" : l'ancien filtre générique /Land/i avalait ces tx sans
+      // jamais les compter nulle part, donc 0 affiché malgré un vrai crédit).
+      if(/^Redevance per[cç]ue/i.test(r)){ landsRpc+=d; return; }
       // Cash Run : déjà compté via cashrun_total_rpc ci-dessus, on saute la tx
       // pour éviter le double-compte.
       if(/Cash Run/i.test(r)) return;
@@ -17738,7 +17748,10 @@ async function showNyxBreakdown(){
       // "Badges (N gagnés)" déjà compté via badgesNyx (player_badges) — doublon si on l'ajoute ici.
       if(/^Badges \(/i.test(r)) return;
       if(/^Streak/i.test(r) || /^Cha[iî]ne/i.test(r)) streakNyx+=d;
-      else if(/^Vente Land/i.test(r)) ventesNyx+=d;
+      // Vente V1 ("Vente Land 8a...") + vente V2 marketplace Tour ("Tour: vente
+      // Land #X (marketplace)") — même ligne "🏷️ Ventes" (2026-08-14, corrigé
+      // en même temps que le bug landsRpc ci-dessus dans showWalletBreakdown).
+      else if(/^Vente Land/i.test(r) || /^Tour: vente Land/i.test(r)) ventesNyx+=d;
       else if(/^Parrainage/i.test(r)) parrainageNyx+=d;
       // "Défi voisin ..." (resolve-collab-challenges) et "Défi collaboratif réussi
       // (CCxx)" (strava-webhook) = 2 écritures pour la même mécanique, regroupées.
