@@ -26818,12 +26818,15 @@ window.Tour.init = async function(){
       const card = drawBonusCard(); l.bonusText = card.text; l.bonusAmount = card.amount;
       updatePlayerStatusPanel();
       // Crédit RÉEL (2026-08-06, bug corrigé — même défaut que le tour complet :
-      // ME.rpc était juste modifié en local, jamais écrit en base). Clampé à 0
-      // côté serveur (tour_apply_rpc_delta), comme l'était déjà l'affichage local.
+      // ME.rpc était juste modifié en local, jamais écrit en base). Le montant
+      // ENVOYÉ n'est qu'un aperçu : tour_claim_bonus_card le CLAMPE lui-même à
+      // la vraie plage du deck (-600 à +1000) côté serveur (2026-08-14, faille
+      // corrigée — tour_apply_rpc_delta appliquait n'importe quel montant reçu
+      // sans aucune vérification, exploitable depuis la console).
       if(currentUser && currentUser.id){
-        _tourCall('tour_apply_rpc_delta', {p_delta: card.amount, p_reason: 'Tour: carte bonus'}).then(function(res){
+        _tourCall('tour_claim_bonus_card', {p_idx: idx, p_amount: card.amount}).then(function(res){
           if(res && res.ok) _tourSyncWallet();
-          else if(res) console.warn('[Tour] tour_apply_rpc_delta (bonus):', res.error);
+          else if(res) console.warn('[Tour] tour_claim_bonus_card:', res.error);
         });
       }
     }
@@ -26878,27 +26881,26 @@ window.Tour.init = async function(){
     if(l.status==='event' && l.eventCard){
       const ev = l.eventCard;
       // Crédit/débit RÉEL (2026-08-06, bug corrigé — même défaut que la carte
-      // bonus/le tour complet). Clampé à 0 côté serveur (tour_apply_rpc_delta).
+      // bonus/le tour complet). Le nombre de RP / de Lands est RECALCULÉ côté
+      // serveur (2026-08-14, faille corrigée — tour_apply_rpc_delta appliquait
+      // n'importe quel montant reçu du client sans vérification, exploitable
+      // depuis la console) : tour_claim_birthday_event/tour_claim_storm_event
+      // ne reçoivent plus aucun montant, juste l'id du joueur.
       if(ev.type==='birthday'){
         updatePlayerStatusPanel();
         if(currentUser && currentUser.id){
-          // Nombre RÉEL de RP présents sur le Tour (2026-08-09, bug corrigé —
-          // utilisait SIM_150_KM.length, la taille d'une vieille liste de test
-          // à 250 entrées, donc toujours 750 RPC peu importe le vrai monde sur
-          // le plateau). TOUR_OTHERS_DIST = tous les autres RP réellement
-          // partis (tour_idx non nul), rafraîchi au chargement + toutes les 20s.
-          _tourCall('tour_apply_rpc_delta', {p_delta: TOUR_OTHERS_DIST.length * ev.perPlayer, p_reason: 'Tour: événement anniversaire'}).then(function(res){
+          _tourCall('tour_claim_birthday_event', {}).then(function(res){
             if(res && res.ok) _tourSyncWallet();
-            else if(res) console.warn('[Tour] tour_apply_rpc_delta (birthday):', res.error);
+            else if(res) console.warn('[Tour] tour_claim_birthday_event:', res.error);
           });
         }
       }
       else if(ev.type==='storm'){
         updatePlayerStatusPanel();
         if(currentUser && currentUser.id){
-          _tourCall('tour_apply_rpc_delta', {p_delta: -(countMyLands()*ev.perLand), p_reason: 'Tour: événement tempête'}).then(function(res){
+          _tourCall('tour_claim_storm_event', {}).then(function(res){
             if(res && res.ok) _tourSyncWallet();
-            else if(res) console.warn('[Tour] tour_apply_rpc_delta (storm):', res.error);
+            else if(res) console.warn('[Tour] tour_claim_storm_event:', res.error);
           });
         }
       }
