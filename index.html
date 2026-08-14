@@ -30008,20 +30008,26 @@ window.Tour.init = async function(){
     btn.classList.toggle('white', n===0);
   }
   // Récupère les vraies notifications multi-comptes en attente (tour_fetch_
-  // notifications, SOURCE UNIQUE — marque aussi seen_at côté serveur en une
-  // seule fois) et les fusionne dans ME.pendingRentEvents, format identique
-  // aux événements déjà en attente ({type,name,landIdx,amount}) pour que
-  // showRentNotifications() les affiche sans distinction. Fire-and-forget,
+  // notifications, lecture SEULE depuis le 2026-08-14 — cf tour_ack_notifications
+  // plus bas pour le marquage "vu") et les fusionne dans ME.pendingRentEvents,
+  // format identique aux événements déjà en attente ({type,name,landIdx,amount})
+  // pour que showRentNotifications() les affiche sans distinction. Fire-and-forget,
   // pas de popup auto (juste la pastille), même règle que le reste du Tour.
+  // Dédoublonnage par id (2026-08-14) : comme le fetch ne marque plus rien vu
+  // côté serveur, un 2e appel avant que le RP ait cliqué la pastille peut
+  // renvoyer les MÊMES notifications encore en attente — on ignore celles déjà
+  // présentes dans la file locale plutôt que de les pousser une 2e fois.
   async function fetchRealTourNotifications(){
     if(!currentUser || !currentUser.id) return;
     const res = await _tourCall('tour_fetch_notifications');
     if(!res || !res.ok || !res.events || !res.events.length) return;
     ME.pendingRentEvents = ME.pendingRentEvents || [];
+    const seenIds = new Set(ME.pendingRentEvents.map(function(e){ return e.notifId; }).filter(function(id){ return id!=null; }));
     res.events.forEach(function(e){
-      if(e.type==='sale') ME.pendingRentEvents.push({type:'sale', name:e.name, landIdx:e.land_idx, amount:e.nyx_amount});
-      else if(e.type==='preempt') ME.pendingRentEvents.push({type:'preempt', name:e.name, landIdx:e.land_idx});
-      else ME.pendingRentEvents.push({type:'rent', name:e.name, amount:e.rpc_amount});
+      if(seenIds.has(e.id)) return;
+      if(e.type==='sale') ME.pendingRentEvents.push({type:'sale', name:e.name, landIdx:e.land_idx, amount:e.nyx_amount, notifId:e.id});
+      else if(e.type==='preempt') ME.pendingRentEvents.push({type:'preempt', name:e.name, landIdx:e.land_idx, notifId:e.id});
+      else ME.pendingRentEvents.push({type:'rent', name:e.name, amount:e.rpc_amount, notifId:e.id});
     });
     updateTourNotifBadge();
   }
@@ -30073,6 +30079,16 @@ window.Tour.init = async function(){
     const hasPreempt = events.some(e=>e.type==='preempt');
     const titleHtml = `<span style="color:#fff">${title}</span>`;
     showCelebrationModal(titleHtml, bodyHtml, hasPreempt ? 'neutral' : undefined);
+    // Marquage "vu" (2026-08-14, bug corrigé) : SEULEMENT maintenant, la popup
+    // étant réellement affichée à l'écran — jamais au moment du simple fetch
+    // (cf fetchRealTourNotifications). Fire-and-forget, sans bloquer l'UI ;
+    // si l'appel échoue, les notifications resteront non-vues et réapparaîtront
+    // au prochain fetch plutôt que d'être perdues.
+    if(events.some(function(e){ return e.notifId!=null; })){
+      _tourCall('tour_ack_notifications', {}).then(function(res){
+        if(res && res.error) console.warn('[Tour] tour_ack_notifications:', res.error);
+      });
+    }
     ME.pendingRentEvents = [];
     updateTourNotifBadge();
     // saveTourState() RETIRÉ d'ici (2026-08-13, même raison que dans
