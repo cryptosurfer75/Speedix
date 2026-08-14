@@ -4291,6 +4291,22 @@ select option{background:#040c1c}
 
   </div>
 
+  <!-- Convertir RPC -> NYX (Premium uniquement) — cf convert_rpc_to_nyx en base
+       (SOURCE UNIQUE : taux 1000 RPC = 1 NYX, plafond 50 NYX/mois, tout revérifié
+       côté serveur, ce bloc ne fait qu'afficher un aperçu et appeler la fonction). -->
+  <div class="block" style="margin-bottom:1rem">
+    <div class="block-header"><div class="block-title">🔄 Convertir <span style="color:var(--gold)">RPC</span> → <span style="color:var(--green)">NYX</span></div></div>
+    <div class="block-body-sm">
+      <div style="display:flex;gap:.5rem;align-items:center;margin-bottom:.5rem">
+        <input type="number" id="rpc-convert-input" min="1000" step="1000" placeholder="Montant en RPC" oninput="updateRpcConvertPreview()" style="flex:1;padding:.5rem .6rem;border-radius:6px;border:1px solid var(--border2);background:var(--bg3);color:var(--gold);font-size:.85rem;font-family:'Space Mono',monospace;outline:none;box-sizing:border-box">
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:.5rem">
+        <div id="rpc-convert-preview" style="font-size:.75rem;color:var(--text)">Tu obtiendras <span style="color:var(--green)">0 NYX</span></div>
+        <button onclick="confirmConvertRpcToNyx()" style="width:50%;flex-shrink:0;padding:.4rem .6rem;border-radius:8px;border:1.5px solid rgba(45,219,128,.5);background:linear-gradient(175deg,rgba(45,219,128,.18),rgba(45,219,128,.06));color:var(--green);font-size:.75rem;font-weight:800;letter-spacing:.5px;cursor:pointer;box-shadow:0 2px 8px rgba(45,219,128,.2);transition:all .15s" onmouseover="this.style.background='linear-gradient(175deg,rgba(45,219,128,.28),rgba(45,219,128,.1))';this.style.boxShadow='0 3px 12px rgba(45,219,128,.3)'" onmouseout="this.style.background='linear-gradient(175deg,rgba(45,219,128,.18),rgba(45,219,128,.06))';this.style.boxShadow='0 2px 8px rgba(45,219,128,.2)'">Valider</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Ligne 2 : Licences / Boost (achetables) -->
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem">
 
@@ -8208,7 +8224,7 @@ async function onLoginSuccess(user, isNew){
       pts:0, ptsCum:0, km:0, courses:0, source:'strava',
       trend:pd.trend||0, leagueRefRank:(typeof pd.league_ref_rank==='number'?pd.league_ref_rank:null), leagueRefLg:(pd.league_ref_lg||null), avatar:pd.avatar||null, parrain:null,
       rtwId:rtwId, competitive:pd.competitive||false,
-      premium:pd.premium||false, premiumUntil:pd.premium_until||null, premiumTrial:pd.premium_trial||false,
+      premium:pd.premium||false, premiumUntil:pd.premium_until||null, premiumTrial:pd.premium_trial||false, premiumPaid:pd.premium_paid||false,
       boostActiveUntil:pd?(pd.boost_active_until||null):null,
       gelActiveUntil:pd?(pd.gel_active_until||null):null,
       birthDate:pd.birth_date||null, birthdayGiftYear:pd.birthday_gift_year||null,
@@ -8428,7 +8444,7 @@ async function loadPlayersFromSupabase(){
   // 1. Charger tous les joueurs
   const { data: playersData, error: playersErr } = await supabaseClient
     .from('players')
-    .select('id,username,league,nat,grade,trend,avatar,competitive,buyin_debt,frozen,rtw_id,premium,premium_until,premium_trial,infirmerie_until,is_visible,consecutive_zero_periods,pts_cumulated,boost_active_until,gel_active_until,league_ref_rank,league_ref_lg,birth_date,equipped_bg_c1,equipped_bg_c2,medal_bg_c1,medal_bg_c2,medal_bg_until,medal_bg_dist,medal_bg_dismissed_until');
+    .select('id,username,league,nat,grade,trend,avatar,competitive,buyin_debt,frozen,rtw_id,premium,premium_until,premium_trial,premium_paid,infirmerie_until,is_visible,consecutive_zero_periods,pts_cumulated,boost_active_until,gel_active_until,league_ref_rank,league_ref_lg,birth_date,equipped_bg_c1,equipped_bg_c2,medal_bg_c1,medal_bg_c2,medal_bg_until,medal_bg_dist,medal_bg_dismissed_until');
 
   if(playersErr){
     if(panel) panel.innerHTML = '<div style="padding:1.5rem;text-align:center;color:var(--red);font-size:.8rem">⚠️ Erreur players : ' + playersErr.message + '</div>';
@@ -8503,6 +8519,7 @@ async function loadPlayersFromSupabase(){
       premium: p.premium || false,
       premiumUntil: p.premium_until || null,
       premiumTrial: p.premium_trial || false,
+      premiumPaid: p.premium_paid || false,
       infirmerie_until: p.infirmerie_until || null,
       is_visible: p.is_visible !== false,
       consecutive_zero_periods: p.consecutive_zero_periods || 0,
@@ -16209,11 +16226,12 @@ function _pollWalletCredit(){
 
 async function _refreshMyPlayerPremium(){
   if(!currentUser) return;
-  var {data}=await supabaseClient.from('players').select('premium,premium_until,premium_trial').eq('id',currentUser.id).maybeSingle();
+  var {data}=await supabaseClient.from('players').select('premium,premium_until,premium_trial,premium_paid').eq('id',currentUser.id).maybeSingle();
   if(data && window.__myPlayer){
     window.__myPlayer.premium=data.premium||false;
     window.__myPlayer.premiumUntil=data.premium_until||null;
     window.__myPlayer.premiumTrial=data.premium_trial||false;
+    window.__myPlayer.premiumPaid=data.premium_paid||false;
     updatePremiumUI();
   }
 }
@@ -17849,6 +17867,79 @@ async function dismissAdminAlert(){
   window.__myPlayer.adminAlertMessage=null;
   var {error}=await supabaseClient.from('players').update({admin_alert_message:null}).eq('id',currentUser.id);
   if(error) console.warn('[admin alert] dismiss write failed', error);
+}
+
+// Convertir RPC → NYX (Premium uniquement) — aperçu affiché avant validation.
+// Taux, plafond mensuel et statut Premium sont TOUS revérifiés côté serveur par
+// convert_rpc_to_nyx (SOURCE UNIQUE) : ce bloc ne fait qu'un calcul d'affichage.
+var RPC_CONVERT_RATE = 1000;
+function updateRpcConvertPreview(){
+  var el=document.getElementById('rpc-convert-preview');
+  var input=document.getElementById('rpc-convert-input');
+  if(!el || !input) return;
+  var raw=parseInt(input.value, 10);
+  var nyx=(raw && raw>0) ? Math.floor(raw/RPC_CONVERT_RATE) : 0;
+  var used=nyx*RPC_CONVERT_RATE;
+  el.innerHTML = nyx>0
+    ? 'Tu obtiendras <span style="color:var(--green)">'+nyx+' NYX</span> (pour '+used.toLocaleString(SPEEDIX_LANG)+' RPC utilisés)'
+    : 'Tu obtiendras <span style="color:var(--green)">0 NYX</span>';
+}
+// Popup d'info seule (pas d'action, fermeture par la croix du modal réutilisé
+// land-modal — même croix que showPremiumGate) — pour les blocages de conversion
+// RPC->NYX qui n'ont rien à proposer d'autre que "reviens plus tard / réessaie".
+function showRpcConvertInfo(emoji, title, message){
+  document.getElementById('lm-title').textContent='';
+  document.getElementById('lm-sub').textContent='';
+  document.getElementById('lm-body').innerHTML='<div style="text-align:center;padding:.5rem 0">'
+    +'<div style="font-size:2.5rem;margin-bottom:.4rem">'+emoji+'</div>'
+    +'<div style="font-family:Bebas Neue,sans-serif;font-size:1.2rem;letter-spacing:2px;color:var(--gold);margin-bottom:.5rem">'+title+'</div>'
+    +'<div style="font-size:.82rem;color:var(--muted2);line-height:1.6">'+message+'</div>'
+    +'</div>';
+  openModal('land-modal');
+}
+async function confirmConvertRpcToNyx(){
+  if(!currentUser) return;
+  if(!isPremium()){ showPremiumGate('Convertir tes RPC en NYX est réservé au Premium.'); return; }
+  // Tant que les achats réels (IAP) ne sont pas branchés (cf chantier stores),
+  // seuls l'essai 15 jours (premiumTrial) et le futur vrai Premium payant
+  // (premiumPaid, posé par grant-iap) ont accès — le Premium offert/admin (ni
+  // l'un ni l'autre) reste bloqué, mirroir du même check dans convert_rpc_to_nyx
+  // (source unique) — ce n'est ici qu'un raccourci d'affichage (2026-08-14).
+  var mp=window.__myPlayer||{};
+  if(!mp.premiumTrial && !mp.premiumPaid){
+    showRpcConvertInfo('⏳','BIENTÔT DISPONIBLE','La conversion RPC → NYX sera activée dès l\'ouverture du vrai Premium payant. Les essais 15 jours y ont déjà accès.');
+    return;
+  }
+  var input=document.getElementById('rpc-convert-input');
+  var raw=parseInt(input && input.value, 10);
+  var nyx=(raw && raw>0) ? Math.floor(raw/RPC_CONVERT_RATE) : 0;
+  var used=nyx*RPC_CONVERT_RATE;
+  if(nyx<=0){ showToast('⚠️ Indique un montant d\'au moins '+RPC_CONVERT_RATE+' RPC'); return; }
+  var w=window.__wallet||{rpc:0};
+  if(w.rpc<used){ showRpcConvertInfo('⚠️','RPC INSUFFISANT','Ton solde RPC est insuffisant pour convertir ce montant.'); return; }
+  if(!await askConfirm('Tu vas convertir <strong style="color:var(--gold)">'+used.toLocaleString(SPEEDIX_LANG)+' RPC</strong> en <strong style="color:var(--green)">'+nyx+' NYX</strong>.',{title:'Convertir RPC → NYX',emoji:'🔄',success:true,okLabel:'Valider'})) return;
+  var {data:res,error}=await supabaseClient.rpc('convert_rpc_to_nyx',{p_player_id:currentUser.id, p_rpc:used});
+  if(error || !res || !res.ok){
+    var err=res && res.error;
+    if(err==='not_premium'){ showPremiumGate('Convertir tes RPC en NYX est réservé au Premium.'); return; }
+    if(err==='coming_soon'){ showRpcConvertInfo('⏳','BIENTÔT DISPONIBLE','La conversion RPC → NYX sera activée dès l\'ouverture du vrai Premium payant. Les essais 15 jours y ont déjà accès.'); return; }
+    if(err==='insufficient_rpc'){ showRpcConvertInfo('⚠️','RPC INSUFFISANT','Ton solde RPC est insuffisant pour convertir ce montant.'); return; }
+    if(err==='cap_reached'){
+      showRpcConvertInfo('⏳','PLAFOND ATTEINT','Tu as déjà converti le maximum autorisé ce mois-ci (50 NYX).<br>Reviens le mois prochain pour convertir à nouveau.');
+      return;
+    }
+    if(err==='cap_exceeded'){
+      var remaining=(res&&res.remaining!=null)?res.remaining:0;
+      showRpcConvertInfo('⏳','MONTANT TROP ÉLEVÉ','Ce montant dépasse ce qu\'il te reste à convertir ce mois-ci.<br>Il te reste <strong style="color:var(--green)">'+remaining+' NYX</strong> convertibles (soit '+(remaining*RPC_CONVERT_RATE).toLocaleString(SPEEDIX_LANG)+' RPC max).');
+      return;
+    }
+    showToast('⚠️ Conversion impossible, réessaie');
+    return;
+  }
+  await walletLoad();
+  input.value='';
+  updateRpcConvertPreview();
+  showToast('✓ Conversion réussie : +'+res.nyx_gained+' NYX');
 }
 
 // Débiter NYX (vérification solde)
