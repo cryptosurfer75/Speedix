@@ -8254,26 +8254,17 @@ async function onLoginSuccess(user, isNew){
     //   Une seule source de vérité partagée avec le webhook Strava et la sync manuelle.
     // - Cas non-Starter (calibrage entre ligues) : on garde la libre montée
     //   L10→L9→… selon les pts de la période courante tant qu'elle n'est pas finie.
+    // Starter ET calibrage délégués à try_promote (source unique, 2026-08-14 —
+    // avant, le cas calibrage écrivait players.league en PATCH direct depuis
+    // le client, une faille de sécurité en plus d'une logique dupliquée avec
+    // la fonction serveur try_promote qui fait déjà exactement ce calcul).
     if(!window.__myPlayer.competitive){
-      var curLk=(window.__myPlayer.leagueKey||'starter').toLowerCase();
-      if(curLk==='starter'){
-        try{
-          var {data:_promo}=await supabaseClient.rpc('try_promote_starter',{p_player_id:user.id});
-          if(_promo && _promo.changed){
-            window.__myPlayer.leagueKey=_promo.to;
-          }
-        }catch(e){ console.warn('try_promote_starter (login) fail',e); }
-      } else {
-        var targetLg=LEAGUES.slice().reverse().find(function(l){return pts>=l.min&&l.key!=='starter'&&l.key!=='lelite';});
-        if(targetLg){
-          var curIdx=LEAGUES.findIndex(function(l){return l.key===curLk;});
-          var tgtIdx=LEAGUES.findIndex(function(l){return l.key===targetLg.key;});
-          if(tgtIdx>curIdx){
-            await supabaseClient.from('players').update({league:targetLg.key}).eq('id',user.id);
-            window.__myPlayer.leagueKey=targetLg.key;
-          }
+      try{
+        var {data:_promo}=await supabaseClient.rpc('try_promote',{p_player_id:user.id});
+        if(_promo && _promo.changed){
+          window.__myPlayer.leagueKey=_promo.to;
         }
-      }
+      }catch(e){ console.warn('try_promote (login) fail',e); }
     }
     activeLeagueKey=window.__myPlayer.leagueKey;
     var exi=PLAYERS.findIndex(function(p){return p.id===1;});
@@ -15560,21 +15551,16 @@ async function adminDeleteRun(runId){
   // pouvait changer sans AUCUNE trace dans l'historique si cet appel échouait
   // pour une raison quelconque. Erreur maintenant loguée + signalée par toast.
   if(rpcDebit>0 && run.player_id){
-    var {data:p}=await supabaseClient.from('players').select('rpc_balance,rpc_cumulated').eq('id',run.player_id).single();
-    if(p){
-      var newRpc=Math.max(0,(p.rpc_balance||0)-rpcDebit);
-      var newCum=Math.max(0,(p.rpc_cumulated||0)-rpcDebit);
-      var {error:errUpd}=await supabaseClient.from('players').update({rpc_balance:newRpc,rpc_cumulated:newCum}).eq('id',run.player_id);
-      if(errUpd){
-        console.error('adminDeleteRun update player error:',errUpd);
-        showToast('⚠️ Course supprimée mais débit RPC échoué');
-      } else {
-        var {error:errTx}=await supabaseClient.from('wallet_tx').insert({player_id:run.player_id,rpc_delta:-rpcDebit,nyx_delta:0,reason:'Suppression course '+(run.name||'')+' · '+run.points+' pts'});
-        if(errTx){
-          console.error('adminDeleteRun wallet_tx insert error:',errTx);
-          showToast('⚠️ Solde débité mais pas enregistré dans l\'historique du Wallet');
-        }
-      }
+    // admin_refund_run_debit (2026-08-14) remplace le PATCH direct sur
+    // rpc_balance/rpc_cumulated — même effet, mais revérifie ADMIN_UID côté
+    // serveur au lieu de dépendre de l'accès en écriture du client.
+    var {data:refundRes,error:errUpd}=await supabaseClient.rpc('admin_refund_run_debit',{
+      p_admin_id:currentUser.id, p_target_player_id:run.player_id, p_rpc_debit:rpcDebit,
+      p_reason:'Suppression course '+(run.name||'')+' · '+run.points+' pts'
+    });
+    if(errUpd || !refundRes || !refundRes.ok){
+      console.error('adminDeleteRun refund error:',errUpd||refundRes);
+      showToast('⚠️ Course supprimée mais débit RPC échoué');
     }
   }
   // Alerte au RP (2026-08-11, demande explicite) : ce bouton de suppression
@@ -15766,18 +15752,14 @@ async function adminCheckStarterPromotion(playerId, playerName){
     return;
   }
 
-  // Cas 2 : déjà sorti de Starter, en calibrage (non-compétitif) → libre
-  // montée entre ligues sur les pts de la période courante. Inchangé.
+  // Cas 2 : déjà sorti de Starter, en calibrage (non-compétitif) → délégué à
+  // try_promote (source unique, 2026-08-14 — avant, PATCH direct sur players.league).
   if(!player.competitive){
-    var {data:runs}=await supabaseClient.from('runs').select('points').eq('player_id',playerId).eq('period',0);
-    var totalPts=(runs||[]).reduce(function(s,r){return s+(r.points||0);},0);
-    var targetLg2=LEAGUES.slice().reverse().find(function(l){return totalPts>=l.min&&l.key!=='starter'&&l.key!=='lelite';});
-    if(!targetLg2||targetLg2.key===currentLk) return;
-    var currentIdx=LEAGUES.findIndex(function(l){return l.key===currentLk;});
-    var targetIdx=LEAGUES.findIndex(function(l){return l.key===targetLg2.key;});
-    if(targetIdx<=currentIdx) return;
-    await supabaseClient.from('players').update({league:targetLg2.key}).eq('id',playerId);
-    if(msg) msg.innerHTML+='<br><span style="color:var(--cyan)">📈 '+escapeHtml(playerName)+' monte en calibrage → '+targetLg2.name+' '+targetLg2.label+' ('+totalPts+' pts)</span>';
+    var {data:_promo2}=await supabaseClient.rpc('try_promote',{p_player_id:playerId});
+    if(_promo2 && _promo2.changed && msg){
+      var _lg2=LEAGUES.find(function(l){return l.key===_promo2.to;})||{};
+      msg.innerHTML+='<br><span style="color:var(--cyan)">📈 '+escapeHtml(playerName)+' monte en calibrage → '+(_lg2.name||_promo2.to)+' '+(_lg2.label||'')+' ('+_promo2.total+' pts)</span>';
+    }
   }
 }
 
@@ -16576,7 +16558,9 @@ async function _confirmReleaseExcess(needed){
 }
 
 async function _finalizePremiumExit(){
-  await supabaseClient.from('players').update({premium:false,premium_until:null,premium_trial:false}).eq('id',currentUser.id);
+  // decline_premium (2026-08-14) remplace le PATCH direct sur premium/premium_until/
+  // premium_trial : même effet, mais la fonction serveur ne peut jamais écrire "true".
+  await supabaseClient.rpc('decline_premium');
   if(window.__myPlayer){
     window.__myPlayer.premium=false;
     window.__myPlayer.premiumUntil=null;
@@ -18453,14 +18437,10 @@ async function loadInfirmerieData(){
         // avec Dedel, corrigé 2026-08-01). On vise "jusqu'à la fin de la période en
         // cours" : la valeur pointe donc sur la période EN COURS (pas +1), pour que
         // la toute prochaine rotation (qui clôture cette période) le réévalue.
-        // _periodData a une valeur par défaut (1) tant que loadPeriodSettings n'a pas
-        // tourné (ordre d'appel au login, cf ~ligne 6513-6515) : on ne peut pas s'y fier
-        // ici, on relit toujours la valeur fraîche en base.
-        var {data:gs}=await supabaseClient.from('game_settings').select('value').eq('key','current_period').maybeSingle();
-        var _curPeriod=gs?(parseInt(gs.value)||1):1;
-        await supabaseClient.from('players').update({
-          infirmerie_until:null, competitive:false, calibration_period:_curPeriod
-        }).eq('id',currentUser.id);
+        // infirmerie_process_expiry (2026-08-14) remplace le PATCH direct — même
+        // effet (competitive=false + calibration_period=période en cours), mais
+        // recalculé côté serveur.
+        await supabaseClient.rpc('infirmerie_process_expiry');
         window.__infirmerie.until=null;
         if(window.__myPlayer) window.__myPlayer.competitive=false;
         showToast('🏥 Fin d\'infirmerie — tu es en mode Reprise (R) jusqu\'à la fin de la période');
@@ -18562,15 +18542,16 @@ async function activateInfirmerie(days){
     {title:'Activer l\'infirmerie ?', emoji:'🏥', okLabel:'Activer ('+days+' j)', destructive:true}
   );
   if(!ok) return false;
+  // infirmerie_activate (2026-08-14) remplace le PATCH direct + insert historique :
+  // même effet, mais le quota (2 activations/12 mois, cf getInfirmerieQuotaStatus)
+  // est désormais revérifié côté serveur, pas seulement dans l'interface.
+  var {data:_infRes,error:_infErr}=await supabaseClient.rpc('infirmerie_activate',{p_days:days});
+  if(_infErr || !_infRes || !_infRes.ok){
+    showToast('⚠️ Impossible d\'activer l\'infirmerie'+(_infRes&&_infRes.error==='quota_reached'?' (quota atteint)':''));
+    return false;
+  }
   var nowIso=new Date().toISOString();
-  var until=new Date(Date.now()+days*24*3600*1000).toISOString();
-  // Update player + insert historique en 1 transaction logique
-  await supabaseClient.from('players').update({
-    infirmerie_until:until, infirmerie_started_at:nowIso, infirmerie_duration_days:days
-  }).eq('id',currentUser.id);
-  await supabaseClient.from('infirmerie_activations').insert({
-    player_id:currentUser.id, started_at:nowIso, duration_days:days, ended_at:until
-  });
+  var until=_infRes.until;
   window.__infirmerie.until=until;
   window.__infirmerie.startedAt=nowIso;
   window.__infirmerie.durationDays=days;
@@ -18715,14 +18696,14 @@ async function activateBoost(){
     if(!ok) return;
     localStorage.setItem('boost-explained-'+currentUser.id,'1');
   }
-  var nowIso=new Date().toISOString();
-  var until=new Date(Date.now()+24*3600*1000).toISOString();
-  var newStock=b.stock-1;
-  await window.fetch(supabaseUrl+'/rest/v1/players?id=eq.'+encodeURIComponent(currentUser.id),{
-    method:'PATCH',headers:{'apikey':supabaseKey,'Authorization':'Bearer '+(window.__sessionToken||supabaseKey),'Content-Type':'application/json'},
-    body:JSON.stringify({boost_stock:newStock,boost_active_until:until,boost_activated_at:nowIso})
-  });
-  window.__boost={stock:newStock,activeUntil:until,activatedAt:nowIso};
+  // activate_boost (2026-08-14) remplace le PATCH direct — revérifie stock et
+  // absence de Boost déjà actif côté serveur avant d'écrire quoi que ce soit.
+  var {data:_actRes,error:_actErr}=await supabaseClient.rpc('activate_boost',{p_player_id:currentUser.id});
+  if(_actErr||!_actRes||!_actRes.ok){
+    showToast('⚠️ Activation impossible, réessaie');
+    return;
+  }
+  window.__boost={stock:_actRes.new_stock,activeUntil:_actRes.active_until,activatedAt:new Date().toISOString()};
   renderBoostRow();
   showToast('⚡ Boost activé — +10% pendant 24h !');
 }
@@ -18730,20 +18711,19 @@ async function activateBoost(){
 async function buyBoosts(qty, cost){
   if(!currentUser) return;
   if(!await askConfirm(t('shop.price')+' <strong style="color:var(--gold)">'+cost+' NYX</strong>',{title:t('shop.buy.boost.title').replace('{n}',qty).replace(/\{s\}/g,qty>1?'s':''),emoji:'⚡',success:true,okLabel:t('shop.buy.btn').replace(' ({n} NYX)','')})) return;
-  var w=window.__wallet||{rpc:0,nyx:0};
-  if(w.nyx<cost){showToast('⚠️ Solde insuffisant en NYX');return;}
-  var b=window.__boost||{stock:0};
-  var ok=await walletDebitNyx(cost,'Achat '+qty+' boosts');
-  if(!ok) return;
-  var newStock=b.stock+qty;
-  await window.fetch(supabaseUrl+'/rest/v1/players?id=eq.'+encodeURIComponent(currentUser.id),{
-    method:'PATCH',headers:{'apikey':supabaseKey,'Authorization':'Bearer '+(window.__sessionToken||supabaseKey),'Content-Type':'application/json'},
-    body:JSON.stringify({boost_stock:newStock})
-  });
-  window.__boost.stock=newStock;
+  // buy_boost_stock (2026-08-14) remplace le débit + PATCH séparés — une seule
+  // fonction atomique qui revérifie le prix réel et plafonne le stock à 10.
+  var {data:_buyRes,error:_buyErr}=await supabaseClient.rpc('buy_boost_stock',{p_player_id:currentUser.id,p_qty:qty,p_cost_nyx:cost});
+  if(_buyErr||!_buyRes||!_buyRes.ok){
+    showToast(_buyRes&&_buyRes.error==='insufficient_nyx'?'⚠️ Solde insuffisant en NYX':'⚠️ Achat impossible, réessaie');
+    return;
+  }
+  await walletLoad();
+  window.__boost=window.__boost||{};
+  window.__boost.stock=_buyRes.new_stock;
   renderBoostRow();
   closeModal('boost-shop-modal');
-  showToast('✓ '+qty+' boost'+(qty>1?'s':'')+' ajouté'+(qty>1?'s':'')+' — stock : '+newStock);
+  showToast('✓ '+qty+' boost'+(qty>1?'s':'')+' ajouté'+(qty>1?'s':'')+' — stock : '+_buyRes.new_stock);
 }
 
 // ══════════════════════════════════════════════════════════════════════
@@ -18890,17 +18870,16 @@ async function activateGelOnTarget(){
     {title:'Geler ce RP ?',emoji:'🥶',okLabel:'Geler',success:true}
   );
   if(!ok) return;
-  var nowIso=new Date().toISOString();
-  var until=new Date(Date.now()+24*3600*1000).toISOString();
-  var newStock=g.stock-1;
-  // 1. Pose le Gel sur la cible via la recette serveur (SECURITY DEFINER —
-  // un PATCH direct depuis le client ne fonctionne plus pour un AUTRE joueur
-  // que soi, cf resserrement RLS du 2026-08-11 ; re-vérifie aussi l'absence de
-  // Gel actif de façon atomique).
-  var {data:_gelRes,error:_gelErr}=await supabaseClient.rpc('apply_gel_to_target',{p_target_id:vp._uuid});
+  // Pose le Gel + décrémente mon stock DANS LA MÊME fonction atomique
+  // (2026-08-14, faille corrigée — avant, le décompte du stock côté poseur
+  // était un PATCH direct séparé sur SA PROPRE ligne, donc un joueur pouvait
+  // geler sans jamais perdre de stock). Aucune identité n'est stockée côté
+  // cible, l'anonymat du Gel reste intact.
+  var {data:_gelRes,error:_gelErr}=await supabaseClient.rpc('apply_gel_to_target',{p_actor_id:currentUser.id,p_target_id:vp._uuid});
   if(_gelErr||!_gelRes||!_gelRes.ok){
     var _gelMsg='⚠️ Erreur lors du gel';
     if(_gelRes&&_gelRes.reason==='already_gelled') _gelMsg='⚠️ Ce RP est déjà gelé';
+    else if(_gelRes&&_gelRes.reason==='no_stock') _gelMsg='⚠️ Aucun Gel en réserve';
     // Plafond mensuel (6 Gels reçus max par RP, demande explicite 2026-08-12) :
     // source unique = apply_gel_to_target (gel_received_month/_count), le
     // client ne fait qu'afficher le refus renvoyé par la recette base.
@@ -18909,12 +18888,7 @@ async function activateGelOnTarget(){
     renderGelRow();
     return;
   }
-  // 2. PATCH moi : décrémente mon stock
-  await window.fetch(supabaseUrl+'/rest/v1/players?id=eq.'+encodeURIComponent(currentUser.id),{
-    method:'PATCH',headers:{'apikey':supabaseKey,'Authorization':'Bearer '+(window.__sessionToken||supabaseKey),'Content-Type':'application/json'},
-    body:JSON.stringify({gel_stock:newStock})
-  });
-  window.__gel.stock=newStock;
+  window.__gel.stock=_gelRes.actor_new_stock;
   renderGelRow();
   showToast('🥶 '+vp.name+' est gelé pour 24h');
 }
@@ -18922,20 +18896,19 @@ async function activateGelOnTarget(){
 async function buyGels(qty, cost){
   if(!currentUser) return;
   if(!await askConfirm(t('shop.price')+' <strong style="color:var(--gold)">'+cost+' NYX</strong>',{title:t('shop.buy.gel.title').replace('{n}',qty).replace(/\{s\}/g,qty>1?'s':''),emoji:'🥶',success:true,okLabel:t('shop.buy.btn').replace(' ({n} NYX)','')})) return;
-  var w=window.__wallet||{rpc:0,nyx:0};
-  if(w.nyx<cost){showToast('⚠️ Solde insuffisant en NYX');return;}
-  var g=window.__gel||{stock:0};
-  var ok=await walletDebitNyx(cost,'Achat '+qty+' Gels');
-  if(!ok) return;
-  var newStock=Math.min(10,g.stock+qty);
-  await window.fetch(supabaseUrl+'/rest/v1/players?id=eq.'+encodeURIComponent(currentUser.id),{
-    method:'PATCH',headers:{'apikey':supabaseKey,'Authorization':'Bearer '+(window.__sessionToken||supabaseKey),'Content-Type':'application/json'},
-    body:JSON.stringify({gel_stock:newStock})
-  });
-  window.__gel.stock=newStock;
+  // buy_gel_stock (2026-08-14) remplace le débit + PATCH séparés — miroir de
+  // buy_boost_stock.
+  var {data:_buyRes,error:_buyErr}=await supabaseClient.rpc('buy_gel_stock',{p_player_id:currentUser.id,p_qty:qty,p_cost_nyx:cost});
+  if(_buyErr||!_buyRes||!_buyRes.ok){
+    showToast(_buyRes&&_buyRes.error==='insufficient_nyx'?'⚠️ Solde insuffisant en NYX':'⚠️ Achat impossible, réessaie');
+    return;
+  }
+  await walletLoad();
+  window.__gel=window.__gel||{};
+  window.__gel.stock=_buyRes.new_stock;
   renderGelRow();
   closeModal('gel-shop-modal');
-  showToast('✓ '+qty+' Gel'+(qty>1?'s':'')+' ajouté'+(qty>1?'s':'')+' — stock : '+newStock);
+  showToast('✓ '+qty+' Gel'+(qty>1?'s':'')+' ajouté'+(qty>1?'s':'')+' — stock : '+_buyRes.new_stock);
 }
 
 // ══════════════════════════════════════════════════════════════════════
@@ -26570,28 +26543,12 @@ window.Tour.init = async function(){
   // sur ME plus haut). players.tour_idx/tour_laps/tour_start_city/tour_start_idx
   // sont la SOURCE UNIQUE : un compte = une ligne = une position, plus de risque
   // de fuite entre comptes testés sur le même navigateur.
-  var _tourResetInProgress = false;
-  function saveTourState(){
-    if(_tourResetInProgress || !currentUser || !currentUser.id) return;
-    // Garde-fou CRITIQUE (2026-08-08, bug corrigé — Val-DM/Jordan Smith/Nakamoto-75
-    // se sont tous retrouvés avec la MÊME position en base). Cause : ce setInterval
-    // 4s tourne en tâche de fond depuis le 1er Tour.init() de l'onglet et ne
-    // s'arrête JAMAIS tout seul. Si le RP se déconnecte et se reconnecte avec un
-    // AUTRE compte SANS revisiter la page Tour (donc sans redéclencher Tour.init(),
-    // qui force un rechargement complet dans ce cas, cf plus haut), ce timer
-    // continuait de tourner avec myIdx/ME du compte PRÉCÉDENT — currentUser.id
-    // avait changé, mais pas myIdx — et écrivait donc l'ANCIENNE position sur le
-    // NOUVEAU compte connecté, toutes les 4s, même sans jamais rouvrir le Tour.
-    // On n'écrit désormais que si le compte connecté est bien celui pour lequel
-    // Tour a été initialisé la dernière fois dans cet onglet.
-    if(currentUser.id !== _tourInitializedForUserId) return;
-    supabaseClient.from('players').update({
-      tour_idx: myIdx, tour_laps: ME.laps||0,
-      tour_start_city: ME.startCity, tour_start_idx: ME.startIdx||0
-    }).eq('id', currentUser.id).then(function(res){
-      if(res && res.error) console.warn('[Tour] saveTourState PATCH failed', res.error);
-    });
-  }
+  // saveTourState() SUPPRIMÉE (2026-08-14, faille corrigée) : c'était la
+  // dernière écriture directe de tour_idx/tour_laps/tour_start_* depuis le
+  // client. Les 3 seules fonctions qui décident désormais de la position
+  // (tour_advance_position, tour_set_start_position, tour_move_relative)
+  // écrivent tout, atomiquement, côté serveur — le client ne fait plus
+  // qu'animer entre le from_idx/to_idx qu'elles renvoient.
   // ⚠️ SUPPRIMÉ (2026-08-13, cause racine du bug double-avancée/retard cross-
   // appareil) : ce "filet de sécurité" réécrivait tour_idx/tour_laps toutes
   // les 4s, à la fermeture ET à la mise en arrière-plan de l'onglet, depuis
@@ -26611,10 +26568,11 @@ window.Tour.init = async function(){
   // (tour_lands/players.rpc_balance) restent intacts, seule la position bouge.
   function hardResetTourDemo(){
     if(!confirm('Revenir au départ ? Ta position sur le plateau (case, tours, ville de départ) sera réinitialisée. Tes Lands et ton solde RPC/NYX restent intacts.')) return;
-    _tourResetInProgress = true;
     var _uid = currentUser && currentUser.id;
+    // tour_reset_position (2026-08-14) remplace le PATCH direct — même effet,
+    // mais passe par une fonction serveur comme le reste de la position Tour.
     var _go = _uid
-      ? supabaseClient.from('players').update({tour_idx:null, tour_laps:0, tour_start_city:null, tour_start_idx:null}).eq('id',_uid)
+      ? supabaseClient.rpc('tour_reset_position', {p_player_id: _uid})
       : Promise.resolve();
     Promise.resolve(_go).then(function(){ location.reload(); }).catch(function(){ location.reload(); });
   }
@@ -28020,16 +27978,12 @@ window.Tour.init = async function(){
             window._pendingLapCelebration = {laps: lapsGained};
           }
         }
-        // Sauvegarde IMMÉDIATE de la nouvelle position, dès la fin réelle du
-        // déplacement (2026-08-09, bug corrigé — Natchaan restée bloquée à sa
-        // case malgré une course créditée si l'appli fermait juste après).
-        // C'EST DÉSORMAIS LE SEUL ENDROIT (avec chooseStartCity) qui écrit
-        // tour_idx/tour_laps depuis le client (2026-08-13, cf mémoire
-        // double-avancée) : myIdx vient d'être resynchronisé sur la valeur
-        // renvoyée par tour_advance_position juste avant l'appel à forceMove
-        // (cf applyServerMove), donc plus aucun risque de sauver une position
-        // locale qui aurait dérivé.
-        saveTourState();
+        // saveTourState() RETIRÉ d'ici (2026-08-14, faille corrigée) : tour_idx/
+        // tour_laps sont désormais TOUJOURS écrits en base AVANT l'animation,
+        // par la fonction serveur qui a décidé le déplacement (tour_advance_
+        // position, tour_set_start_position ou tour_move_relative) — plus aucune
+        // écriture position depuis le client après coup, donc plus aucun canal
+        // pour poser une valeur arbitraire.
         onArrive(toIdx);
       }
     }
@@ -28566,13 +28520,20 @@ window.Tour.init = async function(){
         land._eventMoveApplied = true;
         document.getElementById('tour-rent-modal').classList.remove('open');
         _revealPendingWallet();
-        if(ev.type==='advance') forceMove(ev.value);
-        else if(ev.type==='retreat') forceMove(-ev.value);
-        else {
-          const cur = ((land.idx%TOTAL_CELLS)+TOTAL_CELLS)%TOTAL_CELLS;
-          const next = LANDS.slice(cur+1).concat(LANDS).find(l=>l.type==='etape');
-          forceMove(((next.idx - cur)+TOTAL_CELLS)%TOTAL_CELLS);
-        }
+        // SOURCE UNIQUE des cases "mystère" (2026-08-14, faille corrigée — avant,
+        // forceMove(ev.value) déplaçait le pion directement depuis une valeur
+        // client puis saveTourState() la persistait telle quelle, donc un joueur
+        // pouvait s'avancer de n'importe combien de cases via la console).
+        // tour_move_relative ne connaît QUE les vraies valeurs du deck EVENT_CARDS
+        // (et recalcule lui-même la prochaine étape pour goto_next_etape) — le
+        // téléphone ne fait plus qu'animer entre le from_idx/to_idx renvoyés.
+        var _moveType = ev.type==='advance' ? 'advance_'+ev.value
+          : ev.type==='retreat' ? 'retreat_'+ev.value
+          : 'goto_next_etape';
+        _tourCall('tour_move_relative', {p_move_type: _moveType}).then(function(res){
+          if(res && res.ok){ myIdx = res.from_idx; forceMove(res.to_idx - res.from_idx); }
+          else console.warn('[Tour] tour_move_relative:', res && res.error);
+        });
         return;
       }
     }
@@ -29812,8 +29773,19 @@ window.Tour.init = async function(){
   async function chooseStartCity(city){
     const land = LANDS.find(l=>l.name===city);
     if(!land) return;
+    // SOURCE UNIQUE du choix de départ (2026-08-14, faille corrigée — avant, le
+    // client écrivait tour_idx/tour_start_idx en direct via saveTourState(),
+    // donc n'importe quel joueur pouvait poser n'importe quel idx de départ
+    // via la console). tour_set_start_position revérifie tout côté serveur
+    // (ville valide, pas déjà démarré) avant d'écrire quoi que ce soit.
+    const _startRes = await _tourCall('tour_set_start_position', {p_city: city});
+    if(!_startRes || !_startRes.ok){
+      console.warn('[Tour] tour_set_start_position:', _startRes && _startRes.error);
+      return;
+    }
     ME.startCity = city;
-    ME.startIdx = land.idx;
+    ME.startIdx = _startRes.idx;
+    myIdx = _startRes.idx;
     // Incrément ATOMIQUE du compteur global (évite qu'un pic de RP choisissant
     // Paris en même temps dépasse la limite — chacun incrémente sa propre copie
     // locale sinon). Best-effort : si l'appel échoue, le RP démarre quand même
@@ -29827,12 +29799,6 @@ window.Tour.init = async function(){
     closeRentModal();
     resetDemo();
     updatePlayerStatusPanel();
-    // Persiste le choix de départ (position 0, tours 0, ville) — seule
-    // écriture EXPLICITE de tour_idx/tour_laps qui reste côté client, posée
-    // ici une seule fois, en réaction directe et synchrone au clic du RP (donc
-    // jamais sujette à la course entre appareils/onglets qui touchait les
-    // anciens déclencheurs automatiques, cf mémoire double-avancée).
-    saveTourState();
     // Rattrapage km en attente : posé si le RP avait déjà des km à faire
     // avancer AVANT d'avoir choisi son départ (2026-08-07, bug corrigé — un
     // nouveau RP avec des km déjà crédités se voyait déplacé avant d'avoir pu
