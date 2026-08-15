@@ -8328,9 +8328,12 @@ async function onLoginSuccess(user, isNew){
     setTimeout(function(){ checkTourV2WelcomeBonus(); }, 10000);
   }
   if(typeof checkPendingTourAdvance==='function'){
-    setTimeout(function(){ checkPendingTourAdvance().then(function(km){
-      if(km>0) _callWhenModalFree(function(){ showTourProgressPrompt(km); });
-    }); }, 12000);
+    setTimeout(function(){
+      if(_tourConsumeLock) return; // idem garde posée sur le déclencheur nav('lands'), cf commentaire là-bas
+      checkPendingTourAdvance().then(function(km){
+        if(km>0) _callWhenModalFree(function(){ showTourProgressPrompt(km); });
+      });
+    }, 12000);
   }
   // Allume la pastille "challenge actif" sur la nav Feed dès le login
   if(typeof updateChallengeNavBadge==='function'){
@@ -16722,6 +16725,19 @@ function nav(page){
     // (jusqu'à 1200ms ci-dessus) se stabiliser avant de proposer la modale.
     if(typeof checkPendingTourAdvance==='function'){
       setTimeout(function(){
+        // Ne pas rouvrir la popup si une avancée est déjà en cours de traitement
+        // (2026-08-15, bug corrigé — signalé par l'user : "la fenêtre se rouvre
+        // deux fois, et je ne vois aucun déplacement"). consumeTourAdvance()
+        // appelle nav('lands') puis attend 1,5s avant de réclamer l'avancée en
+        // base (tour_advance_position) -- si cet appel réseau met plus de temps
+        // que prévu, cette vérification-ci (programmée 2s après nav('lands'))
+        // relisait tour_run_seen_at AVANT qu'il soit mis à jour côté serveur,
+        // voyait donc encore des km en attente et rouvrait la même popup
+        // par-dessus la carte -- l'animation du pion (forceMove) se jouait alors
+        // invisible, cachée derrière cette 2e popup. _tourConsumeLock (posé par
+        // consumeTourAdvance pendant tout l'appel serveur) suffit à détecter
+        // cette situation et à sauter la vérification cette fois-ci.
+        if(_tourConsumeLock) return;
         checkPendingTourAdvance().then(function(km){
           if(km>0 && typeof _callWhenModalFree==='function') _callWhenModalFree(function(){ showTourProgressPrompt(km); });
         });
