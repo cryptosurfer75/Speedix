@@ -8329,7 +8329,7 @@ async function onLoginSuccess(user, isNew){
   }
   if(typeof checkPendingTourAdvance==='function'){
     setTimeout(function(){
-      if(_tourConsumeLock) return; // idem garde posée sur le déclencheur nav('lands'), cf commentaire là-bas
+      if(_tourConsumeLock) return; // une avancée est déjà en cours de traitement (_tourClaimAndAnimate) — éviter de proposer la popup par-dessus
       checkPendingTourAdvance().then(function(km){
         if(km>0) _callWhenModalFree(function(){ showTourProgressPrompt(km); });
       });
@@ -16714,35 +16714,19 @@ function nav(page){
         setTimeout(function(){ if(window.Tour && typeof Tour.onShow==='function') Tour.onShow(); }, delay);
       });
     },50);
-    // Re-vérification à chaque visite de la page (2026-08-09, corrigé -- bug
-    // signalé : checkPendingTourAdvance() n'était déclenché QU'AU LOGIN
-    // (cf ~ligne 8253), or la session PWA reste ouverte d'un lancement à
-    // l'autre (cf project_speedix_session_persistante_stores) -- un RP qui
-    // rouvre juste l'appli sans repasser par un vrai login ne redéclenchait
-    // donc jamais le check, et restait bloqué même avec une course en
-    // attente légitime en base. Même garde anti-collision (_callWhenModalFree)
-    // que côté login, délai un peu plus long pour laisser Tour.init()/onShow()
-    // (jusqu'à 1200ms ci-dessus) se stabiliser avant de proposer la modale.
-    if(typeof checkPendingTourAdvance==='function'){
-      setTimeout(function(){
-        // Ne pas rouvrir la popup si une avancée est déjà en cours de traitement
-        // (2026-08-15, bug corrigé — signalé par l'user : "la fenêtre se rouvre
-        // deux fois, et je ne vois aucun déplacement"). consumeTourAdvance()
-        // appelle nav('lands') puis attend 1,5s avant de réclamer l'avancée en
-        // base (tour_advance_position) -- si cet appel réseau met plus de temps
-        // que prévu, cette vérification-ci (programmée 2s après nav('lands'))
-        // relisait tour_run_seen_at AVANT qu'il soit mis à jour côté serveur,
-        // voyait donc encore des km en attente et rouvrait la même popup
-        // par-dessus la carte -- l'animation du pion (forceMove) se jouait alors
-        // invisible, cachée derrière cette 2e popup. _tourConsumeLock (posé par
-        // consumeTourAdvance pendant tout l'appel serveur) suffit à détecter
-        // cette situation et à sauter la vérification cette fois-ci.
-        if(_tourConsumeLock) return;
-        checkPendingTourAdvance().then(function(km){
-          if(km>0 && typeof _callWhenModalFree==='function') _callWhenModalFree(function(){ showTourProgressPrompt(km); });
-        });
-      }, 2000);
-    }
+    // Pas de re-vérification/re-popup ici (2026-08-09 → retiré le 2026-08-15,
+    // bug corrigé -- signalé par l'user : "la fenêtre se rouvre deux fois, et
+    // je ne vois aucun déplacement"). Un déclencheur avait été ajouté ici en
+    // plus de celui du login pour rattraper les RP en session persistante
+    // (qui ne repassent jamais par un vrai login) -- mais ça recréait une 2e
+    // façon de proposer la MÊME popup, qui pouvait se rouvrir par-dessus
+    // elle-même pendant que consumeTourAdvance() traitait déjà une avancée
+    // (race entre son délai de 1,5s et celui-ci de 2s), cachant l'animation
+    // du pion derrière la popup rouverte. Le vrai rattrapage pour ce cas
+    // existe déjà et suffit : la pastille verte sur le bouton "Départ de
+    // course" (_refreshTourSyncDot, appelée à chaque Tour.onShow juste
+    // au-dessus) signale une course en attente sans jamais imposer de popup,
+    // et ce bouton déclenche directement l'avancée (manualSyncTourAdvance).
   }
   // Arrêter le polling chat si on quitte Teams
   if(page!=='teams'&&_chatPollInterval){clearInterval(_chatPollInterval);_chatPollInterval=null;}
@@ -17463,42 +17447,46 @@ function showTourProgressPrompt(km){
 // périmée. Le verrou JS est gardé en plus (évite un aller-retour réseau
 // inutile dans le cas simple, même onglet).
 var _tourConsumeLock = false;
+// SOURCE UNIQUE de "réclamer une avancée en attente + l'animer" (2026-08-15,
+// ménage -- avant, consumeTourAdvance() et manualSyncTourAdvance() faisaient
+// chacune leur propre appel à tour_advance_position + Tour.applyServerMove,
+// avec une gestion du verrou légèrement différente à chaque fois). Réclamation
+// + déplacement ATOMIQUES, faits d'un coup côté base par tour_advance_position
+// (2026-08-13, remplace tour_claim_pending_km + le calcul client de la case
+// d'arrivée -- cf mémoire double-avancée). Le téléphone ne calcule et n'écrit
+// plus jamais tour_idx lui-même : il reçoit from_idx/to_idx déjà décidés par
+// le serveur et se contente d'animer entre les deux.
+// Renvoie {status:'locked'|'not_ready'|'error'|'ok', data}.
+async function _tourClaimAndAnimate(){
+  if(_tourConsumeLock) return {status:'locked'};
+  if(!(window.Tour && typeof Tour.applyServerMove==='function' && currentUser)) return {status:'not_ready'};
+  _tourConsumeLock = true;
+  try{
+    var res = await supabaseClient.rpc('tour_advance_position', {p_player_id: currentUser.id});
+    var d = res && res.data;
+    if(d && d.ok && d.moved>0) Tour.applyServerMove(d);
+    return {status:'ok', data:d};
+  } catch(e){
+    console.warn('[tour-advance] claim failed:', e);
+    return {status:'error'};
+  } finally {
+    _tourConsumeLock = false;
+  }
+}
 function consumeTourAdvance(){
   if(_tourConsumeLock) return;
-  var kmHint = _pendingTourKm; // juste pour savoir s'il y a quelque chose à tenter
-  if(!kmHint || kmHint<=0) return;
-  _tourConsumeLock = true;
+  if(!_pendingTourKm || _pendingTourKm<=0) return;
   _pendingTourKm = 0;
   // nav('lands') déclenche déjà Tour.init() tout seul (cf nav(), ~50ms puis
   // onShow() à 200/500/1200ms) — ne PAS le rappeler ici, sinon double init
   // (calques de carte dupliqués). On se cale après le dernier onShow().
   nav('lands');
-  setTimeout(function(){
-    // applyServerMove (pas runKm direct) : si c'est la 1ère visite du RP sur le
-    // Tour, Tour.init() vient d'ouvrir la modale de choix Paris/Marseille — il
-    // ne faut PAS déplacer le pion avant que ce choix soit fait, sinon la
-    // modale d'arrivée sur une Land écrase la modale de départ en plein milieu
-    // (bug signalé 2026-08-07 : "je n'ai pas eu le temps de choisir mon départ").
-    if(window.Tour && typeof Tour.applyServerMove==='function' && currentUser){
-      // Réclamation + déplacement ATOMIQUES, faits d'un coup côté base par
-      // tour_advance_position (2026-08-13, remplace tour_claim_pending_km +
-      // le calcul client de la case d'arrivée -- cf mémoire double-avancée).
-      // Le téléphone ne calcule et n'écrit plus jamais tour_idx lui-même :
-      // il reçoit from_idx/to_idx déjà décidés par le serveur et se contente
-      // d'animer entre les deux.
-      supabaseClient.rpc('tour_advance_position', {p_player_id: currentUser.id}).then(function(res){
-        var d = res && res.data;
-        if(d && d.ok && d.moved>0) Tour.applyServerMove(d);
-        _tourConsumeLock = false;
-      }, function(e){ console.warn('[tour-advance] claim failed:', e); _tourConsumeLock=false; });
-    } else {
-      // Tour pas prêt (ou pas de currentUser) : on remet le km en attente pour
-      // ne pas le perdre -- rien n'a été réclamé en base.
-      _pendingTourKm = kmHint;
-      _tourConsumeLock = false;
-      console.warn('[tour-advance] Tour pas prêt, avancée reportée');
-    }
-  }, 1500);
+  // Délai avant de réclamer : si c'est la 1ère visite du RP sur le Tour,
+  // Tour.init() vient d'ouvrir la modale de choix Paris/Marseille — il ne faut
+  // PAS déplacer le pion avant que ce choix soit fait, sinon la modale
+  // d'arrivée sur une Land écrase la modale de départ en plein milieu (bug
+  // signalé 2026-08-07 : "je n'ai pas eu le temps de choisir mon départ").
+  setTimeout(_tourClaimAndAnimate, 1500);
 }
 
 // Bouton "Vérifier mes courses" (2026-08-09, demande explicite user, suite au
@@ -17530,39 +17518,28 @@ async function _refreshTourSyncDot(){
 }
 async function manualSyncTourAdvance(){
   if(!currentUser) return;
-  // Même verrou que consumeTourAdvance (2026-08-11, cf commentaire là-bas) --
-  // évite de rejouer l'avancée si la popup automatique est déjà en train de
-  // la consommer au moment où le RP clique sur ce bouton.
   if(_tourConsumeLock){
     if(typeof showToast==='function') showToast('⏳ Synchronisation déjà en cours...');
     return;
   }
   // Pré-check juste pour l'UX (dire "déjà à jour" tout de suite sans passer
   // par la base) -- la réclamation + le déplacement réels, atomiques, se font
-  // plus bas via tour_advance_position (cf commentaire détaillé dans
-  // consumeTourAdvance, 2026-08-13).
+  // dans _tourClaimAndAnimate() via tour_advance_position (2026-08-13).
   var kmHint = await checkPendingTourAdvance();
   if(!kmHint || kmHint<=0){
     _setTourSyncDot(false);
     if(typeof showToast==='function') showToast('✅ Tu es déjà à jour, rien à synchroniser.');
     return;
   }
-  if(_tourConsumeLock){
+  var res = await _tourClaimAndAnimate();
+  if(res.status==='not_ready'){
+    if(typeof showToast==='function') showToast('⚠️ Le Tour n\'est pas encore prêt, réessaie dans un instant.');
+  } else if(res.status==='locked'){
     if(typeof showToast==='function') showToast('⏳ Synchronisation déjà en cours...');
-    return;
+  } else if(!(res.data && res.data.ok && res.data.moved>0)){
+    if(typeof showToast==='function') showToast('✅ Tu es déjà à jour, rien à synchroniser.');
   }
-  if(window.Tour && typeof Tour.applyServerMove==='function'){
-    _tourConsumeLock = true;
-    _pendingTourKm = 0;
-    var _res = await supabaseClient.rpc('tour_advance_position', {p_player_id: currentUser.id}).catch(function(e){ console.warn('[tour-advance] claim failed:', e); return null; });
-    var d = _res && _res.data;
-    if(d && d.ok && d.moved>0) Tour.applyServerMove(d);
-    else if(typeof showToast==='function') showToast('✅ Tu es déjà à jour, rien à synchroniser.');
-    _setTourSyncDot(false);
-    _tourConsumeLock = false;
-  } else if(typeof showToast==='function') {
-    showToast('⚠️ Le Tour n\'est pas encore prêt, réessaie dans un instant.');
-  }
+  _setTourSyncDot(false);
 }
 
 // Créditer RPC et/ou NYX (montants positifs)
