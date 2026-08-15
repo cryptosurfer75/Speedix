@@ -10220,8 +10220,8 @@ function renderDashboard(){
     //    -- statique, JAMAIS d'animation, priorité la plus basse (le skin
     //    temporaire de victoire prend le dessus tant qu'il est actif).
     var _medalBgActive=!!(p && p.medalBgC1 && p.medalBgC2 && p.medalBgUntil && new Date(p.medalBgUntil).getTime()>Date.now());
-    var _skinC1=(isOwn&&TEST_MEDAL_BG)?'#ffe08a':(_medalBgActive?p.medalBgC1:(p&&p.equippedBgC1))||null;
-    var _skinC2=(isOwn&&TEST_MEDAL_BG)?'#b8860b':(_medalBgActive?p.medalBgC2:(p&&p.equippedBgC2))||null;
+    var _skinC1=(isOwn&&TEST_MEDAL_BG)?'#5eead4':(_medalBgActive?p.medalBgC1:(p&&p.equippedBgC1))||null;
+    var _skinC2=(isOwn&&TEST_MEDAL_BG)?'#0f766e':(_medalBgActive?p.medalBgC2:(p&&p.equippedBgC2))||null;
     var _skinActive=!!(_skinC1&&_skinC2);
     // L'animation (pluie+faisceau) tourne pour le test OU pour une victoire
     // réelle encore dans sa fenêtre de 48h -- jamais pour le skin permanent.
@@ -11355,8 +11355,8 @@ function renderLeaguePanel(){
       // équipé (une fois les 48h passées) ne teinte lui JAMAIS la ligne --
       // uniquement l'avatar, cf renderAvatarCanvas.
       var _meSkinActive=TEST_MEDAL_BG||_rowMedalActive;
-      var _meC1=TEST_MEDAL_BG?'#ffe08a':(p.medalBgC1||null);
-      var _meC2=TEST_MEDAL_BG?'#b8860b':(p.medalBgC2||null);
+      var _meC1=TEST_MEDAL_BG?'#5eead4':(p.medalBgC1||null);
+      var _meC2=TEST_MEDAL_BG?'#0f766e':(p.medalBgC2||null);
       return '<tr'+rowSkinClass+' data-uuid="'+(p._uuid||'')+'" style="'+_cascadeStyle+'"><td colspan="3" style="padding:.3rem 0;border-bottom:none">'
         +'<div class="my-row-tile" style="display:flex;align-items:center;'+(_meSkinActive?'--medal-c1:'+_meC1+';--medal-c2:'+_meC2:'')+'">'
         // mrt-border : pulsation violette par défaut (myRowGlowPulse, toujours
@@ -11655,8 +11655,8 @@ function renderLeaguePanel(){
       // explicite -- "on gardera aussi dans le classement l'habillage du
       // fond de son avatar qd il s'équipe d'un fond de PC").
       var _avMedalActive=p.medalBgC1&&p.medalBgC2&&p.medalBgUntil&&new Date(p.medalBgUntil).getTime()>Date.now();
-      var _avC1=(p.id===1 && TEST_MEDAL_BG)?'#ffe08a':(_avMedalActive?p.medalBgC1:(p.equippedBgC1?p.equippedBgC1:null));
-      var _avC2=(p.id===1 && TEST_MEDAL_BG)?'#b8860b':(_avMedalActive?p.medalBgC2:(p.equippedBgC2?p.equippedBgC2:null));
+      var _avC1=(p.id===1 && TEST_MEDAL_BG)?'#5eead4':(_avMedalActive?p.medalBgC1:(p.equippedBgC1?p.equippedBgC1:null));
+      var _avC2=(p.id===1 && TEST_MEDAL_BG)?'#0f766e':(_avMedalActive?p.medalBgC2:(p.equippedBgC2?p.equippedBgC2:null));
       if(p.avatar){
         var img=new Image();
         var _ox=ox;
@@ -20648,6 +20648,7 @@ var _CITY_CREST_OVERRIDES=[
   {match:/BUDAPEST/i, image:'ai-icons/challenge-crests/budapest-v1.png', medal:true, ribbonColors:['#e0935a','#a85a1f'], ribbonRise:9},
   {match:/PORTO/i, image:'ai-icons/challenge-crests/porto-v1.png', medal:true, ribbonColors:['#f5a83c','#b8650f'], ribbonRise:7},
   {match:/REZ[ÉE]/i, image:'ai-icons/challenge-crests/reze-v3.png', medal:true, ribbonColors:['#ffdb4d','#a86c00'], ribbonRise:0, ribbonLen:43, ribbonFlat:true, medalImgH:94},
+  {match:/LILLE/i, image:'ai-icons/challenge-crests/lille-v3.png', medal:true, ribbonColors:['#5eead4','#0f766e'], medalBackdrop:true, ribbonFlat:true},
   {match:/PROSPECTEUR/i, image:'ai-icons/defi-icons/prospecteur-v1.png', hexBadge:true},
   {match:/^5K$/i, image:'ai-icons/defi-icons/run5k-v1.png', hexBadge:true},
   {match:/^10K$/i, image:'ai-icons/defi-icons/run10k-v1.png', hexBadge:true},
@@ -20696,7 +20697,7 @@ var _CITY_CREST_OVERRIDES=[
 function _decorateBadgeWithCityCrest(b){
   if(!b || b.image) return b; // déjà décoré (ou pas de match nécessaire)
   var ov=_CITY_CREST_OVERRIDES.find(function(o){return o.match.test(b.name||'');});
-  if(ov){ b.image=ov.image; b.image_x=15; b.image_y=18; b.image_w=70; b.image_h=74; b.medal=!!ov.medal; b.ribbonColors=ov.ribbonColors; b.ribbonRise=ov.ribbonRise||0; b.ribbonLen=ov.ribbonLen; b.ribbonFlat=!!ov.ribbonFlat; b.medalImgY=ov.medalImgY; b.medalImgW=ov.medalImgW; b.medalImgH=ov.medalImgH; b.hexBadge=!!ov.hexBadge; b.glowAlpha=ov.glowAlpha; }
+  if(ov){ b.image=ov.image; b.image_x=15; b.image_y=18; b.image_w=70; b.image_h=74; b.medal=!!ov.medal; b.ribbonColors=ov.ribbonColors; b.ribbonRise=ov.ribbonRise||0; b.ribbonLen=ov.ribbonLen; b.ribbonFlat=!!ov.ribbonFlat; b.medalImgY=ov.medalImgY; b.medalImgW=ov.medalImgW; b.medalImgH=ov.medalImgH; b.hexBadge=!!ov.hexBadge; b.glowAlpha=ov.glowAlpha; b.medalBackdrop=!!ov.medalBackdrop; }
   return b;
 }
 
@@ -20959,6 +20960,16 @@ function _renderBadgeHex(b,isUnlocked){
         +'      <rect x="67" y="-2" width="2.6" height="36" fill="'+rc[1]+'"/>'
         +'    </g>'
         +'  </g>'
+        // Fond noir sous le ruban (2026-08-15, b.medalBackdrop) : posé juste
+        // sous le bas du ruban (meme seuil que ribPts, rl-rr) et etendu jusqu'au
+        // bas du cadre, EXACTEMENT dans le dos du blason (jamais au-dessus du
+        // ruban, sinon ca bouche l'encoche en V ou le ruban est cense se voir).
+        // Comme le PNG du blason est detoure avec un contour irregulier, ce noir
+        // absorbe tout ecart entre le bord droit du ruban et le contour reel du
+        // blason -- au lieu d'un decalage visible, ca lit comme une ombre/un
+        // support sous la medaille, donnant l'illusion que le ruban vient
+        // epouser pile le contour.
+        +(b.medalBackdrop ? '  <rect x="'+imgX+'" y="'+(rl-rr)+'" width="'+imgW+'" height="'+(118-(rl-rr))+'" fill="#0a0a0a"/>' : '')
         +'  <image href="'+b.image+'" x="'+imgX+'" y="'+imgY+'" width="'+imgW+'" height="'+imgH+'" preserveAspectRatio="xMidYMin meet" style="filter:'+medalFilter+'"/>'
         +yearRect
         +'</svg>';
