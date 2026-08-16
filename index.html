@@ -9060,6 +9060,23 @@ function _stravaWaitForCalmThen(cb){
     if(!_stravaAnyBlockerOpen()){ clearInterval(iv); cb(); }
   }, 500);
 }
+// Variante STRICTE (contrairement à _stravaAnyBlockerOpen, ne fait AUCUNE exception
+// pour sync-modal) : à utiliser pour tout ce qui n'est pas le tunnel Strava lui-même.
+// Sans ça, un tuto contextuel peut se lancer PAR-DESSUS "Synchroniser" resté ouvert
+// (le RP l'a ouvert lui-même via le bouton "POWERED BY STRAVA" toujours visible en
+// haut) → les cases pointent dans le vide, complètement décalées de ce qui est
+// visible à l'écran. Bug vécu sur le tuto PC J+1 (feed/team/parrainage), 2026-08-16.
+function _anyModalOpenStrict(){
+  if(document.querySelector('.modal.open')) return true;
+  if(document.getElementById('tuto-overlay')) return true;
+  return false;
+}
+function _waitForFullCalmThen(cb){
+  if(!_anyModalOpenStrict()){ cb(); return; }
+  var iv=setInterval(function(){
+    if(!_anyModalOpenStrict()){ clearInterval(iv); cb(); }
+  }, 500);
+}
 // Comptes test exclus du tunnel Strava (J1 + mur J+1) — sinon impossible de
 // les utiliser pour faire des essais sans avoir à reconnecter Strava.
 var _STRAVA_PROMPT_BYPASS_USERNAMES=['laura q-runner','jordan smith','nakamoto-75'];
@@ -9097,8 +9114,9 @@ function _maybeShowPcTutorial2(pd){
     if(_isStravaLinkedNow && !_isStravaLinkedNow()) return; // déconnecté entre-temps
     var dash=document.getElementById('page-dashboard');
     if(!dash || dash.style.display==='none') return; // pas sur la PC
-    // Attendre le calme (aucune modale ni tuto déjà ouvert)
-    _stravaWaitForCalmThen(function(){
+    // Attendre le calme (aucune modale ni tuto déjà ouvert) — variante stricte :
+    // contrairement à _stravaWaitForCalmThen, "Synchroniser" compte comme bloqueur ici.
+    _waitForFullCalmThen(function(){
       try{ localStorage.setItem(key,'1'); }catch(e){}
       if(typeof startContextualTuto==='function') startContextualTuto(_pcTutorial2Steps);
     });
