@@ -2801,7 +2801,7 @@ select option{background:#040c1c}
                vide entre le haut de la vraie fenêtre du cadre (2.27%) et le haut de
                #pc-avatar-box (22.4%) -- pas toute la fenêtre. Vide par défaut (aucun
                impact hors test) ; rempli en JS uniquement pour isOwn. -->
-          <div id="pc-avatar-badge-band" style="position:absolute;left:9.05%;top:2.4%;width:81.9%;height:22.3%;z-index:1;clip-path:polygon(10px 0,calc(100% - 10px) 0,100% 10px,100% 100%,0 100%,0 10px);overflow:hidden;display:flex;align-items:center;justify-content:center"></div>
+          <div id="pc-avatar-badge-band" style="position:absolute;left:9.05%;top:2.4%;width:81.9%;height:22.3%;z-index:1;clip-path:polygon(10px 0,calc(100% - 10px) 0,100% 10px,100% 100%,0 100%,0 10px);overflow:hidden;display:flex;align-items:flex-start;justify-content:center;padding-top:.28rem;box-sizing:border-box"></div>
           <!-- avatar (forme normale, pas de découpe hexagonale) -->
           <div id="pc-avatar-box" style="position:absolute;left:9.05%;top:22.4%;width:81.9%;height:71.2%;z-index:1;border-radius:6px;overflow:hidden;background:var(--bg)">
             <img id="pc-avatar-img" style="width:100%;height:100%;object-fit:cover;display:none" alt="">
@@ -10275,7 +10275,12 @@ function renderDashboard(){
     // window.__viewedPlayer), jamais couverts par isPremium() qui ne lit que
     // window.__myPlayer.
     var _pcIsPremium=!!(p && p.premium && (!p.premiumUntil || new Date(p.premiumUntil).getTime()>Date.now()));
-    var _premiumBadgeHtml=_pcIsPremium?'<div style="font-family:\'Space Mono\',monospace;font-size:.5rem;font-weight:700;letter-spacing:1.5px;color:var(--gold)">PREMIUM</div>':'';
+    // 2026-08-16 (retouche demandée) : Space Mono détonnait ("pas la police
+    // qu'on a partout") -- remplacé par Bebas Neue, la police déjà utilisée
+    // pour tous les libellés/badges courts du site (ex. boutons HISTORIQUE).
+    // Remonté (align-items:flex-start + petit margin-top) : centré dans les
+    // 22.3% de hauteur du bandeau, le mot tombait visuellement trop bas.
+    var _premiumBadgeHtml=_pcIsPremium?'<div style="font-family:\'Bebas Neue\',sans-serif;font-size:.62rem;letter-spacing:2px;color:var(--gold)">PREMIUM</div>':'';
     var _skinC1=(isOwn&&TEST_MEDAL_BG)?'#5eead4':(_medalBgActive?p.medalBgC1:(p&&p.equippedBgC1))||null;
     var _skinC2=(isOwn&&TEST_MEDAL_BG)?'#0f766e':(_medalBgActive?p.medalBgC2:(p&&p.equippedBgC2))||null;
     var _skinActive=!!(_skinC1&&_skinC2);
