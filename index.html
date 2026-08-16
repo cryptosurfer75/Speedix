@@ -23294,9 +23294,31 @@ async function loadEventParticipations(){
     var {data:rows}=await supabaseClient.from('player_event_participations')
       .select('badge_id').eq('player_id',currentUser.id);
     if(!rows) return;
+    var registeredIds=new Set(rows.map(function(r){return r.badge_id;}));
     rows.forEach(function(r){
       localStorage.setItem('participated-'+r.badge_id+'-'+currentUser.id,'1');
     });
+    // Réconciliation (2026-08-16, bug signalé par l'user -- "Laura Q-Runner est
+    // bien INSCRITE (dossard affiché) mais son 10,1 km n'a validé aucun badge
+    // Edmonton") : ce loader ne faisait qu'AJOUTER les inscriptions trouvées en
+    // base, jamais retirer celles qui traînent en localStorage sans exister
+    // réellement en base -- ex. une écriture qui a échoué silencieusement avant
+    // le correctif anti-échec-silencieux du 2026-08-09 (cf participateEvent).
+    // check-badges (source de vérité = la table player_event_participations) ne
+    // récompense jamais un run tant que la vraie ligne n'existe pas, donc le RP
+    // se croyait inscrit sans l'être. On balaie ici tout ce qui traîne en
+    // localStorage sans avoir de contrepartie en base et on l'efface, pour que
+    // l'affichage "✓ INSCRIT" redevienne toujours fidèle à la base.
+    var prefix='participated-', suffix='-'+currentUser.id;
+    for(var i=localStorage.length-1;i>=0;i--){
+      var k=localStorage.key(i);
+      if(!k || k.indexOf(prefix)!==0 || k.indexOf(suffix,k.length-suffix.length)===-1) continue;
+      var badgeId=parseInt(k.slice(prefix.length,k.length-suffix.length),10);
+      if(!isNaN(badgeId) && !registeredIds.has(badgeId)){
+        localStorage.removeItem(k);
+        localStorage.removeItem('bib-'+badgeId+suffix);
+      }
+    }
     if(typeof renderChallenges==='function') renderChallenges();
     if(typeof renderMyChallenges==='function') renderMyChallenges();
   } catch(e){ console.warn('loadEventParticipations fail',e); }
