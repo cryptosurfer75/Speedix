@@ -23781,6 +23781,16 @@ function showBadgeUnlockModal(b){
   // illustré, car b vient BRUT de l'Edge Function check-badges, jamais patché
   // par _decorateBadgeWithCityCrest (signalé par l'user 2026-08-09, cas Cali).
   _decorateBadgeWithCityCrest(b);
+  // Skin "gagnant de Challenge" (2026-08-16, bug Jordan Smith) : la pose
+  // (_checkChallengeWinSkin) n'était câblée qu'au login (avant que le badge
+  // ne soit forcément déjà en base, course de vitesse avec triggerBadgeCheck
+  // qui tourne 5s après) et dans renderChallenges() (jamais appelée par le
+  // filet de sécurité _recoverMissedBadgePopups, qui affiche pourtant ce
+  // même popup). CE point-ci est le SEUL endroit où "le RP vient de gagner un
+  // badge Challenge" est vrai à coup sûr, quel que soit le chemin qui l'a
+  // détecté (check normal, filet de rattrapage, sync Strava manuelle) —
+  // appeler la pose du skin ici, pas dans chacun des appelants.
+  if(typeof _checkChallengeWinSkin==='function') _checkChallengeWinSkin();
   var color=b.color||'#f5c842';
   var rewards=[];
   if(b.reward_rpc) rewards.push('<span style="color:var(--gold)">+'+b.reward_rpc.toLocaleString(SPEEDIX_LANG)+' RPC</span>');
