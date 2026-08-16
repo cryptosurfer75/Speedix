@@ -16225,6 +16225,12 @@ async function _purchaseProduct(productId, label, emoji, priceLabel, onSuccessPo
         +'</div>';
       return;
     }
+    // Snapshot du solde AVANT le paiement (pour détecter le crédit par
+    // différence juste après) — forcé à jour pour ne pas comparer contre un
+    // window.__wallet périmé.
+    if(productType!=='SUBSCRIPTION' && typeof walletLoad==='function') await walletLoad();
+    var _beforeRpc=window.__wallet?window.__wallet.rpc:null;
+    var _beforeNyx=window.__wallet?window.__wallet.nyx:null;
     await Purchases.purchaseStoreProduct({product:product});
     document.getElementById('lm-body').innerHTML=
       '<div style="text-align:center;padding:1.5rem">'
@@ -16232,6 +16238,14 @@ async function _purchaseProduct(productId, label, emoji, priceLabel, onSuccessPo
       +'<div style="font-size:.85rem;color:var(--text)">Paiement confirmé !<br>Crédit en cours...</div>'
       +'</div>';
     if(onSuccessPoll) onSuccessPoll();
+    // Bug signalé le 2026-08-16 (valiris75, achat 10 NYX) : la fenêtre restait
+    // bloquée sur "Crédit en cours..." indéfiniment (onSuccessPoll rafraîchit
+    // bien le solde en fond, mais ne touche jamais CETTE fenêtre) — le RP
+    // devait la fermer lui-même sans jamais savoir si le crédit avait
+    // vraiment eu lieu. On vérifie maintenant activement (jusqu'à ~20s) et on
+    // met à jour/ferme la fenêtre dès que le crédit serveur (webhook
+    // grant-iap) est confirmé ; sinon message rassurant au lieu de rester figé.
+    _waitForCreditThenCloseModal(productType==='SUBSCRIPTION', _beforeRpc, _beforeNyx);
   }catch(e){
     var userCancelled=!!(e && (e.userCancelled || (e.message&&e.message.toLowerCase().indexOf('cancel')>=0)));
     if(userCancelled){ closeModal('land-modal'); return; }
@@ -16241,6 +16255,45 @@ async function _purchaseProduct(productId, label, emoji, priceLabel, onSuccessPo
       +'<div style="font-size:.65rem;color:var(--muted2);word-break:break-word;background:rgba(0,0,0,.25);padding:.5rem;border-radius:6px">'+escapeHtml((e&&(e.message||e.code||JSON.stringify(e)))||'erreur inconnue')+'</div>'
       +'</div>';
   }
+}
+
+// Vérifie activement que le crédit serveur (webhook grant-iap) est arrivé
+// (jusqu'à 8×2,5s ≈ 20s) et met à jour la fenêtre déjà ouverte en conséquence
+// — remplace le "Crédit en cours..." figé qui ne se résolvait jamais tout
+// seul. isSubscription distingue Premium (on regarde players.premium) des
+// packs RPC/NYX (on compare le solde à la valeur AVANT paiement).
+async function _waitForCreditThenCloseModal(isSubscription, beforeRpc, beforeNyx){
+  for(var i=0;i<8;i++){
+    await new Promise(function(r){ setTimeout(r,2500); });
+    var modal=document.getElementById('land-modal');
+    if(!modal || !modal.classList.contains('open')) return; // le RP a déjà fermé/quitté
+    var credited=false;
+    if(isSubscription){
+      await _refreshMyPlayerPremium();
+      credited=!!(window.__myPlayer && window.__myPlayer.premium);
+    } else {
+      await walletLoad();
+      credited=!!(window.__wallet && beforeRpc!=null && beforeNyx!=null && (window.__wallet.rpc>beforeRpc || window.__wallet.nyx>beforeNyx));
+    }
+    if(credited){
+      var body=document.getElementById('lm-body');
+      if(body) body.innerHTML=
+        '<div style="text-align:center;padding:1.5rem">'
+        +'<div style="font-size:2rem;margin-bottom:.5rem">🎉</div>'
+        +'<div style="font-size:.85rem;color:var(--text)">'+(isSubscription?'Premium activé !':'Crédit reçu !')+'</div>'
+        +'</div>';
+      setTimeout(function(){closeModal('land-modal');},1800);
+      return;
+    }
+  }
+  // Toujours pas confirmé après ~20s (rare, webhook retardé) : message
+  // rassurant plutôt qu'un texte figé sans issue — le solde se mettra à jour
+  // tout seul dès que le crédit arrivera, pas besoin de rester sur cet écran.
+  var body=document.getElementById('lm-body');
+  if(body) body.innerHTML=
+    '<div style="text-align:center;padding:1.5rem">'
+    +'<div style="font-size:.85rem;color:var(--text)">Paiement confirmé.<br>Le crédit peut prendre un peu plus de temps que prévu — ton solde se mettra à jour automatiquement, tu peux fermer cette fenêtre en toute confiance.</div>'
+    +'</div>';
 }
 
 // Le crédit RPC/NYX arrive via webhook (asynchrone, ~quelques secondes) :
