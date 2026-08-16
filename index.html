@@ -8294,6 +8294,9 @@ async function onLoginSuccess(user, isNew){
   // Charger les inscriptions aux events (sync DB → localStorage cache)
   if(typeof loadEventParticipations==='function') loadEventParticipations();
   if(typeof loadInfirmerieData==='function') loadInfirmerieData();
+  // Skin "gagnant de Challenge" : détecter et équiper dès l'ouverture de
+  // l'appli, sans attendre que le RP clique sur l'onglet Défis (cf. _checkChallengeWinSkin).
+  if(typeof _checkChallengeWinSkin==='function') _checkChallengeWinSkin();
   // Charger la période
   if(typeof loadPeriodSettings==='function') loadPeriodSettings();
   // Panel admin
@@ -20694,6 +20697,79 @@ function _decorateBadgeWithCityCrest(b){
   return b;
 }
 
+// Skin animé "gagnant de Challenge" (2026-08-08, détection ; sortie de
+// renderChallenges() le 2026-08-16 -- "48h après la fin du challenge... le
+// skin disparaît" ne se posait QUE si le RP ouvrait sa page Défis après avoir
+// gagné : au relancement de l'appli sans passer par cette page, le skin ne
+// s'affichait jamais nulle part (ni Player Card, ni classement) tant que le
+// RP n'avait pas cliqué sur l'onglet Défis. SOURCE UNIQUE de la détection,
+// appelable aussi bien depuis renderChallenges() (avec le catalogue/carte déjà
+// chargés, pour ne rien refetcher) que depuis onLoginSuccess() (sans argument,
+// pour tourner dès l'ouverture de l'appli). j'équipe automatiquement
+// players.medal_bg_c1/c2/until (jusqu'à event_date_end + 48h) -- colonnes
+// SÉPARÉES de equipped_bg_c1/c2 (le choix permanent du RP) : celles-ci sont
+// TEMPORAIRES et passent devant le skin permanent à l'affichage (cf.
+// renderDashboard/buildRow/renderAvatarCanvas), donc pas besoin ici de tenir
+// compte d'un skin permanent déjà équipé.
+async function _checkChallengeWinSkin(badgesCatalog,unlockedMap){
+  if(!currentUser || window.__viewedPlayer) return;
+  if(!badgesCatalog){
+    if(!_badgesCatalog){
+      var {data:cat}=await supabaseClient.from('badges').select('*').order('sort_order');
+      _badgesCatalog=cat||[];
+      if(typeof _localizeBadgeInplace==='function') _badgesCatalog.forEach(_localizeBadgeInplace);
+    }
+    _badgesCatalog.forEach(_decorateBadgeWithCityCrest);
+    badgesCatalog=_badgesCatalog;
+  }
+  if(!unlockedMap){
+    var {data:unlocked}=await supabaseClient.from('player_badges').select('badge_id,earned_at,last_earned_at').eq('player_id',currentUser.id);
+    unlockedMap={};
+    (unlocked||[]).forEach(function(u){ unlockedMap[u.badge_id]=u.last_earned_at||u.earned_at; });
+  }
+  var _wonMedals=badgesCatalog.filter(function(b){
+    return b.medal && b.ribbonColors && b.threshold_type==='event_run' && unlockedMap[b.id] && b.event_date_end;
+  });
+  if(!_wonMedals.length) return;
+  // Le plus récemment terminé d'abord (si plusieurs Challenges gagnés,
+  // on affiche celui dont la fenêtre de 48h est la plus fraîche).
+  _wonMedals.sort(function(a,z){ return (z.event_date_end||'').localeCompare(a.event_date_end||''); });
+  var _mb=_wonMedals[0];
+  var _mbUntil=new Date(_mb.event_date_end+'T23:59:59+02:00');
+  _mbUntil.setHours(_mbUntil.getHours()+48);
+  if(_mbUntil.getTime()<=Date.now()) return;
+  var _mbUntilIso=_mbUntil.toISOString();
+  // SOURCE UNIQUE côté base (2026-08-11, bug corrigé -- "au moindre refresh
+  // c'est celui de Cali qui revient indéfiniment" malgré un skin manuel choisi
+  // juste avant) : l'ancien check comparait contre
+  // window.__myPlayer.medalBgDismissedUntil, une copie mémoire pas toujours
+  // encore hydratée depuis la base à ce stade du rendu (course avec le fetch
+  // de onLoginSuccess) -- ce qui réécrivait medal_bg_c1/c2/until même quand
+  // medal_bg_dismissed_until était déjà correctement posé en base (vérifié :
+  // les deux colonnes contenaient la même échéance alors que le skin Cali
+  // était pourtant réapparu). La fonction apply_medal_bg_from_win fait le
+  // check ET l'écriture dans la MÊME requête SQL, contre la vraie valeur en
+  // base -- plus jamais contre une copie potentiellement périmée. _alreadySet
+  // reste un simple raccourci d'optimisation (évite un aller-retour réseau
+  // inutile quand rien n'a changé) : s'il se trompe par staleness, au pire un
+  // appel RPC de plus, jamais une écriture incorrecte.
+  var _alreadySet=window.__myPlayer && window.__myPlayer.medalBgUntil===_mbUntilIso
+    && window.__myPlayer.medalBgC1===_mb.ribbonColors[0];
+  if(_alreadySet) return;
+  var res=await supabaseClient.rpc('apply_medal_bg_from_win',{
+    p_player_id:currentUser.id, p_c1:_mb.ribbonColors[0], p_c2:_mb.ribbonColors[1],
+    p_until:_mbUntilIso, p_dist:_mb.threshold_value!=null?Math.round(_mb.threshold_value):null
+  });
+  if(!res || !res.data) return; // pas appliqué : déjà écarté par le RP, ou déjà à jour
+  if(window.__myPlayer){
+    window.__myPlayer.medalBgC1=_mb.ribbonColors[0];
+    window.__myPlayer.medalBgC2=_mb.ribbonColors[1];
+    window.__myPlayer.medalBgUntil=_mbUntilIso;
+    window.__myPlayer.medalBgDist=_mb.threshold_value!=null?Math.round(_mb.threshold_value):null;
+  }
+  if(typeof renderDashboard==='function') renderDashboard();
+}
+
 // Catégories et leurs labels (pour les filtres)
 var BADGE_CATEGORIES={
   single_run:     {label:'🏃 Course', order:1},
@@ -21167,65 +21243,9 @@ async function renderChallenges(){
   });
   if(!window.__viewedPlayer) timesEarnedMapGlobal=timesEarnedMap;
 
-  // Skin animé "gagnant de Challenge" (2026-08-08, demande explicite --
-  // "48h après la fin du challenge, si dimanche minuit fin du challenge, le
-  // skin disparaît le mardi minuit", détection AUTOMATIQUE via les badges
-  // gagnés) : dès que MA propre page Défis charge et détecte un Challenge
-  // "ville" (medal + ribbonColors + event_run) que je viens de gagner,
-  // j'équipe automatiquement players.medal_bg_c1/c2/until (jusqu'à
-  // event_date_end + 48h) -- colonnes SÉPARÉES de equipped_bg_c1/c2 (le choix
-  // permanent du RP) : celles-ci sont TEMPORAIRES et se réinitialisent toutes
-  // seules (l'expiration se juge à l'AFFICHAGE en comparant medal_bg_until à
-  // maintenant, cf renderDashboard/buildRow/renderAvatarCanvas -- pas besoin
-  // d'un cron pour que ça disparaisse pile à l'heure chez tout le monde).
-  if(!window.__viewedPlayer && currentUser){
-    var _wonMedals=_badgesCatalog.filter(function(b){
-      return b.medal && b.ribbonColors && b.threshold_type==='event_run' && unlockedMap[b.id] && b.event_date_end;
-    });
-    if(_wonMedals.length){
-      // Le plus récemment terminé d'abord (si plusieurs Challenges gagnés,
-      // on affiche celui dont la fenêtre de 48h est la plus fraîche).
-      _wonMedals.sort(function(a,z){ return (z.event_date_end||'').localeCompare(a.event_date_end||''); });
-      var _mb=_wonMedals[0];
-      var _mbUntil=new Date(_mb.event_date_end+'T23:59:59+02:00');
-      _mbUntil.setHours(_mbUntil.getHours()+48);
-      if(_mbUntil.getTime()>Date.now()){
-        var _mbUntilIso=_mbUntil.toISOString();
-        // SOURCE UNIQUE côté base (2026-08-11, bug corrigé -- "au moindre
-        // refresh c'est celui de Cali qui revient indéfiniment" malgré un
-        // skin manuel choisi juste avant) : l'ancien check comparait contre
-        // window.__myPlayer.medalBgDismissedUntil, une copie mémoire pas
-        // toujours encore hydratée depuis la base à ce stade du rendu (course
-        // avec le fetch de onLoginSuccess) -- ce qui réécrivait medal_bg_c1/
-        // c2/until même quand medal_bg_dismissed_until était déjà correctement
-        // posé en base (vérifié : les deux colonnes contenaient la même
-        // échéance alors que le skin Cali était pourtant réapparu). La
-        // fonction apply_medal_bg_from_win fait le check ET l'écriture dans
-        // la MÊME requête SQL, contre la vraie valeur en base -- plus jamais
-        // contre une copie potentiellement périmée. _alreadySet reste un
-        // simple raccourci d'optimisation (évite un aller-retour réseau
-        // inutile quand rien n'a changé) : s'il se trompe par staleness, au
-        // pire un appel RPC de plus, jamais une écriture incorrecte.
-        var _alreadySet=window.__myPlayer && window.__myPlayer.medalBgUntil===_mbUntilIso
-          && window.__myPlayer.medalBgC1===_mb.ribbonColors[0];
-        if(!_alreadySet){
-          supabaseClient.rpc('apply_medal_bg_from_win',{
-            p_player_id:currentUser.id, p_c1:_mb.ribbonColors[0], p_c2:_mb.ribbonColors[1],
-            p_until:_mbUntilIso, p_dist:_mb.threshold_value!=null?Math.round(_mb.threshold_value):null
-          }).then(function(res){
-            if(!res || !res.data) return; // pas appliqué : déjà écarté par le RP, ou déjà à jour
-            if(window.__myPlayer){
-              window.__myPlayer.medalBgC1=_mb.ribbonColors[0];
-              window.__myPlayer.medalBgC2=_mb.ribbonColors[1];
-              window.__myPlayer.medalBgUntil=_mbUntilIso;
-              window.__myPlayer.medalBgDist=_mb.threshold_value!=null?Math.round(_mb.threshold_value):null;
-            }
-            if(typeof renderDashboard==='function') renderDashboard();
-          });
-        }
-      }
-    }
-  }
+  // Skin animé "gagnant de Challenge" : détection auto, cf _checkChallengeWinSkin
+  // (sortie d'ici le 2026-08-16 pour être appelable aussi depuis onLoginSuccess).
+  _checkChallengeWinSkin(_badgesCatalog,unlockedMap);
 
   // 3. Stats runs : on compte TOUS les runs y compris les flagués. Le flag
   // sert uniquement à la review admin (panel admin/triche), il ne doit pas
