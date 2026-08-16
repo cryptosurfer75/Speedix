@@ -2210,7 +2210,16 @@ body::after{
    Ancré par le HAUT (top:40%, hauteur des griffes de la couronne sur l'image)
    plutôt que par le bas : le bouton "Créer mon compte" démarre pile à ce
    niveau, le reste (2e bouton + slogan) suit en flux normal en dessous. */
-#hero-steps-wrap{max-width:420px;margin:0 auto;padding:.8rem 20px 1.2rem}
+/* Marge basse (2026-08-16, signalé par l'user -- "mot de passe oublié" sur
+   Samsung : le bouton VALIDER se retrouvait sous la barre de navigation du
+   téléphone, injoignable) : hors mode plein écran (.hero-fs, cf plus bas qui
+   réserve déjà env(safe-area-inset-bottom)), le formulaire connexion/
+   inscription/mot de passe oublié n'avait qu'1.2rem de marge basse fixe --
+   jamais assez sur les téléphones à barre de navigation gestuelle/logicielle.
+   S'applique à TOUT le contenu de #hero-steps-wrap (login, inscription, mot
+   de passe oublié partagent le même conteneur), pas seulement au formulaire
+   de reset. */
+#hero-steps-wrap{max-width:420px;margin:0 auto;padding:.8rem 20px calc(env(safe-area-inset-bottom) + 2rem)}
 #hero-cover-outer.hero-fs #hero-steps-wrap{position:fixed;left:0;right:0;top:70%;max-width:420px;margin:0 auto;padding:16px 20px calc(env(safe-area-inset-bottom) + 20px);z-index:2}
 /* Tuto contextuel : overlay sombre + spotlight sur le bouton ciblé + bulle */
 .tuto-overlay{position:fixed;inset:0;z-index:9999;background:transparent;pointer-events:auto}
