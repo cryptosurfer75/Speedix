@@ -10267,6 +10267,15 @@ function renderDashboard(){
     //    -- statique, JAMAIS d'animation, priorité la plus basse (le skin
     //    temporaire de victoire prend le dessus tant qu'il est actif).
     var _medalBgActive=!!(p && p.medalBgC1 && p.medalBgC2 && p.medalBgUntil && new Date(p.medalBgUntil).getTime()>Date.now());
+    // Mention "PREMIUM" dans le bandeau vide au-dessus de l'avatar (2026-08-16,
+    // demande explicite -- ce bandeau était noir sur fond noir, invisible,
+    // aucune indication qu'un RP est Premium sur sa Player Card). Même règle
+    // d'expiration que isPremium() (index.html), tenue ici séparément : cette
+    // fonction gère AUSSI les cartes d'AUTRES joueurs (p peut être
+    // window.__viewedPlayer), jamais couverts par isPremium() qui ne lit que
+    // window.__myPlayer.
+    var _pcIsPremium=!!(p && p.premium && (!p.premiumUntil || new Date(p.premiumUntil).getTime()>Date.now()));
+    var _premiumBadgeHtml=_pcIsPremium?'<div style="font-family:\'Space Mono\',monospace;font-size:.5rem;font-weight:700;letter-spacing:1.5px;color:var(--gold)">PREMIUM</div>':'';
     var _skinC1=(isOwn&&TEST_MEDAL_BG)?'#5eead4':(_medalBgActive?p.medalBgC1:(p&&p.equippedBgC1))||null;
     var _skinC2=(isOwn&&TEST_MEDAL_BG)?'#0f766e':(_medalBgActive?p.medalBgC2:(p&&p.equippedBgC2))||null;
     var _skinActive=!!(_skinC1&&_skinC2);
@@ -10403,7 +10412,7 @@ function renderDashboard(){
       var badgeBandEl=document.getElementById('pc-avatar-badge-band');
       if(badgeBandEl){
         badgeBandEl.style.background='var(--bg)';
-        badgeBandEl.innerHTML='';
+        badgeBandEl.innerHTML=_premiumBadgeHtml;
       }
       // Avatar de la Player Card : JAMAIS de fond teinté ici (2026-08-08,
       // corrigé -- "j'ai peur qu'en équipant le fond de l'avatar, ça habille
@@ -10415,7 +10424,7 @@ function renderDashboard(){
       if(cv)cv.style.display='none';
     } else {
       var badgeBandEl2=document.getElementById('pc-avatar-badge-band');
-      if(badgeBandEl2){ badgeBandEl2.style.background='transparent'; badgeBandEl2.innerHTML=''; }
+      if(badgeBandEl2){ badgeBandEl2.style.background='transparent'; badgeBandEl2.innerHTML=_premiumBadgeHtml; }
       if(imgEl)imgEl.style.display='none';
       if(cv){
         cv.style.display='block';
