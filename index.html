@@ -16192,7 +16192,7 @@ function _hasRevenueCat(){
 // Le crédit réel (wallet ou Premium) n'est JAMAIS fait ici : il arrive via le
 // webhook serveur grant-iap, seul habilité à valider un paiement auprès
 // d'Apple/Google. Ce flow ne fait qu'ouvrir le paiement natif et attendre.
-async function _purchaseProduct(productId, label, emoji, priceLabel, onSuccessPoll){
+async function _purchaseProduct(productId, label, emoji, priceLabel, onSuccessPoll, productType){
   document.getElementById('lm-title').textContent=emoji+' '+label;
   document.getElementById('lm-body').innerHTML=
     '<div style="text-align:center;padding:1.5rem">'
@@ -16208,7 +16208,14 @@ async function _purchaseProduct(productId, label, emoji, priceLabel, onSuccessPo
   // déjà ouverte, pour que le RP puisse le lire/capturer et nous le
   // transmettre. À retirer une fois le vrai blocage identifié.
   try{
-    var got=await Purchases.getProducts({productIdentifiers:[productId]});
+    // Bug trouvé le 2026-08-16 (test réel valiris75, "produit indisponible" /
+    // {"products":[]} sur nyx_10 malgré Google Play + RevenueCat vérifiés
+    // sains) : getProducts() sans "type" cherche par défaut dans les
+    // ABONNEMENTS (comportement RevenueCat documenté), donc ne trouvait
+    // jamais nos packs RPC/NYX qui sont des produits NON_SUBSCRIPTION. Le
+    // Premium marchait "par hasard" (c'est bien un abonnement, le défaut
+    // tombait juste). Chaque appelant précise maintenant son vrai type.
+    var got=await Purchases.getProducts({productIdentifiers:[productId],type:productType||'SUBSCRIPTION'});
     var product=got && got.products && got.products[0];
     if(!product){
       document.getElementById('lm-body').innerHTML=
@@ -16283,7 +16290,7 @@ function buyPack(type, amount, price){
   var emoji=type==='rpc'?'💰':'💎';
   var productId=(type==='rpc'?IAP_RPC_PRODUCTS:IAP_NYX_PRODUCTS)[amount];
   if(_hasRevenueCat() && productId){
-    _purchaseProduct(productId, label, emoji, price, _pollWalletCredit);
+    _purchaseProduct(productId, label, emoji, price, _pollWalletCredit, 'NON_SUBSCRIPTION');
     return;
   }
   document.getElementById('lm-title').textContent=emoji+' Acheter '+label;
@@ -16435,7 +16442,7 @@ function handlePremiumClick(){
 async function _buyPremium(productId){
   var label=productId==='premium_yearly'?'Premium Annuel':'Premium Mensuel';
   var price=productId==='premium_yearly'?'59,99€/an':'5,99€/mois';
-  _purchaseProduct(productId, label, '⭐', price, _pollPremiumActivation);
+  _purchaseProduct(productId, label, '⭐', price, _pollPremiumActivation, 'SUBSCRIPTION');
 }
 
 function showTrialOffer(){
