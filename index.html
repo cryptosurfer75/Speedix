@@ -8887,14 +8887,28 @@ function showNewPasswordForm(){
     var el=document.getElementById(id);
     if(el)el.style.display='none';
   });
+  // ⚠️ Corrigé (2026-08-16, signalé par l'user -- bouton ENREGISTRER sous la
+  // barre de navigation sur Samsung, impossible à valider) : arrivée directe
+  // depuis le lien email de reset, AVANT tout appel à showLoginScreen()/hgo()
+  // -- #hero-cover-outer garde donc sa classe .hero-fs par défaut (posée dans
+  // le HTML initial), qui bascule #hero-steps-wrap en position:fixed ancré à
+  // top:70% du viewport (cf CSS). Le formulaire (titre + 2 champs + bouton)
+  // dépassait alors cette zone fixe sans aucun moyen de scroller pour
+  // atteindre le bouton. On sort du mode plein écran comme le fait
+  // showLoginScreen(), pour repasser en flux normal (scrollable, avec la
+  // marge basse safe-area déjà réservée sur #hero-steps-wrap).
+  var _hco=document.getElementById('hero-cover-outer');
+  if(_hco) _hco.classList.remove('hero-fs');
   hs1.innerHTML=
     '<div style="background:rgba(4,12,28,.96);border:1px solid rgba(245,200,66,.3);border-radius:13px;padding:18px;display:flex;flex-direction:column;gap:10px;margin-bottom:9px">'+
       '<div style="font-family:Bebas Neue,sans-serif;font-size:1rem;letter-spacing:3px;color:#f5c842;text-align:center">NOUVEAU MOT DE PASSE</div>'+
       '<div style="font-size:.6rem;color:#8aaccc;text-align:center;font-family:Space Mono,monospace">Choisis un nouveau mot de passe sécurisé.</div>'+
       '<div><label style="font-size:.56rem;color:#8aaccc;text-transform:uppercase;letter-spacing:.8px;display:block;margin-bottom:3px">Nouveau mot de passe</label>'+
-      '<input id="new-pwd" type="password" placeholder="••••••••" style="width:100%;box-sizing:border-box;padding:10px 12px;border-radius:8px;background:rgba(4,12,28,.8);border:1px solid rgba(245,200,66,.3);color:#fff;font-family:Space Mono,monospace;font-size:.8rem;outline:none"></div>'+
+      '<div style="position:relative"><input id="new-pwd" type="password" placeholder="••••••••" style="width:100%;box-sizing:border-box;padding:10px 36px 10px 12px;border-radius:8px;background:rgba(4,12,28,.8);border:1px solid rgba(245,200,66,.3);color:#fff;font-family:Space Mono,monospace;font-size:.8rem;outline:none">'+
+      '<span onclick="var p=document.getElementById(\'new-pwd\');p.type=p.type===\'password\'?\'text\':\'password\';this.textContent=p.type===\'password\'?\'👁\':\'👁‍🗨\'" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);cursor:pointer;font-size:.8rem;user-select:none">👁</span></div></div>'+
       '<div><label style="font-size:.56rem;color:#8aaccc;text-transform:uppercase;letter-spacing:.8px;display:block;margin-bottom:3px">Confirmer</label>'+
-      '<input id="new-pwd2" type="password" placeholder="••••••••" style="width:100%;box-sizing:border-box;padding:10px 12px;border-radius:8px;background:rgba(4,12,28,.8);border:1px solid rgba(245,200,66,.3);color:#fff;font-family:Space Mono,monospace;font-size:.8rem;outline:none"></div>'+
+      '<div style="position:relative"><input id="new-pwd2" type="password" placeholder="••••••••" style="width:100%;box-sizing:border-box;padding:10px 36px 10px 12px;border-radius:8px;background:rgba(4,12,28,.8);border:1px solid rgba(245,200,66,.3);color:#fff;font-family:Space Mono,monospace;font-size:.8rem;outline:none">'+
+      '<span onclick="var p=document.getElementById(\'new-pwd2\');p.type=p.type===\'password\'?\'text\':\'password\';this.textContent=p.type===\'password\'?\'👁\':\'👁‍🗨\'" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);cursor:pointer;font-size:.8rem;user-select:none">👁</span></div></div>'+
       '<div id="newpwd-msg" style="font-size:.65rem;text-align:center;display:none;font-family:Space Mono,monospace"></div>'+
     '</div>'+
     '<button onclick="doUpdatePassword()" id="newpwd-btn" style="width:100%;padding:12px;border-radius:10px;border:none;border-bottom:4px solid #0c2e10;background:linear-gradient(180deg,#f5c842,#b8860b);color:#000;font-family:Bebas Neue,sans-serif;font-size:1rem;letter-spacing:3px;cursor:pointer;font-weight:900">ENREGISTRER →</button>';
