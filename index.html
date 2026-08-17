@@ -8038,6 +8038,21 @@ function usernameCasingError(username){
   return null;
 }
 
+// Création de la fiche players — SOURCE UNIQUE, appelée à l'inscription ET par
+// le filet de sécurité à la connexion. Avant ce correctif (cas Clément, 2026-08-17),
+// un échec de cette écriture (réseau, etc.) passait inaperçu : le RP se
+// retrouvait dans l'appli sans fiche (avatar qui ne tient pas, stats jamais
+// sauvegardées) sans aucun message. On retente une fois avant d'abandonner.
+async function upsertPlayerWithRetry(insertData){
+  for(var attempt=1;attempt<=2;attempt++){
+    var {data,error}=await supabaseClient.from('players').upsert(insertData,{onConflict:'id'}).select().maybeSingle();
+    if(!error && data) return data;
+    console.warn('[player-create] tentative '+attempt+' échouée',error);
+    if(attempt===1) await new Promise(function(r){setTimeout(r,900);});
+  }
+  return null;
+}
+
 async function doRegister(){
   // Kill switch : si l'admin a fermé les inscriptions
   if(window.__appSettings && window.__appSettings.registration_disabled){
@@ -8108,7 +8123,17 @@ async function doRegister(){
       streak_phase:0, streak_count:0, streak_misses:[]};
     if(newRtwId) insertData.rtw_id=newRtwId;
     if(parrainUuid) insertData.referred_by=parrainUuid;
-    var {data:ins,error:insErr}=await supabaseClient.from('players').upsert(insertData,{onConflict:'id'}).select();
+    var createdPlayer=await upsertPlayerWithRetry(insertData);
+    if(!createdPlayer){
+      // La fiche n'a pas pu être créée même après une nouvelle tentative : on ne
+      // laisse pas le RP entrer dans une appli sans données. Le compte auth existe
+      // déjà (signUp a réussi) donc une réinscription avec le même email le
+      // renverra vers l'écran de connexion, où le filet de sécurité de
+      // onLoginSuccess retentera la création.
+      try{ await supabaseClient.auth.signOut(); }catch(e){}
+      showHgoError('⚠️ La création de ton compte a rencontré un problème. Réessaie dans un instant.');
+      return false;
+    }
     // Nettoyer le code parrain en localStorage (utilisé une fois)
     try{ localStorage.removeItem('pending_ref_code'); }catch(e){}
   }
@@ -8165,7 +8190,7 @@ async function onLoginSuccess(user, isNew){
     var _defaultUsername=meta.username||user.email.split('@')[0];
     // Avatar par défaut : généré depuis le username (consistant, cartoon DiceBear)
     var _defaultAvatar='https://api.dicebear.com/9.x/avataaars/svg?seed='+encodeURIComponent(_defaultUsername);
-    var {data:ins}=await supabaseClient.from('players').upsert({
+    pd=await upsertPlayerWithRetry({
       id:user.id,
       username:_defaultUsername,
       email:user.email,
@@ -8179,8 +8204,17 @@ async function onLoginSuccess(user, isNew){
       streak_phase:0,
       streak_count:0,
       streak_misses:[]
-    },{onConflict:'id'}).select().maybeSingle();
-    pd=ins;
+    });
+    if(!pd){
+      // Toujours pas de fiche après une nouvelle tentative : on ne laisse jamais
+      // le RP entrer dans une appli sans fiche (avatar qui ne tient pas, stats
+      // jamais sauvegardées — cas Clément, 2026-08-17). On le déconnecte et on
+      // l'invite à réessayer plutôt que de le laisser bloqué en silence.
+      try{ await supabaseClient.auth.signOut(); }catch(e){}
+      showToast('⚠️ Ton compte n\'a pas pu être chargé. Réessaie de te reconnecter dans un instant.');
+      setTimeout(function(){ window.location.href='/'; }, 2500);
+      return;
+    }
   }
   // Rétro-compat : si un joueur existant n'a pas d'avatar (compte créé avant ce correctif),
   // on lui en attribue un par défaut dérivé de son username.
