@@ -23232,7 +23232,11 @@ function openEventDistancePicker(ids){
     var reward=[];
     if(o.reward_rpc) reward.push('<span style="color:var(--gold)">+'+o.reward_rpc.toLocaleString(SPEEDIX_LANG)+' RPC</span>');
     if(o.reward_nyx) reward.push('<span style="color:var(--green)">+'+o.reward_nyx+' 💎</span>');
-    var label=o.threshold_value>=42?'Marathon · '+o.threshold_value+' km':(o.threshold_value>=21?'Semi-marathon · '+o.threshold_value+' km':o.threshold_value+' km');
+    // Fourchette resserree (2026-08-17, corrige — "30km" heritait a tort de
+    // l'etiquette "Semi-marathon" car >=21 seul l'incluait) : seule la vraie
+    // distance du semi (21-25km, couvre 21.1 pile) prend ce libelle special ;
+    // les autres distances (30km, etc.) affichent juste leur valeur brute.
+    var label=o.threshold_value>=42?'Marathon · '+o.threshold_value+' km':((o.threshold_value>=20&&o.threshold_value<25)?'Semi-marathon · '+o.threshold_value+' km':o.threshold_value+' km');
     return '<div class="event-dist-opt" data-badge-id="'+o.id+'" data-badge-name="'+(o.name||'').replace(/"/g,'&quot;')+'" data-selected="'+(i===0?'1':'0')+'" onclick="_selectEventDist(this)" style="display:flex;align-items:center;justify-content:space-between;gap:.6rem;padding:.6rem .8rem;margin-bottom:.5rem;border-radius:8px;border:1.5px solid '+(i===0?color:'rgba(255,255,255,.12)')+';background:'+(i===0?color+'1a':'rgba(255,255,255,.03)')+';cursor:pointer;transition:.15s">'
       +'<div style="text-align:left"><div style="font-family:Bebas Neue,sans-serif;font-size:.95rem;letter-spacing:1px;color:var(--text)">'+label+'</div><div style="font-size:.65rem;font-family:Space Mono,monospace">'+reward.join(' · ')+'</div></div>'
       +'<div class="event-dist-radio" style="width:18px;height:18px;border-radius:50%;border:2px solid '+(i===0?color:'rgba(255,255,255,.3)')+';flex-shrink:0;position:relative">'+(i===0?'<div style="position:absolute;inset:3px;border-radius:50%;background:'+color+'"></div>':'')+'</div>'
