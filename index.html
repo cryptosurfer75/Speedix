@@ -10315,8 +10315,11 @@ function renderDashboard(){
         frameEl.style.backgroundImage='none';
         frameEl.style.background='linear-gradient(160deg, #0a0d18 0%, '+_skinC2+' 55%, '+_skinC1+' 100%)';
         frameEl.style.boxShadow='0 0 26px 4px '+_skinC1+'59';
+        // Trait blanc balayant retiré (2026-08-17, demande explicite -- "je
+        // trouve que ça va pas") : ne garder que la pluie de paillettes
+        // .pc-sparkle. #pc-shine-bar reste dans le HTML mais jamais affiché.
         var shineBarEl=document.getElementById('pc-shine-bar');
-        if(shineBarEl) shineBarEl.style.display='block';
+        if(shineBarEl){ shineBarEl.style.display='none'; shineBarEl.style.animation='none'; }
       } else if(_skinActive){
         // Skin réel équipé, statique, AUCUNE animation. Variante de dégradé
         // (angle + sens) dérivée des 2 couleurs (2026-08-08, demande explicite
@@ -10352,7 +10355,6 @@ function renderDashboard(){
         window._pcRunCycle=function(){
           if(!window.__pcSkinActive) return;
           var fe=document.getElementById('pc-frame');
-          var sb=document.getElementById('pc-shine-bar');
           if(!fe) return;
           Array.prototype.forEach.call(fe.querySelectorAll('.pc-sparkle'), function(s){ s.remove(); });
           var fRect=fe.getBoundingClientRect();
@@ -10371,11 +10373,8 @@ function renderDashboard(){
               fe.appendChild(sp);
             }
           }
-          if(sb){
-            sb.style.animation='none';
-            void sb.offsetWidth; // force reflow -- indispensable pour relancer l'animation depuis 0%
-            sb.style.animation='pcShineBarSweep 4s linear 1 both';
-          }
+          // Balayage blanc retiré (2026-08-17) -- ne relance plus l'animation
+          // de #pc-shine-bar à chaque cycle, seule la pluie de paillettes tourne.
         };
         setTimeout(window._pcRunCycle, 300); // 1er passage, une seule fois pour toute la session
         window.__pcSparkleTimer=setInterval(window._pcRunCycle, 14000);
@@ -20759,7 +20758,7 @@ var _CITY_CREST_OVERRIDES=[
   {match:/BUDAPEST/i, image:'ai-icons/challenge-crests/budapest-v1.png', medal:true, ribbonColors:['#e0935a','#a85a1f'], ribbonRise:9},
   {match:/PORTO/i, image:'ai-icons/challenge-crests/porto-v1.png', medal:true, ribbonColors:['#f5a83c','#b8650f'], ribbonRise:7},
   {match:/REZ[ÉE]/i, image:'ai-icons/challenge-crests/reze-v3.png', medal:true, ribbonColors:['#ffdb4d','#a86c00'], ribbonRise:0, ribbonLen:43, ribbonFlat:true, medalImgH:94},
-  {match:/LILLE/i, image:'ai-icons/challenge-crests/lille-v3.png', medal:true, ribbonColors:['#5eead4','#0f766e'], medalBackdrop:true, ribbonFlat:true},
+  {match:/LILLE/i, image:'ai-icons/challenge-crests/lille-v3.png', medal:true, ribbonColors:['#5eead4','#0f766e'], ribbonFlat:true},
   {match:/KANAZAWA/i, image:'ai-icons/challenge-crests/kanazawa-v1.png', medal:true, ribbonColors:['#93a2ff','#091775'], ribbonFlat:true, medalImgH:84},
   {match:/MONZA/i, image:'ai-icons/challenge-crests/monza-v1.png', medal:true, ribbonColors:['#ff6060','#7f0202'], ribbonFlat:true, medalImgH:84},
   {match:/PROSPECTEUR/i, image:'ai-icons/defi-icons/prospecteur-v1.png', hexBadge:true},
