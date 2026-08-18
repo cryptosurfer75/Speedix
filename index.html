@@ -28881,6 +28881,13 @@ window.Tour.init = async function(){
         showRentNotEnoughRpcModal(land, res.cost);
         return;
       }
+      // Limite Free de Lands en location (2026-08-18, demande explicite) :
+      // source unique = check serveur dans tour_pay_rent (8 Lands 'rented' max
+      // pour un non-Premium) — ce bloc n'affiche que le résultat, ne redécide rien.
+      if(res.error==='rental_limit_reached'){
+        showRentLimitReachedModal(land, res.limit);
+        return;
+      }
       _tourErrorToast(res.error); return;
     }
     land.status = 'rented'; land.owner = ME; land.leaseMonths = 0; land.mine = true; delete land.bonusText; delete land.stars;
@@ -28904,6 +28911,22 @@ window.Tour.init = async function(){
     const cost = realCost != null ? realCost : proratedRent();
     document.getElementById('tour-rm-sub').innerHTML = `Ton solde de RPC est insuffisant (${ME.rpc} RPC) pour louer cette Land (${cost} RPC). Tu peux en acheter à la Marketplace. Veux-tu y aller ?`;
     document.getElementById('tour-rm-btns').innerHTML = `<button class="tour-btn" onclick="Tour.closeRentModal()">Annuler</button><button class="rm-btn-play pulse-cta" onclick="Tour.goToRpcMarket()">Marketplace</button>`;
+    document.getElementById('tour-rm-status-strip').innerHTML = renderModalStatusStrip();
+    window._rentModalLand = land;
+  }
+  // Limite Free de 8 Lands en location (2026-08-18, demande explicite) — même
+  // mécanique que showRentNotEnoughRpcModal/showPreemptNoRightsModal : remplace
+  // le contenu de la modale déjà ouverte, avec une vraie porte de sortie
+  // (Premium, seul statut qui lève la limite — le droit d'acquisition ne joue
+  // que sur l'achat définitif, pas sur le nombre de locations).
+  function showRentLimitReachedModal(land, limit){
+    const bevel = document.getElementById('tour-rm-bevel');
+    bevel.classList.remove('celebrate','etape-glow','pulse-on','bonus-gain','bonus-loss','extra-frame','gift-frame');
+    bevel.classList.add('event-frame');
+    document.getElementById('tour-rm-inner').classList.remove('celebrate');
+    document.getElementById('tour-rm-title').innerHTML = `🔒 <span style="color:#fff">LIMITE</span> <span style="color:var(--orange)">ATTEINTE</span>`;
+    document.getElementById('tour-rm-sub').innerHTML = `Tu loues déjà ${limit||8} Lands, le maximum pour un compte Free. Passe Premium pour louer sans limite.`;
+    document.getElementById('tour-rm-btns').innerHTML = `<button class="tour-btn" onclick="Tour.closeRentModal()">Annuler</button><button class="rm-btn-play pulse-cta" onclick="Tour.simulateGoPremium()">Passer Premium</button>`;
     document.getElementById('tour-rm-status-strip').innerHTML = renderModalStatusStrip();
     window._rentModalLand = land;
   }
