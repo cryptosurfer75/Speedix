@@ -9612,9 +9612,16 @@ async function updatePlayerGrade(playerId){
   var {data:allRuns}=await supabaseClient.from('runs').select('points').eq('player_id',playerId);
   var ptsCum=(allRuns||[]).reduce(function(s,r){return s+(r.points||0);},0);
 
-  // 3. Lands réels (location et propriété)
-  var {data:landsLocData}=await supabaseClient.from('lands').select('id').eq('tenant_id',playerId).eq('status','rented');
-  var {data:landsPropData}=await supabaseClient.from('lands').select('id').eq('owner_id',playerId).eq('status','owned');
+  // 3. Lands réelles (location et propriété) — rebranché sur tour_lands
+  // (2026-08-18, bug corrigé) : lisait encore l'ancienne table `lands`, vidée
+  // le 09/08 lors du passage au SPEEDIX Tour → landsLoc/landsProp tombaient à
+  // 0 pour tout le monde, bloquant toute promotion Confirmé+ depuis 9 jours
+  // (cf commentaire étape 6 plus bas, qui documentait déjà ce même effet de
+  // bord sans corriger la cause). Possédée = Land classique achetée (status
+  // 'owned') OU ville étape possédée (etape_owner_id) ; louée = Land classique
+  // en location (status 'rented') uniquement — une étape ne se loue jamais.
+  var {data:landsLocData}=await supabaseClient.from('tour_lands').select('idx').eq('holder_id',playerId).eq('status','rented');
+  var {data:landsPropData}=await supabaseClient.from('tour_lands').select('idx').or('and(holder_id.eq.'+playerId+',status.eq.owned),etape_owner_id.eq.'+playerId);
   var landsLoc=(landsLocData||[]).length;
   var landsProp=(landsPropData||[]).length;
 
