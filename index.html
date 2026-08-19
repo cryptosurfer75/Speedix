@@ -22305,9 +22305,10 @@ async function _recomputeCollabProgressForPlayer(playerId){
       var db=b.accepted_at?new Date(b.accepted_at).getTime():0;
       return da-db;
     });
-    var _consumedByCategory={}; // { km:Set<runId>, dplus:Set<runId> }
+    var _consumedByCategory={}; // { km:Set<runId>, dplus:Set<runId>, time:Set<runId> }
     function _critCategory(t){
       if(t==='dplus_each') return 'dplus';
+      if(t==='time_total') return 'time';
       if(['km_each','km_total','runs_each','long_run_each','long_run_same_day','streak_each'].indexOf(t)>=0) return 'km';
       return null; // explore_total / referrals_each : pas de run consommé
     }
@@ -22327,7 +22328,7 @@ async function _recomputeCollabProgressForPlayer(playerId){
       var completed=false;
 
       // Cas qui se basent sur les runs du joueur
-      if(['km_each','km_total','runs_each','dplus_each','long_run_each','long_run_same_day','streak_each'].indexOf(crit.type)>=0){
+      if(['km_each','km_total','runs_each','dplus_each','long_run_each','long_run_same_day','streak_each','time_total'].indexOf(crit.type)>=0){
         var {data:runs}=await supabaseClient.from('runs')
           .select('id,distance,time,elevation,run_date')
           .eq('player_id',playerId)
@@ -22402,6 +22403,11 @@ async function _recomputeCollabProgressForPlayer(playerId){
           newProgress.streak_days=streakDays;
           completed=streakDays>=crit.value;
           _markConsumed(runs); // tous les runs participent à la chaîne
+        } else if(crit.type==='time_total'){
+          // CC14 : cumul de temps à deux — résolution (bothDone) gérée côté serveur.
+          var totalMin=runs.reduce(function(s,r){return s+(r.time||0);},0);
+          newProgress.time_done=Math.round(totalMin);
+          _markConsumed(runs);
         }
       }
       // CC12 : referrals_each — filleuls qui ont fait leur 1ère course pendant la fenêtre
