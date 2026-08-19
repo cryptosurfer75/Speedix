@@ -19536,6 +19536,14 @@ async function syncStravaActivities(silent){
         : 'Aucune course importée — détail des activités Strava ci-dessous';
       listDiv.innerHTML='<div style="font-size:.65rem;color:var(--muted2);margin-bottom:.4rem">'+headerLabel+'</div>'+resultsHtml;
     }
+    // Recalculer la progression des défis collab à CHAQUE sync (pas
+    // seulement si une nouvelle activité vient d'être importée) : cet appel
+    // est ce qui manquait pour que les courses déjà importées par ce chemin
+    // (login / clic Sync) alimentent km_done/time_done/etc. — seul le vrai
+    // push Strava temps réel (strava-webhook) le faisait jusqu'ici. Rejouer
+    // systématiquement ici rattrape aussi les défis restés bloqués à 0 par
+    // des courses importées avant ce correctif.
+    if(typeof triggerCollabProgressSync==='function') triggerCollabProgressSync();
     if(newActivities.length>0){
       showToast('✓ '+newActivities.length+' activité'+(newActivities.length>1?'s':'')+' importée'+(newActivities.length>1?'s':''));
       // Rafraîchir
@@ -23902,6 +23910,28 @@ async function triggerBadgeCheck(){
   }catch(e){console.warn('[badges] check failed:',e);}
   finally{_badgeCheckInFlight=false;}
 }
+
+// Recalcule la progression des défis collab EN COURS après un import Strava
+// côté client (submit_strava_run). Sans cet appel, une course importée via
+// ce chemin (login / clic Sync manuel) n'alimentait JAMAIS km_done/time_done/
+// etc. — seul le vrai push Strava en temps réel (strava-webhook) le faisait.
+// Miroir de triggerBadgeCheck() ci-dessus, même Edge Function pattern.
+async function triggerCollabProgressSync(){
+  if(!currentUser||_collabSyncInFlight) return;
+  _collabSyncInFlight=true;
+  try{
+    var {data:{session:_sess}}=await supabaseClient.auth.getSession();
+    var _userJwt=_sess?_sess.access_token:supabaseKey;
+    await window.fetch(supabaseUrl+'/functions/v1/sync-collab-progress',{
+      method:'POST',
+      headers:{'apikey':supabaseKey,'Authorization':'Bearer '+_userJwt,'Content-Type':'application/json'},
+      body:JSON.stringify({})
+    });
+    if(typeof renderCollabChallenges==='function' && typeof _CHALLENGES_TAB!=='undefined' && _CHALLENGES_TAB==='collab') renderCollabChallenges();
+  }catch(e){console.warn('[collab] progress sync failed:',e);}
+  finally{_collabSyncInFlight=false;}
+}
+var _collabSyncInFlight=false;
 
 function showBadgeUnlockModal(b){
   // MIROIR de _renderBadgeHex (grille Défis) — sans ce décorateur, ce popup
