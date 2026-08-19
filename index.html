@@ -23922,13 +23922,11 @@ async function triggerCollabProgressSync(){
   try{
     var {data:{session:_sess}}=await supabaseClient.auth.getSession();
     var _userJwt=_sess?_sess.access_token:supabaseKey;
-    var _resp=await window.fetch(supabaseUrl+'/functions/v1/sync-collab-progress',{
+    await window.fetch(supabaseUrl+'/functions/v1/sync-collab-progress',{
       method:'POST',
       headers:{'apikey':supabaseKey,'Authorization':'Bearer '+_userJwt,'Content-Type':'application/json'},
       body:JSON.stringify({})
     });
-    var _respBody=await _resp.json().catch(function(){return null;});
-    console.log('[collab-debug] status='+_resp.status,_respBody); // DEBUG TEMPORAIRE à retirer
     if(typeof renderCollabChallenges==='function' && typeof _CHALLENGES_TAB!=='undefined' && _CHALLENGES_TAB==='collab') renderCollabChallenges();
   }catch(e){console.warn('[collab] progress sync failed:',e);}
   finally{_collabSyncInFlight=false;}
