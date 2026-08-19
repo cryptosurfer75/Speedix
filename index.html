@@ -22664,6 +22664,10 @@ async function renderCollabChallenges(){
           progLine='Toi : '+(myProg.streak_days||0)+'/'+crit.value+' j · '+_neighborChip(it.neighborInfo)+' : '+(neighProg.streak_days||0)+'/'+crit.value+' j';
         } else if(crit.type==='referrals_each'){
           progLine='Toi : '+(myProg.referrals_done||0)+'/'+crit.value+' filleuls · '+_neighborChip(it.neighborInfo)+' : '+(neighProg.referrals_done||0)+'/'+crit.value+' filleuls';
+        } else if(crit.type==='time_total'){
+          var _fmtMin=function(t){t=Math.round(t||0);return Math.floor(t/60)+'h'+String(t%60).padStart(2,'0');};
+          var myMin=myProg.time_done||0, nMin=neighProg.time_done||0;
+          progLine='Total à deux : '+_fmtMin(myMin+nMin)+'/'+_fmtMin(crit.value)+' · Toi : '+_fmtMin(myMin)+' · '+_neighborChip(it.neighborInfo)+' : '+_fmtMin(nMin);
         }
         var inner=
           '<div style="font-family:\'Bebas Neue\',sans-serif;font-size:.85rem;letter-spacing:1.3px;color:var(--text);margin-bottom:.35rem">'+meta.title+'</div>'
