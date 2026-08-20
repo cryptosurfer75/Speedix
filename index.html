@@ -30204,6 +30204,11 @@ window.Tour.init = async function(){
     const stops = await _loadHistoryStops();
     _historyAbort = false;
 
+    // Remonte en haut de la page (2026-08-20, demande explicite) : le bouton
+    // Historique est plus bas que la carte (panneau tour-panel), donc sans ça
+    // le RP reste scrollé sur le panneau et ne voit jamais le replay démarrer —
+    // même correctif déjà appliqué à runKmFromInput() pour la même raison.
+    window.scrollTo({top:0, behavior:'smooth'});
     if(map.getZoom() < RUN_ZOOM) map.setView(posAt(ME.startIdx), RUN_ZOOM, {animate:false});
     else map.setView(posAt(ME.startIdx), map.getZoom(), {animate:false});
     playerMarker.setOpacity(0);
@@ -30524,7 +30529,21 @@ window.Tour.init = async function(){
     backToRentModal, payMonthlyRent, openRulesPage, closeRulesPage, toggleLegend,
     showLegend, hideLegendAuto,
     openForSalePage, closeForSalePage, buyFromMarketplace, openHistoryReplay, updateTourNotifBadge,
-    onShow: function(){ if(map){ map.invalidateSize(); } showLegend(); if(typeof _refreshTourSyncDot==='function') _refreshTourSyncDot(); }
+    onShow: function(){
+      if(map){
+        map.invalidateSize();
+        // Recentrage systématique sur la vraie position (2026-08-20, demande
+        // explicite -- jusqu'ici seul le tout 1er Tour.init() de la session
+        // recentrait la carte (cf _tourRestore plus bas) : à chaque RETOUR sur
+        // la page, la carte restait cadrée où le RP l'avait laissée (dézoomée,
+        // ou pointée ailleurs après une consultation de Land) au lieu de
+        // remontrer son pion -- fallait scroller/dézoomer soi-même pour le
+        // retrouver, y compris juste avant l'animation "Voir ma progression".
+        if(ME.startCity) _syncPlayerPanelToPosition();
+      }
+      showLegend();
+      if(typeof _refreshTourSyncDot==='function') _refreshTourSyncDot();
+    }
   });
   // Restauration depuis la base (2026-08-07, remplace le localStorage) : ME.startCity/
   // startIdx/laps et myIdx sont déjà chargés depuis players.tour_* tout en haut de
