@@ -21208,7 +21208,11 @@ function _renderBadgeHex(b,isUnlocked){
         // support sous la medaille, donnant l'illusion que le ruban vient
         // epouser pile le contour.
         +(b.medalBackdrop ? '  <rect x="'+imgX+'" y="'+(rl-rr)+'" width="'+imgW+'" height="'+(118-(rl-rr))+'" fill="#0a0a0a"/>' : '')
-        +'  <image href="'+b.image+'" x="'+imgX+'" y="'+imgY+'" width="'+imgW+'" height="'+imgH+'" preserveAspectRatio="xMidYMin meet" style="filter:'+medalFilter+'"/>'
+        // CSS filter sur <image> SVG natif = pas fiable sur WKWebView iOS (le
+        // grisage ne s'applique pas, médaille "à venir" reste allumée — bug
+        // constaté 2026-08-21). foreignObject+<img> HTML applique le filter de
+        // façon fiable partout, comme le badge emoji plus bas qui grise bien.
+        +'  <foreignObject x="'+imgX+'" y="'+imgY+'" width="'+imgW+'" height="'+imgH+'"><img xmlns="http://www.w3.org/1999/xhtml" src="'+b.image+'" style="width:100%;height:100%;object-fit:contain;object-position:50% 0%;filter:'+medalFilter+'"/></foreignObject>'
         +yearRect
         +'</svg>';
     }
@@ -21226,7 +21230,9 @@ function _renderBadgeHex(b,isUnlocked){
       // marge perdue à l'intérieur du SVG.
       return ''
         +'<svg viewBox="0 0 100 100" style="width:100%;height:100%">'
-        +'  <image href="'+b.image+'" x="0" y="0" width="100" height="100" preserveAspectRatio="xMidYMid meet" opacity="'+imgOp+'" style="filter:'+imgFilter+'"/>'
+        // Même correctif WebKit que la médaille ci-dessus (foreignObject+<img>
+        // au lieu de <image> SVG + CSS filter, non fiable sur iOS).
+        +'  <foreignObject x="0" y="0" width="100" height="100"><img xmlns="http://www.w3.org/1999/xhtml" src="'+b.image+'" style="width:100%;height:100%;object-fit:contain;opacity:'+imgOp+';filter:'+imgFilter+'"/></foreignObject>'
         +yearRect
         +'</svg>';
     }
@@ -21241,7 +21247,8 @@ function _renderBadgeHex(b,isUnlocked){
       +'  <polygon points="50,5 88,27 88,73 50,95 12,73 12,27" fill="black" opacity="0.2" transform="translate(0 2)"/>'
       +'  <polygon points="50,5 88,27 88,73 50,95 12,73 12,27" fill="'+color+'" clip-path="url(#'+uid+'clip)"/>'
       +'  <polygon points="50,5 88,27 88,73 50,95 12,73 12,27" fill="url(#'+pat+')" clip-path="url(#'+uid+'clip)"/>'
-      +'  <image href="'+b.image+'" x="'+(b.image_x!=null?b.image_x:13)+'" y="'+(b.image_y!=null?b.image_y:20)+'" width="'+(b.image_w!=null?b.image_w:74)+'" height="'+(b.image_h!=null?b.image_h:70)+'" clip-path="url(#'+uid+'clip)" opacity="'+imgOp+'" style="filter:'+imgFilter+'"/>'
+      // Même correctif WebKit que ci-dessus (foreignObject+<img>).
+      +'  <foreignObject x="'+(b.image_x!=null?b.image_x:13)+'" y="'+(b.image_y!=null?b.image_y:20)+'" width="'+(b.image_w!=null?b.image_w:74)+'" height="'+(b.image_h!=null?b.image_h:70)+'" clip-path="url(#'+uid+'clip)"><img xmlns="http://www.w3.org/1999/xhtml" src="'+b.image+'" style="width:100%;height:100%;object-fit:contain;opacity:'+imgOp+';filter:'+imgFilter+'"/></foreignObject>'
       +'  <polygon points="50,5 88,27 88,45 50,67 12,45 12,27" fill="white" opacity="0.09"/>'
       +'  <polygon points="50,5 88,27 88,73 50,95 12,73 12,27" fill="none" stroke="'+_mixHex(color,-0.35)+'" stroke-width="1.8"/>'
       +yearRect
