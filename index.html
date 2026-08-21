@@ -21188,8 +21188,13 @@ function _renderBadgeHex(b,isUnlocked){
         +'      <stop offset="100%" stop-color="'+rc[1]+'"/>'
         +'    </linearGradient>'
         +'    <clipPath id="'+ribUid+'clip"><polygon points="'+ribPts+'"/></clipPath>'
+        // CSS filter sur un <g> avec enfant clippé = décale tout le rendu du
+        // groupe vers la droite sur WKWebView iOS (bug constaté 2026-08-21,
+        // ruban visiblement désaxé). Filtre SVG natif (feDropShadow) fiable
+        // partout, contrairement au CSS filter appliqué à du SVG brut.
+        +'    <filter id="'+ribUid+'shadow" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="0" dy="2" stdDeviation="1.5" flood-color="#000000" flood-opacity="0.5"/></filter>'
         +'  </defs>'
-        +'  <g opacity="'+ribbonOp+'" style="filter:drop-shadow(0 2px 3px rgba(0,0,0,.5))">'
+        +'  <g opacity="'+ribbonOp+'" filter="url(#'+ribUid+'shadow)">'
         +'    <polygon points="'+ribPts+'" fill="url(#'+ribUid+')"/>'
         +'    <g clip-path="url(#'+ribUid+'clip)">'
         +'      <rect x="30.4" y="-2" width="2.6" height="36" fill="'+rc[1]+'"/>'
