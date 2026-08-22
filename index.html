@@ -28139,7 +28139,7 @@ window.Tour.init = async function(){
     // avoir ouvert l'appli, cf checkPendingTourAdvance) verrait son pion
     // avancer pendant plusieurs MINUTES (260ms × des centaines de cases) —
     // en dessous du plafond, le rythme "case par case" reste inchangé.
-    const dur = Math.min(8000, Math.max(1400, Math.abs(cellsToMove)*260)), t0 = performance.now();
+    const dur = Math.min(8000, Math.max(1400, Math.abs(cellsToMove)*260));
     // Zoom plus rapproché pendant le déplacement — sinon, vu de loin (zoom "vue
     // d'ensemble" du départ), l'avancée de quelques cases est à peine visible.
     // Recentré instantanément sur la position de départ pour éviter un conflit
@@ -28148,6 +28148,18 @@ window.Tour.init = async function(){
       const startPos = posAt(fromIdx);
       map.setView([startPos.lat,startPos.lng], RUN_ZOOM, {animate:false});
     }
+    // ⚠️ Bug corrigé (2026-08-22, signalé par l'user -- "carte met 3-4s à
+    // s'afficher, jamais vu le point bouger, tombé direct sur la fenêtre de la
+    // case") : t0 était capturé AVANT ce map.setView, dont le zoom force
+    // Leaflet à reprojeter les 800 hexagones du plateau -- travail synchrone
+    // qui peut prendre plusieurs secondes sur un téléphone. Le thread JS étant
+    // occupé pendant ce temps, la 1re frame de l'animation ne s'exécutait
+    // qu'une fois ce travail fini, et à ce moment-là (now-t0) dépassait déjà
+    // dur -> p=1 direct, tout le trajet "sautait" en une seule frame invisible.
+    // t0 est maintenant capturé à la 1re frame RÉELLEMENT exécutée (dans
+    // frame() ci-dessous), jamais avant -- l'animation dure donc toujours sa
+    // durée complète à partir du moment où elle peut vraiment être vue.
+    let t0 = null;
     // Compteur "Case actuelle" tenu à jour EN DIRECT pendant le déplacement
     // (2026-08-06, demande explicite — "voir le compteur augmenter un à un en
     // même temps que le point se déplace", au lieu de rester figé sur l'ancienne
@@ -28157,6 +28169,7 @@ window.Tour.init = async function(){
     const idxEl = document.getElementById('tour-p-idx');
     let lastShownIdx = null;
     function frame(now){
+      if(t0===null) t0 = now;
       const p = Math.min(1,(now-t0)/dur);
       const cur = fromIdx + (toIdx-fromIdx)*p;
       // Interpolation CONTINUE entre les 2 cases encadrant "cur" (2026-08-01) : avant,
@@ -30218,9 +30231,11 @@ window.Tour.init = async function(){
       // Rythme accéléré (vs 260ms/case en direct) -- un trajet de plusieurs
       // centaines de cases doit rester regardable, plafonné à 5s par étape.
       // Ralenti (2026-08-09, demande explicite -- "un peu trop rapide") : 45→90ms/case.
-      const dur = Math.min(5000, Math.max(350, cells*90)), t0 = performance.now();
+      const dur = Math.min(5000, Math.max(350, cells*90));
+      let t0 = null; // capturé à la 1re frame réellement exécutée, cf forceMove
       function frame(now){
         if(_historyAbort){ resolve(); return; }
+        if(t0===null) t0 = now;
         const p = Math.min(1,(now-t0)/dur);
         const cur = fromIdx + (toIdx-fromIdx)*p;
         const i0 = dir>0 ? Math.floor(cur) : Math.ceil(cur);
