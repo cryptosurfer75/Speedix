@@ -28326,7 +28326,14 @@ window.Tour.init = async function(){
     // PROPRE Land. Fire-and-forget comme tour_record_landing juste au-dessus ;
     // _tourSyncWallet() relit le vrai solde et anime la cagnotte (déjà armée en
     // différé plus haut) une fois la modale de la case fermée.
-    if(currentUser && currentUser.id && (land.status==='rented' || land.status==='owned') && land.owner && land.owner!==ME){
+    // Ville étape possédée par un autre RP (2026-08-22, bug signalé — atterrissage
+    // sur une étape déjà achetée par quelqu'un d'autre ne déclenchait NI redevance
+    // NI pop-up, contrairement à une Land classique occupée) : même prélèvement
+    // que les Lands classiques, via land.ownerEtape au lieu de land.owner/status.
+    if(currentUser && currentUser.id && (
+         ((land.status==='rented' || land.status==='owned') && land.owner && land.owner!==ME)
+         || (land.type==='etape' && land.ownerEtape && land.ownerEtape!==ME)
+       )){
       _tourCall('tour_pay_toll', {p_idx: pos.i}).then(function(res){
         if(res && res.ok) _tourSyncWallet();
         else if(res) console.warn('[Tour] tour_pay_toll:', res.error);
@@ -28341,8 +28348,11 @@ window.Tour.init = async function(){
     // (2026-08-01, demande explicite : "à chaque fois qu'il y a un déplacement
     // et qu'on atterrit sur une case, le pop-up s'ouvre de la même manière").
     setTimeout(()=>{
-      if(land.type==='etape' && (!land.ownerEtape || land.ownerEtape===ME)) openEtapeModal(land);
-      else if(land.type!=='etape') openLandModal(land);
+      if(land.type==='etape'){
+        if(!land.ownerEtape || land.ownerEtape===ME) openEtapeModal(land);
+        else openOccupiedEtapeModal(land); // étape possédée par un autre RP (2026-08-22)
+      }
+      else openLandModal(land);
     }, REVEAL_GROW_MS+400);
   }
   
@@ -29853,6 +29863,27 @@ window.Tour.init = async function(){
     document.getElementById('tour-rm-title').innerHTML = `🏁 <span style="color:#fff">${land.name.toUpperCase()}</span> - <span style="color:var(--gold)">VILLE ÉTAPE</span>`;
     document.getElementById('tour-rm-sub').innerHTML = `Tu viens de tomber sur une ville étape. Félicitations ! Cette Land est très rare. Tu peux l'acheter pour <b class="rm-green">${etapePrice(land.name)} NYX</b> avec le statut Premium et en devenir propriétaire. Veux-tu acheter cette Land prestigieuse ?`;
     document.getElementById('tour-rm-btns').innerHTML = `<button class="tour-btn" onclick="Tour.closeRentModal()">Annuler</button><button class="rm-btn-play pulse-cta" onclick="Tour.attemptBuyEtape()">Acheter</button>`;
+    document.getElementById('tour-rent-modal').classList.add('open');
+    document.getElementById('tour-rm-status-strip').innerHTML = renderModalStatusStrip();
+    window._rentModalLand = land;
+  }
+  // Ville étape possédée par un AUTRE RP (2026-08-22, bug corrigé — avant ça,
+  // aucune fenêtre ne s'ouvrait et aucune redevance n'était prélevée en
+  // atterrissant sur une étape déjà achetée par quelqu'un d'autre, contrairement
+  // à une Land classique occupée). Même redevance qu'une Land classique
+  // (landRedevance, 250 + 50/étoile), déjà prélevée pour de vrai côté serveur
+  // (cf appel tour_pay_toll dans onArrive) — ici on ne fait qu'AFFICHER le
+  // résultat, aucune action à faire, pas de bouton (comme le reste des cases
+  // subies : bonus, event...).
+  function openOccupiedEtapeModal(land){
+    const amount = landRedevance(land);
+    const stars = land.stars ? ` (<span style="color:var(--gold)">${'★'.repeat(land.stars)}</span>)` : '';
+    document.getElementById('tour-rm-bevel').classList.remove('celebrate','pulse-on','bonus-gain','bonus-loss','event-frame','extra-frame','gift-frame');
+    document.getElementById('tour-rm-bevel').classList.add('etape-glow');
+    document.getElementById('tour-rm-inner').classList.remove('celebrate');
+    document.getElementById('tour-rm-title').innerHTML = `🏁 <span style="color:#fff">${land.name.toUpperCase()}</span> - <span style="color:var(--gold)">VILLE ÉTAPE OCCUPÉE</span>`;
+    document.getElementById('tour-rm-sub').innerHTML = `Cette ville étape appartient déjà à ${land.ownerEtape.name}${stars}. Prélèvement automatique d'une redevance de : <b class="rm-gold">${amount} RPC</b>.`;
+    document.getElementById('tour-rm-btns').innerHTML = '';
     document.getElementById('tour-rent-modal').classList.add('open');
     document.getElementById('tour-rm-status-strip').innerHTML = renderModalStatusStrip();
     window._rentModalLand = land;
