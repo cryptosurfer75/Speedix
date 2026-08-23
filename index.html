@@ -2223,7 +2223,7 @@ body::after{
 #hero-cover-outer.hero-fs #hero-steps-wrap{position:fixed;left:0;right:0;top:70%;max-width:420px;margin:0 auto;padding:16px 20px calc(env(safe-area-inset-bottom) + 20px);z-index:2}
 /* Tuto contextuel : overlay sombre + spotlight sur le bouton ciblé + bulle */
 .tuto-overlay{position:fixed;inset:0;z-index:9999;background:transparent;pointer-events:auto}
-.tuto-highlight{position:fixed;border-radius:8px;pointer-events:none;z-index:10000;transition:all .3s ease;box-shadow:0 0 0 2px rgba(245,200,66,.65),0 0 0 9999px rgba(0,0,0,.78),0 0 14px rgba(245,200,66,.25)}
+.tuto-highlight{position:fixed;border-radius:8px;pointer-events:auto;cursor:pointer;z-index:10000;transition:all .3s ease;box-shadow:0 0 0 2px rgba(245,200,66,.65),0 0 0 9999px rgba(0,0,0,.78),0 0 14px rgba(245,200,66,.25)}
 @keyframes tutoPulse{0%,100%{box-shadow:0 0 0 2px rgba(245,200,66,.6),0 0 0 9999px rgba(0,0,0,.78),0 0 12px rgba(245,200,66,.2)}50%{box-shadow:0 0 0 3px rgba(245,200,66,.75),0 0 0 9999px rgba(0,0,0,.78),0 0 18px rgba(245,200,66,.35)}}
 .tuto-highlight.pulsing{animation:tutoPulse 1.8s ease-in-out infinite}
 .tuto-bubble{position:fixed;background:rgba(4,12,28,.98);border:1.5px solid rgba(74,144,255,.55);border-radius:13px;padding:14px;max-width:300px;width:calc(100vw - 24px);box-sizing:border-box;z-index:10001;animation:su .3s ease both;box-shadow:0 8px 30px rgba(0,0,0,.6)}
@@ -16963,7 +16963,7 @@ function startContextualTuto(steps){
     ov=document.createElement('div');
     ov.id='tuto-overlay';
     ov.className='tuto-overlay';
-    ov.innerHTML='<div class="tuto-highlight pulsing" id="tuto-highlight"></div>'+
+    ov.innerHTML='<div class="tuto-highlight pulsing" id="tuto-highlight" onclick="event.stopPropagation();_nextTutoStep()"></div>'+
                  '<div class="tuto-bubble" id="tuto-bubble"></div>';
     // Tout clic dans l'overlay ne doit pas remonter au document listener qui
     // ferme le menu déroulant sur click-outside.
