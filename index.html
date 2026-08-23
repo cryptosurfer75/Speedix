@@ -20787,6 +20787,12 @@ var _badgesCatalog=null; // Cache du catalogue
 // encore l'ancien rendu générique emoji+hexagone, jamais le vrai blason, car
 // elle reçoit le badge BRUT de l'Edge Function check-badges, jamais passé par
 // ce patch — cf. _decorateBadgeWithCityCrest ci-dessous.
+// ⚠️ Pour toute NOUVELLE ville : les 2 couleurs (ribbonColors) doivent AUSSI
+// être posées en base sur badges.ribbon_c1/ribbon_c2 (colonnes ajoutées le
+// 2026-08-23) — c'est cette copie base qui permet au skin "gagnant de
+// Challenge" de se poser automatiquement côté serveur dès la validation du
+// badge (checkBadges.ts), sans attendre que le RP rouvre l'appli. Oublier ce
+// remplissage = le skin ne se pose jamais pour ce challenge (silencieux).
 var _CITY_CREST_OVERRIDES=[
   {match:/STOCKHOLM/i, image:'ai-icons/challenge-crests/stockholm-v2.png', medal:true, ribbonColors:['#fff0b0','#c88a12']},
   {match:/BRUXELLES/i, image:'ai-icons/challenge-crests/bruxelles-v2.png', medal:true, ribbonColors:['#fff3b0','#c98f00']},
