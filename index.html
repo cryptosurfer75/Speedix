@@ -12641,7 +12641,12 @@ function updatePeriodChronoUrgency(tl){
   var fill=document.getElementById('period-chrono-fill');
   var btn=document.getElementById('period-chrono-btn');
   if(!ring||!btn) return;
-  var urgent=tl&&(tl.expired||tl.days<=7);
+  // tl.days est un Math.floor() (cf getPeriodTimeLeft) : à 7j12h restants,
+  // days vaut déjà 7 — tl.days<=7 basculait donc en rouge un jour trop tôt
+  // (dès l'entrée dans la 8e journée, pas seulement sous les 7 jours pile).
+  // Correction 2026-08-24 (demande explicite) : days<7 (donc days<=6) ne
+  // devient vrai qu'une fois passé sous 7j00m pile (ex. 6j23h59min).
+  var urgent=tl&&(tl.expired||tl.days<7);
   ring.style.background=urgent
     ?'linear-gradient(135deg,rgba(255,170,170,.85) 0%,rgba(255,68,68,.6) 50%,rgba(180,10,10,.85) 100%)'
     :'linear-gradient(135deg,rgba(150,255,190,.85) 0%,rgba(45,219,128,.55) 50%,rgba(10,150,80,.85) 100%)';
@@ -23385,6 +23390,29 @@ async function participateEvent(badgeId,badgeName){
         }
       }
     } catch(e){ console.warn('[event cap] check fail',e); }
+  }
+  // Un seul défi actif à la fois par event_group (2026-08-24, demande explicite
+  // — un seul dossard visible dans le jeu, la DB ne doit jamais contredire ça) :
+  // changer de distance sur un même challenge multi-distances désinscrit
+  // automatiquement l'ancien palier avant d'inscrire le nouveau. Pas besoin de
+  // vérifier les paliers déjà gagnés du groupe : un event_run n'est jamais
+  // rejouable (cf _isQuestReplayable), donc participateEvent n'est plus jamais
+  // appelée sur ce groupe une fois un palier gagné.
+  var _thisBadge=(_badgesCatalog||[]).find(function(x){return x.id===badgeId;});
+  if(_thisBadge && _thisBadge.event_group){
+    var _siblingIds=(_badgesCatalog||[]).filter(function(x){
+      return x.event_group===_thisBadge.event_group && x.id!==badgeId;
+    }).map(function(x){return x.id;});
+    if(_siblingIds.length){
+      try {
+        await supabaseClient.from('player_event_participations')
+          .delete().eq('player_id',currentUser.id).in('badge_id',_siblingIds);
+      } catch(e){ console.warn('[event switch] cleanup fail',e); }
+      _siblingIds.forEach(function(id){
+        localStorage.removeItem('participated-'+id+'-'+currentUser.id);
+        localStorage.removeItem('bib-'+id+'-'+currentUser.id);
+      });
+    }
   }
   // Dossard : préserver l'existant si déjà inscrit, sinon générer
   var bibKey='bib-'+badgeId+'-'+currentUser.id;
