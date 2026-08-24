@@ -7807,16 +7807,39 @@ const TEST_MEDAL_BG = false;
 const supabaseUrl = "https://eqzvptszeaumsbljwift.supabase.co";
 const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVxenZwdHN6ZWF1bXNibGp3aWZ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU0MjM3MTcsImV4cCI6MjA5MDk5OTcxN30.wn2iJ3grAlLHTUZYiwlSBaCHvwCW86kTQ8eWNH484Lk"; // Settings → API → anon public (commence par eyJ...)
 
+// Stockage natif de la session (Preferences = Keychain iOS / SharedPreferences Android)
+// au lieu du localStorage du WebView par défaut. Le localStorage d'une WebView peut être
+// purgé par l'OS sous pression mémoire/stockage → déconnexions intempestives des RP en
+// app native. Garde défensive : si le plugin n'est pas dispo (PWA web, ou vieil APK
+// installé avant ce sync), __speedixAuthStorage reste undefined et supabase-js retombe
+// silencieusement sur son localStorage habituel (comportement inchangé).
+var __speedixAuthStorage = (function(){
+  try{
+    if(window.Capacitor && typeof window.Capacitor.isNativePlatform==='function'
+       && window.Capacitor.isNativePlatform()
+       && window.Capacitor.Plugins && window.Capacitor.Plugins.Preferences){
+      var Prefs=window.Capacitor.Plugins.Preferences;
+      return {
+        getItem:async function(key){ try{ var r=await Prefs.get({key:key}); return r.value; }catch(e){ return null; } },
+        setItem:async function(key,value){ try{ await Prefs.set({key:key,value:value}); }catch(e){} },
+        removeItem:async function(key){ try{ await Prefs.remove({key:key}); }catch(e){} }
+      };
+    }
+  }catch(e){}
+  return undefined;
+})();
+
+var __speedixAuthOpts = {
+  persistSession: true,
+  autoRefreshToken: true,
+  detectSessionInUrl: true
+};
+if (__speedixAuthStorage) __speedixAuthOpts.storage = __speedixAuthStorage;
+
 const supabaseClient = window.supabase.createClient(
   supabaseUrl,
   supabaseKey,
-  {
-    auth: {
-      persistSession: true,
-      autoRefreshToken: true,
-      detectSessionInUrl: true
-    }
-  }
+  { auth: __speedixAuthOpts }
 );
 var hcur=1;
 var currentUser=null;
