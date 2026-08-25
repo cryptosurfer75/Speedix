@@ -16991,7 +16991,7 @@ function startContextualTuto(steps){
     ov=document.createElement('div');
     ov.id='tuto-overlay';
     ov.className='tuto-overlay';
-    ov.innerHTML='<div class="tuto-highlight pulsing" id="tuto-highlight" onclick="event.stopPropagation();_nextTutoStep()"></div>'+
+    ov.innerHTML='<div class="tuto-highlight pulsing" id="tuto-highlight" onclick="event.stopPropagation();_tutoHighlightClick()"></div>'+
                  '<div class="tuto-bubble" id="tuto-bubble"></div>';
     // Tout clic dans l'overlay ne doit pas remonter au document listener qui
     // ferme le menu déroulant sur click-outside.
@@ -17073,6 +17073,19 @@ function _nextTutoStep(){
     return;
   }
   _renderTutoStep(_tutoState.step);
+}
+// Taper sur la zone surlignée doit faire pareil que taper sur le vrai bouton en
+// dessous, pas juste avancer la bulle — sinon, sur le dernier step (bouton menu
+// #rtw-logo-btn), le tap ferme le tuto sans ouvrir le menu déroulant : rien ne
+// semble se passer (rejet Apple 2.1a du 23/08, "no action occurred when tapped").
+// Seul le step menu déclenche l'action réelle (les autres steps pointent vers
+// des onglets déjà visibles/actifs — un vrai clic dessus naviguerait/re-déclencherait
+// pour rien, ce qu'on ne veut pas pendant le tuto).
+function _tutoHighlightClick(){
+  var step=_tutoState.steps && _tutoState.steps[_tutoState.step];
+  var isMenuStep=!!(step && step.sel==='#rtw-logo-btn');
+  _nextTutoStep();
+  if(isMenuStep && typeof toggleRtwMenu==='function') toggleRtwMenu();
 }
 function _endContextualTuto(){
   var ov=document.getElementById('tuto-overlay');
@@ -23930,21 +23943,55 @@ async function _recoverMissedBadgePopups(){
       .select('id,name,tagline,icon,color,reward_rpc,reward_nyx,threshold_type,threshold_value')
       .in('id',ids);
     if(!badges||!badges.length) return;
-    // Re-jouer chaque popup avec 4s de délai entre chacun (cohérent avec triggerBadgeCheck).
+    // Re-jouer chaque popup via la file d'attente partagée (cf _enqueueCelebration) —
+    // pas de délai fixe : la suivante n'ouvre qu'une fois la précédente fermée,
+    // même si triggerBadgeCheck a DÉJÀ mis les siennes dans la même file.
     // event_run garde le pop-up générique existant ; tout le reste (objectif
     // actif choisi par le RP) a droit à la modale dédiée "Objectif validé".
     for(var i=0;i<badges.length;i++){
       badges[i].times_earned=timesEarnedByBadge[badges[i].id]||1;
-      (function(b,delay){
-        setTimeout(function(){
+      (function(b){
+        _enqueueCelebration(function(){
           if(b.threshold_type==='event_run') showBadgeUnlockModal(b);
           else showQuestValidatedModal(b);
-        },delay);
-      })(badges[i],i*4000);
+        });
+      })(badges[i]);
     }
   }catch(e){console.warn('[badges] recovery failed:',e);}
 }
 
+// File d'attente partagée pour les popups de célébration post-login (badge
+// gagné → land-modal, objectif validé → quest-modal). Avant, triggerBadgeCheck
+// espaçait SES propres popups de 4s entre eux, mais _recoverMissedBadgePopups
+// (filet de rattrapage, lancé 2s après en parallèle) espaçait LES SIENS
+// indépendamment — les deux pouvaient donc ouvrir une modale chacun au même
+// moment, la 2e (quest-modal, z-index plus haut) recouvrant la 1ère et
+// bloquant TOUS les clics de la page (y compris le bouton menu en haut à
+// gauche) jusqu'à ce que le RP la ferme — reproduit en local le 25/08/26 avec
+// le compte démo Apple (badge + objectif gagnés en même temps). Ici, une
+// seule popup à la fois : la suivante n'ouvre qu'une fois la précédente
+// réellement fermée (poll sur la classe .open des 2 modales concernées).
+var _celebQueue=[];
+var _celebActive=false;
+function _enqueueCelebration(showFn){
+  _celebQueue.push(showFn);
+  if(!_celebActive) _processCelebQueue();
+}
+function _processCelebQueue(){
+  var fn=_celebQueue.shift();
+  if(!fn){ _celebActive=false; return; }
+  _celebActive=true;
+  fn();
+  var check=setInterval(function(){
+    var lm=document.getElementById('land-modal');
+    var qm=document.getElementById('quest-modal');
+    var stillOpen=(lm&&lm.classList.contains('open'))||(qm&&qm.classList.contains('open'));
+    if(!stillOpen){
+      clearInterval(check);
+      setTimeout(_processCelebQueue,300);
+    }
+  },300);
+}
 async function triggerBadgeCheck(){
   if(!currentUser||_badgeCheckInFlight) return;
   _badgeCheckInFlight=true;
@@ -23965,14 +24012,12 @@ async function triggerBadgeCheck(){
       var _shownAlready=_getShownBadges();
       var _actuallyNew=data.new_badges.filter(function(b){return !_hasBadgeBeenShown(_shownAlready,b.id,b.times_earned||1);});
       if(_actuallyNew.length){
-        for(var i=0;i<_actuallyNew.length;i++){
-          (function(b,delay){
-            setTimeout(function(){
-              if(b.threshold_type==='event_run') showBadgeUnlockModal(b);
-              else showQuestValidatedModal(b);
-            }, delay);
-          })(_actuallyNew[i], i*4000);
-        }
+        _actuallyNew.forEach(function(b){
+          _enqueueCelebration(function(){
+            if(b.threshold_type==='event_run') showBadgeUnlockModal(b);
+            else showQuestValidatedModal(b);
+          });
+        });
         // Rafraîchir le wallet + la grille des défis si visible
         if(typeof walletLoad==='function') await walletLoad();
         if(typeof renderChallenges==='function') renderChallenges();
@@ -25045,9 +25090,65 @@ function _urlBase64ToUint8Array(b64){
   return arr;
 }
 
+// ── Notifications push natives (FCM Android / APNs iOS via @capacitor/push-notifications) ──
+// Chemin utilisé UNIQUEMENT en app native (Capacitor). Le token capté remplace
+// endpoint/p256dh/auth du Web Push (inutilisés en natif) — même table
+// push_subscriptions, colonne `platform` en plus pour distinguer les lignes.
+// NB : ce code est prêt côté client mais dormant tant que l'UI Settings affiche
+// encore le badge "⏳ Bientôt" (l'envoi serveur n'existe pas encore) — cf.
+// [[project_speedix_push_notifications_natives]].
+function _nativePush(){
+  return (window.Capacitor && typeof window.Capacitor.isNativePlatform==='function'
+    && window.Capacitor.isNativePlatform() && window.Capacitor.Plugins
+    && window.Capacitor.Plugins.PushNotifications) ? window.Capacitor.Plugins.PushNotifications : null;
+}
+
+async function _enableNativePush(){
+  var PN=_nativePush();
+  if(!PN){ showToast('⚠️ Notifications non disponibles'); return; }
+  try{
+    var perm=await PN.checkPermissions();
+    if(perm.receive!=='granted') perm=await PN.requestPermissions();
+    if(perm.receive!=='granted'){ showToast('Permission refusée'); return; }
+    await PN.removeAllListeners();
+    PN.addListener('registration', async function(token){
+      try{
+        await supabaseClient.from('push_subscriptions').upsert({
+          player_id:currentUser.id,
+          endpoint:token.value,
+          platform:window.Capacitor.getPlatform(),
+          user_agent:(navigator.userAgent||'').slice(0,200),
+          last_used_at:new Date().toISOString()
+        },{onConflict:'player_id,endpoint'});
+        await _saveSettingsField('notif_push_enabled',true);
+        showToast('✓ Notifications activées');
+      }catch(e){ console.warn('[push-native-register]',e); }
+    });
+    PN.addListener('registrationError', function(err){
+      console.warn('[push-native-error]',err);
+      showToast('⚠️ Erreur inscription notifications');
+    });
+    await PN.register();
+  }catch(e){
+    console.warn('[push-native-enable]',e);
+    showToast('⚠️ Erreur : '+(e.message||e));
+  }
+}
+
+async function _disableNativePush(){
+  // Pas d'API d'unregister côté plugin : on coupe juste le flag, l'envoi
+  // serveur devra toujours vérifier notif_push_enabled avant d'émettre.
+  await _saveSettingsField('notif_push_enabled',false);
+  showToast('✓ Notifications désactivées');
+}
+
 async function togglePushNotifs(){
   var p=window.__settingsPlayer||{};
   var newVal=!(p.notif_push_enabled!==false);
+  if(_nativePush()){
+    if(newVal) await _enableNativePush(); else await _disableNativePush();
+    return;
+  }
   if(newVal){
     // ── Activation : permission + inscription au PushManager + DB ──
     if(!('Notification' in window) || !('serviceWorker' in navigator) || !('PushManager' in window)){
