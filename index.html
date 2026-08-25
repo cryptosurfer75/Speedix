@@ -24760,7 +24760,9 @@ function _renderSettingsSubscription(p){
 function _renderSettingsPrefs(p){
   // Notifs push : togglePushNotifs() gère nativement (Capacitor PushNotifications)
   // et web (PushManager/VAPID) — cf. commentaire au-dessus de _nativePush().
-  var pushOn=(p.notif_push_enabled!==false);
+  // Défaut = OFF (pas juste "pas explicitement désactivé") : personne n'a de token
+  // enregistré tant que _enableNativePush()/PushManager n'a pas tourné au moins une fois.
+  var pushOn=(p.notif_push_enabled===true);
   var pushSwitch=_settingsSwitch('notif-push',pushOn,'togglePushNotifs');
 
   // Bouton FR / EN — relance la page au changement pour réappliquer toutes les traductions.
@@ -25145,7 +25147,9 @@ async function _disableNativePush(){
 
 async function togglePushNotifs(){
   var p=window.__settingsPlayer||{};
-  var newVal=!(p.notif_push_enabled!==false);
+  // Miroir de l'état affiché par _renderSettingsPrefs (défaut OFF) : on active
+  // seulement si l'état actuel n'est pas explicitement true.
+  var newVal=(p.notif_push_enabled!==true);
   if(_nativePush()){
     if(newVal) await _enableNativePush(); else await _disableNativePush();
     return;
