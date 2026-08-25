@@ -25139,6 +25139,19 @@ async function _enableNativePush(){
       console.warn('[push-native-error]',err);
       showToast('⚠️ Erreur inscription notifications');
     });
+    // Tap sur une notif (app en arrière-plan OU relancée depuis l'état tué) : route
+    // vers l'écran indiqué par le payload `data` envoyé par send-push (ex: {screen:'defis',tab:'collab'}).
+    PN.addListener('pushNotificationActionPerformed', function(action){
+      try{
+        var data=(action&&action.notification&&action.notification.data)||{};
+        if(data.screen && typeof nav==='function'){
+          nav(data.screen);
+          if(data.tab && typeof switchChallengesTab==='function'){
+            setTimeout(function(){ switchChallengesTab(data.tab); },300);
+          }
+        }
+      }catch(e){ console.warn('[push-action]',e); }
+    });
     await PN.register();
   }catch(e){
     console.warn('[push-native-enable]',e);
