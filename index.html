@@ -8493,6 +8493,14 @@ async function onLoginSuccess(user, isNew){
     //   localStorage.setItem('gift-premium-2026-05-seen','1');
     // }
   } catch(e){ console.warn('[gift premium] failed', e); }
+  // Notifications push natives : inscription automatique et silencieuse pour tout
+  // RP qui n'a pas explicitement désactivé (notif_push_enabled !== false) — le
+  // toggle Réglages sert seulement à se DÉSABONNER, plus besoin d'y aller pour
+  // s'abonner. Fire-and-forget (ne bloque jamais le login), n'agit qu'en app
+  // native (Capacitor) — _nativePush() renvoie null sur web/PWA.
+  if(pd && pd.notif_push_enabled!==false && typeof _enableNativePush==='function' && typeof _nativePush==='function' && _nativePush()){
+    _enableNativePush();
+  }
 }
 
 async function checkExistingSession(){
