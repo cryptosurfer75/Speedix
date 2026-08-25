@@ -24758,9 +24758,10 @@ function _renderSettingsSubscription(p){
 }
 
 function _renderSettingsPrefs(p){
-  // Notifs push désactivées en attendant le passage stores (FCM Android + APNs iOS).
-  // Le toggle réapparaîtra automatiquement quand on aura branché Capacitor PushNotifications.
-  var soonBadge='<span style="font-size:.62rem;padding:.18rem .5rem;border-radius:8px;background:rgba(245,200,66,.1);border:1px solid rgba(245,200,66,.3);color:var(--gold);font-weight:700;letter-spacing:.5px">'+t('settings.prefs.soon')+'</span>';
+  // Notifs push : togglePushNotifs() gère nativement (Capacitor PushNotifications)
+  // et web (PushManager/VAPID) — cf. commentaire au-dessus de _nativePush().
+  var pushOn=(p.notif_push_enabled!==false);
+  var pushSwitch=_settingsSwitch('notif-push',pushOn,'togglePushNotifs');
 
   // Bouton FR / EN — relance la page au changement pour réappliquer toutes les traductions.
   function _langBtn(code,flag,label){
@@ -24774,7 +24775,7 @@ function _renderSettingsPrefs(p){
 
   _setRowsHtml('settings-prefs',[
     {label:t('settings.prefs.lang'),   html:langToggle},
-    {label:t('settings.prefs.notifs'), html:soonBadge},
+    {label:t('settings.prefs.notifs'), html:pushSwitch},
   ]);
 }
 
