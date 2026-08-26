@@ -8540,6 +8540,14 @@ async function onLoginSuccess(user, isNew){
   if(pd && pd.notif_push_enabled!==false && typeof _enableNativePush==='function' && typeof _nativePush==='function' && _nativePush()){
     _enableNativePush(true);
   }
+  // Compteur de migration vers le nouveau build (Play Store, avec plugin push) —
+  // indépendant du toggle notifications ci-dessus, juste pour suivre combien de
+  // RP ont basculé depuis l'ancienne APK sideload. Fire-and-forget. À supprimer
+  // (colonne + ce bloc) une fois la migration jugée terminée, cf
+  // project_speedix_lancement_stores.
+  if(window.Capacitor && typeof window.Capacitor.isNativePlatform==='function' && window.Capacitor.isNativePlatform() && window.Capacitor.Plugins && window.Capacitor.Plugins.PushNotifications){
+    supabaseClient.from('players').update({new_build_seen_at:new Date().toISOString()}).eq('id',user.id).then(function(){},function(){});
+  }
 }
 
 async function checkExistingSession(){
