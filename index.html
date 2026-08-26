@@ -17601,6 +17601,16 @@ async function checkTourV2WelcomeBonus(){
   if(!currentUser) return;
   try{ if(localStorage.getItem(_tourv2WelcomeSeenKey())) return; }catch(e){}
   try{
+    // Miroir serveur (2026-08-27) : le localStorage seul ne survit pas à une
+    // réinstallation de l'appli (nouveau device / app data effacée) — ce
+    // pop-up de bienvenue rejouait alors à chaque réinstall. players.
+    // tour_v2_welcome_seen_at est la source qui survit (même pattern que
+    // player_badges.popup_shown_times_earned pour les badges, cf _markBadgeShown).
+    var {data:_pRow}=await supabaseClient.from('players').select('tour_v2_welcome_seen_at').eq('id',currentUser.id).maybeSingle();
+    if(_pRow && _pRow.tour_v2_welcome_seen_at){
+      try{ localStorage.setItem(_tourv2WelcomeSeenKey(), _pRow.tour_v2_welcome_seen_at); }catch(e){}
+      return;
+    }
     var {data} = await supabaseClient.from('wallet_tx')
       .select('rpc_delta,nyx_delta,reason').eq('player_id', currentUser.id)
       .in('reason', ['Tour V2 — bonus de démarrage','Tour V2 — remboursement loyer']);
@@ -17630,7 +17640,11 @@ function showTourV2WelcomeModal(startRpc, startNyx, refundRpc){
     + '</div>'
     + '<style>@keyframes badgePop{0%{transform:scale(.3);opacity:0}60%{transform:scale(1.15);opacity:1}100%{transform:scale(1)}}</style>';
   openModal('land-modal');
-  if(currentUser) localStorage.setItem(_tourv2WelcomeSeenKey(), new Date().toISOString());
+  if(currentUser){
+    var _seenIso=new Date().toISOString();
+    localStorage.setItem(_tourv2WelcomeSeenKey(), _seenIso);
+    try{ supabaseClient.from('players').update({tour_v2_welcome_seen_at:_seenIso}).eq('id',currentUser.id).then(function(){},function(){}); }catch(e){}
+  }
 }
 
 // Avancée sur le plateau à partir des VRAIES courses Strava (2026-08-07) —
