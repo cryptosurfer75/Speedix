@@ -216,6 +216,8 @@ body::after{
 .map-tiles-brighter{filter:brightness(1.4) contrast(0.95)}
 @keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
 @keyframes onlinePulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(1.3)}}
+/* Bandeau défilant "mets à jour vers le Play Store" (cf #apk-update-ticker) */
+@keyframes speedixTickerScroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}
 /* Clignotement générique du bouton porteur d'une pastille de notification
    (2026-08-07, demande explicite — étend le principe déjà fait sur la pastille
    RPC et le bouton "Mes redevances" du Tour à TOUTES les pastilles existantes
@@ -2553,6 +2555,20 @@ select option{background:#040c1c}
     <button data-tuto-target="strava" onclick="openModal('sync-modal')" data-i18n-title="league.strava.connect" title="Connecter ton compte Strava" style="display:inline-flex;flex-direction:column;align-items:center;justify-content:center;gap:.15rem;padding:.42rem .6rem;border-radius:4px;border:none;background:#fc4c02;color:#fff;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0;line-height:1;text-align:center"><span style="font-size:.5rem;letter-spacing:.5px;opacity:.95;display:block;width:100%;text-align:center">⚡ POWERED BY</span><span style="font-size:.5rem;letter-spacing:.5px;display:block;width:100%;text-align:center">STRAVA</span></button>
   </div>
 </nav>
+
+<!-- Bandeau défilant "mets à jour vers le Play Store" — masqué par défaut,
+     affiché en JS (cf IIFE plus bas) uniquement pour les joueurs sur l'ancienne
+     APK sideload (native mais sans le plugin push, absent de ce build). Les
+     joueurs déjà à jour ou en web/PWA ne le voient jamais. Placé sous la navbar
+     (pas tout en haut) pour éviter tout souci d'encoche/status bar sur certains
+     téléphones. -->
+<div id="apk-update-ticker" style="display:none;position:relative;overflow:hidden;background:linear-gradient(90deg,rgba(45,219,128,.18),rgba(45,219,128,.08));border-bottom:1px solid rgba(45,219,128,.35);height:30px;align-items:center;cursor:pointer" onclick="_openPlayStoreFromTicker()">
+  <div style="display:flex;align-items:center;height:100%;white-space:nowrap;animation:speedixTickerScroll 20s linear infinite">
+    <span style="padding:0 2rem;font-family:'Rajdhani',sans-serif;font-weight:600;font-size:.8rem;color:#2ddb80;letter-spacing:.3px">🎉 SPEEDIX est maintenant sur le Play Store ! Télécharge la dernière version depuis la page d'accueil pour toutes les nouveautés →</span>
+    <span style="padding:0 2rem;font-family:'Rajdhani',sans-serif;font-weight:600;font-size:.8rem;color:#2ddb80;letter-spacing:.3px">🎉 SPEEDIX est maintenant sur le Play Store ! Télécharge la dernière version depuis la page d'accueil pour toutes les nouveautés →</span>
+  </div>
+  <span onclick="event.stopPropagation();document.getElementById('apk-update-ticker').style.display='none'" style="position:absolute;right:6px;top:50%;transform:translateY(-50%);width:20px;height:20px;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.55);font-size:.85rem;cursor:pointer;background:rgba(4,8,16,.6);border-radius:50%">✕</span>
+</div>
 
 <!-- ==========================================
      PAGE : DASHBOARD
@@ -7892,6 +7908,27 @@ function _chatShow(){
     }
   } catch(e){}
 })();
+
+// Bandeau "mets à jour vers le Play Store" (cf #apk-update-ticker) — uniquement
+// pour les joueurs sur l'ancienne APK sideload : natif, mais SANS le plugin
+// push (absent de ce build, présent depuis le build officiel publié sur le
+// Play Store le 24/08). Les joueurs déjà à jour ou en web/PWA ne le voient
+// jamais. Fermeture (✕) = pour la session en cours seulement ; il revient tant
+// que la vraie mise à jour n'est pas faite (retiré définitivement le jour où
+// l'ancienne APK sera coupée, cf project_speedix_lancement_stores).
+(function(){
+  try {
+    var isNative=!!(window.Capacitor && typeof window.Capacitor.isNativePlatform==='function' && window.Capacitor.isNativePlatform());
+    var hasPush=!!(window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.PushNotifications);
+    if(isNative && !hasPush){
+      var tk=document.getElementById('apk-update-ticker');
+      if(tk) tk.style.display='flex';
+    }
+  } catch(e){}
+})();
+function _openPlayStoreFromTicker(){
+  window.open('https://play.google.com/store/apps/details?id=com.speedixleague.runner','_blank');
+}
 
 /* ============================================================
    PWA install hint — affiché quand l'utilisateur Android clique
