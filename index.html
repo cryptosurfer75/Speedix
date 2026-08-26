@@ -8499,7 +8499,7 @@ async function onLoginSuccess(user, isNew){
   // s'abonner. Fire-and-forget (ne bloque jamais le login), n'agit qu'en app
   // native (Capacitor) — _nativePush() renvoie null sur web/PWA.
   if(pd && pd.notif_push_enabled!==false && typeof _enableNativePush==='function' && typeof _nativePush==='function' && _nativePush()){
-    _enableNativePush();
+    _enableNativePush(true);
   }
 }
 
@@ -25134,13 +25134,13 @@ function _nativePush(){
     && window.Capacitor.Plugins.PushNotifications) ? window.Capacitor.Plugins.PushNotifications : null;
 }
 
-async function _enableNativePush(){
+async function _enableNativePush(silent){
   var PN=_nativePush();
-  if(!PN){ showToast('⚠️ Notifications non disponibles'); return; }
+  if(!PN){ if(!silent) showToast('⚠️ Notifications non disponibles'); return; }
   try{
     var perm=await PN.checkPermissions();
     if(perm.receive!=='granted') perm=await PN.requestPermissions();
-    if(perm.receive!=='granted'){ showToast('Permission refusée'); return; }
+    if(perm.receive!=='granted'){ if(!silent) showToast('Permission refusée'); return; }
     await PN.removeAllListeners();
     PN.addListener('registration', async function(token){
       try{
@@ -25152,12 +25152,15 @@ async function _enableNativePush(){
           last_used_at:new Date().toISOString()
         },{onConflict:'player_id,endpoint'});
         await _saveSettingsField('notif_push_enabled',true);
-        showToast('✓ Notifications activées');
+        // silent=true : ré-inscription automatique et silencieuse à chaque login
+        // (cf. onLoginSuccess) — ne pas re-notifier "activées" à chaque ouverture
+        // d'appli, seulement lors d'une vraie activation depuis Réglages.
+        if(!silent) showToast('✓ Notifications activées');
       }catch(e){ console.warn('[push-native-register]',e); }
     });
     PN.addListener('registrationError', function(err){
       console.warn('[push-native-error]',err);
-      showToast('⚠️ Erreur inscription notifications');
+      if(!silent) showToast('⚠️ Erreur inscription notifications');
     });
     // Tap sur une notif (app en arrière-plan OU relancée depuis l'état tué) : route
     // vers l'écran indiqué par le payload `data` envoyé par send-push (ex: {screen:'defis',tab:'collab'}).
@@ -25175,7 +25178,7 @@ async function _enableNativePush(){
     await PN.register();
   }catch(e){
     console.warn('[push-native-enable]',e);
-    showToast('⚠️ Erreur : '+(e.message||e));
+    if(!silent) showToast('⚠️ Erreur : '+(e.message||e));
   }
 }
 
