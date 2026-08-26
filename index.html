@@ -16988,6 +16988,11 @@ var _pcTutorial2Steps=[
 var _tutoState={ step:0, steps:null, scrollLockY:0 };
 function startContextualTuto(steps){
   if(!steps||!steps.length) return;
+  // Le menu déroulant peut être resté ouvert (ex : dernier step du tuto
+  // précédent l'a ouvert) et recouvrir les boutons ciblés par CE tuto
+  // (ex : parrainage) — on le referme systématiquement au démarrage.
+  var _openMenu=document.getElementById('rtw-menu');
+  if(_openMenu) _openMenu.style.display='none';
   _tutoState.steps=steps;
   _tutoState.step=0;
   // Bloquer le scroll de la page pendant le tuto pour que les positions restent stables
@@ -23920,6 +23925,13 @@ function _markBadgeShown(badgeId,timesEarned){
     s.add(badgeId+'@'+(timesEarned||1));
     localStorage.setItem('shown-badges-'+currentUser.id,JSON.stringify(Array.from(s)));
   }catch(e){}
+  // Miroir serveur (2026-08-26) : le localStorage seul ne survit pas à une
+  // réinstallation de l'appli (nouveau device / app data effacée) — le filet
+  // _recoverMissedBadgePopups rejouait alors tous les popups des 7 derniers
+  // jours. player_badges.popup_shown_times_earned est la source qui survit.
+  try{
+    supabaseClient.rpc('mark_badge_popup_shown',{p_badge_id:badgeId,p_times_earned:timesEarned||1});
+  }catch(e){}
 }
 
 // Filet de sécurité : si l'Edge Function check-badges a crédité un badge sans
@@ -23935,13 +23947,21 @@ async function _recoverMissedBadgePopups(){
     // longtemps doit quand même être rattrapé par ce filet de sécurité.
     var {data:pb}=await supabaseClient
       .from('player_badges')
-      .select('badge_id,earned_at,last_earned_at,times_earned')
+      .select('badge_id,earned_at,last_earned_at,times_earned,popup_shown_times_earned')
       .eq('player_id',currentUser.id)
       .gte('last_earned_at',weekAgo)
       .order('last_earned_at',{ascending:true});
     if(!pb||!pb.length) return;
     var shown=_getShownBadges();
-    var missed=pb.filter(function(p){return !_hasBadgeBeenShown(shown,p.badge_id,p.times_earned||1);});
+    // Réinstallation de l'appli = localStorage vide → shown est toujours vide.
+    // popup_shown_times_earned (miroir serveur, cf _markBadgeShown) est ce qui
+    // évite de rejouer les popups des 7 derniers jours dans ce cas précis.
+    var missed=pb.filter(function(p){
+      var timesEarned=p.times_earned||1;
+      if(_hasBadgeBeenShown(shown,p.badge_id,timesEarned)) return false;
+      if(timesEarned<=(p.popup_shown_times_earned||0)) return false;
+      return true;
+    });
     if(!missed.length) return;
     var timesEarnedByBadge={};
     missed.forEach(function(p){timesEarnedByBadge[p.badge_id]=p.times_earned||1;});
