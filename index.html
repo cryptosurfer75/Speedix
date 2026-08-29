@@ -14330,8 +14330,9 @@ async function renderSocialFeed(){
 // à chaque re-rendu du feed pour la même course).
 var _polylineThumbCache={};
 
-// Génère une vignette "carte + tracé" (tuiles CartoDB dark, mêmes tuiles que
-// la carte Lands et le run live) à partir d'un polyline Strava encodé.
+// Génère une vignette "carte + tracé" (tuiles Esri Light Gray, gratuites sans
+// clé API — CARTO exige désormais une clé, cf carte Lands) à partir d'un
+// polyline Strava encodé.
 // Retourne une Promise<dataURL> (ou null si échec/pas de tracé exploitable).
 function renderPolylineMapThumb(polyline,W,H){
   W=W||640;H=H||280;
@@ -14355,7 +14356,8 @@ function renderPolylineMapThumb(polyline,W,H){
         return [x,y];
       }
       // Zoom le plus élevé qui fait tenir tout le tracé dans le cadre (avec marge).
-      var zoom=17;
+      // Plafonné à 16 : zoom natif max des tuiles Esri Light Gray utilisées ci-dessous.
+      var zoom=16;
       for(;zoom>=2;zoom--){
         var a=worldPx(maxLat,minLng,zoom), b=worldPx(minLat,maxLng,zoom);
         if(Math.abs(b[0]-a[0])<=(W-pad*2) && Math.abs(b[1]-a[1])<=(H-pad*2)) break;
@@ -14372,15 +14374,13 @@ function renderPolylineMapThumb(polyline,W,H){
       canvas.width=W;canvas.height=H;
       var cx=canvas.getContext('2d');
       cx.fillStyle='#e9e7e0';cx.fillRect(0,0,W,H);
-      var subs=['a','b','c','d'];
       var jobs=[];
       for(var tx=tileMinX;tx<=tileMaxX;tx++){
         for(var ty=tileMinY;ty<=tileMaxY;ty++){
           if(ty<0||ty>=nTiles) continue;
           (function(tx,ty){
             var wrappedX=((tx%nTiles)+nTiles)%nTiles;
-            var sub=subs[Math.abs(tx+ty)%4];
-            var url='https://'+sub+'.basemaps.cartocdn.com/rastertiles/voyager/'+zoom+'/'+wrappedX+'/'+ty+'.png';
+            var url='https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/'+zoom+'/'+ty+'/'+wrappedX;
             var dx=tx*256-originX, dy=ty*256-originY;
             jobs.push(new Promise(function(res){
               var img=new Image();
@@ -27118,7 +27118,10 @@ window.Tour.init = async function(){
   // ── Carte Leaflet ──
   const canvasRenderer = L.canvas({padding: 0.5});
   const map = L.map('tour-lands-map', {zoomControl:true, attributionControl:false, renderer: canvasRenderer}).setView([46.8,2.4], 6);
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{maxZoom:19}).addTo(map);
+  // CARTO (basemaps.cartocdn.com) exige désormais une clé API (watermark "API KEY
+  // REQUIRED" apparu fin août 2026) — basculé sur Esri Dark Gray Canvas, gratuit et
+  // sans clé, zoom natif 16 (au-delà, Leaflet agrandit les tuiles via maxNativeZoom).
+  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,maxNativeZoom:16}).addTo(map);
   
   // Tracé de fond
   L.polyline(LANDS.map(l=>[l.lat,l.lng]), {color:'#1e2535', weight:2, opacity:.6}).addTo(map);
