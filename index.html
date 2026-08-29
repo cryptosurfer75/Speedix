@@ -12993,7 +12993,8 @@ async function _processEndOfPeriodInner(){
           for(var mi=0; mi<teamMembers.length; mi++){
             var tmm=teamMembers[mi];
             try {
-              await walletCreditOther(tmm.player_id, rpcPerMember, nyxPerMember, 'Prize pool team #'+(pi+1)+' P'+_periodData.period+' — '+winnerTeam.name);
+              var _pptOk=await walletCreditOther(tmm.player_id, rpcPerMember, nyxPerMember, 'Prize pool team #'+(pi+1)+' P'+_periodData.period+' — '+winnerTeam.name);
+              if(!_pptOk) console.error('[rotation] ÉCHEC crédit prize pool team, joueur '+tmm.player_id+' — non versé');
             } catch(eppt){ console.warn('[rotation] prize pool team RP '+tmm.player_id+' :', eppt); }
           }
         }
@@ -13169,7 +13170,8 @@ async function _processEndOfPeriodInner(){
       for(var ri=startR-1;ri<Math.min(endR,ppPlayers.length);ri++){
         var winner=ppPlayers[ri];
         if(winner){
-          await walletCreditOther(winner.id, perPlayer, 0, 'Prize pool P'+_periodData.period+' '+ppLk+' #'+(ri+1));
+          var _ppOk=await walletCreditOther(winner.id, perPlayer, 0, 'Prize pool P'+_periodData.period+' '+ppLk+' #'+(ri+1));
+          if(!_ppOk) console.error('[rotation] ÉCHEC crédit prize pool, joueur '+winner.id+' — non versé');
         }
       }
     }
@@ -13205,26 +13207,32 @@ async function _processEndOfPeriodInner(){
     var brLgName=brLg?brLg.name:brLk;
 
     // Gelé : ne dégèle QUE s'il peut payer son buy-in maintenant, sinon reste gelé.
+    // Le patch d'état (dégel/dette) n'est posé QUE si le débit a vraiment réussi —
+    // avant, un débit raté laissait quand même le joueur marqué "à jour" en silence.
     if(brp.frozen){
       if(currentRpc>=buyin){
-        await walletCreditOther(brp.id, -buyin, 0, 'Buy-in league '+brLgName);
-        await supabaseClient.rpc('rotation_patch_player',{p_player_id:brp.id,p_patch:{frozen:false,buyin_debt:false}});
+        var _biOk1=await walletCreditOther(brp.id, -buyin, 0, 'Buy-in league '+brLgName);
+        if(_biOk1) await supabaseClient.rpc('rotation_patch_player',{p_player_id:brp.id,p_patch:{frozen:false,buyin_debt:false}});
+        else console.error('[rotation] ÉCHEC débit buy-in (dégel), joueur '+brp.id+' — reste gelé/dette inchangée');
       }
       continue;
     }
 
     if(currentRpc>=buyin){
       // Assez de RPC → buy-in normal
-      await walletCreditOther(brp.id, -buyin, 0, 'Buy-in league '+brLgName);
-      await supabaseClient.rpc('rotation_patch_player',{p_player_id:brp.id,p_patch:{buyin_debt:false}});
+      var _biOk2=await walletCreditOther(brp.id, -buyin, 0, 'Buy-in league '+brLgName);
+      if(_biOk2) await supabaseClient.rpc('rotation_patch_player',{p_player_id:brp.id,p_patch:{buyin_debt:false}});
+      else console.error('[rotation] ÉCHEC débit buy-in, joueur '+brp.id+' — statut dette inchangé');
     } else if(!brp.buyin_debt){
       // 1ère période sans pouvoir payer → dette (joue mais exclu des récompenses)
-      if(currentRpc>0) await walletCreditOther(brp.id, -currentRpc, 0, 'Buy-in league '+brLgName+' (dette)');
-      await supabaseClient.rpc('rotation_patch_player',{p_player_id:brp.id,p_patch:{buyin_debt:true}});
+      var _biOk3=currentRpc>0 ? await walletCreditOther(brp.id, -currentRpc, 0, 'Buy-in league '+brLgName+' (dette)') : true;
+      if(_biOk3) await supabaseClient.rpc('rotation_patch_player',{p_player_id:brp.id,p_patch:{buyin_debt:true}});
+      else console.error('[rotation] ÉCHEC débit buy-in partiel, joueur '+brp.id+' — statut dette inchangé');
     } else {
       // 2ème période consécutive sans payer → compte gelé
-      if(currentRpc>0) await walletCreditOther(brp.id, -currentRpc, 0, 'Buy-in league '+brLgName+' (dette)');
-      await supabaseClient.rpc('rotation_patch_player',{p_player_id:brp.id,p_patch:{buyin_debt:true,frozen:true}});
+      var _biOk4=currentRpc>0 ? await walletCreditOther(brp.id, -currentRpc, 0, 'Buy-in league '+brLgName+' (dette)') : true;
+      if(_biOk4) await supabaseClient.rpc('rotation_patch_player',{p_player_id:brp.id,p_patch:{buyin_debt:true,frozen:true}});
+      else console.error('[rotation] ÉCHEC débit buy-in partiel (gel), joueur '+brp.id+' — statut inchangé');
     }
   }
 
@@ -15693,8 +15701,9 @@ async function adminLoadFlagged(){
 async function adminUnflagRun(runId){
   // admin_unflag_run (2026-08-14) remplace le PATCH direct — revérifie ADMIN_UID
   // côté serveur (nécessaire pour fermer runs à toute écriture directe côté joueur).
-  await supabaseClient.rpc('admin_unflag_run',{p_run_id:runId});
-  showToast('✓ Course validée');
+  var res=await callRpc('admin_unflag_run',{p_run_id:runId},{silent:true});
+  if(res.ok && res.data && res.data.ok) showToast('✓ Course validée');
+  else showToast('⚠️ Échec de la validation, réessaie.');
   adminLoadFlagged();
 }
 
@@ -15702,8 +15711,9 @@ async function adminUnflagRun(runId){
 // adminUnflagRun, juste appliquée à tout `flagged=eq.true` au lieu d'un seul id.
 async function adminUnflagAllRuns(){
   if(!isAdmin()) return;
-  await supabaseClient.rpc('admin_unflag_run',{p_run_id:null});
-  showToast('✓ Toutes les courses flaggées ont été validées');
+  var res=await callRpc('admin_unflag_run',{p_run_id:null},{silent:true});
+  if(res.ok && res.data && res.data.ok) showToast('✓ Toutes les courses flaggées ont été validées');
+  else showToast('⚠️ Échec de la validation, réessaie.');
   adminLoadFlagged();
 }
 
@@ -15945,11 +15955,10 @@ async function adminCheckReferralMilestones(playerId, playerName){
   // pt 4 + REGISTRE-REGLES-METIER.md). La voie course/team (checkReferralSameTeam,
   // corrigée le 2026-08-09) et le trigger DB sur referred_by utilisent
   // exactement la même règle.
-  try{
-    var {data:player}=await supabaseClient.from('players').select('referred_by').eq('id',playerId).single();
-    if(!player||!player.referred_by) return;
-    await supabaseClient.rpc('apply_referral_milestones',{p_parrain_id:player.referred_by,p_filleul_id:playerId});
-  }catch(e){ console.warn('adminCheckReferralMilestones (rpc) fail', e); }
+  var {data:player}=await supabaseClient.from('players').select('referred_by').eq('id',playerId).single();
+  if(!player||!player.referred_by) return;
+  await callRpc('apply_referral_milestones',{p_parrain_id:player.referred_by,p_filleul_id:playerId},
+    {errorMessage:'Paliers de parrainage non appliqués, réessaie.'});
 }
 
 async function adminLoadHistory(){
@@ -16794,7 +16803,8 @@ async function _confirmReleaseExcess(needed){
 async function _finalizePremiumExit(){
   // decline_premium (2026-08-14) remplace le PATCH direct sur premium/premium_until/
   // premium_trial : même effet, mais la fonction serveur ne peut jamais écrire "true".
-  await supabaseClient.rpc('decline_premium');
+  var res=await callRpc('decline_premium',{},{errorMessage:'La sortie de Premium a échoué côté serveur, réessaie.'});
+  if(!res.ok) return; // ne pas désynchroniser l'affichage si l'écriture serveur a raté
   if(window.__myPlayer){
     window.__myPlayer.premium=false;
     window.__myPlayer.premiumUntil=null;
@@ -17410,6 +17420,26 @@ function showToast(msg){
   // les autres notifications gardent leur 3 sec habituelles (cas success/info).
   var isError=typeof msg==='string' && (msg.indexOf('⚠️')===0 || msg.indexOf('🚫')===0);
   setTimeout(()=>t.classList.remove('show'), isError?7000:3000);
+}
+
+// Point de passage unique pour appeler une fonction serveur (.rpc) et gérer
+// son échec — sur le modèle de _tourCall (Tour uniquement, imposait p_player_id)
+// mais réutilisable partout. Avant ça, chaque appel .rpc() décidait (ou
+// oubliait) sa propre gestion d'erreur, ce qui a caché en silence le bug de
+// parrainage du 29/08 (identité qui ne correspond pas → la fonction "réussit"
+// sans rien faire). Avec assert_actor() côté base qui lève désormais une
+// vraie erreur, callRpc() est ce qui la fait remonter jusqu'à l'écran.
+async function callRpc(fnName, params, opts){
+  opts = opts || {};
+  const {data, error} = await supabaseClient.rpc(fnName, params || {});
+  if(error){
+    console.warn('[rpc] '+fnName+':', error);
+    if(!opts.silent && typeof showToast==='function'){
+      showToast('⚠️ '+(opts.errorMessage || 'Une action a échoué, réessaie dans un instant.'));
+    }
+    return {ok:false, error:error, data:null};
+  }
+  return {ok:true, error:null, data:data};
 }
 // ══════════════════════════════════════════════════════════════════════
 // ══════════════════════════════════════════════════════════════════════
@@ -18394,8 +18424,7 @@ async function checkReferralSameTeam(){
   if(!currentUser) return;
   var {data:me}=await supabaseClient.from('players').select('referred_by').eq('id',currentUser.id).single();
   if(!me||!me.referred_by) return;
-  try{ await supabaseClient.rpc('apply_referral_milestones',{p_parrain_id:me.referred_by,p_filleul_id:currentUser.id}); }
-  catch(e){ console.warn('[referral] apply_referral_milestones:', e.message); }
+  await callRpc('apply_referral_milestones',{p_parrain_id:me.referred_by,p_filleul_id:currentUser.id},{silent:true});
 }
 
 // ══════════════════════════════════════════════════════════════════════
@@ -27325,7 +27354,7 @@ window.Tour.init = async function(){
       if(currentUser && currentUser.id){
         _tourCall('tour_claim_bonus_card', {p_idx: idx, p_amount: card.amount}).then(function(res){
           if(res && res.ok) _tourSyncWallet();
-          else if(res) console.warn('[Tour] tour_claim_bonus_card:', res.error);
+          else if(res){ console.warn('[Tour] tour_claim_bonus_card:', res.error); _tourErrorToast(res.error); }
         });
       }
     }
@@ -27352,7 +27381,7 @@ window.Tour.init = async function(){
       // tour_claim_extra_land = même schéma que tour_buy_land, sans le coût.
       if(currentUser && currentUser.id){
         _tourCall('tour_claim_extra_land', {p_idx: idx}).then(function(res){
-          if(res && !res.ok) console.warn('[Tour] tour_claim_extra_land:', res.error);
+          if(res && !res.ok){ console.warn('[Tour] tour_claim_extra_land:', res.error); _tourErrorToast(res.error); }
         });
       }
     }
@@ -27373,6 +27402,7 @@ window.Tour.init = async function(){
             updatePlayerStatusPanel();
           } else if(res && !res.ok){
             console.warn('[Tour] tour_grant_acquisition_right:', res.error);
+            _tourErrorToast(res.error);
           }
         });
       }
@@ -27390,7 +27420,7 @@ window.Tour.init = async function(){
         if(currentUser && currentUser.id){
           _tourCall('tour_claim_birthday_event', {}).then(function(res){
             if(res && res.ok) _tourSyncWallet();
-            else if(res) console.warn('[Tour] tour_claim_birthday_event:', res.error);
+            else if(res){ console.warn('[Tour] tour_claim_birthday_event:', res.error); _tourErrorToast(res.error); }
           });
         }
       }
@@ -27399,7 +27429,7 @@ window.Tour.init = async function(){
         if(currentUser && currentUser.id){
           _tourCall('tour_claim_storm_event', {}).then(function(res){
             if(res && res.ok) _tourSyncWallet();
-            else if(res) console.warn('[Tour] tour_claim_storm_event:', res.error);
+            else if(res){ console.warn('[Tour] tour_claim_storm_event:', res.error); _tourErrorToast(res.error); }
           });
         }
       }
@@ -28527,7 +28557,7 @@ window.Tour.init = async function(){
             // recrédité ailleurs (openEtapeModal n'affiche que la modale).
             _tourCall('tour_credit_lap', {p_laps: lapsGained}).then(function(res){
               if(res && res.ok) _tourSyncWallet();
-              else if(res) console.warn('[Tour] tour_credit_lap:', res.error);
+              else if(res){ console.warn('[Tour] tour_credit_lap:', res.error); _tourErrorToast(res.error); }
             });
             window._pendingLapCelebration = {laps: lapsGained};
           }
@@ -28619,7 +28649,7 @@ window.Tour.init = async function(){
        )){
       _tourCall('tour_pay_toll', {p_idx: pos.i}).then(function(res){
         if(res && res.ok) _tourSyncWallet();
-        else if(res) console.warn('[Tour] tour_pay_toll:', res.error);
+        else if(res){ console.warn('[Tour] tour_pay_toll:', res.error); _tourErrorToast(res.error); }
       });
     }
     // Le petit toast en haut de l'écran a été retiré à l'atterrissage (2026-08-01)
