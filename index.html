@@ -10433,7 +10433,13 @@ function renderDashboard(){
         // blanc franc, cf HTML + @keyframes pcShineBarSweep. Couleurs : test
         // en dur OU vraies couleurs de la victoire (_skinC1/C2).
         frameEl.style.backgroundImage='none';
-        frameEl.style.background='linear-gradient(160deg, #0a0d18 0%, '+_skinC2+' 55%, '+_skinC1+' 100%)';
+        // Rééquilibré 50/50 bleu/or (2026-08-30, demande explicite -- "trop
+        // bleu par rapport à la médaille") : l'ancien dégradé 3-stops (0%
+        // noir, 55% C2, 100% C1) laissait le bleu dominer largement (la
+        // couleur d'or n'apparaissait vraiment que tout au bout). Ajout de
+        // 2 stops intermédiaires pour donner un vrai plateau plein à chaque
+        // couleur, à surface visuelle quasi égale.
+        frameEl.style.background='linear-gradient(160deg, #0a0d18 0%, '+_skinC2+' 18%, '+_skinC2+' 46%, '+_skinC1+' 68%, '+_skinC1+' 100%)';
         frameEl.style.boxShadow='0 0 26px 4px '+_skinC1+'59';
         // Trait blanc balayant retiré (2026-08-17, demande explicite -- "je
         // trouve que ça va pas") : ne garder que la pluie de paillettes
@@ -22158,7 +22164,14 @@ async function renderChallenges(){
         // médaille, même principe que le haut des cartes Land — couleur du
         // badge lui-même (déjà celle du cadre juste au-dessus), pas une teinte
         // à part. Posée SUR le fond sombre existant, jamais à sa place.
-        +'<div style="background:radial-gradient(130% 70% at 50% -6%,'+color+'55,transparent 68%),linear-gradient(155deg,rgba(20,25,35,.95),rgba(8,12,20,.98));clip-path:polygon(9px 0,calc(100% - 9px) 0,100% 9px,100% calc(100% - 9px),calc(100% - 9px) 100%,9px 100%,0 calc(100% - 9px),0 9px);padding:1.4rem .45rem .55rem;height:100%;box-sizing:border-box;text-align:center">';
+        // Halo rond (2026-08-30, demande explicite -- "carré, pas joli, la
+        // médaille est ronde") : radial-gradient CIRCLE avec un rayon en px fixe
+        // (jamais des % de largeur/hauteur, qui étirent en ellipse dès que la
+        // carte n'est pas carrée) -- garantit un vrai cercle centré sur la
+        // médaille quelle que soit la largeur de la carte (grille dense vs
+        // colonne pleine largeur). Centré verticalement sur le médaillon
+        // (padding-top 1.4rem + décalage image dans le hexagone).
+        +'<div style="background:radial-gradient(circle 92px at 50% 85px,'+color+'55,transparent 70%),linear-gradient(155deg,rgba(20,25,35,.95),rgba(8,12,20,.98));clip-path:polygon(9px 0,calc(100% - 9px) 0,100% 9px,100% calc(100% - 9px),calc(100% - 9px) 100%,9px 100%,0 calc(100% - 9px),0 9px);padding:1.4rem .45rem .55rem;height:100%;box-sizing:border-box;text-align:center">';
       _cardClose='</div>'+_cornerAccents+'</div>';
     } else {
       // Coins biseautés (2026-08-05) : cartes Défis perso passées sur la même
