@@ -10110,15 +10110,22 @@ function _pcSkinGradient(c1,c2){
   var s=(c1+c2).toLowerCase();
   var h=0x811c9dc5;
   for(var i=0;i<s.length;i++){ h^=s.charCodeAt(i); h=(h*0x01000193)>>>0; }
+  // Rééquilibré 50/50 (2026-08-30, même correctif que le skin animé de
+  // victoire, demande explicite -- "trop bleu par rapport à la médaille") :
+  // chaque variante n'avait qu'un seul point de bascule (55%/45%), ce qui
+  // laissait la 1ère couleur (souvent le noir de fond) dominer l'essentiel
+  // du dégradé et l'autre couleur n'apparaître vraiment qu'à l'extrémité.
+  // Remplacé par 2 points de bascule proches -- un vrai plateau pour
+  // chaque couleur, à surface visuelle quasi égale.
   var variants=[
-    function(){ return 'linear-gradient(160deg, #0a0d18 0%, '+c2+' 55%, '+c1+' 100%)'; },
-    function(){ return 'linear-gradient(340deg, '+c1+' 0%, '+c2+' 45%, #0a0d18 100%)'; },
-    function(){ return 'linear-gradient(110deg, #0a0d18 0%, '+c2+' 55%, '+c1+' 100%)'; },
-    function(){ return 'linear-gradient(250deg, '+c1+' 0%, '+c2+' 45%, #0a0d18 100%)'; },
-    function(){ return 'linear-gradient(20deg, #0a0d18 0%, '+c2+' 55%, '+c1+' 100%)'; },
-    function(){ return 'linear-gradient(200deg, '+c1+' 0%, '+c2+' 45%, #0a0d18 100%)'; },
-    function(){ return 'linear-gradient(70deg, #0a0d18 0%, '+c1+' 55%, '+c2+' 100%)'; },
-    function(){ return 'linear-gradient(290deg, '+c2+' 0%, '+c1+' 45%, #0a0d18 100%)'; }
+    function(){ return 'linear-gradient(160deg, #0a0d18 0%, '+c2+' 18%, '+c2+' 46%, '+c1+' 68%, '+c1+' 100%)'; },
+    function(){ return 'linear-gradient(340deg, '+c1+' 0%, '+c1+' 32%, '+c2+' 54%, '+c2+' 82%, #0a0d18 100%)'; },
+    function(){ return 'linear-gradient(110deg, #0a0d18 0%, '+c2+' 18%, '+c2+' 46%, '+c1+' 68%, '+c1+' 100%)'; },
+    function(){ return 'linear-gradient(250deg, '+c1+' 0%, '+c1+' 32%, '+c2+' 54%, '+c2+' 82%, #0a0d18 100%)'; },
+    function(){ return 'linear-gradient(20deg, #0a0d18 0%, '+c2+' 18%, '+c2+' 46%, '+c1+' 68%, '+c1+' 100%)'; },
+    function(){ return 'linear-gradient(200deg, '+c1+' 0%, '+c1+' 32%, '+c2+' 54%, '+c2+' 82%, #0a0d18 100%)'; },
+    function(){ return 'linear-gradient(70deg, #0a0d18 0%, '+c1+' 18%, '+c1+' 46%, '+c2+' 68%, '+c2+' 100%)'; },
+    function(){ return 'linear-gradient(290deg, '+c2+' 0%, '+c2+' 32%, '+c1+' 54%, '+c1+' 82%, #0a0d18 100%)'; }
   ];
   return variants[h%variants.length]();
 }
