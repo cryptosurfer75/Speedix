@@ -10393,7 +10393,16 @@ function renderDashboard(){
     // 3) p.equippedBgC1/C2 (RÉEL, PERMANENT, choisi par le RP depuis Défis)
     //    -- statique, JAMAIS d'animation, priorité la plus basse (le skin
     //    temporaire de victoire prend le dessus tant qu'il est actif).
-    var _medalBgActive=!!(p && p.medalBgC1 && p.medalBgC2 && p.medalBgUntil && new Date(p.medalBgUntil).getTime()>Date.now());
+    // medalBgDismissedUntil (2026-08-30, bug corrigé) : le RP a explicitement
+    // écarté CETTE victoire (bouton CHOISIR) au profit du skin permanent --
+    // on ne rejoue plus l'ANIMATION sur SA PC dans ce cas (comparaison exacte
+    // à medalBgUntil, l'identifiant de la victoire écartée), mais
+    // medalBgC1/C2/Until restent intacts et continuent de teinter la ligne du
+    // classement + la pastille + l'avatar (cf buildRow plus bas) jusqu'à leur
+    // expiration naturelle des 48h -- équiper ne doit plus couper la fête en
+    // cours pour les autres RP qui regardent le classement.
+    var _medalBgDismissed=!!(p && p.medalBgDismissedUntil && p.medalBgUntil && p.medalBgDismissedUntil===p.medalBgUntil);
+    var _medalBgActive=!!(p && p.medalBgC1 && p.medalBgC2 && p.medalBgUntil && new Date(p.medalBgUntil).getTime()>Date.now() && !_medalBgDismissed);
     // Mention "PREMIUM" dans le bandeau vide au-dessus de l'avatar (2026-08-16,
     // demande explicite -- ce bandeau était noir sur fond noir, invisible,
     // aucune indication qu'un RP est Premium sur sa Player Card). Même règle
@@ -23632,24 +23641,27 @@ async function unregisterEvent(badgeId,badgeName){
 // l'ancien, pas de cumul.
 async function equipChallengeBg(c1,c2,activeAutoUntil){
   if(!currentUser) return;
-  // Choisir un skin manuellement annule le skin auto de victoire (48h,
-  // medal_bg_*) s'il est encore actif -- sinon il reprenait toujours la
-  // main sur l'affichage (priorité la plus haute, cf renderDashboard) et
-  // le choix du RP ne se voyait jamais tant que la fenêtre de 48h courait.
-  // medal_bg_dismissed_until (passé en 3e argument par le bouton CHOISIR,
-  // = l'échéance EXACTE du skin auto actif au moment du clic) mémorise ce
-  // choix pour de bon : sans lui, la détection auto de renderChallenges()
-  // (qui tourne à chaque rechargement de la page Défis, y compris celui
-  // déclenché juste en dessous) réécrivait aussitôt medal_bg_c1/c2/until et
-  // annulait ce qu'on vient de faire.
-  var _upd={equipped_bg_c1:c1,equipped_bg_c2:c2,medal_bg_c1:null,medal_bg_c2:null,medal_bg_until:null,medal_bg_dist:null};
+  // Choisir un skin manuellement annule l'ANIMATION du skin auto de victoire
+  // (48h) s'il est encore actif -- sinon elle reprenait toujours la main sur
+  // le rendu de la PC (priorité la plus haute, cf renderDashboard) et le choix
+  // du RP ne s'y voyait jamais tant que la fenêtre de 48h courait.
+  // ⚠️ 2026-08-30, bug corrigé (signalé par l'user -- "elle n'a plus le
+  // bandeau du skin sur sa ligne de classement") : medal_bg_c1/c2/until
+  // étaient ENTIÈREMENT effacés ici, alors que buildRow/l'avatar/la pastille
+  // (cf renderDashboard) lisent CES MÊMES colonnes pour teinter la ligne
+  // pendant les 48h -- équiper trop tôt (souvent dans la minute qui suit la
+  // victoire) coupait donc le bandeau de fête bien avant l'heure, pour
+  // n'importe quel RP pressé de personnaliser sa carte. medal_bg_dismissed_until
+  // (déjà utilisé par apply_medal_bg_from_win côté base pour ne pas réimposer
+  // l'animation une fois écartée) sert maintenant de SEULE marque de
+  // dismissal : on ne touche plus à medal_bg_c1/c2/until, qui restent la
+  // source unique du bandeau de classement jusqu'à leur expiration naturelle.
+  var _upd={equipped_bg_c1:c1,equipped_bg_c2:c2};
   if(activeAutoUntil) _upd.medal_bg_dismissed_until=activeAutoUntil;
   var {error}=await supabaseClient.from('players').update(_upd).eq('id',currentUser.id);
   if(error){ showToast('⚠️ Erreur : '+error.message); return; }
   if(window.__myPlayer){
     window.__myPlayer.equippedBgC1=c1; window.__myPlayer.equippedBgC2=c2;
-    window.__myPlayer.medalBgC1=null; window.__myPlayer.medalBgC2=null;
-    window.__myPlayer.medalBgUntil=null; window.__myPlayer.medalBgDist=null;
     if(activeAutoUntil) window.__myPlayer.medalBgDismissedUntil=activeAutoUntil;
   }
   showToast('🎨 Fond équipé sur ta Player Card et ta ligne du classement');
