@@ -13054,12 +13054,19 @@ async function _processEndOfPeriodInner(){
   // (clé absente = compétition OFF par sécurité).
   // NB : _compEnabled est désormais lu plus haut (avant le bloc médailles teams)
   // car il conditionne aussi la distribution des médailles d'équipe.
-  if(_compEnabled) for(var ci=0;ci<ranked.length;ci++){
-    var cp=ranked[ci];
-    var cpFull=allPlayers.find(function(x){return x.id===cp.id;})||{};
+  // ⚠️ Bug corrigé (2026-09-01) : cette boucle tournait sur `ranked`, qui filtre
+  // `pts>0` (cf. sa définition plus haut) — un RP qui terminait son calibrage
+  // avec 0 pt sur la période qui se ferme était donc silencieusement ignoré et
+  // restait bloqué en calibrage indéfiniment, alors que le commentaire ci-dessous
+  // dit explicitement "AUCUN seuil de points ici". Cas vécu (rotation P5→P6,
+  // 31/08→01/09) : William et Kelhumbie, 0 pt en P5, jamais passés compétitifs
+  // par ce bloc — corrigés manuellement en base. Boucle sur `allPlayers` (non
+  // filtré) pour que ça ne se reproduise plus.
+  if(_compEnabled) for(var ci=0;ci<allPlayers.length;ci++){
+    var cpFull=allPlayers[ci];
     var cpInInf=cpFull.infirmerie_until && new Date(cpFull.infirmerie_until)>new Date();
     if(cpInInf) continue; // en infirmerie → on touche à rien
-    if(!cp.competitive && (cp.league||'starter').toLowerCase()!=='starter'){
+    if(!cpFull.competitive && (cpFull.league||'starter').toLowerCase()!=='starter'){
       var cpCalibPeriod=cpFull.calibration_period;
       // Sémantique : calibration_period = numéro de la période durant laquelle
       // le RP doit faire son calibrage complet. À la rotation, si la période
@@ -13071,7 +13078,7 @@ async function _processEndOfPeriodInner(){
       // leagues (try_promote), jamais pour sortir du calibrage. (Bug corrigé 2026-07-01 :
       // l'ancienne garde `cp.pts>=cpLg.min` coinçait en calibrage tout RP qui n'avait pas
       // assez couru sur la période qui se ferme, alors qu'il avait fait son mois complet.)
-      await supabaseClient.rpc('rotation_patch_player',{p_player_id:cp.id,p_patch:{competitive:true,calibration_period:null}});
+      await supabaseClient.rpc('rotation_patch_player',{p_player_id:cpFull.id,p_patch:{competitive:true,calibration_period:null}});
     }
   }
 
