@@ -16731,17 +16731,25 @@ async function _checkPremiumExpiration(){
   var until=new Date(window.__myPlayer.premiumUntil);
   if(until>new Date()) return; // encore actif
   // Premium juste expiré (DB dit toujours premium=true) → on déclenche le flow
-  var {count}=await supabaseClient.from('lands')
-    .select('id',{count:'exact',head:true})
-    .eq('tenant_id',currentUser.id)
+  // ⚠️ Corrigé (2026-08-31) : interrogeait encore la table `lands` (ancien
+  // module V1, retiré le 09/08 — toujours vide depuis) au lieu de
+  // `tour_lands`/`holder_id` (source réelle depuis le SPEEDIX Tour V2).
+  // Cette modale d'avertissement ne se déclenchait donc plus jamais.
+  var {count}=await supabaseClient.from('tour_lands')
+    .select('idx',{count:'exact',head:true})
+    .eq('holder_id',currentUser.id)
     .eq('status','rented');
   _openPremiumExpireModal(count||0);
 }
 
 function _openPremiumExpireModal(nbLoc){
-  var excess=Math.max(0, nbLoc - 10);
+  // Seuil aligné sur la vraie limite serveur (tour_pay_rent, rental_limit=8) —
+  // corrigé le 2026-08-31, ce bloc utilisait encore l'ancien seuil 10 (jamais
+  // mis à jour lors du changement de règle du 18/08). decline_premium() côté
+  // serveur libère aussi désormais automatiquement le surplus par sécurité.
+  var excess=Math.max(0, nbLoc - 8);
   var landsLine=excess>0
-    ?'<div style="margin-top:.6rem;padding:.45rem;border-radius:6px;background:rgba(255,68,68,.08);border:1px solid rgba(255,68,68,.3);font-size:.72rem;color:var(--red);text-align:left">⚠️ Tu as actuellement <strong>'+nbLoc+' lands</strong> en location. En quittant Premium, tu devras libérer <strong>'+excess+' land'+(excess>1?'s':'')+'</strong> (limite Free = 10).</div>'
+    ?'<div style="margin-top:.6rem;padding:.45rem;border-radius:6px;background:rgba(255,68,68,.08);border:1px solid rgba(255,68,68,.3);font-size:.72rem;color:var(--red);text-align:left">⚠️ Tu as actuellement <strong>'+nbLoc+' lands</strong> en location. En quittant Premium, tu devras libérer <strong>'+excess+' land'+(excess>1?'s':'')+'</strong> (limite Free = 8).</div>'
     :'';
   document.getElementById('lm-title').textContent='⚠️ Fin de Premium';
   document.getElementById('lm-sub').textContent='';
@@ -16768,12 +16776,14 @@ function _openPremiumExpireModal(nbLoc){
 async function _acceptPremiumExit(){
   closeModal('land-modal');
   if(!currentUser) return;
-  var {data:lands}=await supabaseClient.from('lands')
-    .select('id, rented_at, monthly_revenue, stars')
-    .eq('tenant_id',currentUser.id)
+  // ⚠️ Corrigé (2026-08-31) : même bug que _checkPremiumExpiration (table `lands`
+  // V1 morte au lieu de `tour_lands`/`holder_id`).
+  var {data:lands}=await supabaseClient.from('tour_lands')
+    .select('idx, rented_at, stars')
+    .eq('holder_id',currentUser.id)
     .eq('status','rented');
   var nbLoc=(lands||[]).length;
-  if(nbLoc<=10){
+  if(nbLoc<=8){
     await _finalizePremiumExit();
     showToast('😔 Désolé de te voir quitter le statut Premium. Reviens quand tu le souhaites.');
     return;
@@ -16782,18 +16792,18 @@ async function _acceptPremiumExit(){
 }
 
 function _openPremiumReleaseModal(lands){
-  var excess=lands.length-10;
+  var excess=lands.length-8;
   // Tri par date la plus récente en haut (plus simple à libérer)
   lands.sort(function(a,b){return new Date(b.rented_at||0)-new Date(a.rented_at||0);});
   document.getElementById('lm-title').textContent='Libérer des Lands';
-  document.getElementById('lm-sub').textContent='Sélectionne '+excess+' land'+(excess>1?'s':'')+' à libérer pour rentrer dans la limite Free (10 max).';
+  document.getElementById('lm-sub').textContent='Sélectionne '+excess+' land'+(excess>1?'s':'')+' à libérer pour rentrer dans la limite Free (8 max).';
   var listHtml='<div style="display:flex;flex-direction:column;gap:.3rem;max-height:40vh;overflow-y:auto;margin-bottom:.6rem;text-align:left">';
   lands.forEach(function(l){
     var stars=l.stars?(' '+'⭐'.repeat(l.stars)):'';
     var dateTxt=l.rented_at?new Date(l.rented_at).toLocaleDateString(SPEEDIX_LANG):'—';
     listHtml+='<label style="display:flex;align-items:center;gap:.5rem;padding:.4rem .55rem;border-radius:6px;border:1px solid var(--border);background:rgba(255,255,255,.03);cursor:pointer;font-size:.72rem">'
-      +'<input type="checkbox" class="prem-rel-cb" data-id="'+l.id+'" style="accent-color:var(--red);width:14px;height:14px">'
-      +'<span style="font-family:Space Mono,monospace;color:var(--muted2);flex:1">'+l.id.substring(0,12)+'…'+stars+'</span>'
+      +'<input type="checkbox" class="prem-rel-cb" data-id="'+l.idx+'" style="accent-color:var(--red);width:14px;height:14px">'
+      +'<span style="font-family:Space Mono,monospace;color:var(--muted2);flex:1">Land n°'+l.idx+stars+'</span>'
       +'<span style="font-size:.62rem;color:var(--muted2)">'+dateTxt+'</span>'
       +'</label>';
   });
@@ -16818,14 +16828,25 @@ function _openPremiumReleaseModal(lands){
   openModal('land-modal');
 }
 
+// ⚠️ Corrigé (2026-08-31) : référencée via `typeof _releaseSingleLand==='function'`
+// mais jamais définie nulle part — le guard rendait cet appel silencieusement
+// no-op (aucune Land n'était réellement libérée par ce flow, malgré le message
+// de succès affiché juste après). Réutilise Tour.releaseLand (même RPC
+// tour_release_land que le reste de l'app) avec un objet Land minimal — safe
+// même sans état carte (`land.layer` est gardé par un `if` dans releaseLand).
+async function _releaseSingleLand(idx){
+  if(window.Tour && typeof Tour.releaseLand==='function'){
+    return await Tour.releaseLand({idx:Number(idx)}, true);
+  }
+  return false;
+}
+
 async function _confirmReleaseExcess(needed){
   var checked=document.querySelectorAll('.prem-rel-cb:checked');
   if(checked.length!==needed) return;
   closeModal('land-modal');
   for(var i=0;i<checked.length;i++){
-    if(typeof _releaseSingleLand==='function'){
-      await _releaseSingleLand(checked[i].dataset.id);
-    }
+    await _releaseSingleLand(checked[i].dataset.id);
   }
   await _finalizePremiumExit();
   showToast('😔 Désolé de te voir quitter Premium. '+checked.length+' land'+(checked.length>1?'s':'')+' libérée'+(checked.length>1?'s':'')+'. Reviens quand tu le souhaites.');
