@@ -25858,7 +25858,12 @@ const CONFIG = {
   shuffleAnswers: true,    // mélange l'ordre des réponses
   cooldownFreeHours: 12,   // délai entre 2 parties (Free)
   cooldownPremiumHours: 8, // délai entre 2 parties (Premium)
-  period: 2,               // n° de période League en cours (affiché "P2")
+  // ⚠️ period retiré d'ici (2026-09-01) : c'était une valeur figée en dur à 2
+  // ("n° de période League en cours"), jamais reliée à la vraie période — donc
+  // le classement Cash Run affichait "P2" pour toujours, même en période 6.
+  // La vraie source unique est _periodData.period (chargée depuis
+  // game_settings.current_period), lue directement au moment de l'affichage
+  // (cf paintStats()).
   playerName: 'Val-DM',    // pseudo du joueur (en prod = username réel)
 };
 
@@ -26407,7 +26412,7 @@ async function paintStats(){
   const general = lbMode==='general';
   $('st-period').textContent = general
     ? (fr?'CLASSEMENT GÉNÉRAL':'OVERALL RANKING')
-    : (fr?'CLASSEMENT — P':'RANKING — P')+CONFIG.period;
+    : (fr?'CLASSEMENT — P':'RANKING — P')+((typeof _periodData!=='undefined'&&_periodData.period)||1);
   $('lb-month').classList.toggle('on', !general);
   $('lb-general').classList.toggle('on', general);
   $('lb-month').textContent = fr?'Mensuel':'Monthly';
