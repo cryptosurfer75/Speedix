@@ -7909,14 +7909,20 @@ function _chatShow(){
   } catch(e){}
 })();
 
-// Bandeau "mets à jour vers le Play Store" (cf #apk-update-ticker) — uniquement
-// pour les joueurs sur l'ancienne APK sideload : natif, mais SANS le plugin
-// push (absent de ce build, présent depuis le build officiel publié sur le
-// Play Store le 24/08). Les joueurs déjà à jour ou en web/PWA ne le voient
-// jamais. Fermeture (✕) = pour la session en cours seulement ; il revient tant
-// que la vraie mise à jour n'est pas faite (retiré définitivement le jour où
-// l'ancienne APK sera coupée, cf project_speedix_lancement_stores).
-(function(){
+// Bandeau "mets à jour vers le Play Store" (cf #apk-update-ticker) — pour les
+// joueurs natifs (Android APK sideload OU iOS TestFlight) SANS le plugin push
+// (absent de ces builds, présent depuis les builds officiels publiés sur les
+// stores). Les joueurs déjà sur le build store (Android ou iOS) ou en web/PWA
+// ne le voient jamais. Fermeture (✕) = pour la session en cours seulement ; il
+// revient tant que la vraie mise à jour n'est pas faite.
+// ⚠️ Corrigé (2026-08-31) : ce check tournait en IIFE synchrone au moment du
+// parsing du <script>, AVANT que le pont natif Capacitor n'ait fini d'injecter
+// window.Capacitor.Plugins.PushNotifications — donc hasPush pouvait valoir
+// `false` par pur timing sur un build fraîchement installé depuis l'App Store
+// (qui a bien le plugin), déclenchant le bandeau à tort. Décalé après
+// window.load (même pattern que l'enregistrement du service worker plus bas)
+// pour laisser le pont natif finir de s'initialiser avant de conclure.
+window.addEventListener('load', function(){
   try {
     var isNative=!!(window.Capacitor && typeof window.Capacitor.isNativePlatform==='function' && window.Capacitor.isNativePlatform());
     var hasPush=!!(window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.PushNotifications);
@@ -7925,9 +7931,14 @@ function _chatShow(){
       if(tk) tk.style.display='flex';
     }
   } catch(e){}
-})();
+});
 function _openPlayStoreFromTicker(){
-  window.open('https://play.google.com/store/apps/details?id=com.speedixleague.runner','_blank');
+  // Corrigé (2026-08-31) : pointait toujours vers le Play Store, y compris pour
+  // un joueur iOS TestFlight (le bandeau vise aussi ce cas, cf commentaire plus
+  // haut) — route désormais vers le bon store selon la plateforme.
+  var isIOS=!!(window.Capacitor && typeof window.Capacitor.getPlatform==='function' && window.Capacitor.getPlatform()==='ios');
+  var url=isIOS ? 'https://apps.apple.com/app/speedix/id6763503175' : 'https://play.google.com/store/apps/details?id=com.speedixleague.runner';
+  window.open(url,'_blank');
 }
 
 /* ============================================================
