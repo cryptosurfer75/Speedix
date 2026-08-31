@@ -12678,6 +12678,15 @@ async function showParrainageInfo(){
 // ████████████████████████████████████████████████████████████████████████████
 var _periodData={period:1,start:null,end:null};
 var _periodTimerInterval=null;
+// Numéro de période AFFICHÉ (cosmétique) — la compétition officielle démarre à la
+// période interne 4 (juillet), affichée "Période 1" : décalage de -3. Numéros
+// internes/cumuls/archivage restent inchangés, ceci ne sert qu'à l'affichage.
+// Source unique (2026-09-01) : réutilisée par loadPeriodSettings (badge League)
+// ET par le Cash Run (CONFIG.period étant figé en dur — cf son commentaire).
+function displayPeriodNum(){
+  var LAUNCH_PERIOD=4;
+  return (_periodData.period>=LAUNCH_PERIOD) ? (_periodData.period-LAUNCH_PERIOD+1) : _periodData.period;
+}
 
 async function loadPeriodSettings(){
   var {data}=await supabaseClient.from('game_settings').select('key,value');
@@ -12691,9 +12700,8 @@ async function loadPeriodSettings(){
   // La compétition officielle démarre à la période interne 4 (juillet) : on l'affiche
   // « Période 1 » et on retire le suffixe « test » (calibrage). Base, statistiques cumulées
   // et archivage des périodes continuent sur les numéros internes (rien ne change côté données).
-  var _LAUNCH_PERIOD=4;                                  // période interne du lancement officiel = "Période 1"
-  var _pLaunched=(_periodData.period>=_LAUNCH_PERIOD);
-  var _pNum=_pLaunched?(_periodData.period-_LAUNCH_PERIOD+1):_periodData.period;
+  var _pLaunched=(_periodData.period>=4); // période interne du lancement officiel = "Période 1", cf displayPeriodNum()
+  var _pNum=displayPeriodNum();
   var _pBadge=_pLaunched?('Période '+_pNum):('P'+_pNum+' test'); // badge/chip visibles par tous
   var _pInfo=_pLaunched?String(_pNum):('P'+_pNum);              // valeur après t('period.label') (admin)
   // Afficher le badge (ne touche que le texte interne — le badge porte le
@@ -25860,10 +25868,11 @@ const CONFIG = {
   cooldownPremiumHours: 8, // délai entre 2 parties (Premium)
   // ⚠️ period retiré d'ici (2026-09-01) : c'était une valeur figée en dur à 2
   // ("n° de période League en cours"), jamais reliée à la vraie période — donc
-  // le classement Cash Run affichait "P2" pour toujours, même en période 6.
-  // La vraie source unique est _periodData.period (chargée depuis
-  // game_settings.current_period), lue directement au moment de l'affichage
-  // (cf paintStats()).
+  // le classement Cash Run affichait "P2" pour toujours. Remplacé par
+  // displayPeriodNum() (source unique, cf sa définition près de _periodData) —
+  // même numéro affiché que le badge League ("Période N", décalage -3 car la
+  // compétition officielle démarre à la période interne 4), lu directement au
+  // moment de l'affichage (cf paintStats()).
   playerName: 'Val-DM',    // pseudo du joueur (en prod = username réel)
 };
 
@@ -26412,7 +26421,7 @@ async function paintStats(){
   const general = lbMode==='general';
   $('st-period').textContent = general
     ? (fr?'CLASSEMENT GÉNÉRAL':'OVERALL RANKING')
-    : (fr?'CLASSEMENT — P':'RANKING — P')+((typeof _periodData!=='undefined'&&_periodData.period)||1);
+    : (fr?'CLASSEMENT — P':'RANKING — P')+(typeof displayPeriodNum==='function'?displayPeriodNum():1);
   $('lb-month').classList.toggle('on', !general);
   $('lb-general').classList.toggle('on', general);
   $('lb-month').textContent = fr?'Mensuel':'Monthly';
