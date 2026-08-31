@@ -8463,9 +8463,11 @@ async function onLoginSuccess(user, isNew){
   if(typeof checkReferralNotifications==='function'){
     setTimeout(function(){ checkReferralNotifications(); }, isNew?4000:3000);
   }
-  // Premium expiré — proposer de quitter ou de renouveler
-  if(typeof _checkPremiumExpiration==='function'){
-    setTimeout(function(){ _checkPremiumExpiration(); }, 4500);
+  // Lands en trop après fin de Premium/essai — système à 3 relances avant
+  // libération (remplace l'ancien flow _checkPremiumExpiration, cf sa note
+  // de dépréciation plus bas).
+  if(typeof _checkLandGraceNotice==='function'){
+    setTimeout(function(){ _checkLandGraceNotice(); }, 4500);
   }
   // Récap fin de période — afficher si le RP n'a pas vu la dernière rotation.
   // Délai 1500ms : on attend que loadPeriodSettings ait peuplé _periodData.
@@ -16730,6 +16732,149 @@ async function acceptTrial(){
   showToast('⭐ Essai Premium activé — 15 jours gratuits !');
 }
 
+// ── Lands en trop après fin de Premium/essai : système à 3 relances ────────
+// Décidé le 2026-08-31 : plutôt qu'une libération immédiate (cron horaire),
+// le RP a jusqu'à sa 3e connexion en étant Free avec un surplus pour agir
+// lui-même (bouton "Choisir mes Lands") ou passer Premium — à la 3e, on
+// prévient puis on libère automatiquement (garde les 8 plus anciennes).
+// Un seul décompte par jour calendaire (Paris) pour éviter qu'ouvrir l'app
+// plusieurs fois le même jour ne fasse sauter des étapes.
+async function _checkLandGraceNotice(){
+  if(!currentUser || !window.__myPlayer) return;
+  if(isPremium()){
+    // Premium (re)devenu actif entre-temps : on efface un éventuel décompte
+    // en cours, pour repartir propre la prochaine fois qu'un surplus existe.
+    if(window.__myPlayer._landGraceNotices){
+      window.__myPlayer._landGraceNotices=0;
+      await supabaseClient.from('players').update({land_grace_notices:0,land_grace_last_date:null}).eq('id',currentUser.id);
+    }
+    return;
+  }
+  var {count}=await supabaseClient.from('tour_lands')
+    .select('idx',{count:'exact',head:true})
+    .eq('holder_id',currentUser.id)
+    .eq('status','rented');
+  var nbLoc=count||0;
+  if(nbLoc<=8) return; // dans la limite, rien à faire
+
+  var {data:pdata}=await supabaseClient.from('players').select('land_grace_notices,land_grace_last_date').eq('id',currentUser.id).maybeSingle();
+  if(!pdata) return;
+  var today=parisDayStr(new Date());
+  if(pdata.land_grace_last_date===today) return; // déjà notifié aujourd'hui
+
+  var notices=(pdata.land_grace_notices||0)+1;
+  await supabaseClient.from('players').update({land_grace_notices:notices,land_grace_last_date:today}).eq('id',currentUser.id);
+  window.__myPlayer._landGraceNotices=notices;
+
+  if(notices>=3) _openLandGraceFinalModal(nbLoc);
+  else _openLandGraceNoticeModal(nbLoc, notices);
+}
+
+function _openLandGraceNoticeModal(nbLoc, step){
+  var excess=nbLoc-8;
+  document.getElementById('lm-title').textContent=(step===1?'Fin de ton essai Premium':'Rappel — Lands en trop');
+  document.getElementById('lm-sub').textContent='';
+  document.getElementById('lm-body').innerHTML='<div style="text-align:center">'
+    +'<div style="font-size:2.2rem;margin-bottom:.4rem">'+(step===1?'⭐':'⏳')+'</div>'
+    +'<div style="font-size:.85rem;color:var(--text);line-height:1.6;margin-bottom:.6rem">'
+    +(step===1?'Ton essai Premium est terminé, tu es maintenant en <b>Free</b> 🙂':'Toujours pareil pour l\'instant :')
+    +' Tu as <b style="color:var(--gold)">'+nbLoc+' Lands</b> en location, au-dessus de la limite Free (<b>8 max</b>).</div>'
+    +'<div style="font-size:.78rem;color:var(--muted2);line-height:1.6;margin-bottom:1rem">'
+    +(step===1
+      ?'Pas d\'inquiétude : il te reste 2 connexions avant un ajustement automatique. D\'ici là, choisis toi-même lesquelles garder, ou repasse Premium pour lever la limite.'
+      :'Il te reste <b style="color:var(--text)">1 connexion</b> avant l\'ajustement automatique (on gardera tes 8 Lands les plus anciennes, le reste sera libéré).')
+    +'</div>'
+    +'<div style="display:flex;gap:.5rem;justify-content:center;flex-wrap:wrap">'
+    +'<button onclick="_openLandGracePicker()" style="padding:.55rem 1.2rem;border-radius:7px;border:1.5px solid var(--gold);background:rgba(245,200,66,.12);color:var(--gold);font-weight:700;font-size:.82rem;cursor:pointer">Choisir mes Lands</button>'
+    +'<button onclick="closeModal(\'land-modal\')" style="padding:.55rem 1.2rem;border-radius:7px;border:1.5px solid var(--border2);background:transparent;color:var(--muted2);font-weight:700;font-size:.82rem;cursor:pointer">Plus tard</button>'
+    +'</div></div>';
+  openModal('land-modal');
+}
+
+async function _openLandGracePicker(){
+  var {data:lands}=await supabaseClient.from('tour_lands')
+    .select('idx, rented_at, stars')
+    .eq('holder_id',currentUser.id)
+    .eq('status','rented');
+  if(!lands || lands.length<=8){ closeModal('land-modal'); return; }
+  var excess=lands.length-8;
+  lands.sort(function(a,b){return new Date(b.rented_at||0)-new Date(a.rented_at||0);}); // plus récentes en haut
+  document.getElementById('lm-title').textContent='Libérer des Lands';
+  document.getElementById('lm-sub').textContent='Sélectionne '+excess+' land'+(excess>1?'s':'')+' à libérer pour rentrer dans la limite Free (8 max).';
+  var listHtml='<div style="display:flex;flex-direction:column;gap:.3rem;max-height:40vh;overflow-y:auto;margin-bottom:.6rem;text-align:left">';
+  lands.forEach(function(l){
+    var stars=l.stars?(' '+'⭐'.repeat(l.stars)):'';
+    var dateTxt=l.rented_at?new Date(l.rented_at).toLocaleDateString(SPEEDIX_LANG):'—';
+    listHtml+='<label style="display:flex;align-items:center;gap:.5rem;padding:.4rem .55rem;border-radius:6px;border:1px solid var(--border);background:rgba(255,255,255,.03);cursor:pointer;font-size:.72rem">'
+      +'<input type="checkbox" class="lg-rel-cb" data-id="'+l.idx+'" style="accent-color:var(--red);width:14px;height:14px">'
+      +'<span style="font-family:Space Mono,monospace;color:var(--muted2);flex:1">Land n°'+l.idx+stars+'</span>'
+      +'<span style="font-size:.62rem;color:var(--muted2)">'+dateTxt+'</span>'
+      +'</label>';
+  });
+  listHtml+='</div>';
+  document.getElementById('lm-body').innerHTML=listHtml
+    +'<div id="lg-rel-cnt" style="text-align:center;font-size:.78rem;color:var(--muted2);margin-bottom:.5rem">0 / '+excess+' sélectionnée'+(excess>1?'s':'')+'</div>'
+    +'<button id="lg-rel-btn" onclick="_confirmLandGracePicker('+excess+')" disabled style="width:100%;padding:.55rem;border-radius:7px;border:1.5px solid rgba(255,68,68,.5);background:rgba(255,68,68,.1);color:var(--red);font-weight:700;font-size:.82rem;cursor:not-allowed;opacity:.5">Libérer</button>';
+  setTimeout(function(){
+    document.querySelectorAll('.lg-rel-cb').forEach(function(cb){
+      cb.addEventListener('change',function(){
+        var checked=document.querySelectorAll('.lg-rel-cb:checked').length;
+        var cnt=document.getElementById('lg-rel-cnt');
+        var btn=document.getElementById('lg-rel-btn');
+        if(cnt) cnt.textContent=checked+' / '+excess+' sélectionnée'+(excess>1?'s':'');
+        if(btn){
+          if(checked===excess){btn.disabled=false;btn.style.opacity='1';btn.style.cursor='pointer';}
+          else {btn.disabled=true;btn.style.opacity='.5';btn.style.cursor='not-allowed';}
+        }
+      });
+    });
+  },50);
+  openModal('land-modal');
+}
+
+async function _confirmLandGracePicker(needed){
+  var checked=document.querySelectorAll('.lg-rel-cb:checked');
+  if(checked.length!==needed) return;
+  closeModal('land-modal');
+  for(var i=0;i<checked.length;i++){
+    await _releaseSingleLand(checked[i].dataset.id);
+  }
+  await supabaseClient.from('players').update({land_grace_notices:0,land_grace_last_date:null}).eq('id',currentUser.id);
+  if(window.__myPlayer) window.__myPlayer._landGraceNotices=0;
+  showToast('✅ '+checked.length+' land'+(checked.length>1?'s':'')+' libérée'+(checked.length>1?'s':'')+'.');
+  if(typeof renderMyLands==='function') renderMyLands();
+  if(typeof loadLandsOnMap==='function') loadLandsOnMap();
+}
+
+function _openLandGraceFinalModal(nbLoc){
+  var excess=nbLoc-8;
+  document.getElementById('lm-title').textContent='⚠️ Dernière étape';
+  document.getElementById('lm-sub').textContent='';
+  document.getElementById('lm-body').innerHTML='<div style="text-align:center">'
+    +'<div style="font-size:2.5rem;margin-bottom:.4rem">⚠️</div>'
+    +'<div style="font-size:.85rem;color:var(--text);line-height:1.65;margin-bottom:.8rem">Cette fois c\'est le moment : pour respecter la limite Free (8 Lands), tu vas perdre tes <b style="color:var(--red)">'+excess+' Land'+(excess>1?'s':'')+'</b> les plus récentes.</div>'
+    +'<div style="font-size:.75rem;color:var(--muted2);line-height:1.6;margin-bottom:1rem">Tu gardes tes 8 Lands les plus anciennes. Repasse Premium à tout moment pour lever cette limite et récupérer une location illimitée.</div>'
+    +'<button onclick="_confirmLandGraceFinalRelease()" style="width:100%;padding:.6rem;border-radius:8px;border:1.5px solid rgba(255,68,68,.5);background:rgba(255,68,68,.1);color:var(--red);font-weight:700;font-size:.85rem;cursor:pointer">J\'ai compris</button>'
+    +'</div>';
+  openModal('land-modal');
+}
+
+async function _confirmLandGraceFinalRelease(){
+  closeModal('land-modal');
+  var res=await callRpc('release_excess_lands_now',{},{errorMessage:'La libération a échoué, réessaie dans un instant.'});
+  if(window.__myPlayer) window.__myPlayer._landGraceNotices=0;
+  var released=(res.ok && res.data && res.data.released)||0;
+  showToast(released>0?('😔 '+released+' Land'+(released>1?'s':'')+' libérée'+(released>1?'s':'')+' pour respecter la limite Free.'):'✓ Tout est en ordre.');
+  if(typeof renderMyLands==='function') renderMyLands();
+  if(typeof loadLandsOnMap==='function') loadLandsOnMap();
+}
+
+// ⚠️ DÉPRÉCIÉ (2026-08-31) — flow remplacé par _checkLandGraceNotice ci-dessus
+// (système à 3 relances au lieu d'une confirmation immédiate + libération
+// forcée). Plus aucun appelant (cf point d'entrée login, qui appelle
+// désormais _checkLandGraceNotice). Laissé en place sans être appelé pour
+// limiter le risque de casse tard en soirée — à supprimer lors d'un prochain
+// nettoyage une fois le nouveau flow validé en usage réel.
 // ── Fin de Premium : confirmation + libération forcée des lands en surplus ──
 async function _checkPremiumExpiration(){
   if(!currentUser || !window.__myPlayer) return;
