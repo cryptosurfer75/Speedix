@@ -8341,7 +8341,7 @@ async function onLoginSuccess(user, isNew){
       pts:0, ptsCum:0, km:0, courses:0, source:'strava',
       trend:pd.trend||0, leagueRefRank:(typeof pd.league_ref_rank==='number'?pd.league_ref_rank:null), leagueRefLg:(pd.league_ref_lg||null), avatar:pd.avatar||null, parrain:null,
       rtwId:rtwId, competitive:pd.competitive||false,
-      premium:pd.premium||false, premiumUntil:pd.premium_until||null, premiumTrial:pd.premium_trial||false, premiumPaid:pd.premium_paid||false,
+      premium:pd.premium||false, premiumUntil:pd.premium_until||null, premiumTrial:pd.premium_trial||false, premiumPaid:pd.premium_paid||false, premiumTrialUsed:pd.premium_trial_used||false,
       boostActiveUntil:pd?(pd.boost_active_until||null):null,
       gelActiveUntil:pd?(pd.gel_active_until||null):null,
       birthDate:pd.birth_date||null, birthdayGiftYear:pd.birthday_gift_year||null,
@@ -16484,12 +16484,13 @@ function _pollWalletCredit(){
 
 async function _refreshMyPlayerPremium(){
   if(!currentUser) return;
-  var {data}=await supabaseClient.from('players').select('premium,premium_until,premium_trial,premium_paid').eq('id',currentUser.id).maybeSingle();
+  var {data}=await supabaseClient.from('players').select('premium,premium_until,premium_trial,premium_paid,premium_trial_used').eq('id',currentUser.id).maybeSingle();
   if(data && window.__myPlayer){
     window.__myPlayer.premium=data.premium||false;
     window.__myPlayer.premiumUntil=data.premium_until||null;
     window.__myPlayer.premiumTrial=data.premium_trial||false;
     window.__myPlayer.premiumPaid=data.premium_paid||false;
+    window.__myPlayer.premiumTrialUsed=data.premium_trial_used||false;
     updatePremiumUI();
   }
 }
@@ -16698,29 +16699,35 @@ function showTrialOffer(){
   openModal('land-modal');
 }
 
+// ⚠️ Corrigé (2026-08-31) : acceptTrial()/activateTrialPremium() faisaient un
+// simple PATCH REST sans AUCUN contrôle serveur — un RP pouvait recliquer
+// "J'essaie gratuitement" indéfiniment (aucun verrou), malgré les CGU
+// ("un essai gratuit de 15 jours est proposé une seule fois par utilisateur").
+// Passe maintenant par la RPC activate_premium_trial (SECURITY DEFINER),
+// seule habilitée à écrire — elle vérifie players.premium_trial_used
+// (colonne jamais remise à false une fois posée) avant d'accorder l'essai.
 async function acceptTrial(){
   if(!currentUser) return;
   closeModal('land-modal');
-  await activateTrialPremium(currentUser.id);
+  var res=await callRpc('activate_premium_trial',{},{silent:true});
+  if(!res.ok || !res.data || !res.data.ok){
+    var err=res.data&&res.data.error;
+    if(err==='trial_already_used'){
+      showToast('Tu as déjà utilisé ton essai gratuit — il ne peut être activé qu\'une seule fois.');
+      if(window.__myPlayer) window.__myPlayer.premiumTrialUsed=true;
+    } else {
+      showToast('⚠️ Une action a échoué, réessaie dans un instant.');
+    }
+    return;
+  }
   if(window.__myPlayer){
-    var until=new Date();until.setDate(until.getDate()+15);
     window.__myPlayer.premium=true;
-    window.__myPlayer.premiumUntil=until.toISOString();
+    window.__myPlayer.premiumUntil=res.data.until;
     window.__myPlayer.premiumTrial=true;
+    window.__myPlayer.premiumTrialUsed=true;
   }
   updatePremiumUI();
   showToast('⭐ Essai Premium activé — 15 jours gratuits !');
-}
-
-async function activateTrialPremium(playerId){
-  // 15 jours d'essai gratuit
-  var until=new Date();
-  until.setDate(until.getDate()+15);
-  await window.fetch(supabaseUrl+'/rest/v1/players?id=eq.'+encodeURIComponent(playerId),{
-    method:'PATCH',
-    headers:{'apikey':supabaseKey,'Authorization':'Bearer '+(window.__sessionToken||supabaseKey),'Content-Type':'application/json'},
-    body:JSON.stringify({premium:true,premium_until:until.toISOString(),premium_trial:true})
-  });
 }
 
 // ── Fin de Premium : confirmation + libération forcée des lands en surplus ──
@@ -17048,9 +17055,11 @@ function nav(page){
     _setBadgeBlink('social-notif-badge', false);
   }
   // Page Premium — popup essai gratuit
+  // ⚠️ Corrigé (2026-08-31) : s'affichait à TOUT RP non-Premium, y compris ceux
+  // ayant déjà consommé leur essai (cf premium_trial_used, activate_premium_trial).
   if(page==='access'){
     if(typeof updatePremiumUI==='function') updatePremiumUI();
-    if(currentUser&&!isPremium()){
+    if(currentUser&&!isPremium()&&!(window.__myPlayer&&window.__myPlayer.premiumTrialUsed)){
       setTimeout(function(){showTrialOffer();},6000);
     }
   }
