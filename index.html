@@ -9466,7 +9466,9 @@ const LEAGUES=[
 // distribution permanente au palmarès est suspendue. Utilisée uniquement par la
 // rotation (§4, création des palmarès par league). Ne touche PAS l'affichage du
 // classement.
-const LEAGUE_MEDAL_MIN_COMPETITORS = 50;
+// Abaissé de 50 à 40 le 2026-09-01 (demande explicite) pour ouvrir quelques
+// leagues supplémentaires aux médailles.
+const LEAGUE_MEDAL_MIN_COMPETITORS = 40;
 
 // ────────────────────────────────────────────────────────────────────
 // COLLAB_CHALLENGE_CATALOG — Catalogue V1 des défis collaboratifs entre voisins
@@ -9988,7 +9990,15 @@ function computePts(km,spd,elv,boost,gel){
   const bonusV=Math.pow(spd/8, 2+0.0125*Math.max(0,spd-8));
   const B=(A/10)*(spd*bonusV);
   // C — Points dénivelé
-  const divD=12+8*(elv/(elv+1000));
+  // Diviseur relevé de "12+8·(.../ +1000)" à "12+18·(.../ +600)" le 2026-09-01
+  // (réglage "A" — demande explicite : le D+ pesait trop lourd sur les grosses
+  // sorties, ex. 60m D+/km = 61% des points totaux). Base 12 inchangée (les
+  // sorties plates/peu vallonnées ne bougent quasi pas), mais le frein monte
+  // plus haut (18 au lieu de 8) et plus tôt (mi-parcours à 600m de D+ au lieu
+  // de 1000m) → freine surtout les sorties à gros D+ cumulé, sans effet de
+  // palier (courbe continue). MIROIR EXACT de compute_run_points (base) —
+  // garder synchro.
+  const divD=12+18*(elv/(elv+600));
   const C=(elv/d)*(A/divD);
   let res=A+B+C;
   // Malus marche : en dessous de 7 km/h, facteur progressif (spd/7)²
