@@ -2419,7 +2419,7 @@ select option{background:#040c1c}
       <div style="border-top:1px solid rgba(74,144,255,.1);padding-top:8px">
         <label data-i18n-html="reg.step3.referral" style="font-size:.56rem;color:#8aaccc;text-transform:uppercase;letter-spacing:.8px;display:block;margin-bottom:3px">Code parrainage <span style="color:#2a3550">(optionnel)</span></label>
         <div style="display:flex;gap:6px">
-          <input id="reg-code" type="text" placeholder="SL-XXXXX" maxlength="10" style="flex:1;padding:9px 12px;border-radius:8px;background:rgba(4,12,28,.8);border:1.5px solid rgba(74,144,255,.5);color:#f5c842;font-family:'Space Mono',monospace;font-size:.78rem;outline:none;letter-spacing:2px" onfocus="this.style.borderColor='#f5c842'" onblur="this.style.borderColor='rgba(74,144,255,.5)'">
+          <input id="reg-code" type="text" placeholder="SL-XXXXX" maxlength="10" style="flex:1;padding:9px 12px;border-radius:8px;background:rgba(4,12,28,.8);border:1.5px solid rgba(74,144,255,.5);color:#f5c842;font-family:'Space Mono',monospace;font-size:.78rem;outline:none;letter-spacing:2px" onfocus="this.style.borderColor='#f5c842'" onblur="this.style.borderColor='rgba(74,144,255,.5)';checkCode()">
           <button onclick="checkCode()" style="padding:8px 12px;border-radius:8px;border:1px solid rgba(245,200,66,.35);background:rgba(245,200,66,.07);color:#f5c842;cursor:pointer;font-size:.7rem;font-weight:700">OK</button>
         </div>
         <div id="code-msg" data-i18n="reg.step3.referral.msg" style="font-size:.56rem;color:#8aaccc;margin-top:3px">Ton parrain reçoit 2 000 RPC + 5 💎 NYX</div>
@@ -8174,9 +8174,15 @@ async function doRegister(){
   }
   var playerId=data.user?data.user.id:null;
   if(playerId){
-    // Récupérer le parrain si code validé
-    var parrainUuid=null;
+    // Récupérer le parrain si code validé. Filet de sécurité : si un code a
+    // été tapé mais jamais validé (champ jamais quitté, bouton OK jamais
+    // cliqué), on le valide ici avant de perdre le lien parrain/filleul.
     var codeMsgEl=document.getElementById('code-msg');
+    var codeInputEl=document.getElementById('reg-code');
+    if(codeInputEl&&codeInputEl.value.trim()&&codeMsgEl&&!codeMsgEl.dataset.parrainUuid){
+      try{ await checkCode(); }catch(e){}
+    }
+    var parrainUuid=null;
     if(codeMsgEl&&codeMsgEl.dataset.parrainUuid) parrainUuid=codeMsgEl.dataset.parrainUuid;
     // Si le RP n'a pas choisi d'avatar pendant l'inscription, on lui en attribue
     // un par défaut dérivé de son pseudo (jamais NULL → plus de silhouette grise
