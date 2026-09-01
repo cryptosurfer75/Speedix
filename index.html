@@ -8440,10 +8440,9 @@ async function onLoginSuccess(user, isNew){
   }
   // Fenêtre de bienvenue Tour V2 (bonus démarrage + remboursement loyer),
   // PUIS question "veux-tu voir ta progression" si des courses en attente
-  // n'ont pas encore fait avancer le pion — délai généreux (12s) pour passer
-  // APRÈS les popups de badges/objectifs ci-dessus — délai de départ généreux
-  // + _callWhenModalFree (cf plus haut) en filet si un rattrapage de badges
-  // traîne encore au-delà de 10-12s (trouvé à l'audit pré-lancement du 07/08).
+  // n'ont pas encore fait avancer le pion — les deux passent par la file
+  // d'attente partagée (_enqueueCelebration), donc le délai de départ n'a
+  // plus besoin d'être calé à la main pour passer après les autres popups.
   if(typeof checkTourV2WelcomeBonus==='function'){
     setTimeout(function(){ checkTourV2WelcomeBonus(); }, 10000);
   }
@@ -8451,13 +8450,26 @@ async function onLoginSuccess(user, isNew){
     setTimeout(function(){
       if(_tourConsumeLock) return; // une avancée est déjà en cours de traitement (_tourClaimAndAnimate) — éviter de proposer la popup par-dessus
       checkPendingTourAdvance().then(function(km){
-        if(km>0) _callWhenModalFree(function(){ showTourProgressPrompt(km); });
+        if(km>0) _enqueueCelebration(function(){ showTourProgressPrompt(km); });
       });
     }, 12000);
   }
   // Allume la pastille "challenge actif" sur la nav Feed dès le login
   if(typeof updateChallengeNavBadge==='function'){
     setTimeout(function(){ updateChallengeNavBadge(); }, 2000);
+  }
+  // Rattrapage des paliers de parrainage (2026-09-01) : avant, cette
+  // vérification (apply_referral_milestones — first_run/1000_pts/3_periods/
+  // same_team, cf reference_speedix_referral_milestones) n'était appelée
+  // QUE quand LE FILLEUL rejoignait une team (checkReferralSameTeam, cf plus
+  // bas) ou via le panel admin. Un filleul déjà dans une team au moment où
+  // il franchissait le palier "3 périodes" ne redéclenchait donc plus jamais
+  // le check ensuite → palier jamais crédité au parrain (5 NYX), tant qu'un
+  // admin ne relançait pas la fonction à la main. On l'appelle donc aussi à
+  // CHAQUE login du filleul, comme le streak/le grade — idempotent côté base
+  // (NOT EXISTS par palier), donc sans risque de recréditer.
+  if(typeof checkReferralSameTeam==='function'){
+    setTimeout(function(){ checkReferralSameTeam(); }, 1000);
   }
   // Notifications parrainage — après le streak (délai plus long)
   if(typeof checkReferralNotifications==='function'){
@@ -9688,8 +9700,27 @@ function _gradeIndex(cls){
 // Si le grade monte, crédite les récompenses RPC + NYX cumulées sur tous les
 // paliers franchis et déclenche le popup de célébration pour CHAQUE palier
 // (uniquement si le joueur affecté est l'utilisateur courant).
-async function updatePlayerGrade(playerId){
-  if(!playerId) return;
+// Verrou anti-course : updatePlayerGrade(id) peut être déclenché depuis
+// PLUSIEURS endroits quasi en même temps pour le MÊME joueur (le timer de
+// login ET le rendu de sa propre Player Card, cf appels ~l.8431 et ~l.10234).
+// Sans ce verrou, 2 appels concurrents lisent tous les deux l'ANCIEN grade
+// avant que le 1er ait fini d'écrire le nouveau, et exécutaient chacun
+// l'étape 9 (insert wallet_tx) sans savoir que l'autre l'avait déjà fait —
+// set_player_grade (verrou FOR UPDATE côté base) empêchait bien le double
+// crédit RÉEL du solde, mais PAS le doublon dans l'historique wallet_tx
+// (2 lignes "Passage grade X" pour un seul crédit réel). Bug vécu par
+// Pimoustic le 2026-09-01 (passage EXPERT loggé 2 fois). Le retour booléen
+// de set_player_grade (cf étape 8) ferme aussi le cas plus rare multi-onglets/
+// multi-appareils que ce verrou JS ne couvre pas.
+var _gradeCheckInFlight={};
+function updatePlayerGrade(playerId){
+  if(!playerId) return Promise.resolve();
+  if(_gradeCheckInFlight[playerId]) return _gradeCheckInFlight[playerId];
+  var p=_updatePlayerGradeInner(playerId).finally(function(){ delete _gradeCheckInFlight[playerId]; });
+  _gradeCheckInFlight[playerId]=p;
+  return p;
+}
+async function _updatePlayerGradeInner(playerId){
   var {data:player}=await supabaseClient.from('players').select('grade,rpc_balance,nyx_balance,rpc_cumulated,active_periods').eq('id',playerId).single();
   if(!player) return;
 
@@ -9748,9 +9779,16 @@ async function updatePlayerGrade(playerId){
   // auth_update qui laissait n'importe qui modifier n'importe quelle ligne) ;
   // ce cas est pourtant réel : consulter la Player Card de quelqu'un d'autre
   // déclenche la vérification de SON grade depuis TA session.
-  await supabaseClient.rpc('set_player_grade',{
+  // `applied` (renvoyé par la fonction depuis le 2026-09-01) dit si le crédit
+  // a VRAIMENT eu lieu — la fonction relit le grade sous verrou FOR UPDATE et
+  // ne fait rien si un appel concurrent l'a déjà fait passer. Étapes 9-10
+  // conditionnées dessus : sans ça, un doublon de _gradeCheckInFlight (autre
+  // onglet/appareil) créait quand même une 2e ligne d'audit + un 2e popup pour
+  // un crédit qui n'a eu lieu qu'une fois (cf note du verrou plus haut).
+  var {data:applied}=await supabaseClient.rpc('set_player_grade',{
     p_player_id:playerId, p_grade:newGrade, p_rpc_delta:totalRpc, p_nyx_delta:totalNyx
   });
+  if(!applied) return newGrade;
 
   // 9. Audit log (1 ligne par palier franchi)
   for(var k=oldIdx+1;k<=newIdx;k++){
@@ -9767,11 +9805,18 @@ async function updatePlayerGrade(playerId){
     }
   }
 
-  // 10. Popup célébration (uniquement pour l'user courant, 1 popup chaîné par palier)
+  // 10. Popup célébration (uniquement pour l'user courant) — 1 tâche par
+  // palier franchi dans la file d'attente partagée (cf _enqueueCelebration),
+  // pour ne jamais s'empiler avec les autres popups automatiques du login
+  // (chaîne, badges, défis, Tour...). Remplace l'ancien chaînage interne à
+  // showGradeUpgradePopup (fenêtre suivante rouverte 350ms après la
+  // fermeture de la précédente, invisible pour la file partagée).
   if(currentUser && playerId===currentUser.id && typeof showGradeUpgradePopup==='function'){
-    var queue=[];
-    for(var k=oldIdx+1;k<=newIdx;k++) queue.push(GRADES_DATA[k]);
-    showGradeUpgradePopup(queue);
+    for(var k=oldIdx+1;k<=newIdx;k++){
+      (function(g){
+        _enqueueCelebration(function(){ showGradeUpgradePopup(g); });
+      })(GRADES_DATA[k]);
+    }
     // Refresh wallet local pour que les balances s'affichent à jour
     if(typeof loadWallet==='function') loadWallet();
   }
@@ -9779,11 +9824,16 @@ async function updatePlayerGrade(playerId){
   return newGrade;
 }
 
-// Affiche un popup de célébration enchaîné si plusieurs paliers franchis.
-// queue : tableau d'objets GRADES_DATA dans l'ordre du plus bas au plus haut.
-function showGradeUpgradePopup(queue){
-  if(!queue||!queue.length) return;
-  var g=queue.shift();
+// Affiche le popup de célébration pour UN palier franchi. En cas de saut
+// multi-paliers en un seul appel, updatePlayerGrade pousse une tâche par
+// palier dans la file d'attente partagée (_enqueueCelebration, cf étape 10)
+// — chaque tâche appelle cette fonction une fois pour un seul grade. Avant
+// le 2026-09-01, cette fonction gérait elle-même sa propre file (paramètre
+// `queue`, ré-ouverture 350ms après la fermeture) — invisible pour la file
+// partagée, qui pouvait alors ouvrir une AUTRE popup automatique par-dessus
+// pendant ce court intervalle « fermé ».
+function showGradeUpgradePopup(g){
+  if(!g) return;
   var modal=document.getElementById('grade-upgrade-modal');
   if(!modal){
     // Création à la volée si le markup n'existe pas
@@ -9826,19 +9876,13 @@ function showGradeUpgradePopup(queue){
       +'<div style="font-family:Space Mono,monospace;font-size:1.05rem">'+rewardsParts.join(' &nbsp;·&nbsp; ')+'</div>';
   }
   document.getElementById('gu-rewards').innerHTML=rewardHtml;
-  // Stocker la queue restante pour enchaîner au close
-  modal._upgradeQueue=queue;
   if(typeof openModal==='function') openModal('grade-upgrade-modal');
   else modal.style.display='flex';
 }
 function _closeGradeUpgrade(){
   var modal=document.getElementById('grade-upgrade-modal');
-  var queue=modal?(modal._upgradeQueue||[]):[];
   if(typeof closeModal==='function') closeModal('grade-upgrade-modal');
   else if(modal) modal.style.display='none';
-  if(queue.length>0){
-    setTimeout(function(){showGradeUpgradePopup(queue);},350);
-  }
 }
 function natFlag(v){ return v?(v.trim().split(/\s+/)[0]||'🏳️'):'🏳️'; }
 var SQUARE_FLAGS=['🇨🇭','🇻🇦','🇳🇵'];
@@ -13426,7 +13470,10 @@ async function checkAndShowPeriodRecap(){
   // Cas 2 : déjà à jour (a déjà vu le récap de la dernière période)
   if(lastSeen>=current) return;
   // Cas 3 : décalage → afficher le récap de la dernière période close (current-1)
-  await renderPeriodRecap(p, current-1);
+  // Mis en file d'attente partagée (cf _enqueueCelebration) — auparavant ce
+  // popup pouvait s'ouvrir en même temps qu'un autre popup automatique du
+  // login (chaîne, grade, badges...).
+  _enqueueCelebration(function(){ renderPeriodRecap(p, current-1); });
 }
 
 async function renderPeriodRecap(player, closedPeriod, opts){
@@ -15330,7 +15377,7 @@ async function checkSocialNotifs(){
       var allDates=newReacts.map(function(r){return r.created_at;}).concat(newComms.map(function(c){return c.created_at;}));
       var maxDate=allDates.reduce(function(m,d){return d>m?d:m;},popupWatermark);
       localStorage.setItem('social-notif-popup-shown-'+currentUser.id,maxDate);
-      showSocialNotifPopup(newReacts,newComms);
+      _enqueueCelebration(function(){ showSocialNotifPopup(newReacts,newComms); });
     }
   }
 }
@@ -17832,24 +17879,6 @@ function showCourseCreditCongrats(totalRpc, count){
 // — cf tâche remboursement). Détectée via wallet_tx par les 2 reasons dédiées,
 // jamais recalculée ni recréditée ici — cette fenêtre ne fait qu'AFFICHER un
 // crédit déjà posé en base (cf doctrine anti-dérive : source unique = la base).
-// Attend que land-modal soit libre avant d'appeler cb() (2026-08-07, bug
-// trouvé à l'audit pré-lancement) — openModal/closeModal n'ont aucune file
-// d'attente : deux fenêtres qui visent #lm-title/#lm-sub/#lm-body en même
-// temps (ex. rattrapage de badges au login + bonus Tour V2) s'écrasent
-// silencieusement, la dernière à s'ouvrir gagne. Reréessaie toutes les 1.5s,
-// jusqu'à 20 fois (30s) avant d'abandonner (cb() jamais appelé si la modale
-// reste bloquée ouverte anormalement longtemps — mieux que forcer et perdre
-// l'affichage en cours pour le RP).
-function _callWhenModalFree(cb, triesLeft){
-  triesLeft = triesLeft==null ? 20 : triesLeft;
-  var modalEl = document.getElementById('land-modal');
-  if(modalEl && modalEl.classList.contains('open')){
-    if(triesLeft<=0) return;
-    setTimeout(function(){ _callWhenModalFree(cb, triesLeft-1); }, 1500);
-    return;
-  }
-  cb();
-}
 function _tourv2WelcomeSeenKey(){ return 'tourv2-welcome-seen-'+(currentUser?currentUser.id:''); }
 async function checkTourV2WelcomeBonus(){
   if(!currentUser) return;
@@ -17874,7 +17903,10 @@ async function checkTourV2WelcomeBonus(){
       if(r.reason==='Tour V2 — bonus de démarrage'){ startRpc+=r.rpc_delta||0; startNyx+=r.nyx_delta||0; }
       else { refundRpc+=r.rpc_delta||0; }
     });
-    _callWhenModalFree(function(){ showTourV2WelcomeModal(startRpc, startNyx, refundRpc); });
+    // Mis en file d'attente partagée (cf _enqueueCelebration, remplace
+    // l'ancien _callWhenModalFree scopé au seul land-modal) pour ne jamais
+    // s'ouvrir en même temps qu'un autre popup automatique du login.
+    _enqueueCelebration(function(){ showTourV2WelcomeModal(startRpc, startNyx, refundRpc); });
   } catch(e){ console.warn('[tourv2-welcome] check failed:', e); }
 }
 function showTourV2WelcomeModal(startRpc, startNyx, refundRpc){
@@ -18327,7 +18359,7 @@ function checkBirthdayGift(){
     if(todayMD!==birthMD) return;
     var curYear=parseInt(todayStr.slice(0,4),10);
     if(window.__myPlayer.birthdayGiftYear===curYear) return; // déjà réclamé cette année
-    openModal('birthday-gift-modal');
+    _enqueueCelebration(function(){ openModal('birthday-gift-modal'); });
   }catch(e){ console.warn('[birthday gift] check failed', e); }
 }
 async function claimBirthdayGift(){
@@ -18363,9 +18395,11 @@ async function claimBirthdayGift(){
 function checkAdminAlert(){
   try{
     if(!currentUser || !window.__myPlayer || !window.__myPlayer.adminAlertMessage) return;
-    var el=document.getElementById('admin-alert-text');
-    if(el) el.textContent=window.__myPlayer.adminAlertMessage;
-    openModal('admin-alert-modal');
+    _enqueueCelebration(function(){
+      var el=document.getElementById('admin-alert-text');
+      if(el) el.textContent=window.__myPlayer.adminAlertMessage;
+      openModal('admin-alert-modal');
+    });
   }catch(e){ console.warn('[admin alert] check failed', e); }
 }
 async function dismissAdminAlert(){
@@ -18603,11 +18637,14 @@ async function checkReferralNotifications(){
   var nameMap={};
   (filleuls||[]).forEach(function(f){nameMap[f.id]=f.username;});
 
-  // Afficher les notifs une par une avec un délai entre chaque
-  var delay=0;
-  pending.forEach(function(r,i){
-    delay=i*2500; // 2.5s entre chaque notif
-    setTimeout(function(){
+  // Afficher les notifs une par une — chacune mise en file d'attente
+  // partagée (cf _enqueueCelebration), qui n'ouvre la suivante qu'une fois
+  // la précédente refermée par le RP (remplace l'ancien espacement fixe
+  // 2,5s/notif, qui pouvait aussi bien être trop court — RP encore en train
+  // de lire — que trop long, et ne tenait de toute façon aucun compte des
+  // AUTRES popups automatiques du login).
+  pending.forEach(function(r){
+    _enqueueCelebration(function(){
       var _enRN=(SPEEDIX_LANG==='en');
       var name=nameMap[r.filleul_id]||(_enRN?'A referral':'Un filleul');
       var action=(_enRN?REWARD_LABELS_EN:REWARD_LABELS)[r.reward_type]||(_enRN?'reached a milestone':'a franchi une étape');
@@ -18620,7 +18657,6 @@ async function checkReferralNotifications(){
       // Adapter le montant affiché (innerHTML pour préserver les couleurs)
       var rewardEl=document.querySelector('#referral-notif-modal .modal-box > div:nth-child(5)');
       if(rewardEl) rewardEl.innerHTML=rewardHtml;
-      // Bouton : si c'est le dernier, juste fermer. Sinon, passer au suivant
       var btn=document.getElementById('ref-notif-btn');
       btn.onclick=function(){
         closeModal('referral-notif-modal');
@@ -18632,18 +18668,22 @@ async function checkReferralNotifications(){
         headers:{'apikey':supabaseKey,'Authorization':'Bearer '+(window.__sessionToken||supabaseKey),'Content-Type':'application/json'},
         body:JSON.stringify({notified:true})
       });
-    },delay);
+    });
   });
 }
 
-// Palier "rejoint une team" (2026-08-05, demande explicite : plus besoin que ce
-// soit LA team du parrain — un parrain peut avoir des filleuls qui rejoignent
-// une autre team que la sienne, l'ancienne condition était injustement
-// impossible à valider dans ce cas). N'importe quelle team du filleul suffit.
-// SOURCE UNIQUE (2026-08-09) : délègue à la RPC base apply_referral_milestones
-// — MIROIR de la définition base, garder synchro. L'ancienne version
+// Nom conservé pour l'historique ("rejoint une team", 2026-08-05 : plus
+// besoin que ce soit LA team du parrain, n'importe laquelle suffit), mais
+// vérifie en fait LES 4 paliers de parrainage (first_run/1000_pts/3_periods/
+// same_team), pas seulement celui-ci — apply_referral_milestones les check
+// tous à chaque appel. SOURCE UNIQUE (2026-08-09) : délègue à la RPC base —
+// MIROIR de la définition base, garder synchro. L'ancienne version
 // réimplémentait tout ce calcul en JS (montants en dur, idempotence maison)
 // malgré un commentaire du panel admin prétendant déjà passer par la base.
+// Appelée au join d'une team (ci-dessous) ET à CHAQUE login (2026-09-01,
+// cf le login flow) : avant, un filleul qui avait déjà rejoint une team tôt
+// ne redéclenchait plus jamais ce check ensuite, donc le palier "3 périodes"
+// (atteint plus tard) n'était jamais vérifié/crédité pour son parrain.
 async function checkReferralSameTeam(){
   if(!currentUser) return;
   var {data:me}=await supabaseClient.from('players').select('referred_by').eq('id',currentUser.id).single();
@@ -18786,47 +18826,53 @@ async function checkAndClaimStreak(){
     await walletCredit(reward, 0, 'Chaîne jour '+newCount);
   }
 
-  // Afficher le modal
-  var msg=getStreakMessage(newPhase, newCount, reward);
-  document.getElementById('streak-modal-emoji').textContent=msg.emoji;
-  document.getElementById('streak-modal-title').textContent=msg.title;
-  document.getElementById('streak-modal-sub').textContent=msg.sub;
-  document.getElementById('streak-modal-reward').textContent=msg.reward;
-  document.getElementById('streak-modal-reward').style.color=reward>0?'var(--gold)':'var(--red)';
-  document.getElementById('streak-modal-info').innerHTML=msg.info;
-  // Relancer l'animation
-  var emojiEl=document.getElementById('streak-modal-emoji');
-  emojiEl.style.animation='none';emojiEl.offsetHeight;
-  emojiEl.style.animation='blasonPop .5s cubic-bezier(.22,.68,0,1.2) both';
-
-  // Première connexion (newCount=1 ET newPhase=0 = jamais cassé) → streak
-  // directement, puis bascule sur la Player Card et tuto contextuel des 6 boutons.
-  // [2026-05-23] Onboarding 2 slides + welcome-bonus modale retirés du parcours :
-  // trop de fenêtres en cascade. La condition originale newPhase===1 était fausse :
-  // un compte tout neuf a phase=0 (jamais cassé), donc l'onboarding ne se lançait
-  // jamais. Corrigé pour viser vraiment la 1ère connexion d'un nouveau RP.
-  var streakBtn=document.getElementById('streak-modal-btn');
-  if(newCount===1 && newPhase===0){
-    streakBtn.onclick=function(){
-      closeModal('streak-modal');
-      setTimeout(function(){
-        if(typeof nav==='function') nav('dashboard');
-        setTimeout(function(){
-          if(currentUser && !localStorage.getItem('pc-tuto-done-'+currentUser.id)){
-            localStorage.setItem('pc-tuto-done-'+currentUser.id,'1');
-            if(typeof startContextualTuto==='function') startContextualTuto(_pcTutorialSteps);
-          }
-        }, 600);
-      }, 250);
-    };
-    openModal('streak-modal');
-  } else {
-    streakBtn.onclick=function(){closeModal('streak-modal');};
-    openModal('streak-modal');
-  }
-
-  // Mettre à jour l'affichage
+  // Mettre à jour l'affichage inline (bandeau streak sur la Player Card) tout
+  // de suite, indépendamment de la popup — c'est l'affichage du modal qui est
+  // mis en file (cf _enqueueCelebration), pas le crédit ni ce compteur.
   updateStreakDisplay(newCount, newPhase, newMisses);
+
+  // Afficher le modal — mis en file d'attente partagée avec les autres popups
+  // automatiques du login (badge, grade, défis, Tour...) pour ne jamais
+  // s'empiler/s'écraser entre elles (cf _enqueueCelebration).
+  _enqueueCelebration(function(){
+    var msg=getStreakMessage(newPhase, newCount, reward);
+    document.getElementById('streak-modal-emoji').textContent=msg.emoji;
+    document.getElementById('streak-modal-title').textContent=msg.title;
+    document.getElementById('streak-modal-sub').textContent=msg.sub;
+    document.getElementById('streak-modal-reward').textContent=msg.reward;
+    document.getElementById('streak-modal-reward').style.color=reward>0?'var(--gold)':'var(--red)';
+    document.getElementById('streak-modal-info').innerHTML=msg.info;
+    // Relancer l'animation
+    var emojiEl=document.getElementById('streak-modal-emoji');
+    emojiEl.style.animation='none';emojiEl.offsetHeight;
+    emojiEl.style.animation='blasonPop .5s cubic-bezier(.22,.68,0,1.2) both';
+
+    // Première connexion (newCount=1 ET newPhase=0 = jamais cassé) → streak
+    // directement, puis bascule sur la Player Card et tuto contextuel des 6 boutons.
+    // [2026-05-23] Onboarding 2 slides + welcome-bonus modale retirés du parcours :
+    // trop de fenêtres en cascade. La condition originale newPhase===1 était fausse :
+    // un compte tout neuf a phase=0 (jamais cassé), donc l'onboarding ne se lançait
+    // jamais. Corrigé pour viser vraiment la 1ère connexion d'un nouveau RP.
+    var streakBtn=document.getElementById('streak-modal-btn');
+    if(newCount===1 && newPhase===0){
+      streakBtn.onclick=function(){
+        closeModal('streak-modal');
+        setTimeout(function(){
+          if(typeof nav==='function') nav('dashboard');
+          setTimeout(function(){
+            if(currentUser && !localStorage.getItem('pc-tuto-done-'+currentUser.id)){
+              localStorage.setItem('pc-tuto-done-'+currentUser.id,'1');
+              if(typeof startContextualTuto==='function') startContextualTuto(_pcTutorialSteps);
+            }
+          }, 600);
+        }, 250);
+      };
+      openModal('streak-modal');
+    } else {
+      streakBtn.onclick=function(){closeModal('streak-modal');};
+      openModal('streak-modal');
+    }
+  });
 }
 
 function updateStreakDisplay(count, phase, misses){
@@ -23419,21 +23465,24 @@ async function checkCollabPartnerActions(){
         if(!seen[key2]) queue.push({type:'decline',key:key2,name:otherName});
       }
     }
-    for(var j=0;j<queue.length;j++){
-      var n=queue[j];
-      if(n.type==='accept'){
-        await askConfirm(
-          t('collab.notif.accept.body').replace('{name}',n.name),
-          {emoji:'🤜🤛',title:t('collab.notif.accept.title'),singleAction:true,okLabel:'OK',success:true}
-        );
-      } else {
-        await askConfirm(
-          t('collab.notif.decline.body').replace('{name}',n.name),
-          {emoji:'😔',title:t('collab.notif.decline.title'),singleAction:true,okLabel:'OK'}
-        );
-      }
-      _markCollabPartnerActSeen(n.key);
-    }
+    // Chaque notif est sa propre tâche dans la file d'attente partagée (cf
+    // _enqueueCelebration) plutôt qu'un for/await séquentiel isolé — avant,
+    // cette séquence pouvait s'ouvrir en même temps qu'un AUTRE popup
+    // automatique du login (chaîne, grade, badges...).
+    queue.forEach(function(n){
+      _enqueueCelebration(function(){
+        var p = n.type==='accept'
+          ? askConfirm(
+              t('collab.notif.accept.body').replace('{name}',n.name),
+              {emoji:'🤜🤛',title:t('collab.notif.accept.title'),singleAction:true,okLabel:'OK',success:true}
+            )
+          : askConfirm(
+              t('collab.notif.decline.body').replace('{name}',n.name),
+              {emoji:'😔',title:t('collab.notif.decline.title'),singleAction:true,okLabel:'OK'}
+            );
+        p.then(function(){ _markCollabPartnerActSeen(n.key); });
+      });
+    });
   } catch(e){
     console.error('checkCollabPartnerActions error:', e);
   }
@@ -23552,18 +23601,21 @@ async function checkCollabResolutionNotifications(){
       queue.push({chal:c, part:part, neighborInfo:neighInfo});
     });
     if(!queue.length) return;
-    // 5. Afficher 1 par 1 (queue séquentielle gérée par closeCollabResultPopup)
-    window._collabResultQueue=queue;
-    _showNextCollabResult();
+    // 5. Afficher 1 par 1 — chaque défi résolu est sa propre tâche dans la
+    // file d'attente partagée (cf _enqueueCelebration) : la suivante n'ouvre
+    // qu'une fois la précédente refermée, et ça reste cohérent avec les
+    // AUTRES popups automatiques du login (avant, cette file était interne
+    // à ce seul flux et pouvait s'ouvrir en même temps qu'un badge/palier
+    // de grade/etc.).
+    queue.forEach(function(item){
+      _enqueueCelebration(function(){ _renderCollabResult(item); });
+    });
   } catch(e){
     console.warn('checkCollabResolutionNotifications error:', e);
   }
 }
 
-function _showNextCollabResult(){
-  var q=window._collabResultQueue;
-  if(!q || !q.length){ return; }
-  var item=q[0];
+function _renderCollabResult(item){
   var chal=item.chal;
   var _metaRaw=COLLAB_CHALLENGE_CATALOG.find(function(x){return x.code===chal.challenge_code;});
   var meta=_metaRaw ? Object.assign({}, _metaRaw, _collabLocalize(_metaRaw)) : {title:chal.challenge_code};
@@ -23610,29 +23662,26 @@ function _showNextCollabResult(){
   if(btnColor==='var(--green)') btn.style.background='linear-gradient(175deg,rgba(45,219,128,.22),rgba(20,160,80,.12))';
   else if(btnColor==='var(--red)') btn.style.background='linear-gradient(175deg,rgba(255,68,68,.22),rgba(180,40,40,.12))';
   else if(btnColor==='var(--orange)') btn.style.background='linear-gradient(175deg,rgba(255,128,32,.22),rgba(200,90,20,.12))';
+  var _modalEl=document.getElementById('collab-result-modal');
+  if(_modalEl) _modalEl.dataset.partId=item.part.id;
   openModal('collab-result-modal');
 }
 
 async function closeCollabResultPopup(){
+  var modal=document.getElementById('collab-result-modal');
+  var partId=modal?modal.dataset.partId:null;
   closeModal('collab-result-modal');
-  var q=window._collabResultQueue;
-  if(!q || !q.length) return;
-  var item=q.shift();
+  if(!partId) return;
+  if(modal) delete modal.dataset.partId;
   // Marquer notified_at en DB pour ne plus réafficher ce défi
   try {
     await supabaseClient.from('collab_challenge_participants')
       .update({notified_at:new Date().toISOString()})
-      .eq('id',item.part.id);
+      .eq('id',partId);
   } catch(e){ console.warn('notif update fail', e); }
-  // Afficher le suivant après court délai (pour transition fluide)
-  if(q.length){
-    setTimeout(function(){ _showNextCollabResult(); }, 350);
-  } else {
-    window._collabResultQueue=null;
-    // Refresh badge + onglet si ouvert
-    if(typeof refreshCollabBadge==='function') refreshCollabBadge();
-    if(typeof renderCollabChallenges==='function' && _CHALLENGES_TAB==='collab') renderCollabChallenges();
-  }
+  // Refresh badge + onglet si ouvert
+  if(typeof refreshCollabBadge==='function') refreshCollabBadge();
+  if(typeof renderCollabChallenges==='function' && _CHALLENGES_TAB==='collab') renderCollabChallenges();
 }
 
 // Bandeau in-app à l'ouverture : affiche un toast + ouvre la page DÉFIS
@@ -24311,37 +24360,68 @@ async function _recoverMissedBadgePopups(){
   }catch(e){console.warn('[badges] recovery failed:',e);}
 }
 
-// File d'attente partagée pour les popups de célébration post-login (badge
-// gagné → land-modal, objectif validé → quest-modal). Avant, triggerBadgeCheck
-// espaçait SES propres popups de 4s entre eux, mais _recoverMissedBadgePopups
-// (filet de rattrapage, lancé 2s après en parallèle) espaçait LES SIENS
+// File d'attente partagée pour TOUTES les popups automatiques qui peuvent
+// s'ouvrir sans action du RP après le login (badge gagné, objectif validé,
+// chaîne de connexion, passage de grade, cadeau d'anniversaire, alerte admin,
+// récap de fin de période, récompense de parrainage, notif défi collab,
+// notif réseau social, palier Speedix Tour...). À l'origine limitée aux
+// badges/objectifs (land-modal + quest-modal, cf note historique ci-dessous),
+// étendue le 2026-09-01 à TOUTE la liste : plusieurs de ces vérifications
+// tournent chacune sur son propre timer indépendant au login, et pouvaient
+// donc ouvrir leur fenêtre en même temps (ex. badge + défi voisin + palier
+// Tour), l'une écrasant/masquant l'autre — un RP se retrouvait avec à peine
+// le temps de lire ou de valider avant l'enchaînement suivant (signalé par
+// l'user début septembre). Une seule popup à la fois, dans TOUTE cette liste :
+// la suivante n'ouvre qu'une fois la précédente réellement fermée (poll sur
+// la classe .open) + une courte pause de lecture.
+//
+// Note historique (25/08/26) : avant l'extension, triggerBadgeCheck espaçait
+// SES propres popups de 4s entre eux, mais _recoverMissedBadgePopups (filet
+// de rattrapage, lancé 2s après en parallèle) espaçait LES SIENS
 // indépendamment — les deux pouvaient donc ouvrir une modale chacun au même
 // moment, la 2e (quest-modal, z-index plus haut) recouvrant la 1ère et
 // bloquant TOUS les clics de la page (y compris le bouton menu en haut à
 // gauche) jusqu'à ce que le RP la ferme — reproduit en local le 25/08/26 avec
-// le compte démo Apple (badge + objectif gagnés en même temps). Ici, une
-// seule popup à la fois : la suivante n'ouvre qu'une fois la précédente
-// réellement fermée (poll sur la classe .open des 2 modales concernées).
+// le compte démo Apple (badge + objectif gagnés en même temps).
+var _CELEB_MODAL_IDS=['land-modal','quest-modal','streak-modal','grade-upgrade-modal',
+  'birthday-gift-modal','admin-alert-modal','period-recap-modal','referral-notif-modal',
+  'social-notif-modal','collab-result-modal','ask-confirm-modal'];
+var _CELEB_READ_GAP_MS=900; // pause après fermeture avant d'ouvrir la suivante
+var _CELEB_MAX_WAIT_MS=8000; // délai max d'attente qu'un modal apparaisse avant d'abandonner (tâche async qui n'a rien à montrer)
 var _celebQueue=[];
 var _celebActive=false;
 function _enqueueCelebration(showFn){
   _celebQueue.push(showFn);
   if(!_celebActive) _processCelebQueue();
 }
+function _anyCelebModalOpen(){
+  return _CELEB_MODAL_IDS.some(function(id){
+    var el=document.getElementById(id);
+    return el && el.classList.contains('open');
+  });
+}
 function _processCelebQueue(){
   var fn=_celebQueue.shift();
   if(!fn){ _celebActive=false; return; }
   _celebActive=true;
   fn();
+  // Certaines tâches font des requêtes DB AVANT d'ouvrir leur popup (récap de
+  // période, notif parrainage...) — on ne peut donc pas juste attendre un
+  // court délai fixe puis conclure "rien à afficher" si le modal n'est pas
+  // encore ouvert. On attend jusqu'à _CELEB_MAX_WAIT_MS qu'UN modal de la
+  // liste apparaisse ; une fois vu ouvert, on attend sa fermeture ; s'il
+  // n'apparaît jamais dans ce délai (tâche qui n'avait finalement rien à
+  // montrer), on abandonne l'attente et on passe à la suite.
+  var seenOpen=false, startedAt=Date.now();
   var check=setInterval(function(){
-    var lm=document.getElementById('land-modal');
-    var qm=document.getElementById('quest-modal');
-    var stillOpen=(lm&&lm.classList.contains('open'))||(qm&&qm.classList.contains('open'));
-    if(!stillOpen){
+    var open=_anyCelebModalOpen();
+    if(open) seenOpen=true;
+    var giveUpWaitingToOpen=!seenOpen && (Date.now()-startedAt>_CELEB_MAX_WAIT_MS);
+    if((seenOpen||giveUpWaitingToOpen) && !open){
       clearInterval(check);
-      setTimeout(_processCelebQueue,300);
+      setTimeout(_processCelebQueue,_CELEB_READ_GAP_MS);
     }
-  },300);
+  },250);
 }
 async function triggerBadgeCheck(){
   if(!currentUser||_badgeCheckInFlight) return;
