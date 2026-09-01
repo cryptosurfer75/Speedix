@@ -9468,6 +9468,10 @@ const LEAGUES=[
 // classement.
 // Abaissé de 50 à 40 le 2026-09-01 (demande explicite) pour ouvrir quelques
 // leagues supplémentaires aux médailles.
+// Le décompte comparé à ce seuil (cf §3b/§4 de _processEndOfPeriodInner) compte
+// les buy-in PAYÉS au démarrage de la période, pas les compétitifs encore actifs
+// (pts>0) à la fin — un RP qui disparaît en route sans avoir couru ne doit pas
+// faire perdre les médailles à toute sa league (demande explicite 2026-09-01).
 const LEAGUE_MEDAL_MIN_COMPETITORS = 40;
 
 // ────────────────────────────────────────────────────────────────────
@@ -12951,6 +12955,23 @@ async function _processEndOfPeriodInner(){
   //    médaille par RP = celle de SA ligue (§4 ci-dessous). Aucune médaille 'global'
   //    n'existait en base (compétition jamais lancée) → rien à nettoyer côté données.
 
+  // 3b. Compteur du SEUIL DE MASSE CRITIQUE — basé sur le DÉBUT de période
+  // (buy-in payé), pas sur qui a encore des points à la fin. Avant, le seuil
+  // se lisait sur `ranked` (compétitifs avec pts>0 CE jour-là) : un RP qui a
+  // payé son buy-in et démarré la période, puis disparaît en route (blessure
+  // non déclarée, désintérêt, etc.) sans avoir couru, faisait glisser toute
+  // sa league sous le seuil et privait TOUS les autres de leurs médailles —
+  // alors que rien n'est de leur fait (demande explicite 2026-09-01). Le
+  // nombre de buy-in payés ne bouge plus une fois la période lancée (posé
+  // une seule fois à la rotation précédente, cf §7/§8 plus bas), donc c'est
+  // un décompte stable "au démarrage", contrairement à pts>0.
+  var paidCompetitorsByLeague={};
+  allPlayers.forEach(function(p){
+    if(!p.competitive || p.buyin_debt) return;
+    var lk=p.league||'starter';
+    paidCompetitorsByLeague[lk]=(paidCompetitorsByLeague[lk]||0)+1;
+  });
+
   // 4. Distribuer les médailles par league
   var byLeague={};
   ranked.forEach(function(p){
@@ -12962,10 +12983,12 @@ async function _processEndOfPeriodInner(){
     if(lk.toLowerCase()==='starter') continue; // Pas de médailles en Starter
     // Filtrer les compétitifs seulement pour les médailles
     var lg=byLeague[lk].filter(function(p){return p.competitive;});
-    // SEUIL DE MASSE CRITIQUE : pas de palmarès dans une league qui n'a pas atteint
-    // LEAGUE_MEDAL_MIN_COMPETITORS compétiteurs. Le buy-in et le prize pool RPC
-    // (§7/§8) continuent quand même — seules les médailles sont suspendues.
-    if(lg.length<LEAGUE_MEDAL_MIN_COMPETITORS) continue;
+    // SEUIL DE MASSE CRITIQUE : pas de palmarès dans une league qui n'a pas
+    // atteint LEAGUE_MEDAL_MIN_COMPETITORS buy-in payés au démarrage de la
+    // période (cf 3b — plus un décompte de qui a encore des points à la
+    // fin). Le buy-in et le prize pool RPC (§7/§8) continuent quand même —
+    // seules les médailles sont suspendues.
+    if((paidCompetitorsByLeague[lk]||0)<LEAGUE_MEDAL_MIN_COMPETITORS) continue;
     for(var li=0;li<Math.min(3,lg.length);li++){
       await supabaseClient.from('palmares').insert({
         player_id:lg[li].id,
