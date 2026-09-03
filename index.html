@@ -9428,11 +9428,21 @@ if(document.readyState==='loading'){
 }
 
 async function checkCode(){
-  var v=document.getElementById('reg-code').value.toUpperCase().trim();
+  var v=(document.getElementById('reg-code').value||'').toUpperCase().trim();
   var m=document.getElementById('code-msg');
   if(!v){m.style.color='#8aaccc';m.textContent='Ton parrain reçoit 2 000 RPC + 5 💎 NYX';m.dataset.parrainUuid='';return;}
-  if(!v.startsWith('SL-')||v.length<7){m.style.color='#ff4444';m.textContent='Code invalide. Format : SL-XXXXX';m.dataset.parrainUuid='';return;}
-  var rtwCode=v.replace('SL-','');
+  // Normalisation tolérante (2026-09-03, bug récurrent signalé plusieurs fois :
+  // le filet de sécurité au submit ne servait à rien si le code tapé ne matchait
+  // simplement jamais — un RP qui partage son code à l'oral/SMS sans passer par
+  // le bouton "Partager" donne souvent juste le numéro ("2", "00002") ou oublie
+  // le tiret ("SL2") ; avant, ces variantes tombaient en erreur silencieuse
+  // (petit texte rouge facilement ignoré) et le lien parrain n'était jamais posé.
+  // On accepte maintenant : espaces, tiret manquant, et numéro sans les zéros.
+  var digits=v.replace(/\s+/g,'').replace(/^SL-?/,'');
+  if(!digits||!/^[0-9]+$/.test(digits)||digits.length>8){
+    m.style.color='#ff4444';m.textContent='Code invalide. Format : SL-XXXXX';m.dataset.parrainUuid='';return;
+  }
+  var rtwCode=digits.padStart(5,'0');
   m.style.color='#f0c040';m.textContent='Vérification…';
   var {data:found}=await supabaseClient.from('players').select('id,username').eq('rtw_id',rtwCode).maybeSingle();
   if(found){
