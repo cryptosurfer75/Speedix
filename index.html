@@ -18090,12 +18090,29 @@ function consumeTourAdvance(){
   // onShow() à 200/500/1200ms) — ne PAS le rappeler ici, sinon double init
   // (calques de carte dupliqués). On se cale après le dernier onShow().
   nav('lands');
-  // Délai avant de réclamer : si c'est la 1ère visite du RP sur le Tour,
-  // Tour.init() vient d'ouvrir la modale de choix Paris/Marseille — il ne faut
-  // PAS déplacer le pion avant que ce choix soit fait, sinon la modale
-  // d'arrivée sur une Land écrase la modale de départ en plein milieu (bug
-  // signalé 2026-08-07 : "je n'ai pas eu le temps de choisir mon départ").
-  setTimeout(_tourClaimAndAnimate, 1500);
+  _tourClaimAndAnimateWhenReady();
+  // Le choix de la 1ère visite (modale Paris/Marseille) et la fenêtre
+  // d'arrivée (case bonus/événement) partagent la même modale générique
+  // #tour-rent-modal, déjà surveillée par _tourWaitClear() dans forceMove()
+  // — pas besoin de délai séparé ici pour ce cas (cf commentaire sur
+  // _tourWaitClear, plus haut dans le module Tour).
+}
+// Remplace l'ancien délai fixe (setTimeout 1500ms) qui devinait quand la
+// carte serait prête (2026-09-03, reprise complète du chronomètre de
+// déplacement) : attend le vrai signal window.Tour.ready (posé une fois la
+// carte + applyServerMove réellement disponibles, cf window.Tour.init), puis
+// réclame l'avancée. Si Tour.init() n'a pas fini d'exister au moment où
+// window.Tour.ready se résout pour une raison quelconque, ou si l'appel réseau
+// échoue ponctuellement, réessaie quelques fois espacées plutôt que d'abandonner
+// en silence — avant, un statut 'not_ready' ne relançait jamais rien et le RP ne
+// voyait jamais son point bouger tant qu'il ne rouvrait pas l'appli.
+async function _tourClaimAndAnimateWhenReady(attemptsLeft){
+  if(attemptsLeft===undefined) attemptsLeft = 6;
+  await (window.Tour && window.Tour.ready ? window.Tour.ready : Promise.resolve());
+  var res = await _tourClaimAndAnimate();
+  if(res && (res.status==='not_ready' || res.status==='error' || res.status==='locked') && attemptsLeft>0){
+    setTimeout(function(){ _tourClaimAndAnimateWhenReady(attemptsLeft-1); }, 1200);
+  }
 }
 
 // Bouton "Vérifier mes courses" (2026-08-09, demande explicite user, suite au
@@ -26669,6 +26686,16 @@ try{ setInterval(updateBadge, 60000); }catch(e){}
 var _tourInitialized = false;
 var _tourInitializedForUserId = null;
 window.Tour = window.Tour || {};
+// Promesse "le Tour est vraiment prêt" (carte + applyServerMove disponibles),
+// créée dès le chargement du script -- résolue une seule fois, plus bas,
+// juste après le Object.assign(window.Tour,{...}) qui expose applyServerMove.
+// Remplace les délais fixes (setTimeout 1500ms...) utilisés jusqu'ici pour
+// deviner quand la carte serait prête avant de lancer une animation : init()
+// enchaîne plusieurs allers-retours réseau (joueurs, lands, following...)
+// AVANT de créer la carte Leaflet -- sur une connexion lente ce délai fixe
+// pouvait s'écouler avant que tout soit prêt, et la réclamation d'avancée
+// tombait alors en silence en 'not_ready' (cf _tourClaimAndAnimateWhenReady).
+window.Tour.ready = window.Tour.ready || new Promise(function(res){ window.Tour._resolveReady = res; });
 window.Tour.init = async function(){
   if(_tourInitialized){
     // Changement de compte connecté depuis le dernier Tour.init() (2026-08-08,
@@ -28792,10 +28819,56 @@ window.Tour.init = async function(){
     return {lat:LANDS[i].lat, lng:LANDS[i].lng, i};
   }
   
+  // Verrou anti-interruption de l'animation du point (2026-09-03, bug corrigé —
+  // signalé par l'user : une fenêtre auto (taxe foncière/loyer, cf
+  // checkPropertyTaxNotice/checkRentNotice) pouvait s'ouvrir PENDANT que le
+  // point se déplaçait sur la carte, recouvrant l'animation en plein milieu —
+  // ou l'inverse, l'animation démarrait alors qu'une de ces fenêtres était déjà
+  // ouverte, cachant le départ. _tourAnimating protège la fenêtre "le point est
+  // en train de bouger" ; _tourWaitClear() attend en plus que #tour-rent-modal
+  // soit fermée avant de laisser partir/afficher quoi que ce soit — les 2 seuls
+  // déclencheurs AUTOMATIQUES (jamais un clic direct du RP) qui ouvrent cette
+  // modale l'utilisent désormais (cf checkPropertyTaxNotice/checkRentNotice).
+  //
+  // Étendu (2026-09-03, reprise complète du chronomètre de déplacement — signalé
+  // 3x par l'user, "je n'ai pas vu mon point se déplacer parce que la fenêtre de
+  // récompense 10km s'est ouverte juste avant") : _tourWaitClear() ne surveillait
+  // QUE #tour-rent-modal, pas la file de célébration partagée (_enqueueCelebration,
+  // badges/streak/grade/parrainage/défis collab/récap période...). consumeTourAdvance()
+  // lançait l'animation 1,5s après avoir fermé la popup "Voir ma progression" —
+  // mais cette popup fait ELLE-MÊME partie de cette file, et l'item SUIVANT de la
+  // file pouvait s'ouvrir (badge gagné pendant la course, ex. "10 km") pile dans
+  // cette fenêtre de 1,5s, recouvrant la carte pendant que le point bougeait déjà
+  // derrière. Le point avançait bien, juste invisible. Maintenant _tourWaitClear()
+  // attend aussi que la file de célébration soit ENTIÈREMENT vidée (pas seulement
+  // "aucune popup ouverte à cet instant précis" — sinon même race, juste décalée
+  // d'un tick) avant de laisser partir/afficher quoi que ce soit côté Tour.
+  let _tourAnimating = false;
+  function _tourModalOpen(){
+    const m = document.getElementById('tour-rent-modal');
+    return !!(m && m.classList.contains('open'));
+  }
+  function _celebPipelineBusy(){
+    return (typeof _anyCelebModalOpen==='function' && _anyCelebModalOpen())
+      || (typeof _celebActive!=='undefined' && _celebActive)
+      || (typeof _celebQueue!=='undefined' && _celebQueue.length>0);
+  }
+  function _tourWaitClear(){
+    return new Promise(function(resolve){
+      (function poll(){
+        if(!_tourAnimating && !_tourModalOpen() && !_celebPipelineBusy()) resolve(); else setTimeout(poll, 250);
+      })();
+    });
+  }
   // Déplacement générique du point, dans un sens OU l'autre (2026-08-01, généralisé
   // pour les cases événement "Reculez de N Lands" — avant, seul l'avancement
   // existait). runKm() n'est plus qu'un cas particulier (delta toujours positif).
-  function forceMove(delta){
+  // Async depuis 2026-09-03 : attend qu'aucune fenêtre ne soit déjà ouverte
+  // avant de faire partir le point (cf _tourWaitClear), pour ne jamais démarrer
+  // le départ caché derrière une fenêtre déjà affichée.
+  async function forceMove(delta){
+    await _tourWaitClear();
+    _tourAnimating = true;
     const cellsToMove = Math.round(delta) || (delta>0?1:-1);
     const fromIdx = myIdx, toIdx = myIdx + cellsToMove;
     myIdx = toIdx;
@@ -28937,6 +29010,10 @@ window.Tour.init = async function(){
         // position, tour_set_start_position ou tour_move_relative) — plus aucune
         // écriture position depuis le client après coup, donc plus aucun canal
         // pour poser une valeur arbitraire.
+        // Point réellement arrivé -- le verrou anti-interruption (cf
+        // _tourAnimating, forceMove ci-dessus) se relâche ICI, juste avant que
+        // l'arrivée n'ouvre sa propre fenêtre (onArrive), jamais avant.
+        _tourAnimating = false;
         onArrive(toIdx);
       }
     }
@@ -29238,6 +29315,14 @@ window.Tour.init = async function(){
       // menant à un rejet serveur confus au lieu du bon message "solde insuffisant".
       ME.rpc = window.__wallet.rpc;
       ME.nyx = window.__wallet.nyx;
+    }
+    // Statut Premium (2026-09-03, bug corrigé) : ME.premium n'était chargé
+    // qu'une fois, à Tour.init() -- un RP qui passait Premium PENDANT une
+    // tentative d'achat de Land (cf simulateGoPremium) restait vu comme Free
+    // au retour sur le Tour, tant que la page n'était pas rechargée entièrement.
+    if(currentUser && currentUser.id){
+      const {data:_pd} = await supabaseClient.from('players').select('premium').eq('id', currentUser.id).maybeSingle();
+      if(_pd) ME.premium = !!_pd.premium;
     }
     updatePlayerStatusPanel();
   }
@@ -29724,6 +29809,12 @@ window.Tour.init = async function(){
   async function preemptLand(){
     const land = window._rentModalLand;
     if(!land) return;
+    // (2026-09-03, bug corrigé, même trou que attemptBuyEtape/attemptBuyLand) :
+    // seule la préemption n'armait jamais window._pendingBuyRetry -- passer
+    // Premium ou acheter des NYX depuis showPreemptNoRightsModal/
+    // showPreemptNotEnoughNyxModal ne relançait donc jamais la préemption au
+    // retour sur le Tour (cf onShow()).
+    window._pendingBuyRetry = preemptLand;
     if(!canBuyLands()){ showPreemptNoRightsModal(land); return; }
     if(ME.nyx < LAND_PRICE_NYX){ showPreemptNotEnoughNyxModal(land); return; }
     const previousOwner = land.owner ? land.owner.name : 'un autre RP';
@@ -31104,6 +31195,14 @@ window.Tour.init = async function(){
     try{ if(localStorage.getItem(_tourTaxSeenKey())) return; }catch(e){}
     const res = await _tourCall('tour_tax_status', {});
     if(!res || !res.pending) return;
+    // Jamais pendant que le point se déplace ni par-dessus une fenêtre déjà
+    // ouverte (2026-09-03, bug corrigé, signalé par l'user) : cette fenêtre se
+    // déclenche automatiquement, sans clic du RP -- elle attend son tour (cf
+    // _tourWaitClear, forceMove) au lieu de recouvrir l'animation du point ou
+    // une autre fenêtre en cours. "Vu" n'est marqué qu'une fois la voie libre,
+    // jamais avant, sinon un RP qui ferme l'appli pendant l'attente ne la
+    // reverrait jamais.
+    await _tourWaitClear();
     try{ localStorage.setItem(_tourTaxSeenKey(), '1'); }catch(e){}
     showPropertyTaxModal(res.amount, res.lands_count, res.days_left);
   }
@@ -31197,11 +31296,12 @@ window.Tour.init = async function(){
     try{ if(localStorage.getItem(_tourRentSeenKey())) return; }catch(e){}
     const res = await _tourCall('tour_rent_status', {});
     if(!res || !res.pending) return;
-    // Fenêtre déjà ouverte (ex. taxe foncière pendante le même jour) : ne pas
-    // écraser son contenu — la clé localStorage n'est PAS posée, donc ce
-    // rappel se represente à la prochaine ouverture de l'app.
-    const modalEl = document.getElementById('tour-rent-modal');
-    if(modalEl && modalEl.classList.contains('open')) return;
+    // Jamais pendant que le point se déplace ni par-dessus une fenêtre déjà
+    // ouverte -- ex. taxe foncière pendante le même jour, ou l'animation du
+    // point (2026-09-03, bug corrigé, signalé par l'user) -- cf _tourWaitClear,
+    // forceMove. "Vu" n'est marqué qu'une fois la voie libre : si l'appli ferme
+    // pendant l'attente, ce rappel se représente à la prochaine ouverture.
+    await _tourWaitClear();
     try{ localStorage.setItem(_tourRentSeenKey(), '1'); }catch(e){}
     showRentDueModal(res.amount, res.lands_count, res.days_left, res.per_land);
   }
@@ -31256,7 +31356,7 @@ window.Tour.init = async function(){
     backToRentModal, payMonthlyRent, openRulesPage, closeRulesPage, toggleLegend,
     showLegend, hideLegendAuto,
     openForSalePage, closeForSalePage, buyFromMarketplace, openHistoryReplay, updateTourNotifBadge,
-    onShow: function(){
+    onShow: async function(){
       if(map){
         map.invalidateSize();
         // Recentrage systématique sur la vraie position (2026-08-20, demande
@@ -31270,8 +31370,29 @@ window.Tour.init = async function(){
       }
       showLegend();
       if(typeof _refreshTourSyncDot==='function') _refreshTourSyncDot();
+      // Reprise d'un achat de Land en attente (2026-09-03, bug corrigé -- signalé
+      // par l'user) : simulateGoPremium()/goToNyxMarket() posent
+      // window._pendingBuyRetry puis envoient le RP passer Premium ou acheter des
+      // NYX ailleurs dans l'appli. Jusqu'ici, rien ne rappelait jamais cette
+      // reprise à son retour sur le Tour -- la Land (ville étape ou classique)
+      // redevenait une case comme une autre (aucun bouton d'achat dessus tant
+      // qu'on ne retombe pas dessus par un nouveau lancer de dé), rendant l'achat
+      // impossible à finir même une fois Premium/les NYX effectivement acquis.
+      // La resynchro wallet+Premium AVANT le retry est indispensable : ME.premium
+      // et ME.nyx sont sinon encore ceux d'avant l'achat réel.
+      if(window._pendingBuyRetry){
+        const _retry = window._pendingBuyRetry;
+        window._pendingBuyRetry = null;
+        await _tourSyncWallet();
+        document.getElementById('tour-rent-modal').classList.add('open');
+        _retry();
+      }
     }
   });
+  // Carte + applyServerMove disponibles à partir d'ici -- résout window.Tour.ready
+  // pour tout appelant qui attendait un vrai signal de disponibilité (cf déclaration
+  // plus haut) plutôt qu'un délai fixe.
+  if(typeof window.Tour._resolveReady==='function'){ window.Tour._resolveReady(); window.Tour._resolveReady=null; }
   // Restauration depuis la base (2026-08-07, remplace le localStorage) : ME.startCity/
   // startIdx/laps et myIdx sont déjà chargés depuis players.tour_* tout en haut de
   // init() — ici on décide juste si c'est une 1ère visite (pas de ville choisie) ou
