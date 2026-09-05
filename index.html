@@ -5366,11 +5366,12 @@ function askConfirm(message, opts){
       </div>
     </div>
 
-    <!-- Courses flaggées -->
+    <!-- Grosses courses (2026-09-05 : remplace le filtre "flaggées" GPS, jugé
+         illisible par l'user — critère simple et transparent = points > 1000,
+         pour repérer à l'oeil les grosses sorties suspectes/anormales. -->
     <div class="block" style="margin-top:1rem;border-color:rgba(255,96,32,.3)">
-      <div class="block-header" style="border-color:rgba(255,96,32,.15);display:flex;align-items:center;justify-content:space-between;gap:.5rem">
-        <div class="block-title">🚩 Courses <span class="hl">flaggées</span></div>
-        <button onclick="adminUnflagAllRuns()" style="padding:.25rem .55rem;border-radius:5px;border:1.5px solid rgba(45,219,128,.5);background:rgba(45,219,128,.08);color:var(--green);font-weight:700;font-size:.65rem;cursor:pointer;white-space:nowrap">✓ Valider</button>
+      <div class="block-header" style="border-color:rgba(255,96,32,.15)">
+        <div class="block-title">🚩 Grosses courses <span class="hl">(&gt;1000 pts)</span></div>
       </div>
       <div class="block-body-sm">
         <div id="admin-flagged-list" style="font-size:.75rem;color:var(--muted2)">Chargement…</div>
@@ -15838,11 +15839,14 @@ async function adminDeleteTeamMsg(msgId,teamId){
 async function adminLoadFlagged(){
   var el=document.getElementById('admin-flagged-list');
   if(!el) return;
-  var resp=await window.fetch(supabaseUrl+'/rest/v1/runs?flagged=eq.true&select=id,player_id,distance,time,elevation,points,run_date,name,avg_hr,strava_activity_id&order=run_date.desc&limit=20',{
+  // Critère = points > 1000 (2026-09-05, remplace flagged=eq.true — l'heuristique
+  // GPS d'origine était jugée illisible par l'user ; les points sont un signal
+  // simple et transparent pour repérer les grosses sorties à vérifier à la main).
+  var resp=await window.fetch(supabaseUrl+'/rest/v1/runs?points=gt.1000&select=id,player_id,distance,time,elevation,points,run_date,name,avg_hr,strava_activity_id&order=run_date.desc&limit=20',{
     headers:{'apikey':supabaseKey,'Authorization':'Bearer '+(window.__sessionToken||supabaseKey),'Accept':'application/json'}
   });
   var flagged=await resp.json();
-  if(!flagged||!flagged.length){el.innerHTML='<div style="color:var(--green);font-size:.75rem">✓ Aucune course suspecte</div>';return;}
+  if(!flagged||!flagged.length){el.innerHTML='<div style="color:var(--green);font-size:.75rem">✓ Aucune course &gt; 1000 pts</div>';return;}
   // Charger les noms des joueurs
   var pids=[...new Set(flagged.map(function(r){return r.player_id;}))];
   var {data:players}=await supabaseClient.from('players').select('id,username').in('id',pids);
@@ -15862,29 +15866,9 @@ async function adminLoadFlagged(){
       +'</div>'
       +'<div style="display:flex;gap:.3rem;flex-shrink:0">'
       +(r.strava_activity_id?'<a href="https://www.strava.com/activities/'+r.strava_activity_id+'" target="_blank" style="font-size:.6rem;padding:.15rem .35rem;border-radius:4px;border:1px solid rgba(252,76,2,.4);background:rgba(252,76,2,.08);color:#fc4c02;text-decoration:none;font-weight:700" title="Voir sur Strava">🔗</a>':'')
-      +'<button onclick="adminUnflagRun(\''+r.id+'\')" style="font-size:.6rem;padding:.15rem .35rem;border-radius:4px;border:1px solid rgba(45,219,128,.4);background:rgba(45,219,128,.08);color:var(--green);cursor:pointer;font-weight:700" title="Valider la course">✓</button>'
       +'<button onclick="adminDeleteRun(\''+r.id+'\')" style="font-size:.6rem;padding:.15rem .35rem;border-radius:4px;border:1px solid rgba(255,68,68,.4);background:rgba(255,68,68,.08);color:var(--red);cursor:pointer;font-weight:700" title="Supprimer la course">✕</button>'
       +'</div></div>';
   }).join('');
-}
-
-async function adminUnflagRun(runId){
-  // admin_unflag_run (2026-08-14) remplace le PATCH direct — revérifie ADMIN_UID
-  // côté serveur (nécessaire pour fermer runs à toute écriture directe côté joueur).
-  var res=await callRpc('admin_unflag_run',{p_run_id:runId},{silent:true});
-  if(res.ok && res.data && res.data.ok) showToast('✓ Course validée');
-  else showToast('⚠️ Échec de la validation, réessaie.');
-  adminLoadFlagged();
-}
-
-// Valide en un coup toutes les courses flaggées (2026-08-04) : même recette que
-// adminUnflagRun, juste appliquée à tout `flagged=eq.true` au lieu d'un seul id.
-async function adminUnflagAllRuns(){
-  if(!isAdmin()) return;
-  var res=await callRpc('admin_unflag_run',{p_run_id:null},{silent:true});
-  if(res.ok && res.data && res.data.ok) showToast('✓ Toutes les courses flaggées ont été validées');
-  else showToast('⚠️ Échec de la validation, réessaie.');
-  adminLoadFlagged();
 }
 
 async function adminDeleteRun(runId){
