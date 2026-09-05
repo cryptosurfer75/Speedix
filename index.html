@@ -3397,8 +3397,13 @@ select option{background:#040c1c}
            pour garder les côtés "doublés" avec l'anneau extérieur sans dupliquer le haut/bas. -->
       <span id="league-picker-border-l" class="lp-side-bar" style="position:absolute;left:0;top:11px;bottom:11px;width:2px;background:rgba(245,200,66,.5);box-shadow:0 0 6px rgba(245,200,66,.3);z-index:-1"></span>
       <span id="league-picker-border-r" class="lp-side-bar" style="position:absolute;right:0;top:11px;bottom:11px;width:2px;background:rgba(245,200,66,.5);box-shadow:0 0 6px rgba(245,200,66,.3);z-index:-1"></span>
+      <span id="league-picker-arrow" style="position:absolute;left:1rem;top:50%;transform:translateY(-50%);font-size:.75rem;transition:transform .2s">▼</span>
       <span id="league-picker-label" style="position:relative">—</span>
-      <span id="league-picker-arrow" style="position:absolute;right:1rem;top:50%;transform:translateY(-50%);font-size:.75rem;transition:transform .2s">▼</span>
+      <!-- Flèche "league suivante" (2026-09-05, repositionnée à droite le même jour à la
+           demande de l'user) : symétrique de la flèche dropdown à gauche. stopPropagation
+           obligatoire pour ne pas aussi déclencher toggleLeaguePicker() porté par le bouton
+           parent (même pattern que .rtw-item). -->
+      <span id="league-picker-next-arrow" onclick="event.stopPropagation();goToNextLeague()" style="position:absolute;right:.6rem;top:50%;transform:translateY(-50%);font-size:.9rem;padding:.35rem;cursor:pointer;z-index:1">▶</span>
     </button>
     <div class="lp-frame-corner" style="position:absolute;top:-3px;left:-3px;width:14px;height:14px;pointer-events:none"><svg viewBox="0 0 14 14" style="display:block;width:100%;height:100%"><line id="lp-corner-tl" x1="14" y1="0" x2="0" y2="14" stroke="#e0a860" stroke-width="2" stroke-linecap="round" stroke-opacity=".85"/></svg></div>
     <div class="lp-frame-corner" style="position:absolute;top:-3px;right:-3px;width:14px;height:14px;pointer-events:none"><svg viewBox="0 0 14 14" style="display:block;width:100%;height:100%"><line id="lp-corner-tr" x1="0" y1="0" x2="14" y2="14" stroke="#e0a860" stroke-width="2" stroke-linecap="round" stroke-opacity=".85"/></svg></div>
@@ -11158,6 +11163,13 @@ function updateLeaguePickerLabel(){
   });
   const pickerArrow=document.getElementById('league-picker-arrow');
   if(pickerArrow) pickerArrow.style.color=league.color;
+  const nextArrow=document.getElementById('league-picker-next-arrow');
+  if(nextArrow){
+    var isLast=LEAGUES.findIndex(function(l){return l.key===activeLeagueKey;})>=LEAGUES.length-1;
+    nextArrow.style.color=league.color;
+    nextArrow.style.opacity=isLast?'.3':'1';
+    nextArrow.style.cursor=isLast?'default':'pointer';
+  }
   // Coins + chevrons du cadre décoratif (cf. HTML) : même couleur que la league active.
   ['lp-corner-tl','lp-corner-tr','lp-corner-bl','lp-corner-br'].forEach(function(id){
     var el=document.getElementById(id); if(el) el.setAttribute('stroke', league.color);
@@ -11211,6 +11223,18 @@ function canAccessLeague(key){
   var myIdx=LEAGUES.findIndex(function(l){return l.key===myKey;});
   var targetIdx=LEAGUES.findIndex(function(l){return l.key===key;});
   return Math.abs(targetIdx-myIdx)<=1;
+}
+
+// Flèche "league suivante" (2026-09-05) : avance d'un cran dans l'ordre LEAGUES
+// (Starter -> L10 -> ... -> L1 -> Elite) sans passer par le menu déroulant.
+// Réutilise selectLeague() pour garder exactement la même gestion des leagues
+// verrouillées (gate Premium / toast) qu'un clic dans le dropdown ou la nav.
+function goToNextLeague(){
+  var curIdx=LEAGUES.findIndex(function(l){return l.key===activeLeagueKey;});
+  if(curIdx===-1||curIdx>=LEAGUES.length-1) return; // déjà sur la dernière league
+  var next=LEAGUES[curIdx+1];
+  if(next.key==='lelite'){ showToast(t('league.elite.toast')); return; } // beta fermée, cf buildLeaguePicker/renderLeagueNav
+  selectLeague(next.key);
 }
 
 function selectLeague(key){
