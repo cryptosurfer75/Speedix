@@ -2899,6 +2899,7 @@ select option{background:#040c1c}
           <div class="pc-tile-hint tl"><svg viewBox="0 0 22 22"><path d="M0,22 L0,9 L9,0 L22,0" fill="none" stroke="#ff9d1f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
           <div class="pc-tile-hint br"><svg viewBox="0 0 22 22"><path d="M0,22 L0,9 L9,0 L22,0" fill="none" stroke="#ff9d1f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
         </div>
+        <span id="team-chat-badge" style="display:none;position:absolute;top:-4px;right:-4px;width:14px;height:14px;border-radius:50%;background:#2ddb80;box-shadow:0 0 8px rgba(45,219,128,.7);border:2px solid #0a1432;pointer-events:none"></span>
         </div>
         <!-- Réseau social — accès au feed de courses -->
         <div style="position:relative;width:100%">
@@ -8532,6 +8533,10 @@ async function onLoginSuccess(user, isNew){
     setTimeout(function(){ checkTeamRequests(); }, 3000);
     if(!window._teamReqPoll) window._teamReqPoll=setInterval(function(){ checkTeamRequests(); }, 30000);
   }
+  if(typeof checkTeamChatUnread==='function'){
+    setTimeout(function(){ checkTeamChatUnread(); }, 3000);
+    if(!window._teamChatUnreadPoll) window._teamChatUnreadPoll=setInterval(function(){ checkTeamChatUnread(); }, 30000);
+  }
   if(isNew){
     setTimeout(function(){if(typeof nav==='function') nav('dashboard');},300);
   }
@@ -13800,6 +13805,25 @@ async function loadTeamChat(teamId){
     headers:{'apikey':supabaseKey,'Authorization':'Bearer '+(window.__sessionToken||supabaseKey),'Accept':'application/json'}
   });
   var msgs=await resp.json();
+  // Pastille "message team non lu" (badge vert sur la tuile Team de la PC) : on est
+  // en train de REGARDER le chat (poll ou ouverture), donc on marque lu tout de suite.
+  // Garde-fou window.__teamChatReadMarks pour n'écrire en base qu'une fois par nouveau
+  // dernier message (pas un PATCH toutes les 3s si rien de neuf n'est arrivé).
+  if(msgs&&msgs.length){
+    var _latestMsgAt=msgs[0].created_at;
+    if(!window.__teamChatReadMarks) window.__teamChatReadMarks={};
+    if(window.__teamChatReadMarks[teamId]!==_latestMsgAt){
+      window.__teamChatReadMarks[teamId]=_latestMsgAt;
+      if(typeof _setBadgeBlink==='function') _setBadgeBlink('team-chat-badge', false);
+      if(currentUser){
+        window.fetch(supabaseUrl+'/rest/v1/players?id=eq.'+encodeURIComponent(currentUser.id),{
+          method:'PATCH',
+          headers:{'apikey':supabaseKey,'Authorization':'Bearer '+(window.__sessionToken||supabaseKey),'Content-Type':'application/json','Prefer':'return=minimal'},
+          body:JSON.stringify({team_chat_last_read_at:_latestMsgAt})
+        });
+      }
+    }
+  }
   if(!msgs||!msgs.length){
     el.innerHTML='<div style="text-align:center;padding:.75rem;color:var(--muted2);font-size:.7rem">Aucun message. Sois le premier !</div>';
     return;
@@ -16342,6 +16366,23 @@ function goToPcLeague(){
   if(typeof renderLeaguePanel==='function') renderLeaguePanel();
   if(typeof updateLeaguePickerLabel==='function') updateLeaguePickerLabel();
 }
+// Scroll générique vers un panneau de la page Teams une fois qu'il est bien
+// rendu et visible (myteam-panel = classement, myteam-chat-panel = chat) —
+// factorisé (2026-09-08) pour être réutilisé par goToPcTeam() ET par le tap
+// sur une notif push "nouveau message team" (pushNotificationActionPerformed).
+function _scrollToTeamPanel(panelId){
+  var _tries=0;
+  var _scrollTimer=setInterval(function(){
+    _tries++;
+    var el=document.getElementById(panelId);
+    if(el&&el.style.display!=='none'&&el.offsetHeight>0){
+      clearInterval(_scrollTimer);
+      el.scrollIntoView({behavior:'smooth',block:'start'});
+    } else if(_tries>40){ // ~4s max
+      clearInterval(_scrollTimer);
+    }
+  },100);
+}
 function goToPcTeam(){
   var _scrollToMyTeam=false;
   // Récupère le team_id affiché sur la PC et compare à ma team
@@ -16352,20 +16393,18 @@ function goToPcTeam(){
     window.__viewedPlayer=null;
     _scrollToMyTeam=true;
   }
+  // Message team non lu (pastille verte) → direct vers le CHAT, pas le classement.
+  // Le chat est tout en bas de la page Teams (2026-09-08, signalé par l'user : sans
+  // ça un RP sans notif push activée scrolle rarement jusque-là et passe à côté).
+  // À checker AVANT nav('teams') : nav() éteint déjà la pastille au passage.
+  var _badge=document.getElementById('team-chat-badge');
+  var _hasUnreadChat=_scrollToMyTeam&&_badge&&_badge.style.display!=='none';
   // La vérif free/premium + open/private se fait dans renderTeams (on a besoin du type de team)
   nav('teams');
-  if(_scrollToMyTeam){
-    var _tries=0;
-    var _scrollTimer=setInterval(function(){
-      _tries++;
-      var mtp=document.getElementById('myteam-panel');
-      if(mtp&&mtp.style.display!=='none'&&mtp.offsetHeight>0){
-        clearInterval(_scrollTimer);
-        mtp.scrollIntoView({behavior:'smooth',block:'start'});
-      } else if(_tries>40){ // ~4s max
-        clearInterval(_scrollTimer);
-      }
-    },100);
+  if(_hasUnreadChat){
+    _scrollToTeamPanel('myteam-chat-panel');
+  } else if(_scrollToMyTeam){
+    _scrollToTeamPanel('myteam-panel');
   }
 }
 
@@ -17313,6 +17352,7 @@ function nav(page){
   // Masquer le badge team quand on ouvre Teams
   if(page==='teams'){
     _setBadgeBlink('team-notif-badge', false);
+    _setBadgeBlink('team-chat-badge', false);
   }
   if(page==='social'){
     if(typeof renderSocialFeed==='function') renderSocialFeed();
@@ -20885,6 +20925,19 @@ async function deleteTeamIfEmpty(teamId){
     // Supprimer la team vide
     await supabaseClient.from('teams').delete().eq('id',teamId);
   }
+}
+
+// ── Pastille verte "nouveau message team" sur la tuile Team de la PC ──
+// (2026-09-08, demande explicite : rien ne prévenait quand un membre postait
+// dans le chat). Compare team_chat_last_read_at (posé dans loadTeamChat dès
+// qu'on regarde le chat) au dernier message d'un AUTRE membre de la team.
+async function checkTeamChatUnread(){
+  if(!currentUser||!window.__myTeamId) return;
+  var {data:me}=await supabaseClient.from('players').select('team_chat_last_read_at').eq('id',currentUser.id).single();
+  var since=(me&&me.team_chat_last_read_at)||'1970-01-01T00:00:00Z';
+  var {data:msgs}=await supabaseClient.from('team_messages').select('id')
+    .eq('team_id',window.__myTeamId).neq('player_id',currentUser.id).gt('created_at',since).limit(1);
+  _setBadgeBlink('team-chat-badge', !!(msgs&&msgs.length>0), '#2ddb80');
 }
 
 // ── Demandes de rejoindre une team ──
@@ -25646,8 +25699,14 @@ async function _enableNativePush(silent){
         var data=(action&&action.notification&&action.notification.data)||{};
         if(data.screen && typeof nav==='function'){
           nav(data.screen);
-          if(data.tab && typeof switchChallengesTab==='function'){
+          if(data.screen==='defis' && data.tab && typeof switchChallengesTab==='function'){
             setTimeout(function(){ switchChallengesTab(data.tab); },300);
+          }
+          // Notif "nouveau message team" : direct sur le chat (tout en bas de la
+          // page Teams), pas juste le classement — sinon on retombe dans le même
+          // problème que le clic PC (chat manqué faute de scroll).
+          if(data.screen==='teams' && data.tab==='chat' && typeof _scrollToTeamPanel==='function'){
+            setTimeout(function(){ _scrollToTeamPanel('myteam-chat-panel'); },300);
           }
         }
       }catch(e){ console.warn('[push-action]',e); }
