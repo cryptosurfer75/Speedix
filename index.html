@@ -13811,15 +13811,24 @@ async function loadTeamChat(teamId){
   // dernier message (pas un PATCH toutes les 3s si rien de neuf n'est arrivé).
   if(msgs&&msgs.length){
     var _latestMsgAt=msgs[0].created_at;
+    // On est en train de REGARDER le chat (poll 3s ou ouverture) → toujours éteindre
+    // la pastille visuellement ici, même si _latestMsgAt n'a pas changé depuis le
+    // dernier marquage. Avant, ce clear était À L'INTÉRIEUR du if ci-dessous : dès
+    // qu'aucun NOUVEAU message n'arrivait, plus aucun appel ne rappelait
+    // _setBadgeBlink(false), donc un faux positif du poll global (checkTeamChatUnread,
+    // 30s, requête indépendante de la page affichée) ne pouvait plus jamais être
+    // corrigé avant l'arrivée d'un vrai nouveau message — pastille qui "revient sans
+    // cesse même après avoir ouvert la page", signalé 2026-09-08.
+    window.__teamChatUnread=false;
+    if(typeof _setBadgeBlink==='function') _setBadgeBlink('team-chat-badge', false);
+    // Garde-fou window.__teamChatReadMarks : n'écrire en base (PATCH) qu'une fois par
+    // nouveau dernier message, pas à chaque poll 3s si rien de neuf n'est arrivé.
     if(!window.__teamChatReadMarks) window.__teamChatReadMarks={};
     if(window.__teamChatReadMarks[teamId]!==_latestMsgAt){
       window.__teamChatReadMarks[teamId]=_latestMsgAt;
-      if(typeof _setBadgeBlink==='function') _setBadgeBlink('team-chat-badge', false);
       if(currentUser){
-        window.fetch(supabaseUrl+'/rest/v1/players?id=eq.'+encodeURIComponent(currentUser.id),{
-          method:'PATCH',
-          headers:{'apikey':supabaseKey,'Authorization':'Bearer '+(window.__sessionToken||supabaseKey),'Content-Type':'application/json','Prefer':'return=minimal'},
-          body:JSON.stringify({team_chat_last_read_at:_latestMsgAt})
+        supabaseClient.from('players').update({team_chat_last_read_at:_latestMsgAt}).eq('id',currentUser.id).then(function(res){
+          if(res && res.error) console.warn('[teamchat] maj team_chat_last_read_at échouée', res.error);
         });
       }
     }
@@ -16370,39 +16379,69 @@ function goToPcLeague(){
 // rendu et visible (myteam-panel = classement, myteam-chat-panel = chat) —
 // factorisé (2026-09-08) pour être réutilisé par goToPcTeam() ET par le tap
 // sur une notif push "nouveau message team" (pushNotificationActionPerformed).
-function _scrollToTeamPanel(panelId){
+function _scrollToTeamPanel(panelId, opts){
+  var _block=(opts&&opts.block)||'start';
   var _tries=0;
   var _scrollTimer=setInterval(function(){
     _tries++;
     var el=document.getElementById(panelId);
     if(el&&el.style.display!=='none'&&el.offsetHeight>0){
       clearInterval(_scrollTimer);
-      el.scrollIntoView({behavior:'smooth',block:'start'});
+      // Re-scroll plusieurs fois après le premier succès (2026-09-09, bug signalé :
+      // "ça pointe toujours le classement") — nav('teams') appelle renderTeams() sans
+      // l'attendre (async, fire-and-forget), et d'autres blocs qui se chargent APRÈS
+      // coup au-dessus du chat (demandes d'adhésion, panneau licences pour un
+      // capitaine, tableau des membres) décalent la page en hauteur et annulent le
+      // scroll déjà fait. On réapplique donc le scroll à quelques reprises le temps
+      // que tout se stabilise, au lieu d'un scroll one-shot fragile.
+      var _reScrolls=0;
+      var _reScrollTimer=setInterval(function(){
+        var el2=document.getElementById(panelId);
+        if(el2) el2.scrollIntoView({behavior:'smooth',block:_block});
+        _reScrolls++;
+        if(_reScrolls>=5) clearInterval(_reScrollTimer);
+      },400);
     } else if(_tries>40){ // ~4s max
       clearInterval(_scrollTimer);
     }
   },100);
 }
 function goToPcTeam(){
-  var _scrollToMyTeam=false;
   // Récupère le team_id affiché sur la PC et compare à ma team
   var _pcFrame=document.getElementById('pc-team-frame');
   var _pcTeamId=_pcFrame?_pcFrame.dataset.teamId:null;
-  if(_pcTeamId&&window.__myTeamId&&_pcTeamId===window.__myTeamId){
-    // Le blason cliqué est celui de MA team → reset viewed player et scroll vers mon panneau
-    window.__viewedPlayer=null;
-    _scrollToMyTeam=true;
-  }
-  // Message team non lu (pastille verte) → direct vers le CHAT, pas le classement.
-  // Le chat est tout en bas de la page Teams (2026-09-08, signalé par l'user : sans
-  // ça un RP sans notif push activée scrolle rarement jusque-là et passe à côté).
-  // À checker AVANT nav('teams') : nav() éteint déjà la pastille au passage.
-  var _badge=document.getElementById('team-chat-badge');
-  var _hasUnreadChat=_scrollToMyTeam&&_badge&&_badge.style.display!=='none';
+  // ⚠️ Corrigé (2026-09-08, 3e signalement : "pointe toujours sur la liste des
+  // participants") : l'ancienne détection reposait UNIQUEMENT sur
+  // pc-team-frame.dataset.teamId, posé par renderTeams() — donc seulement à
+  // jour APRÈS un rendu complet de la PC. Un décalage de timing entre le
+  // dernier renderTeams() et le clic (ex. juste après login, avant que le
+  // premier appel n'ait fini) suffisait à le faire échouer en silence, sans
+  // jamais scroller nulle part : ni chat, ni classement. On accepte
+  // maintenant AUSSI window.__viewedPlayer===null (je regarde ma propre PC)
+  // comme signal — un flag toujours à jour, indépendant du rendu DOM, qui
+  // porte la même vérité que celle utilisée par renderTeams() elle-même pour
+  // décider quel blason afficher sur la tuile. Le check dataset reste en OR
+  // pour garder le cas "je consulte la PC d'un coéquipier (même team que
+  // moi)" → bascule aussi en vue "Ma Team" complète (pas juste consultation).
+  var _scrollToMyTeam=(!window.__viewedPlayer&&!!window.__myTeamId)
+    ||(!!_pcTeamId&&!!window.__myTeamId&&_pcTeamId===window.__myTeamId);
+  if(_scrollToMyTeam) window.__viewedPlayer=null;
+  // Message team non lu (pastille verte) → direct vers le BAS du CHAT (input +
+  // derniers messages juste au-dessus), pas le classement. Le chat est tout en bas
+  // de la page Teams (2026-09-08, signalé par l'user : sans ça un RP sans notif push
+  // activée scrolle rarement jusque-là et passe à côté).
+  // Corrigé (2026-09-09, 2e signalement : "ça pointe toujours le classement") :
+  // ne PLUS lire le style live de la pastille ici — entre le rendu de la PC et le
+  // clic, un poll (checkTeamChatUnread, 30s) ou un autre passage par nav('teams')
+  // a pu déjà l'éteindre sans que le RP l'ait vu s'éteindre à l'écran. Utiliser le
+  // flag persistant window.__teamChatUnread (posé par checkTeamChatUnread/
+  // loadTeamChat, jamais par une lecture DOM ponctuelle) comme seule source de
+  // vérité, et checker AVANT nav('teams') qui l'éteint immédiatement au passage.
+  var _hasUnreadChat=_scrollToMyTeam&&!!window.__teamChatUnread;
   // La vérif free/premium + open/private se fait dans renderTeams (on a besoin du type de team)
   nav('teams');
   if(_hasUnreadChat){
-    _scrollToTeamPanel('myteam-chat-panel');
+    _scrollToTeamPanel('team-chat-input',{block:'end'});
   } else if(_scrollToMyTeam){
     _scrollToTeamPanel('myteam-panel');
   }
@@ -17353,6 +17392,7 @@ function nav(page){
   if(page==='teams'){
     _setBadgeBlink('team-notif-badge', false);
     _setBadgeBlink('team-chat-badge', false);
+    window.__teamChatUnread=false;
   }
   if(page==='social'){
     if(typeof renderSocialFeed==='function') renderSocialFeed();
@@ -20838,8 +20878,13 @@ async function renderTeams(){
           }
           renderTeamLicencePanel(myTeamId);
         }
-        // Charger le chat team (pas en consultation)
-        if(!_isViewedTeamMode && typeof loadTeamChat==='function'){loadTeamChat(myTeamId);startChatPoll(myTeamId);}
+        // Charger le chat team : TOUJOURS celui de MA vraie team (window.__myTeamId),
+        // jamais celui de la team consultée (myTeamId est réécrit plus haut en mode
+        // consultation) — sinon le badge de MA team n'est jamais marqué lu quand on
+        // arrive sur Teams via la PC d'un autre RP (bug pastille qui revient sans
+        // cesse, signalé 2026-09-08 : window.__viewedPlayer n'est réinitialisé que
+        // par nav('dashboard'), pas par nav('teams')).
+        if(window.__myTeamId && typeof loadTeamChat==='function'){loadTeamChat(window.__myTeamId);startChatPoll(window.__myTeamId);}
       }
     }
 
@@ -20937,7 +20982,8 @@ async function checkTeamChatUnread(){
   var since=(me&&me.team_chat_last_read_at)||'1970-01-01T00:00:00Z';
   var {data:msgs}=await supabaseClient.from('team_messages').select('id')
     .eq('team_id',window.__myTeamId).neq('player_id',currentUser.id).gt('created_at',since).limit(1);
-  _setBadgeBlink('team-chat-badge', !!(msgs&&msgs.length>0), '#2ddb80');
+  window.__teamChatUnread=!!(msgs&&msgs.length>0);
+  _setBadgeBlink('team-chat-badge', window.__teamChatUnread, '#2ddb80');
 }
 
 // ── Demandes de rejoindre une team ──
@@ -25706,7 +25752,7 @@ async function _enableNativePush(silent){
           // page Teams), pas juste le classement — sinon on retombe dans le même
           // problème que le clic PC (chat manqué faute de scroll).
           if(data.screen==='teams' && data.tab==='chat' && typeof _scrollToTeamPanel==='function'){
-            setTimeout(function(){ _scrollToTeamPanel('myteam-chat-panel'); },300);
+            setTimeout(function(){ _scrollToTeamPanel('team-chat-input',{block:'end'}); },300);
           }
         }
       }catch(e){ console.warn('[push-action]',e); }
