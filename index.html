@@ -8119,21 +8119,6 @@ function usernameCasingError(username){
   return null;
 }
 
-// Création de la fiche players — SOURCE UNIQUE, appelée à l'inscription ET par
-// le filet de sécurité à la connexion. Avant ce correctif (cas Clément, 2026-08-17),
-// un échec de cette écriture (réseau, etc.) passait inaperçu : le RP se
-// retrouvait dans l'appli sans fiche (avatar qui ne tient pas, stats jamais
-// sauvegardées) sans aucun message. On retente une fois avant d'abandonner.
-async function upsertPlayerWithRetry(insertData){
-  for(var attempt=1;attempt<=2;attempt++){
-    var {data,error}=await supabaseClient.from('players').upsert(insertData,{onConflict:'id'}).select().maybeSingle();
-    if(!error && data) return data;
-    console.warn('[player-create] tentative '+attempt+' échouée',error);
-    if(attempt===1) await new Promise(function(r){setTimeout(r,900);});
-  }
-  return null;
-}
-
 async function doRegister(){
   // Kill switch : si l'admin a fermé les inscriptions
   if(window.__appSettings && window.__appSettings.registration_disabled){
@@ -8191,32 +8176,45 @@ async function doRegister(){
     }
     var parrainUuid=null;
     if(codeMsgEl&&codeMsgEl.dataset.parrainUuid) parrainUuid=codeMsgEl.dataset.parrainUuid;
-    // Si le RP n'a pas choisi d'avatar pendant l'inscription, on lui en attribue
-    // un par défaut dérivé de son pseudo (jamais NULL → plus de silhouette grise
-    // dans le classement). Même logique que le filet de onLoginSuccess.
-    var regAv=window._regAvatar||('https://api.dicebear.com/9.x/avataaars/svg?seed='+encodeURIComponent(username));
-    // Attribue un rtw_id séquentiel dès l'inscription (sinon hs6 affiche "…"
-    // tant que l'utilisateur n'a pas cliqué ENTRER → onLoginSuccess qui le setait)
-    var newRtwId=null;
-    try{
-      var maxResp=await window.fetch(supabaseUrl+'/rest/v1/players?rtw_id=not.is.null&select=rtw_id&order=rtw_id.desc&limit=1',{
-        headers:{'apikey':supabaseKey,'Authorization':'Bearer '+(window.__sessionToken||supabaseKey),'Accept':'application/json'}
-      });
-      var maxData=await maxResp.json();
-      var lastNum=(maxData&&maxData[0]&&maxData[0].rtw_id)?(parseInt(maxData[0].rtw_id,10)||0):0;
-      newRtwId=String(lastNum+1).padStart(5,'0');
-    }catch(e){console.warn('[register] rtw_id calc fail',e);}
-    var insertData={id:playerId, username:username, email:email, nat:nat, grade:'starter', league:'starter', trend:0, avatar:regAv,
-      streak_phase:0, streak_count:0, streak_misses:[]};
-    if(newRtwId) insertData.rtw_id=newRtwId;
-    if(parrainUuid) insertData.referred_by=parrainUuid;
-    var createdPlayer=await upsertPlayerWithRetry(insertData);
+    // La fiche players est déjà créée par le trigger DB handle_new_auth_user
+    // (déclenché sur l'INSERT dans auth.users par signUp() ci-dessus, SECURITY
+    // DEFINER) : il pose déjà id/username/email/nat/grade/league/trend/avatar
+    // par défaut/rtw_id (séquence dédiée players_rtw_id_seq, jamais de collision
+    // même en inscriptions simultanées — contrairement à l'ancien calcul
+    // max+1 côté client, racy, qu'on ne fait donc plus ici).
+    // NE JAMAIS ré-upserter ces champs ici : depuis le durcissement sécurité du
+    // 14/08 (colonnes verrouillées sur players, cf REGISTRE-REGLES-METIER /
+    // project_speedix_securite_rpc_columns_durci), authenticated n'a le droit
+    // d'UPDATE que sur une liste blanche précise — email/grade/league/trend n'en
+    // font PAS partie. Un upsert générique qui les incluait faisait échouer TOUT
+    // le upsert d'un coup (Postgres 42501 "permission denied for table players"),
+    // y compris referred_by et l'avatar perso alors que CEUX-LÀ sont bien
+    // whitelistés — bug réel qui empêchait tout code de parrainage de fonctionner
+    // à l'inscription, signalé et corrigé le 2026-09-09.
+    // Il ne reste donc à appliquer ici que ce que le trigger ne peut pas savoir :
+    // le parrain (code saisi) et l'avatar perso si le RP en a choisi un (sinon le
+    // défaut du trigger, dérivé du pseudo, est déjà strictement identique).
+    var patchData={};
+    if(parrainUuid) patchData.referred_by=parrainUuid;
+    if(window._regAvatar) patchData.avatar=window._regAvatar;
+    if(Object.keys(patchData).length){
+      var {error:patchErr}=await supabaseClient.from('players').update(patchData).eq('id',playerId);
+      if(patchErr) console.warn('[register] maj referred_by/avatar échouée',patchErr);
+    }
+    // Vérifier que la fiche existe bien (créée par le trigger) avant de laisser
+    // le RP entrer — filet de sécurité pour le cas rarissime où le trigger aurait
+    // échoué (il avale ses propres erreurs en WARNING, cf handle_new_auth_user).
+    var createdPlayer=null;
+    for(var _chkTry=0;_chkTry<3 && !createdPlayer;_chkTry++){
+      if(_chkTry>0) await new Promise(function(r){setTimeout(r,500);});
+      var {data:_chkRow}=await supabaseClient.from('players').select('id').eq('id',playerId).maybeSingle();
+      createdPlayer=_chkRow;
+    }
     if(!createdPlayer){
-      // La fiche n'a pas pu être créée même après une nouvelle tentative : on ne
-      // laisse pas le RP entrer dans une appli sans données. Le compte auth existe
-      // déjà (signUp a réussi) donc une réinscription avec le même email le
-      // renverra vers l'écran de connexion, où le filet de sécurité de
-      // onLoginSuccess retentera la création.
+      // La fiche n'a toujours pas été créée : on ne laisse pas le RP entrer dans
+      // une appli sans données. Le compte auth existe déjà (signUp a réussi) donc
+      // une réinscription avec le même email le renverra vers l'écran de connexion,
+      // où le filet de sécurité de onLoginSuccess retentera la vérification.
       try{ await supabaseClient.auth.signOut(); }catch(e){}
       showHgoError('⚠️ La création de ton compte a rencontré un problème. Réessaie dans un instant.');
       return false;
@@ -8271,32 +8269,28 @@ async function onLoginSuccess(user, isNew){
     pd.deletion_requested_at=null;
     pd.deleted_username=null;
   }
-  // Si pas de ligne dans players, la créer depuis les metadata auth
+  // Si pas de ligne dans players : cas normalement rarissime, la fiche est déjà
+  // créée par le trigger DB handle_new_auth_user dès l'INSERT dans auth.users
+  // (SECURITY DEFINER, synchrone). On ne tente PLUS de la recréer nous-mêmes ici
+  // via upsert : depuis le durcissement sécurité du 14/08 (colonnes verrouillées
+  // sur players), authenticated n'a l'UPDATE que sur une liste blanche —
+  // email/grade/league/trend n'en font pas partie, donc cet upsert échouait
+  // TOUJOURS en silence (42501) et ne pouvait plus jamais créer de fiche depuis
+  // le client (bug découvert et corrigé le 2026-09-09 en même temps que le
+  // parrainage, cf doRegister). On se contente de relire, avec un court délai au
+  // cas où le trigger n'aurait pas encore commité.
   if(!pd){
-    var meta=user.user_metadata||{};
-    var _defaultUsername=meta.username||user.email.split('@')[0];
-    // Avatar par défaut : généré depuis le username (consistant, cartoon DiceBear)
-    var _defaultAvatar='https://api.dicebear.com/9.x/avataaars/svg?seed='+encodeURIComponent(_defaultUsername);
-    pd=await upsertPlayerWithRetry({
-      id:user.id,
-      username:_defaultUsername,
-      email:user.email,
-      nat:meta.nat||'🏳️',
-      grade:'starter',
-      league:'starter',
-      trend:0,
-      avatar:_defaultAvatar,
-      // Streak : défaut explicite = 0 (pas encore cassé) pour éviter toute
-      // ambiguïté si la colonne DB n'a pas de DEFAULT.
-      streak_phase:0,
-      streak_count:0,
-      streak_misses:[]
-    });
+    for(var _chkTry2=0;_chkTry2<3 && !pd;_chkTry2++){
+      if(_chkTry2>0) await new Promise(function(r){setTimeout(r,500);});
+      var {data:_pdRow}=await supabaseClient.from('players').select('*').eq('id',user.id).maybeSingle();
+      pd=_pdRow;
+    }
     if(!pd){
-      // Toujours pas de fiche après une nouvelle tentative : on ne laisse jamais
-      // le RP entrer dans une appli sans fiche (avatar qui ne tient pas, stats
-      // jamais sauvegardées — cas Clément, 2026-08-17). On le déconnecte et on
-      // l'invite à réessayer plutôt que de le laisser bloqué en silence.
+      // Le trigger a vraiment échoué (cas rarissime — il avale ses propres
+      // erreurs en WARNING, cf handle_new_auth_user) : on ne laisse jamais le RP
+      // entrer dans une appli sans fiche (avatar qui ne tient pas, stats jamais
+      // sauvegardées — cas Clément, 2026-08-17). On le déconnecte et on l'invite
+      // à réessayer plutôt que de le laisser bloqué en silence.
       try{ await supabaseClient.auth.signOut(); }catch(e){}
       showToast('⚠️ Ton compte n\'a pas pu être chargé. Réessaie de te reconnecter dans un instant.');
       setTimeout(function(){ window.location.href='/'; }, 2500);
