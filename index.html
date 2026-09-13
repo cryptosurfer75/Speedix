@@ -21927,6 +21927,7 @@ var DEFI_CATEGORIES=[
   {key:'regularite', title:'RÉGULARITÉ', icon:'🔥', accent:'#ff4040', codes:['STREAK_7','STREAK_30','STREAK_90','STREAK_180','STREAK_365']},
   {key:'horaires', title:'HORAIRES', icon:'🌙', accent:'#7c3aed', codes:['TIME_NIGHT','TIME_DAWN']},
   {key:'exploration', title:'EXPLORATION', icon:'🗺️', accent:'#20c060', codes:['LOC_NOMADE','LOC_VOYAGEUR']},
+  {key:'duree', title:'DURÉE', icon:'⏱️', accent:'#4dd9e8', codes:['DUREE_2H','DUREE_3H']},
   {key:'auto', title:'AUTOMATIQUES', icon:'✨', accent:'#8a92a8', codes:['CASHRUN_5','COLLAB_10','LOYALTY_1Y','LANDS_8']},
 ];
 function _defiCategoryFor(code){
@@ -24372,7 +24373,7 @@ function _badgeChallengeDescription(b){
     case 'single_run_elv_m':  return 'Faire <strong style="color:'+(b.color||'#f5c842')+'">+'+fmt(v)+' m</strong> de dénivelé en une seule course';
     case 'cumul_elv_m':       return 'Cumuler <strong style="color:'+(b.color||'#f5c842')+'">'+fmt(v)+' m</strong> de dénivelé au total';
     case 'speed_over_5km':    return 'Atteindre <strong style="color:'+(b.color||'#f5c842')+'">'+v+' km/h</strong> de moyenne sur ≥ 5 km';
-    case 'single_run_duration_min': return 'Courir <strong style="color:'+(b.color||'#f5c842')+'">'+(v/60)+'h</strong> sans interruption, en une seule course';
+    case 'single_run_duration_min': return 'Réalise <strong style="color:'+(b.color||'#f5c842')+'">'+(v/60)+'h</strong> d\'effort en continu pour obtenir ce badge';
     case 'streak_days':       return 'Courir <strong style="color:'+(b.color||'#f5c842')+'">'+v+' jours</strong> consécutifs';
     case 'simultaneous_lands':return 'Posséder <strong style="color:'+(b.color||'#f5c842')+'">'+v+' Lands</strong> simultanément (loc/prop) en moins de 60 min';
     case 'lands_owned':       return 'Posséder ou louer <strong style="color:'+(b.color||'#f5c842')+'">'+v+' Lands</strong> en même temps — pas de limite de temps, ça se construit course après course';
