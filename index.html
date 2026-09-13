@@ -12235,7 +12235,7 @@ async function renderHistory(page){
   // archivés en period >= 1).
   var {data:allRuns,error}=await supabaseClient
     .from('runs')
-    .select('id,distance,time,elevation,points,run_date,name,avg_hr,max_hr,calories,avg_cadence,strava_activity_id')
+    .select('id,distance,time,elevation,points,run_date,name,avg_hr,max_hr,calories,avg_cadence,strava_activity_id,had_boost,had_gel')
     .eq('player_id',_targetUuid)
     .order('run_date',{ascending:false});
   _allHistRuns=allRuns||[];
@@ -12269,13 +12269,20 @@ async function renderHistory(page){
     var spd=timeMin>0?Math.round(km/(timeMin/60)*100)/100:0;
     var elv=r.elevation||0;
     var pts=r.points||0;
-    // Détection boost / gel par ratio pts/ptsBase (cf. note ci-dessous).
-    // Bandes : ratio ≈1.10 → boost · ≈0.95 → gel · ≈1.05 → boost+gel · ≈1.00 → rien.
-    var _spdExact=timeMin>0?km/(timeMin/60):0;
-    var ptsBase=km>0?Math.round(computePts(km,_spdExact,elv,false,false)):pts;
-    var _ratio=ptsBase>0?pts/ptsBase:1;
-    var hadBoost=_ratio>=1.025;
-    var hadGel=_ratio<=0.975 || (_ratio>=1.025 && _ratio<1.075);
+    // Boost/gel : lu directement depuis had_boost/had_gel (posés par le trigger
+    // set_run_points à l'insert -- fiable, ne dépend pas de la formule du jour).
+    // Repli sur l'ancienne devinette par ratio UNIQUEMENT pour les courses
+    // d'avant l'ajout de ces colonnes (had_boost/had_gel === null), 2026-09-13.
+    var hadBoost, hadGel;
+    if(r.had_boost!=null || r.had_gel!=null){
+      hadBoost=!!r.had_boost; hadGel=!!r.had_gel;
+    } else {
+      var _spdExact=timeMin>0?km/(timeMin/60):0;
+      var ptsBase=km>0?Math.round(computePts(km,_spdExact,elv,false,false)):pts;
+      var _ratio=ptsBase>0?pts/ptsBase:1;
+      hadBoost=_ratio>=1.025;
+      hadGel=_ratio<=0.975 || (_ratio>=1.025 && _ratio<1.075);
+    }
     var date=r.run_date?new Date(r.run_date).toLocaleDateString(SPEEDIX_LANG,{day:'2-digit',month:'2-digit'}):'-';
     var boostCell=hadBoost
       ?'<span style="color:var(--gold);font-family:Space Mono,monospace;font-size:.72rem;font-weight:700">⚡ +10%</span>'
@@ -12370,12 +12377,18 @@ function showRunDetails(runId){
   var pace=paceTotal>0?paceMin+':'+(paceSec<10?'0':'')+paceSec:null;
   var elv=r.elevation||0;
   var pts=r.points||0;
-  // Détection boost / gel par ratio (cf. tableau de bandes dans renderHistory).
-  var _spdExact=timeMin>0?km/(timeMin/60):0;
-  var ptsBase=km>0?Math.round(computePts(km,_spdExact,elv,false,false)):pts;
-  var _ratio=ptsBase>0?pts/ptsBase:1;
-  var hadBoost=_ratio>=1.025;
-  var hadGel=_ratio<=0.975 || (_ratio>=1.025 && _ratio<1.075);
+  // Boost/gel : lu depuis had_boost/had_gel (cf. renderHistory), repli ratio
+  // uniquement pour les courses d'avant l'ajout de ces colonnes (2026-09-13).
+  var hadBoost, hadGel;
+  if(r.had_boost!=null || r.had_gel!=null){
+    hadBoost=!!r.had_boost; hadGel=!!r.had_gel;
+  } else {
+    var _spdExact=timeMin>0?km/(timeMin/60):0;
+    var ptsBase=km>0?Math.round(computePts(km,_spdExact,elv,false,false)):pts;
+    var _ratio=ptsBase>0?pts/ptsBase:1;
+    hadBoost=_ratio>=1.025;
+    hadGel=_ratio<=0.975 || (_ratio>=1.025 && _ratio<1.075);
+  }
   var date=r.run_date?new Date(r.run_date).toLocaleDateString(SPEEDIX_LANG,{weekday:'long',day:'numeric',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'}):'—';
   // Formate la durée : < 1h → "MM:SS" · >= 1h → "H:MM:SS"
   var durationStr;
