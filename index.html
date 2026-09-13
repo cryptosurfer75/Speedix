@@ -23933,7 +23933,7 @@ function openEventDistancePicker(ids){
   if(!opts.length) return;
   var color=opts[0].color||'#f5c842';
   var cityLabel=(opts[0].name||'').replace(/^[\d.,]+\s*km\s*(de|d')?\s*/i,'').replace(/^Semi (de|d')\s*/i,'').replace(/^Marathon (de|d')\s*/i,'').trim();
-  document.getElementById('lm-title').innerHTML='🏁 <span style="color:#fff">Choisis</span> <span style="color:var(--gold)">ta distance</span>';
+  document.getElementById('lm-title').innerHTML='🏁 <span style="color:#fff">Choisis</span> <span style="color:var(--gold)">'+(opts[0].event_by_duration?'ta durée':'ta distance')+'</span>';
   document.getElementById('lm-sub').textContent=cityLabel;
   var rowsHtml=opts.map(function(o,i){
     // Couleur des monnaies JAMAIS recolorée (RPC doré, NYX vert, quel que soit
