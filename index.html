@@ -3056,7 +3056,7 @@ select option{background:#040c1c}
       </div>
       <div style="position:relative;width:100%">
       <div style="background:linear-gradient(135deg,rgba(200,150,255,.9) 0%,rgba(144,96,240,.75) 60%,rgba(94,50,190,.9) 100%);box-shadow:0 0 8px rgba(144,96,240,.65);clip-path:polygon(10px 0,calc(100% - 10px) 0,100% 10px,100% calc(100% - 10px),calc(100% - 10px) 100%,10px 100%,0 calc(100% - 10px),0 10px);padding:1.5px;height:60px;box-sizing:border-box">
-        <button id="pc-cashrun-btn" onclick="nav('cashrun')" title="Cash Run" style="
+        <button id="pc-cashrun-btn" data-tuto-target="cashrun" onclick="nav('cashrun')" title="Cash Run" style="
           position:relative;width:100%;height:57px;display:flex;align-items:center;justify-content:center;
           padding:0;border:none;clip-path:polygon(9px 0,calc(100% - 9px) 0,100% 9px,100% calc(100% - 9px),calc(100% - 9px) 100%,9px 100%,0 calc(100% - 9px),0 9px);
           background:linear-gradient(135deg,rgba(144,96,240,.16),rgba(144,96,240,.04)),#0c0f1a;cursor:pointer;transition:all .18s;
@@ -17470,7 +17470,10 @@ var _pcTutorial2Steps=[
     text_en:'This button lets you check the <strong style="color:var(--gold)">team mode</strong>, join or create your Team.' },
   { sel:'[data-tuto-target="parrainage"]', emoji:'🤝', title:'PARRAINAGE', title_en:'REFERRALS',
     text:'Ce bouton te permet de consulter la liste de tes <strong style="color:var(--gold)">filleuls</strong>, leur progression et tes <strong style="color:var(--gold)">récompenses</strong>.',
-    text_en:'This button lets you view your <strong style="color:var(--gold)">referrals</strong>, their progress and your <strong style="color:var(--gold)">rewards</strong>.' }
+    text_en:'This button lets you view your <strong style="color:var(--gold)">referrals</strong>, their progress and your <strong style="color:var(--gold)">rewards</strong>.' },
+  { sel:'[data-tuto-target="cashrun"]', emoji:'💰', title:'CASH RUN', title_en:'CASH RUN',
+    text:'Ce bouton te permet de jouer à <strong style="color:var(--gold)">Cash Run</strong>, notre jeu de quizz, pour gagner encore plus de RPC.',
+    text_en:'This button lets you play <strong style="color:var(--gold)">Cash Run</strong>, our quiz game, to earn even more RPC.' }
 ];
 // État du tuto contextuel (un seul à la fois).
 var _tutoState={ step:0, steps:null, scrollLockY:0 };
@@ -21687,6 +21690,7 @@ function _badgeRibbonLabel(b){
     case 'cumul_elv_m':
     case 'single_run_elv_m': return v.toLocaleString(SPEEDIX_LANG)+' m';
     case 'speed_over_5km':   return v+' km/h';
+    case 'single_run_duration_min': return (v/60)+'h';
     case 'streak_days':      return v+' j';
     case 'simultaneous_lands': return '×'+v;
     case 'lands_owned':      return '×'+v;
@@ -22126,6 +22130,8 @@ async function renderChallenges(){
     var s={
       single_run_km:runsSince.reduce(function(m,r){return Math.max(m,r.distance||0);},0),
       single_run_elv_m:runsSince.reduce(function(m,r){return Math.max(m,r.elevation||0);},0),
+      // Défis "durée" (2026-09-13) — MIROIR de checkBadges.ts statsSince().
+      single_run_duration_min:runsSince.reduce(function(m,r){return Math.max(m,r.time||0);},0),
       cumul_km:runsSince.reduce(function(s,r){return s+(r.distance||0);},0),
       cumul_elv_m:runsSince.reduce(function(s,r){return s+(r.elevation||0);},0),
       speed_over_5km:runsSince.filter(function(r){return (r.distance||0)>=5&&r.time>0;}).reduce(function(m,r){return Math.max(m,r.distance/(r.time/60));},0),
@@ -22379,7 +22385,7 @@ async function renderChallenges(){
     if(b.reward_rpc) rewardTxt.push('<span style="color:'+(showAsCompleted?'var(--gold)':'var(--muted2)')+'">+'+b.reward_rpc.toLocaleString(SPEEDIX_LANG)+' RPC</span>');
     if(b.reward_nyx) rewardTxt.push('<span style="color:'+(showAsCompleted?'var(--green)':'var(--muted2)')+'">+'+b.reward_nyx+' 💎</span>');
     // Badges "one-shot" : pas de barre de progression, juste un message "à réaliser"
-    var isBinary=(b.threshold_type==='single_run_km'||b.threshold_type==='single_run_elv_m'||b.threshold_type==='speed_over_5km'||b.threshold_type==='simultaneous_lands');
+    var isBinary=(b.threshold_type==='single_run_km'||b.threshold_type==='single_run_elv_m'||b.threshold_type==='speed_over_5km'||b.threshold_type==='simultaneous_lands'||b.threshold_type==='single_run_duration_min');
     var isEvent=(b.threshold_type==='event_run');
     // Badges "automatiques" (Fidèle/Jackpot/Esprit d'équipe/Prospecteur) : pas
     // de bouton CHOISIR, ils se déclenchent tout seuls — visibles dans leur
@@ -24204,7 +24210,7 @@ function _isQuestReplayable(b,timesEarned){
 // cf ci-dessous) mais pour hériter du comportement "isOneShot" de dropQuest/
 // pickQuestDirect -- retirer une Série SUPPRIME la ligne au lieu de la mettre
 // en pause avec la progression conservée, donc plus aucune notion de reprise.
-var _QUEST_MAX_TYPES={single_run_km:1,single_run_elv_m:1,speed_over_5km:1,simultaneous_lands:1,streak_days:1};
+var _QUEST_MAX_TYPES={single_run_km:1,single_run_elv_m:1,speed_over_5km:1,simultaneous_lands:1,streak_days:1,single_run_duration_min:1};
 
 // Sélection directe (2026-08-03) : remplace l'ancienne modale "picker" — tout
 // est déjà visible sur la page catégorisée, donc un clic sur CHOISIR/REJOUER/
@@ -24365,6 +24371,7 @@ function _badgeChallengeDescription(b){
     case 'single_run_elv_m':  return 'Faire <strong style="color:'+(b.color||'#f5c842')+'">+'+fmt(v)+' m</strong> de dénivelé en une seule course';
     case 'cumul_elv_m':       return 'Cumuler <strong style="color:'+(b.color||'#f5c842')+'">'+fmt(v)+' m</strong> de dénivelé au total';
     case 'speed_over_5km':    return 'Atteindre <strong style="color:'+(b.color||'#f5c842')+'">'+v+' km/h</strong> de moyenne sur ≥ 5 km';
+    case 'single_run_duration_min': return 'Courir <strong style="color:'+(b.color||'#f5c842')+'">'+(v/60)+'h</strong> sans interruption, en une seule course';
     case 'streak_days':       return 'Courir <strong style="color:'+(b.color||'#f5c842')+'">'+v+' jours</strong> consécutifs';
     case 'simultaneous_lands':return 'Posséder <strong style="color:'+(b.color||'#f5c842')+'">'+v+' Lands</strong> simultanément (loc/prop) en moins de 60 min';
     case 'lands_owned':       return 'Posséder ou louer <strong style="color:'+(b.color||'#f5c842')+'">'+v+' Lands</strong> en même temps — pas de limite de temps, ça se construit course après course';
