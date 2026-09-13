@@ -1154,6 +1154,14 @@ body::after{
   #cr-app .lbrow .pts{font-family:'Rajdhani',sans-serif;font-weight:700;font-size:17px;color:var(--gold)}
   #cr-app .lbrow.me{background:rgba(228,84,255,.10);border-color:#e454ff;box-shadow:0 0 14px rgba(228,84,255,.3)}
   #cr-app .lbrow.top1 .pts{color:var(--gold)}
+  /* Barre "1 2 3…" sous la liste, hors zone de scroll (cf crPaintPagination) — masquée en JS
+     (display:none) tant qu'une seule page suffit. */
+  #cr-app .lbpagination{flex:none;display:flex;justify-content:center;flex-wrap:wrap;gap:6px;margin-top:10px}
+  #cr-app .lbpagination .pgbtn{min-width:30px;padding:6px 4px;border-radius:8px;
+    font-family:'Rajdhani';font-weight:700;font-size:13px;
+    background:var(--bg2);border:1px solid var(--border);color:var(--muted2);cursor:pointer;transition:.15s}
+  #cr-app .lbpagination .pgbtn:hover{border-color:var(--blue);color:var(--blue)}
+  #cr-app .lbpagination .pgbtn.on{color:var(--blue);border-color:var(--blue);background:rgba(74,144,255,.12);cursor:default}
   #cr-app .lang{position:absolute;top:0;right:0;display:flex;gap:6px}
   #cr-app .lang button{font-family:'Rajdhani';font-weight:700;font-size:13px;padding:6px 12px;border-radius:8px;
     border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer}
@@ -6051,6 +6059,7 @@ function askConfirm(message, opts){
         <span class="tnd"></span>
       </div>
       <div class="lblist" id="st-list"></div>
+      <div class="lbpagination" id="st-pagination"></div>
     </div>
 
     </div></div>
@@ -10017,13 +10026,14 @@ function computePts(km,spd,elv,boost,gel){
   // C — Points dénivelé
   // Diviseur relevé de "12+8·(.../ +1000)" à "12+18·(.../ +600)" le 2026-09-01
   // (réglage "A" — demande explicite : le D+ pesait trop lourd sur les grosses
-  // sorties, ex. 60m D+/km = 61% des points totaux). Base 12 inchangée (les
-  // sorties plates/peu vallonnées ne bougent quasi pas), mais le frein monte
-  // plus haut (18 au lieu de 8) et plus tôt (mi-parcours à 600m de D+ au lieu
-  // de 1000m) → freine surtout les sorties à gros D+ cumulé, sans effet de
-  // palier (courbe continue). MIROIR EXACT de compute_run_points (base) —
-  // garder synchro.
-  const divD=12+18*(elv/(elv+600));
+  // sorties, ex. 60m D+/km = 61% des points totaux). Rebaissé de 18 à 16 le
+  // 2026-09-13 : le réglage du 01/09 pénalisait trop la montagne face à la
+  // route à temps de course égal (ex. profil alpin 5km/h/800D+ = 137pts/h
+  // contre 309pts/h pour du plat rapide 12km/h) — 16 redonne un peu de poids
+  // au D+ sans revenir au niveau d'avant 09-01 (cas extrême 60m D+/km : 56%
+  // du total contre 63% avant le 01/09, jugé excessif). MIROIR EXACT de
+  // compute_run_points (base) — garder synchro.
+  const divD=12+16*(elv/(elv+600));
   const C=(elv/d)*(A/divD);
   let res=A+B+C;
   // Malus marche : en dessous de 7 km/h, facteur progressif (spd/7)²
@@ -26150,6 +26160,7 @@ let lang = 'fr';
 let timerId = null;
 let cdId = null;                  // rafraîchit le compte à rebours de dispo
 let lbMode = 'month';            // classement affiché : 'month' | 'general'
+let lbPage = 1;                  // page courante du classement (1-based, CR_LB_PAGE_SIZE par page)
 const now = () => Date.now();
 const nowDate = () => new Date();
 // === Branché sur SPEEDIX : currentUser, supabaseClient/supabaseUrl/supabaseKey, walletCredit, isPremium, SPEEDIX_LANG ===
@@ -26303,34 +26314,41 @@ function levelFor(rpc){ let idx=0; for(let i=0;i<LEVELS.length;i++) if(rpc>=LEVE
   return {idx,name:LEVELS[idx].name,min:LEVELS[idx].min,next:LEVELS[idx+1]||null}; }
 
 // ---- Vrai classement serveur : lecture players triée sur les colonnes cashrun_* ----
-async function leaderboard(mode){
+// Pagination par pages de 200 (PAGE_SIZE) via offset — l'ordre est garanti stable par le
+// départage final sur 'id', donc chaque page lit exactement la tranche suivante sans
+// doublon/trou. { count:'exact' } fait remonter le total de participants pour savoir
+// combien de pages afficher (cf crPaintPagination()).
+const CR_LB_PAGE_SIZE=200;
+async function leaderboard(mode,offset){
+  offset=offset||0;
   const general = (mode==='general');
   const col = general ? 'cashrun_total_rpc' : 'cashrun_month_rpc';
   const jk  = general ? 'cashrun_jackpots'  : 'cashrun_month_jackpots';
   const gm  = general ? 'cashrun_games'      : 'cashrun_month_games';  // parties affichées/départage : à vie en général, DU MOIS en mensuel
   const ref = general ? 'cashrun_ref_rank_g' : 'cashrun_ref_rank_m';  // position figée à minuit (photo serveur)
-  let list=[];
+  let list=[], total=0;
   // Tri principal : RPC décroissant. Départage des égalités (validé 2026-06-08) :
   //   1) à RPC égal, MOINS de parties jouées passe devant (plus efficace) → cashrun_games croissant
   //   2) si toujours égal, PLUS de séries parfaites (jackpots = échelles complètes) → jk décroissant
   function buildQ(withRef){
-    let q=supabaseClient.from('players').select('id,username,'+gm+','+col+','+jk+(withRef?(','+ref):''))
+    let q=supabaseClient.from('players').select('id,username,'+gm+','+col+','+jk+(withRef?(','+ref):''),{count:'exact'})
       .order(col,{ascending:false})
       .order(gm,{ascending:true})
       .order(jk,{ascending:false})
       .order('id',{ascending:true})   // départage final STABLE (id) → ordre identique à la photo serveur, évite les fausses flèches sur les ex-aequo
-      .limit(200);
+      .range(offset,offset+CR_LB_PAGE_SIZE-1);
     if(general) q=q.gt('cashrun_games',0);                // général : tous ceux qui ont DÉJÀ JOUÉ (même 0 RPC)
     else        q=q.eq('cashrun_month',crMonthKey());     // mensuel : tous ceux qui ont JOUÉ ce mois-ci (même 0 RPC)
     return q;
   }
   try{
-    let {data,error}=await buildQ(true);
-    if(error){ const r2=await buildQ(false); data=r2.data; }   // colonnes ref pas encore créées → repli sans flèche
+    let {data,error,count}=await buildQ(true);
+    if(error){ const r2=await buildQ(false); data=r2.data; count=r2.count; }   // colonnes ref pas encore créées → repli sans flèche
     list=(data||[])
       .map(p=>({id:p.id, name:p.username||'RP', rpc:p[col]||0, full:p[jk]||0, games:p[gm]||0, refRank:(p[ref]!=null?p[ref]:null), me:(CU().id===p.id)}));
+    total=count||0;
   }catch(e){ console.warn('cashrun leaderboard fail',e); }
-  return list;
+  return {list,total};
 }
 
 // Renvoie {ok, reason:'maxed'|'gap'|'ok', until}
@@ -26668,6 +26686,59 @@ function tile(v,sub,label,cls){
 // prétendre à un mouvement. Sinon ▲ places gagnées / ▼ places perdues.
 function crTrendHtml(prev,cur){ if(prev==null) return '<span class="eq">=</span>'; var d=prev-cur; if(d>0) return '<span class="up">▲'+d+'</span>'; if(d<0) return '<span class="dn">▼'+(-d)+'</span>'; return '<span class="eq">=</span>'; }
 
+// Construit une ligne de classement (utilisé pour la 1re page ET les pages suivantes
+// chargées via "Voir la suite" — évite de dupliquer le HTML de ligne à deux endroits).
+function crBuildRow(r,i,cascade){
+  const row=document.createElement('div');
+  row.className='lbrow'+(r.me?' me':'')+(i<3?' top'+(i+1):'')+(cascade?' league-row-cascade':'');
+  const rk = i<3 ? ['<img src="ai-icons/medal-1-gold.png" style="width:18px;height:18px;object-fit:contain">','<img src="ai-icons/medal-2-silver.png" style="width:18px;height:18px;object-fit:contain">','<img src="ai-icons/medal-3-bronze.png" style="width:18px;height:18px;object-fit:contain">'][i] : (i+1);
+  // Flèche = position de référence (photo de minuit, serveur) − position actuelle (i+1).
+  const prev = (r.refRank!=null) ? r.refRank : null;
+  // .pts en Rajdhani (contrairement à .gm/.tr qui sont en Space Mono, déjà
+  // tabulaire) -- même bug de chiffres à largeur variable que le classement
+  // League (2026-08-09, signalé par l'user sur SON propre score, plus resserré
+  // que les autres) : on réutilise tabularPts() (cf plus haut dans le fichier),
+  // qui force chaque chiffre dans une case de largeur identique.
+  row.innerHTML=`<span class="rk">${rk}</span><span class="nm">${r.name}</span><span class="gm">${fmt(r.games)}</span><span class="tr">${r.full}</span><span class="pts">${tabularPts(r.rpc)}</span><span class="tnd">${crTrendHtml(prev,i+1)}</span>`;
+  if(cascade){
+    const _dyRows=Math.max(-15,Math.min(15,(prev!=null?prev:(i+1))-(i+1)));
+    row.style.setProperty('--row-dy',(_dyRows*56)+'px');
+    // Ralenti (2026-08-06, même réglage que le classement league).
+    row.style.animationDelay=Math.min((i+1)*160,4200)+'ms';
+  }
+  return row;
+}
+// Barre de pagination façon "1 2 3 …" (une page = CR_LB_PAGE_SIZE RP) sous le classement.
+// Masquée si tout tient sur une seule page. Nombre de pages resté volontairement simple (pas
+// d'ellipse "…") : le volume actuel de joueurs Cash Run reste petit (quelques pages au plus).
+function crPaintPagination(total){
+  const bar=$('st-pagination'); if(!bar) return;
+  const totalPages=Math.max(1,Math.ceil(total/CR_LB_PAGE_SIZE));
+  if(totalPages<=1){ bar.innerHTML=''; bar.style.display='none'; return; }
+  bar.style.display='flex';
+  bar.innerHTML='';
+  for(let p=1;p<=totalPages;p++){
+    const btn=document.createElement('button');
+    btn.className='pgbtn'+(p===lbPage?' on':'');
+    btn.textContent=p;
+    btn.onclick=()=>{ if(p!==lbPage) crRenderPage(p); };
+    bar.appendChild(btn);
+  }
+}
+// Rend une page du classement (1-based). page=1 rejoue la cascade d'entrée (1ère consultation
+// du mode dans la session, cf _crCascadeArmed) ; les autres pages s'affichent sans animation.
+async function crRenderPage(page){
+  lbPage=page;
+  const {list,total}=await leaderboard(lbMode,(page-1)*CR_LB_PAGE_SIZE);
+  const wrap=$('st-list'); wrap.innerHTML='';
+  window.__crCascadeSeen = window.__crCascadeSeen || {};
+  const _crCascadeArmed = (page===1) && !window.__crCascadeSeen[lbMode];
+  if(page===1) window.__crCascadeSeen[lbMode]=true;
+  list.forEach((r,i)=>wrap.appendChild(crBuildRow(r,(page-1)*CR_LB_PAGE_SIZE+i,_crCascadeArmed)));
+  crPaintPagination(total);
+  wrap.scrollTop=0;
+  return {list,_crCascadeArmed};
+}
 async function paintStats(){
   const s=getStats(), cs=currentStreak(), fr=lang==='fr';
   $('st-stattitle').textContent = fr?'STATISTIQUES':'STATISTICS';
@@ -26694,38 +26765,9 @@ async function paintStats(){
   $('lb-general').classList.toggle('on', general);
   $('lb-month').textContent = fr?'Mensuel':'Monthly';
   $('lb-general').textContent = fr?'Général':'Overall';
-  const list=await leaderboard(lbMode), wrap=$('st-list'); wrap.innerHTML='';
-  // Référence de tendance du jour (par mode). 1re ouverture du jour = on enregistre les
-  // rangs actuels (aucune flèche) ; ensuite on affiche le delta de place vs cette référence.
-  // Cascade d'entrée (même effet que le classement League) : armée la 1ère fois que CE
-  // mode (général/mensuel) est consulté dans la session, réutilise directement refRank
-  // (photo de minuit déjà en place pour Cash Run, pas d'invention côté client ici).
-  window.__crCascadeSeen = window.__crCascadeSeen || {};
-  const _crCascadeArmed = !window.__crCascadeSeen[lbMode];
-  window.__crCascadeSeen[lbMode] = true;
-  list.forEach((r,i)=>{
-    const row=document.createElement('div');
-    row.className='lbrow'+(r.me?' me':'')+(i<3?' top'+(i+1):'')+(_crCascadeArmed?' league-row-cascade':'');
-    const rk = i<3 ? ['<img src="ai-icons/medal-1-gold.png" style="width:18px;height:18px;object-fit:contain">','<img src="ai-icons/medal-2-silver.png" style="width:18px;height:18px;object-fit:contain">','<img src="ai-icons/medal-3-bronze.png" style="width:18px;height:18px;object-fit:contain">'][i] : (i+1);
-    // Flèche = position de référence (photo de minuit, serveur) − position actuelle (i+1).
-    const prev = (r.refRank!=null) ? r.refRank : null;
-    // .pts en Rajdhani (contrairement à .gm/.tr qui sont en Space Mono, déjà
-    // tabulaire) -- même bug de chiffres à largeur variable que le classement
-    // League (2026-08-09, signalé par l'user sur SON propre score, plus resserré
-    // que les autres) : on réutilise tabularPts() (cf plus haut dans le fichier),
-    // qui force chaque chiffre dans une case de largeur identique.
-    row.innerHTML=`<span class="rk">${rk}</span><span class="nm">${r.name}</span><span class="gm">${fmt(r.games)}</span><span class="tr">${r.full}</span><span class="pts">${tabularPts(r.rpc)}</span><span class="tnd">${crTrendHtml(prev,i+1)}</span>`;
-    if(_crCascadeArmed){
-      const _dyRows=Math.max(-15,Math.min(15,(prev!=null?prev:(i+1))-(i+1)));
-      row.style.setProperty('--row-dy',(_dyRows*56)+'px');
-      // Ralenti (2026-08-06, même réglage que le classement league).
-      row.style.animationDelay=Math.min((i+1)*160,4200)+'ms';
-    }
-    wrap.appendChild(row);
-  });
-  // Toujours en haut du classement à l'ouverture (Général centrait avant sur "ma ligne",
-  // corrigé le 2026-08-01 — incohérent avec la cascade d'entrée qui part du haut).
-  wrap.scrollTop = 0;
+  // Reprend toujours à la page 1 à l'ouverture / au changement d'onglet Mensuel↔Général
+  // (la cascade d'entrée ne joue de toute façon que sur la page 1, cf crRenderPage()).
+  const {list,_crCascadeArmed}=await crRenderPage(1);
 
   // Séquence d'ouverture demandée : classement plein écran d'abord (cascade des lignes),
   // puis les statistiques/podium descendent du haut et repoussent le classement à sa place
