@@ -10024,16 +10024,16 @@ function computePts(km,spd,elv,boost,gel){
   const bonusV=Math.pow(spd/8, 2+0.0125*Math.max(0,spd-8));
   const B=(A/10)*(spd*bonusV);
   // C — Points dénivelé
-  // Diviseur relevé de "12+8·(.../ +1000)" à "12+18·(.../ +600)" le 2026-09-01
-  // (réglage "A" — demande explicite : le D+ pesait trop lourd sur les grosses
-  // sorties, ex. 60m D+/km = 61% des points totaux). Rebaissé de 18 à 16 le
-  // 2026-09-13 : le réglage du 01/09 pénalisait trop la montagne face à la
-  // route à temps de course égal (ex. profil alpin 5km/h/800D+ = 137pts/h
-  // contre 309pts/h pour du plat rapide 12km/h) — 16 redonne un peu de poids
-  // au D+ sans revenir au niveau d'avant 09-01 (cas extrême 60m D+/km : 56%
-  // du total contre 63% avant le 01/09, jugé excessif). MIROIR EXACT de
-  // compute_run_points (base) — garder synchro.
-  const divD=12+16*(elv/(elv+600));
+  // Diviseur relevé de "12+8·(.../ +1000)" à "12+18·(.../ +600)" le 2026-09-01,
+  // rebaissé à 16 puis à 10 le 2026-09-13 (même jour). Analyse sur données FC
+  // réelles (504 courses L1/L2/L3, %FCmax estimé par âge) : à effort cardiaque
+  // IDENTIQUE, le plat rapportait 12-19% de plus que le vallonné avec 18, et le
+  // passage à 16 n'avait quasi rien changé (-9 à -14%). Coefficient 10 retenu
+  // comme compromis : écart réel ramené à -5/-7% (au lieu de -12/-15%), sans
+  // repasser au-dessus de ~60% de D+ sur le cas extrême (60m D+/km) — legerement
+  // sous le niveau d'avant le 01/09 (63%, jugé excessif à l'époque). MIROIR
+  // EXACT de compute_run_points (base) — garder synchro.
+  const divD=12+10*(elv/(elv+600));
   const C=(elv/d)*(A/divD);
   let res=A+B+C;
   // Malus marche : en dessous de 7 km/h, facteur progressif (spd/7)²
