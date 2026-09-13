@@ -22468,8 +22468,8 @@ async function renderChallenges(){
       // juste le nombre de distances au choix (texte court, une ligne — même
       // gabarit que "X km requis" pour ne pas agrandir la carte).
       progressTxt=(b._groupMembers && !b._groupPicked)
-        ?(b._groupMembers.length+' distances')
-        :target+' km requis';
+        ?(b._groupMembers.length+(b._groupMembers[0]&&b._groupMembers[0].event_by_duration?' formats':' distances'))
+        :(b.event_by_duration?(target/60)+'h requis':target+' km requis');
       // Bouton Participer : uniquement sur MA PC, pas quand je consulte un autre RP
       var isOwnPC=!window.__viewedPlayer;
       if(isOwnPC && status!=='past'){
@@ -23945,7 +23945,8 @@ function openEventDistancePicker(ids){
     // l'etiquette "Semi-marathon" car >=21 seul l'incluait) : seule la vraie
     // distance du semi (21-25km, couvre 21.1 pile) prend ce libelle special ;
     // les autres distances (30km, etc.) affichent juste leur valeur brute.
-    var label=o.threshold_value>=42?'Marathon · '+o.threshold_value+' km':((o.threshold_value>=20&&o.threshold_value<25)?'Semi-marathon · '+o.threshold_value+' km':o.threshold_value+' km');
+    var label=o.event_by_duration?(o.name||(o.threshold_value/60)+'h')
+      :(o.threshold_value>=42?'Marathon · '+o.threshold_value+' km':((o.threshold_value>=20&&o.threshold_value<25)?'Semi-marathon · '+o.threshold_value+' km':o.threshold_value+' km'));
     return '<div class="event-dist-opt" data-badge-id="'+o.id+'" data-badge-name="'+(o.name||'').replace(/"/g,'&quot;')+'" data-selected="'+(i===0?'1':'0')+'" onclick="_selectEventDist(this)" style="display:flex;align-items:center;justify-content:space-between;gap:.6rem;padding:.6rem .8rem;margin-bottom:.5rem;border-radius:8px;border:1.5px solid '+(i===0?color:'rgba(255,255,255,.12)')+';background:'+(i===0?color+'1a':'rgba(255,255,255,.03)')+';cursor:pointer;transition:.15s">'
       +'<div style="text-align:left"><div style="font-family:Bebas Neue,sans-serif;font-size:.95rem;letter-spacing:1px;color:var(--text)">'+label+'</div><div style="font-size:.65rem;font-family:Space Mono,monospace">'+reward.join(' · ')+'</div></div>'
       +'<div class="event-dist-radio" style="width:18px;height:18px;border-radius:50%;border:2px solid '+(i===0?color:'rgba(255,255,255,.3)')+';flex-shrink:0;position:relative">'+(i===0?'<div style="position:absolute;inset:3px;border-radius:50%;background:'+color+'"></div>':'')+'</div>'
@@ -23953,7 +23954,7 @@ function openEventDistancePicker(ids){
   }).join('');
   document.getElementById('lm-body').innerHTML=
      '<div id="event-dist-wrap" data-color="'+color+'" style="padding:.5rem .3rem">'
-    +'  <div style="font-size:.75rem;color:var(--muted2);margin-bottom:.7rem;text-align:center">Choisis ton dossard pour ce challenge — une seule distance et participation possible.</div>'
+    +'  <div style="font-size:.75rem;color:var(--muted2);margin-bottom:.7rem;text-align:center">Choisis ton dossard pour ce challenge — '+(opts[0].event_by_duration?'un seul format':'une seule distance')+' et participation possible.</div>'
     +rowsHtml
     +'  <button onclick="_confirmEventDistPick()" style="margin-top:.4rem;width:100%;padding:.6rem;border-radius:8px;border:1.5px solid '+color+';background:linear-gradient(135deg,'+color+'26,'+color+'08),#0c0f1a;color:'+color+';font-family:Bebas Neue,sans-serif;font-size:1rem;letter-spacing:1.5px;font-weight:900;cursor:pointer">PARTICIPER</button>'
     +'</div>';
@@ -24382,8 +24383,10 @@ function _badgeChallengeDescription(b){
     case 'capitals_eu':       return 'Courir au départ de <strong style="color:'+(b.color||'#f5c842')+'">'+v+' capitales</strong> européennes différentes';
     case 'night_runs':        return 'Faire <strong style="color:'+(b.color||'#f5c842')+'">'+v+' courses</strong> entre 22h et 4h';
     case 'morning_runs':      return 'Faire <strong style="color:'+(b.color||'#f5c842')+'">'+v+' courses</strong> entre 4h et 7h';
-    case 'event_run':         return v ? 'Courir <strong style="color:'+(b.color||'#f5c842')+'">'+fmt(v)+' km</strong> le jour de l\'événement'
-                                        : 'Participer à l\'événement à la date prévue';
+    case 'event_run':         return b.event_by_duration
+                                ? 'Courir <strong style="color:'+(b.color||'#f5c842')+'">'+(v/60)+'h</strong> sans interruption le jour de l\'événement'
+                                : (v ? 'Courir <strong style="color:'+(b.color||'#f5c842')+'">'+fmt(v)+' km</strong> le jour de l\'événement'
+                                     : 'Participer à l\'événement à la date prévue');
     case 'cashrun_jackpots':  return 'Gagner <strong style="color:'+(b.color||'#f5c842')+'">'+v+' jackpots</strong> à Cash Run';
     case 'collab_wins':       return 'Réussir <strong style="color:'+(b.color||'#f5c842')+'">'+v+' défis collaboratifs</strong> entre voisins';
     case 'account_age_days':  return 'Être inscrit depuis <strong style="color:'+(b.color||'#f5c842')+'">'+v+' jours</strong>';
