@@ -23933,7 +23933,14 @@ function openEventDistancePicker(ids){
     .sort(function(a,b){return (a.threshold_value||0)-(b.threshold_value||0);});
   if(!opts.length) return;
   var color=opts[0].color||'#f5c842';
-  var cityLabel=(opts[0].name||'').replace(/^[\d.,]+\s*km\s*(de|d')?\s*/i,'').replace(/^Semi (de|d')\s*/i,'').replace(/^Marathon (de|d')\s*/i,'').trim();
+  // Pour un groupe basé sur la durée (event_by_duration), le nom de chaque
+  // palier EST le format ("1H NITRO", etc.) — pas de ville à en extraire, donc
+  // pas de sous-titre statique figé sur le 1er palier (2026-09-13, corrigé —
+  // "1H NITRO" restait affiché même après avoir choisi 2H/3H). On affiche la
+  // tagline commune de l'event à la place (identique sur les 3 paliers).
+  var cityLabel=opts[0].event_by_duration
+    ? (opts[0].tagline||'')
+    : (opts[0].name||'').replace(/^[\d.,]+\s*km\s*(de|d')?\s*/i,'').replace(/^Semi (de|d')\s*/i,'').replace(/^Marathon (de|d')\s*/i,'').trim();
   document.getElementById('lm-title').innerHTML='🏁 <span style="color:#fff">Choisis</span> <span style="color:var(--gold)">'+(opts[0].event_by_duration?'ta durée':'ta distance')+'</span>';
   document.getElementById('lm-sub').textContent=cityLabel;
   var rowsHtml=opts.map(function(o,i){
