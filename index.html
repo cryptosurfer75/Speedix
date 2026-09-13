@@ -10036,9 +10036,15 @@ function computePts(km,spd,elv,boost,gel){
   const divD=12+10*(elv/(elv+600));
   const C=(elv/d)*(A/divD);
   let res=A+B+C;
-  // Malus marche : en dessous de 7 km/h, facteur progressif (spd/7)²
-  // Ex : 3 km/h → 18% · 5 km/h → 51% · 6 km/h → 73% · 6.9 km/h → 97% · ≥7 km/h → 100%
-  if(spd<7) res*=Math.pow(spd/7,2);
+  // Malus marche : en dessous de 7 km/h, facteur progressif (spd/7)² — mais
+  // calculé sur une VITESSE AJUSTÉE AU TERRAIN (2026-09-13), pas la vitesse
+  // brute. Règle de Naismith (600m de D+ ~ 5km de plat en effort/temps) :
+  // eqKm = km + 5*(elv/600), effSpd = spd*eqKm/km (équivalent à eqKm/(temps),
+  // sans avoir besoin du temps ici puisque temps = km/spd). Un trail lent à
+  // cause de la pente n'est plus confondu avec une simple marche sur du plat.
+  // MIROIR EXACT de compute_run_points (base) — garder synchro.
+  const effSpd = d>0 ? spd*(d+5*(elv/600))/d : spd;
+  if(effSpd<7) res*=Math.pow(effSpd/7,2);
   // Boost +10%, Gel -5%, les deux ensemble = +5% net (règle simple).
   if(boost && gel) return res*1.05;
   if(boost) return res*1.10;
