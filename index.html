@@ -3481,7 +3481,12 @@ select option{background:#040c1c}
         </div>
         <img src="league-title-chevron-right.png" alt="" style="height:30px;width:auto;max-width:25vw;object-fit:contain;flex-shrink:0;min-width:0;pointer-events:none;user-select:none">
       </div>
-      <button onclick="nav('dashboard')" title="Fermer" style="position:relative;width:40px;height:40px;border:none;background:transparent;padding:0;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;transform:translate(8px,-34px)"><span style="position:absolute;inset:5px;background:url('icon-close-x.png') center/contain no-repeat"></span></button>
+      <!-- navPlayerCard() (pas nav('dashboard')) : ferme sur la PC CONSULTÉE si on
+           a ouvert cette page depuis la PC d'un autre RP (garde __viewedPlayer),
+           pas systématiquement sur la sienne (2026-09-15, demande explicite —
+           pénible en navigation). Le bouton "Player Card" du haut, lui, réinitialise
+           toujours __viewedPlayer et reste donc le retour garanti vers SA PC. -->
+      <button onclick="navPlayerCard()" title="Fermer" style="position:relative;width:40px;height:40px;border:none;background:transparent;padding:0;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;transform:translate(8px,-34px)"><span style="position:absolute;inset:5px;background:url('icon-close-x.png') center/contain no-repeat"></span></button>
     </div>
     <div style="height:1px;width:100%;margin:.15rem auto 0;background:linear-gradient(90deg,transparent,#fff 15%,var(--gold) 50%,#fff 85%,transparent)"></div>
   </div>
@@ -3765,7 +3770,9 @@ select option{background:#040c1c}
         </div>
         <img src="league-title-chevron-right.png" alt="" style="height:30px;width:auto;max-width:25vw;object-fit:contain;flex-shrink:0;min-width:0;pointer-events:none;user-select:none">
       </div>
-      <button onclick="nav('dashboard')" title="Fermer" style="position:relative;width:40px;height:40px;border:none;background:transparent;padding:0;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;transform:translate(8px,-34px)"><span style="position:absolute;inset:5px;background:url('icon-close-x.png') center/contain no-repeat"></span></button>
+      <!-- navPlayerCard() (pas nav('dashboard')) : même logique que la page Courses,
+           cf. commentaire équivalent plus haut (2026-09-15). -->
+      <button onclick="navPlayerCard()" title="Fermer" style="position:relative;width:40px;height:40px;border:none;background:transparent;padding:0;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;transform:translate(8px,-34px)"><span style="position:absolute;inset:5px;background:url('icon-close-x.png') center/contain no-repeat"></span></button>
     </div>
     <div style="height:1px;width:100%;margin:.15rem auto 0;background:linear-gradient(90deg,transparent,#fff 15%,var(--gold) 50%,#fff 85%,transparent)"></div>
   </div>
