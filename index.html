@@ -5873,6 +5873,20 @@ function askConfirm(message, opts){
     </div>
     </div>
 
+    <!-- ── Synchronisation (2026-09-15) : accès de secours à sync-modal, car le
+         bouton "Powered by Strava" de la nav (#2563) sort du cadre sur mobile
+         quand le bouton Admin est aussi affiché — signalé par l'user (Val-DM),
+         jamais corrigé en profondeur (responsive nav), donc on donne un 2e
+         chemin fiable via Paramètres, toujours accessible. -->
+    <div style="position:relative;background:#9060f0;clip-path:polygon(11px 0,calc(100% - 11px) 0,100% 11px,100% calc(100% - 11px),calc(100% - 11px) 100%,11px 100%,0 calc(100% - 11px),0 11px);padding:1.5px;margin-bottom:1rem">
+    <div style="background:#0c0f1a;clip-path:polygon(10px 0,calc(100% - 10px) 0,100% 10px,100% calc(100% - 10px),calc(100% - 10px) 100%,10px 100%,0 calc(100% - 10px),0 10px)">
+      <div class="block-header"><div class="block-title">🔄 <span class="hl">Synchronisation</span></div></div>
+      <div class="block-body-sm">
+        <button onclick="openModal('sync-modal')" style="width:100%;padding:.6rem;border-radius:8px;border:1px solid rgba(252,76,2,.35);background:rgba(252,76,2,.06);color:#fc4c02;font-weight:700;font-size:.82rem;cursor:pointer">Strava / COROS</button>
+      </div>
+    </div>
+    </div>
+
     <!-- ── Abonnement ───────────────────────────────────── -->
     <div style="position:relative;background:#9060f0;clip-path:polygon(11px 0,calc(100% - 11px) 0,100% 11px,100% calc(100% - 11px),calc(100% - 11px) 100%,11px 100%,0 calc(100% - 11px),0 11px);padding:1.5px;margin-bottom:1rem">
     <div style="background:#0c0f1a;clip-path:polygon(10px 0,calc(100% - 10px) 0,100% 10px,100% calc(100% - 10px),calc(100% - 10px) 100%,10px 100%,0 calc(100% - 10px),0 10px)">
