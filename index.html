@@ -20219,7 +20219,10 @@ function _corosB64url(bytes){
 
 async function connectCoros(){
   if(!currentUser){showToast('⚠️ Connecte-toi d\'abord');return;}
-  if(!currentUser.coros_beta){showToast('⚠️ Bêta COROS fermée pour ton compte');return;}
+  // Pas de re-check coros_beta ici : le bouton lui-même n'est affiché que si
+  // loadCorosToken() a confirmé le flag en DB (cf §18) — la visibilité EST le
+  // contrôle d'accès, une 2e vérif sur currentUser.coros_beta (jamais peuplé
+  // sur cet objet) bloquait à tort tous les comptes bêta (bug 2026-09-15).
   // PKCE : verifier aléatoire (43-128 car.), challenge = base64url(SHA-256(verifier)).
   var verifierBytes=new Uint8Array(32);
   crypto.getRandomValues(verifierBytes);
