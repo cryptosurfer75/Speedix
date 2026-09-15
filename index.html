@@ -9303,6 +9303,15 @@ function _maybeShowPcTutorial2(pd){
     // Attendre le calme (aucune modale ni tuto déjà ouvert) — variante stricte :
     // contrairement à _stravaWaitForCalmThen, "Synchroniser" compte comme bloqueur ici.
     _waitForFullCalmThen(function(){
+      // Re-check obligatoire (bug 2026-09-15, signalé par l'user) : currentUser
+      // était non-null à la programmation du setTimeout, mais _waitForFullCalmThen
+      // peut attendre un temps indéterminé (poll du calme) — si le RP se
+      // déconnecte PENDANT cette attente, ce callback se déclenchait quand même
+      // et ouvrait le tuto par-dessus l'écran de connexion déserté (boutons visés
+      // absents du DOM -> tuto qui pointe dans le vide).
+      if(!currentUser) return;
+      var dash2=document.getElementById('page-dashboard');
+      if(!dash2 || dash2.style.display==='none') return;
       try{ localStorage.setItem(key,'1'); }catch(e){}
       if(typeof startContextualTuto==='function') startContextualTuto(_pcTutorial2Steps);
     });
@@ -9318,6 +9327,10 @@ function _stravaPromptJ1(){
   // 30s un nouveau bloqueur s'ouvre (ex: gap entre fermeture streak et ouverture
   // tuto), on recommence depuis le début. Évite l'apparition derrière le tuto.
   function _attemptOpen(){
+    // Même classe de bug que _maybeShowPcTutorial2 (2026-09-15) : ces attentes
+    // de calme peuvent durer un temps indéterminé -- si le RP s'est déconnecté
+    // entre-temps, ne pas ouvrir la modale sur l'écran de connexion désert.
+    if(!currentUser) return;
     if(_isStravaLinkedNow()) return;
     if(_stravaAnyBlockerOpen()){
       _stravaWaitForCalmThen(function(){ setTimeout(_attemptOpen, 30000); });
@@ -9329,6 +9342,7 @@ function _stravaPromptJ1(){
       // Si le RP a fermé l'app entre-temps, pas grave — on le relance le jour
       // suivant (prompt doux pendant la période de grâce, puis mur ensuite).
       setTimeout(function(){
+        if(!currentUser) return;
         if(_isStravaLinkedNow()) return;
         _openStravaModalSoftLock(8000, null);
       }, 120000);
