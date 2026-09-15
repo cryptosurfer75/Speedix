@@ -11565,14 +11565,14 @@ function renderLeaguePanel(){
     //   (cf renderAvatarCanvas plus bas) -- "sinon ça risque de faire un
     //   arc-en-ciel de couleur dans les league" (tout le monde pourrait
     //   choisir une couleur différente en même temps, en permanence).
-    // - Skin TEMPORAIRE de victoire (p.medalBgC1/C2/Until, 48h après la fin
+    // - Skin TEMPORAIRE de victoire (p.medalBgC1/C2/Until, 36h après la fin
     //   du Challenge, AUTOMATIQUE) : teinte TOUTE la ligne en plus de
     //   l'avatar -- "à la fin du challenge qu'on valide tous en même temps...
     //   ça ne me dérange pas que le classement soit teinté, ce passage ne
     //   dure que 48h" -- pas de risque d'arc-en-ciel puisque tous les
     //   gagnants d'UN MÊME Challenge partagent les 2 mêmes couleurs.
     var _rowMedalActive=p.medalBgC1&&p.medalBgC2&&p.medalBgUntil&&new Date(p.medalBgUntil).getTime()>Date.now();
-    // Le bandeau de victoire (48h) passe AVANT le rouge/vert de zone promo/releg :
+    // Le bandeau de victoire (36h) passe AVANT le rouge/vert de zone promo/releg :
     // sinon un gagnant du Challenge encore sous le seuil de sa league (fréquent
     // en tout début de période, cf. commentaire plus bas) perdait son bandeau,
     // remplacé par le rouge de relégation (cas Juwi signalé par l'user 2026-08-09).
@@ -11583,7 +11583,7 @@ function renderLeaguePanel(){
     // isReleg seul suffisait à teinter -- incohérent avec ptColor qui, lui,
     // respectait déjà la fenêtre de 7 jours depuis 2026-07-21.
     var rowBg=_rowMedalActive?('background:linear-gradient(100deg,'+p.medalBgC2+'40 0%,'+p.medalBgC1+'40 100%);'):((isReleg&&_daysLeftInPeriod<=7)?'background:rgba(255,68,68,.04);':isPromo?'background:rgba(45,219,128,.04);':(isMe?'background:rgba(4,12,35,.85);':''));
-    // Liseré autour de la ligne d'un gagnant de Challenge (48h), même traitement
+    // Liseré autour de la ligne d'un gagnant de Challenge (36h), même traitement
     // que le contour de MA ligne mais dans la couleur du skin gagné -- demande
     // explicite de l'user 2026-08-09 : "le bandeau bleu est sympa mais un peu à
     // plat, un petit cadre comme celui de notre ligne RP".
@@ -20227,7 +20227,14 @@ async function connectCoros(){
   var verifierBytes=new Uint8Array(32);
   crypto.getRandomValues(verifierBytes);
   var verifier=_corosB64url(verifierBytes);
-  sessionStorage.setItem('coros_pkce_verifier',verifier);
+  // localStorage (pas sessionStorage) : sur mobile, la redirection vers
+  // mcpeu.coros.com peut faire sortir du contexte de navigation initial
+  // (app/webview -> navigateur externe -> retour) et sessionStorage ne
+  // survit pas à ce changement de contexte -- vécu par Martin (Ciel) le
+  // 2026-09-15 : "session COROS expirée" au retour malgré une autorisation
+  // réussie côté COROS. localStorage persiste indépendamment de l'onglet.
+  localStorage.setItem('coros_pkce_verifier',verifier);
+  localStorage.setItem('coros_pkce_verifier_ts',String(Date.now()));
   var digest=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(verifier));
   var challenge=_corosB64url(new Uint8Array(digest));
   var state='coros_'+currentUser.id+'_'+Date.now();
@@ -20248,9 +20255,15 @@ async function handleCorosCallback(){
   var state=params.get('state');
   if(!code||!state||state.indexOf('coros_')!==0) return;
   window.history.replaceState({},'',window.location.pathname);
-  var verifier=sessionStorage.getItem('coros_pkce_verifier');
-  sessionStorage.removeItem('coros_pkce_verifier');
-  if(!verifier){showToast('⚠️ Session COROS expirée, réessaie');return;}
+  var verifier=localStorage.getItem('coros_pkce_verifier');
+  var verifierTs=parseInt(localStorage.getItem('coros_pkce_verifier_ts')||'0',10);
+  localStorage.removeItem('coros_pkce_verifier');
+  localStorage.removeItem('coros_pkce_verifier_ts');
+  // Le verifier n'a de sens que pour LA tentative qui vient de se terminer
+  // (10 min de marge large pour le détour navigateur externe éventuel) --
+  // au-delà, mieux vaut redemander une connexion propre que de tenter un
+  // échange avec un verifier d'une vieille tentative abandonnée.
+  if(!verifier||!verifierTs||(Date.now()-verifierTs)>10*60*1000){showToast('⚠️ Session COROS expirée, réessaie');return;}
   showToast('⌚ Connexion COROS en cours…');
   try{
     var resp=await window.fetch(COROS_OAUTH_ENDPOINT,{
@@ -21705,7 +21718,8 @@ function _decorateBadgeWithCityCrest(b){
 // appelable aussi bien depuis renderChallenges() (avec le catalogue/carte déjà
 // chargés, pour ne rien refetcher) que depuis onLoginSuccess() (sans argument,
 // pour tourner dès l'ouverture de l'appli). j'équipe automatiquement
-// players.medal_bg_c1/c2/until (jusqu'à event_date_end + 48h) -- colonnes
+// players.medal_bg_c1/c2/until (jusqu'à event_date_end + 36h, réduit de 48h
+// le 2026-09-15 sur demande explicite) -- colonnes
 // SÉPARÉES de equipped_bg_c1/c2 (le choix permanent du RP) : celles-ci sont
 // TEMPORAIRES et passent devant le skin permanent à l'affichage (cf.
 // renderDashboard/buildRow/renderAvatarCanvas), donc pas besoin ici de tenir
@@ -21735,7 +21749,7 @@ async function _checkChallengeWinSkin(badgesCatalog,unlockedMap){
   _wonMedals.sort(function(a,z){ return (z.event_date_end||'').localeCompare(a.event_date_end||''); });
   var _mb=_wonMedals[0];
   var _mbUntil=new Date(_mb.event_date_end+'T23:59:59+02:00');
-  _mbUntil.setHours(_mbUntil.getHours()+48);
+  _mbUntil.setHours(_mbUntil.getHours()+36);
   if(_mbUntil.getTime()<=Date.now()) return;
   var _mbUntilIso=_mbUntil.toISOString();
   // SOURCE UNIQUE côté base (2026-08-11, bug corrigé -- "au moindre refresh
