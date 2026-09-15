@@ -2874,10 +2874,28 @@ select option{background:#040c1c}
              de chaque côté en bas. min-width=largeur de la photo (pas du cadre décoratif entier,
              qui déborde plus large) : la plaque couvre au moins tout le bas de la photo sans jamais
              dépasser le cadre. N'affecte pas les pseudos longs, déjà gérés par max-width+ellipsis. -->
+        <!-- Wrapper NON clippé (2026-09-15 v3, LOCAL) : le badge Calibrage doit
+             être FRÈRE des divs à clip-path (octogone de la plaque), jamais
+             enfant — sinon tout ce qui dépasse le cadre (même en position
+             absolute) se fait couper par le clip-path parent. Même règle que
+             les coins en surépaisseur ailleurs dans l'app (cf.
+             feedback_speedix_corner_bracket_pattern). Bug vu en v2 : le badge
+             était enfant de la div à clip-path et s'affichait tronqué. -->
+        <div style="position:relative;display:inline-block;max-width:100%">
         <div style="position:relative;z-index:2;margin-top:-11.3px;display:inline-block;min-width:135px;max-width:100%;box-sizing:border-box;background:#5B6474;clip-path:polygon(12px 0,calc(100% - 12px) 0,100% 12px,100% calc(100% - 12px),calc(100% - 12px) 100%,12px 100%,0 calc(100% - 12px),0 12px);padding:1px">
           <div style="background:#12141c;clip-path:polygon(11px 0,calc(100% - 11px) 0,100% 11px,100% calc(100% - 11px),calc(100% - 11px) 100%,11px 100%,0 calc(100% - 11px),0 11px);padding:.62rem .8rem .47rem;text-align:center;max-width:100%;box-sizing:border-box">
             <div id="pc-name" style="font-family:'Big Shoulders Display',sans-serif;font-weight:900;font-style:italic;font-size:1.25rem;letter-spacing:1px;color:#ffffff;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;min-width:0;transform:scaleY(1.35)">—</div>
           </div>
+        </div>
+        <!-- Badge Calibrage v3 : même principe que le crayon avatar-edit-btn
+             (~2836, bouton biseauté en coin), coin bas-droit du pseudo, PAS de
+             l'avatar. Blanc/gris (cohérent badge C classement + FAQ), pas bleu
+             ni gold. Clic = vraie fenêtre modale (#calib-info-modal), plus de
+             toast (illisible, signalé par l'user). -->
+        <div id="pc-calib-badge" onclick="event.stopPropagation();showCalibInfoModal()" title="Période de calibrage" style="display:none;position:absolute;z-index:4;right:-16px;bottom:-14px;width:22px;height:22px;cursor:pointer">
+          <div style="position:absolute;inset:0;clip-path:polygon(6px 0,calc(100% - 6px) 0,100% 6px,100% calc(100% - 6px),calc(100% - 6px) 100%,6px 100%,0 calc(100% - 6px),0 6px);background:rgba(255,255,255,.55)"></div>
+          <div style="position:absolute;inset:1.5px;clip-path:polygon(5px 0,calc(100% - 5px) 0,100% 5px,100% calc(100% - 5px),calc(100% - 5px) 100%,5px 100%,0 calc(100% - 5px),0 5px);background:#0c0f1a;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:.68rem;font-weight:700;color:#ffffff">C</div>
+        </div>
         </div>
         <div id="pc-rtw-id" style="font-family:'Space Mono',monospace;font-size:.68rem;color:var(--purple);margin-top:.12rem;letter-spacing:.5px;text-align:center">#SL-—</div>
       </div>
@@ -4594,6 +4612,32 @@ select option{background:#040c1c}
   </div>
 </div>
 
+<!-- Modal Calibrage (2026-09-15, LOCAL) — ouverte via le badge "C" coin bas-droit
+     du pseudo sur la PC (cf ~2890). Jours restants = #calib-days-left, rempli par
+     showCalibInfoModal() qui réutilise getPeriodTimeLeft() (source unique du
+     countdown de fin de période, déjà utilisée par startPeriodTimer). -->
+<div class="modal" id="calib-info-modal">
+  <div class="modal-box" style="max-width:440px;border-color:rgba(255,255,255,.35)">
+    <button class="modal-close" onclick="closeModal('calib-info-modal')">✕</button>
+    <div style="text-align:center;font-size:2.2rem;margin-bottom:.3rem">⚖️</div>
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:1.4rem;letter-spacing:3px;text-align:center;margin-bottom:.85rem">
+      <span style="color:#ffffff">PÉRIODE DE</span> <span style="color:var(--gold)">CALIBRAGE</span>
+    </div>
+    <div style="font-size:.85rem;color:var(--text);line-height:1.7;margin-bottom:1rem;text-align:center">
+      Ta 1ère période complète en League sert à définir ton <strong style="color:var(--gold)">niveau sportif</strong>. La montée reste libre, sans limite.
+    </div>
+    <div style="font-size:.78rem;color:var(--muted2);line-height:1.7;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.15);border-radius:8px;padding:.7rem .85rem;margin-bottom:.85rem">
+      <strong style="color:#ffffff">Pendant le calibrage</strong><br>
+      • Pas de buy-in, pas de podium, pas de prize pool<br>
+      • Ton classement ne compte pas encore pour les récompenses
+    </div>
+    <div style="font-size:.78rem;color:var(--muted2);line-height:1.7;background:rgba(45,219,128,.05);border:1px solid rgba(45,219,128,.2);border-radius:8px;padding:.7rem .85rem;text-align:center">
+      <strong style="color:var(--green)">📅 Compétition officielle dans</strong><br>
+      <span id="calib-days-left" style="font-family:'Bebas Neue',sans-serif;font-size:1.3rem;letter-spacing:1px;color:var(--text)">—</span>
+    </div>
+  </div>
+</div>
+
 <!-- ==========================================
      Modal FAQ : aide self-service
      25 Q&A organisées en 6 catégories.
@@ -5519,7 +5563,7 @@ function askConfirm(message, opts){
         Phase de démarrage : pas de compétition, de podium, de récompenses.<br>
         Passé <strong style="color:var(--gold)">500 pts</strong>, le RP entre dans la League.<br>
         Il monte en fonction de son niveau jusqu'à la fin de période.<br>
-        La période suivante dite de <strong style="color:var(--blue)">calibrage</strong> <span style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:3px;background:rgba(74,144,255,.12);border:1px solid rgba(74,144,255,.3);font-family:'Bebas Neue',sans-serif;font-size:.65rem;font-weight:700;color:var(--blue);line-height:1;vertical-align:middle">C</span>, la montée est encore libre afin de définir le vrai niveau du RP. Pas de buy-in, pas de podium, pas de prize pool.<br>
+        La période suivante dite de <strong style="color:#ffffff">calibrage</strong> <span style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:3px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.4);font-family:'Bebas Neue',sans-serif;font-size:.65rem;font-weight:700;color:#ffffff;line-height:1;vertical-align:middle">C</span>, la montée est encore libre afin de définir le niveau sportif du RP. Pas de buy-in, pas de podium, pas de prize pool.<br>
         La période suivante, la <strong style="color:var(--green)">compétition officielle</strong> commence avec les podiums, médailles et prize pool.
       </div>
     </div>
@@ -6500,7 +6544,7 @@ const I18N = {
     'rules.points.body'         : 'Calculés selon ta <strong style="color:var(--text)">distance</strong>, ta <strong style="color:var(--text)">vitesse</strong> et ton <strong style="color:var(--text)">dénivelé</strong>.<br>La formule est <strong style="color:var(--gold)">secrète</strong> — elle valorise l\'effort global.<br>Un <strong style="color:var(--text)">Boost</strong> ajoute <strong style="color:var(--green)">+10%</strong> pendant 24h.<br>Un <strong style="color:var(--text)">Gel</strong> te ralenti de <strong style="color:#6ec3ff">-5%</strong> pendant 24h.<br>Vitesse <strong>moyenne</strong> &gt; 20 km/h = activité <strong style="color:var(--red)">invalidée</strong> 🏴‍☠️',
     // — Bloc Starter Zone
     'rules.starter.title'       : '⚙️ La <span class="hl">Starter Zone</span>',
-    'rules.starter.body'        : 'Tout nouveau RP commence en Starter Zone.<br>Phase de démarrage : pas de compétition, de podium, de récompenses.<br>Passé <strong style="color:var(--gold)">500 pts</strong>, le RP entre dans la League.<br>Il monte en fonction de son niveau jusqu\'à la fin de période.<br>La période suivante dite de <strong style="color:var(--blue)">calibrage</strong> <span style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:3px;background:rgba(74,144,255,.12);border:1px solid rgba(74,144,255,.3);font-family:\'Bebas Neue\',sans-serif;font-size:.65rem;font-weight:700;color:var(--blue);line-height:1;vertical-align:middle">C</span>, la montée est encore libre afin de définir le vrai niveau du RP. Pas de buy-in, pas de podium, pas de prize pool.<br>La période suivante, la <strong style="color:var(--green)">compétition officielle</strong> commence avec les podiums, médailles et prize pool.',
+    'rules.starter.body'        : 'Tout nouveau RP commence en Starter Zone.<br>Phase de démarrage : pas de compétition, de podium, de récompenses.<br>Passé <strong style="color:var(--gold)">500 pts</strong>, le RP entre dans la League.<br>Il monte en fonction de son niveau jusqu\'à la fin de période.<br>La période suivante dite de <strong style="color:#ffffff">calibrage</strong> <span style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:3px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.4);font-family:\'Bebas Neue\',sans-serif;font-size:.65rem;font-weight:700;color:#ffffff;line-height:1;vertical-align:middle">C</span>, la montée est encore libre afin de définir le niveau sportif du RP. Pas de buy-in, pas de podium, pas de prize pool.<br>La période suivante, la <strong style="color:var(--green)">compétition officielle</strong> commence avec les podiums, médailles et prize pool.',
     // — Bloc Leagues
     'rules.leagues.title'       : '🏆 Les <span class="hl">Leagues</span>',
     'rules.leagues.body'        : 'Chaque RP est placé dans une League selon son niveau.<br>10 niveaux de <strong style="color:#8090a0">Fer</strong> à <strong style="color:#f5c842">Or</strong>.<br>En fin de période, chaque RP est <strong style="color:var(--text)">reclassé</strong> dans la League correspondant à ses points.<br>Le <strong style="color:var(--gold)">buy-in</strong> RPC de chaque RP constitue le prize pool redistribué en fonction du nombre de participants dans la ligue.<br><br><strong style="color:var(--gold)">🏅 Médailles du podium (top 3)</strong> — distribuées uniquement dans les leagues ayant au moins <strong style="color:var(--text)">40 RP</strong> ayant payé leur buy-in au démarrage de la période. En dessous de 40, le buy-in et le prize pool continuent normalement, mais pas de médaille permanente ce mois-là.',
@@ -7262,7 +7306,7 @@ const I18N = {
     'rules.points.body'         : 'Calculated from your <strong style="color:var(--text)">distance</strong>, your <strong style="color:var(--text)">speed</strong> and your <strong style="color:var(--text)">elevation</strong>.<br>The formula is <strong style="color:var(--gold)">secret</strong> — it rewards overall effort.<br>A <strong style="color:var(--text)">Boost</strong> adds <strong style="color:var(--green)">+10%</strong> for 24h.<br>A <strong style="color:var(--text)">Freeze</strong> slows you by <strong style="color:#6ec3ff">-5%</strong> for 24h.<br><strong>Average</strong> speed &gt; 20 km/h = activity <strong style="color:var(--red)">invalidated</strong> 🏴‍☠️',
     // — Starter Zone block
     'rules.starter.title'       : '⚙️ The <span class="hl">Starter Zone</span>',
-    'rules.starter.body'        : 'Every new RP starts in the Starter Zone.<br>Warm-up phase: no competition, no podium, no rewards.<br>Past <strong style="color:var(--gold)">500 pts</strong>, the RP enters a League.<br>They climb based on their level until the end of the period.<br>The next period, called <strong style="color:var(--blue)">calibration</strong> <span style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:3px;background:rgba(74,144,255,.12);border:1px solid rgba(74,144,255,.3);font-family:\'Bebas Neue\',sans-serif;font-size:.65rem;font-weight:700;color:var(--blue);line-height:1;vertical-align:middle">C</span>, the climb is still open to lock in the RP\'s real level. No buy-in, no podium, no prize pool.<br>The following period, the <strong style="color:var(--green)">official competition</strong> begins with podiums, medals and prize pool.',
+    'rules.starter.body'        : 'Every new RP starts in the Starter Zone.<br>Warm-up phase: no competition, no podium, no rewards.<br>Past <strong style="color:var(--gold)">500 pts</strong>, the RP enters a League.<br>They climb based on their level until the end of the period.<br>The next period, called <strong style="color:#ffffff">calibration</strong> <span style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:3px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.4);font-family:\'Bebas Neue\',sans-serif;font-size:.65rem;font-weight:700;color:#ffffff;line-height:1;vertical-align:middle">C</span>, the climb is still open to lock in the RP\'s real level. No buy-in, no podium, no prize pool.<br>The following period, the <strong style="color:var(--green)">official competition</strong> begins with podiums, medals and prize pool.',
     // — Leagues block
     'rules.leagues.title'       : '🏆 The <span class="hl">Leagues</span>',
     'rules.leagues.body'        : 'Each RP is placed in a League based on level.<br>10 tiers from <strong style="color:#8090a0">Iron</strong> to <strong style="color:#f5c842">Gold</strong>.<br>At the end of each period, each RP is <strong style="color:var(--text)">re-ranked</strong> into the League matching their points.<br>The RPC <strong style="color:var(--gold)">buy-in</strong> of each RP forms the prize pool distributed based on the number of participants in the league.<br><br><strong style="color:var(--gold)">🏅 Podium medals (top 3)</strong> — only awarded in leagues with at least <strong style="color:var(--text)">40 RPs</strong> who paid their buy-in at the start of the period. Below 40, the buy-in and prize pool still work normally, but no permanent medal that month.',
@@ -10337,6 +10381,14 @@ function renderDashboard(){
     set('pc-name', p.name||'Joueur');
     var _rid=p.rtwId||p.id||'00000';
     set('pc-rtw-id', '#SL-'+String(_rid).padStart(5,'0'));
+    // Badge Calibrage (2026-09-15, LOCAL) — même condition que le badge "C" du
+    // classement League (buildRow ~11639-11644) : hors Starter, competitive===false.
+    var _pcCalibEl=document.getElementById('pc-calib-badge');
+    if(_pcCalibEl){
+      var _pcInStarter=((p.leagueKey||p.league||'').toString().toLowerCase()==='starter');
+      var _pcIsCalib=(p.competitive===false);
+      _pcCalibEl.style.display=(!_pcInStarter&&_pcIsCalib)?'block':'none';
+    }
     // Catégorie d'âge FFA (2026-08-05) — cf AGE_CATEGORIES/computeAgeCategory.
     // Petite tuile biseautée grise entre Grade et Ligue, juste le raccourci
     // (ex. "M3") — invisible tant que la date de naissance n'est pas
@@ -12923,6 +12975,20 @@ function getPeriodTimeLeft(){
   return {expired:false,text:j+t('period.timer.j')+' '+String(h).padStart(2,'0')+t('period.timer.h')+' '+String(m).padStart(2,'0')+t('period.timer.m')+' '+String(s).padStart(2,'0')+t('period.timer.s'),days:j,hours:h};
 }
 
+// Clic sur le badge Calibrage de la PC (2026-09-15 v2, LOCAL) — vraie fenêtre
+// modale (#calib-info-modal) au lieu d'un toast (peu lisible, signalé par
+// l'user). Réutilise getPeriodTimeLeft(), déjà la source unique du countdown
+// de fin de période (même date pour tout le monde, cf _periodData chargé par
+// loadPeriodSettings) — aucun nouveau calcul de date ici.
+function showCalibInfoModal(){
+  var tl=(typeof getPeriodTimeLeft==='function')?getPeriodTimeLeft():null;
+  var daysEl=document.getElementById('calib-days-left');
+  if(daysEl){
+    if(!tl||tl.expired){ daysEl.textContent='Imminent'; }
+    else{ var jourWord=tl.days>1?'jours':'jour'; daysEl.textContent=tl.days+' '+jourWord; }
+  }
+  openModal('calib-info-modal');
+}
 function startPeriodTimer(){
   if(_periodTimerInterval) clearInterval(_periodTimerInterval);
   updatePeriodTimerDisplay();
