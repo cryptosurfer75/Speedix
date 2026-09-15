@@ -4500,6 +4500,19 @@ select option{background:#040c1c}
           </div>
         </div>
       </div>
+      <!-- COROS (2026-09-15) : bêta fermée, réservée aux RP avec players.coros_beta=true
+           (toggleCorosBlockVisibility appelé au login/rendu du modal, cf §18). Jamais visible
+           par défaut tant que le flag n'est pas vérifié en DB — pas de test grandeur nature
+           avant d'avoir validé le parsing GPS sur ces comptes précis. -->
+      <div id="coros-connect-block" class="block" style="display:none;cursor:pointer;border-color:rgba(200,16,46,.3)" onclick="connectCoros()">
+        <div class="block-body-sm" style="display:flex;align-items:center;gap:.85rem">
+          <div style="font-size:1.5rem">⌚</div>
+          <div style="flex:1">
+            <div style="font-weight:700;color:#c8102e">COROS <span style="font-size:.6rem;font-weight:600;color:var(--muted2);text-transform:uppercase;letter-spacing:.5px">(bêta)</span></div>
+            <div id="coros-status" style="font-size:.72rem;color:var(--muted2)">Cliquer pour connecter</div>
+          </div>
+        </div>
+      </div>
       <div class="block" style="border-color:rgba(0,124,195,.3);opacity:.4">
         <div class="block-body-sm" style="display:flex;align-items:center;gap:.85rem">
           <div style="font-size:1.5rem">🔵</div>
@@ -8436,6 +8449,7 @@ async function onLoginSuccess(user, isNew){
   if(typeof initAdminPanel==='function') initAdminPanel();
   setTimeout(function(){
     if(typeof loadStravaToken==='function')loadStravaToken();
+    if(typeof loadCorosToken==='function')loadCorosToken();
   },500);
   // Bonus connexion continu — vérifier et réclamer le streak
   if(typeof checkAndClaimStreak==='function'){
@@ -19715,6 +19729,9 @@ async function handleStravaCallback(){
   // mais inutilisable occuper une place dans le quota Strava.
   var grantedScope=params.get('scope')||'';
   if(!code) return;
+  // Retour OAuth COROS (2026-09-15) : state préfixé 'coros_', géré par
+  // handleCorosCallback — ne pas laisser ce code être consommé ici par erreur.
+  if(state&&state.indexOf('coros_')===0) return;
   // Nettoyer l'URL
   window.history.replaceState({},'',window.location.pathname);
   if(grantedScope.indexOf('activity:read')<0){
@@ -20165,6 +20182,167 @@ async function syncStravaActivities(silent){
   }catch(e){
     if(!silent) showToast('⚠️ Erreur sync : '+e.message);
   }
+}
+
+// ████████████████████████████████████████████████████████████████████████████
+// COROS OAuth (2026-09-15) — bêta fermée (players.coros_beta), cf §18 doctrine.
+// Serveur COROS MCP self-service, client PUBLIC (PKCE, pas de client_secret,
+// enregistré une fois via Dynamic Client Registration RFC 7591). Flow standard
+// OAuth 2.1 + PKCE S256 — le code_verifier doit survivre à la redirection
+// pleine page vers COROS, d'où le sessionStorage (rien de secret dedans une
+// fois le code d'autorisation consommé une seule fois).
+// ████████████████████████████████████████████████████████████████████████████
+var COROS_CLIENT_ID='f874baf9-9975-408f-804f-5b0a39ff53c0';
+var COROS_OAUTH_BASE='https://mcpeu.coros.com';
+var COROS_OAUTH_ENDPOINT=supabaseUrl+'/functions/v1/coros-oauth';
+var COROS_REDIRECT='https://speedixleague.com';
+
+function _corosB64url(bytes){
+  var bin='';
+  for(var i=0;i<bytes.length;i++) bin+=String.fromCharCode(bytes[i]);
+  return btoa(bin).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+}
+
+async function connectCoros(){
+  if(!currentUser){showToast('⚠️ Connecte-toi d\'abord');return;}
+  if(!currentUser.coros_beta){showToast('⚠️ Bêta COROS fermée pour ton compte');return;}
+  // PKCE : verifier aléatoire (43-128 car.), challenge = base64url(SHA-256(verifier)).
+  var verifierBytes=new Uint8Array(32);
+  crypto.getRandomValues(verifierBytes);
+  var verifier=_corosB64url(verifierBytes);
+  sessionStorage.setItem('coros_pkce_verifier',verifier);
+  var digest=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(verifier));
+  var challenge=_corosB64url(new Uint8Array(digest));
+  var state='coros_'+currentUser.id+'_'+Date.now();
+  var authUrl=COROS_OAUTH_BASE+'/oauth2/authorize'
+    +'?client_id='+encodeURIComponent(COROS_CLIENT_ID)
+    +'&redirect_uri='+encodeURIComponent(COROS_REDIRECT)
+    +'&response_type=code'
+    +'&scope='+encodeURIComponent('openid mcp.tools offline_access')
+    +'&code_challenge='+challenge
+    +'&code_challenge_method=S256'
+    +'&state='+encodeURIComponent(state);
+  window.location.href=authUrl;
+}
+
+async function handleCorosCallback(){
+  var params=new URLSearchParams(window.location.search);
+  var code=params.get('code');
+  var state=params.get('state');
+  if(!code||!state||state.indexOf('coros_')!==0) return;
+  window.history.replaceState({},'',window.location.pathname);
+  var verifier=sessionStorage.getItem('coros_pkce_verifier');
+  sessionStorage.removeItem('coros_pkce_verifier');
+  if(!verifier){showToast('⚠️ Session COROS expirée, réessaie');return;}
+  showToast('⌚ Connexion COROS en cours…');
+  try{
+    var resp=await window.fetch(COROS_OAUTH_ENDPOINT,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({grant_type:'authorization_code',code:code,code_verifier:verifier,redirect_uri:COROS_REDIRECT})
+    });
+    var data=await resp.json();
+    if(!data.access_token){showToast('⚠️ Connexion COROS échouée');return;}
+    // id_token (OIDC) : JWT non signé-vérifié côté client, juste pour lire le
+    // "sub" (identifiant COROS du joueur) à des fins d'anti multi-compte —
+    // la vérité serveur reste le token lui-même, jamais ce sub seul.
+    var corosUserId=null;
+    if(data.id_token){
+      try{
+        var payload=JSON.parse(atob(data.id_token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));
+        corosUserId=payload.sub||null;
+      }catch(e){}
+    }
+    if(corosUserId&&currentUser){
+      var checkResp=await window.fetch(supabaseUrl+'/rest/v1/players?coros_user_id=eq.'+encodeURIComponent(corosUserId)+'&id=neq.'+encodeURIComponent(currentUser.id)+'&select=id,username',{
+        headers:{'apikey':supabaseKey,'Authorization':'Bearer '+(window.__sessionToken||supabaseKey),'Accept':'application/json'}
+      });
+      var checkDup=await checkResp.json();
+      if(checkDup&&checkDup.length>0){
+        showToast('🚫 Ce compte COROS est déjà lié à un autre joueur ('+checkDup[0].username+'). Multi-compte interdit.');
+        return;
+      }
+    }
+    var expiresAt=data.expires_in?Math.floor(Date.now()/1000)+parseInt(data.expires_in,10):null;
+    window.__corosToken=data.access_token;
+    window.__corosRefresh=data.refresh_token;
+    window.__corosExpires=expiresAt;
+    if(currentUser){
+      await window.fetch(supabaseUrl+'/rest/v1/players?id=eq.'+encodeURIComponent(currentUser.id),{
+        method:'PATCH',
+        headers:{'apikey':supabaseKey,'Authorization':'Bearer '+(window.__sessionToken||supabaseKey),'Content-Type':'application/json'},
+        body:JSON.stringify({coros_user_id:corosUserId,coros_access_token:data.access_token,coros_refresh_token:data.refresh_token,coros_token_expires:expiresAt})
+      });
+    }
+    updateCorosUI(true);
+    showToast('✓ COROS connecté');
+  }catch(e){
+    showToast('⚠️ Erreur connexion COROS : '+e.message);
+  }
+}
+
+// Charger le token COROS depuis la DB au login + afficher le bouton si bêta.
+async function loadCorosToken(){
+  if(!currentUser) return;
+  var {data}=await supabaseClient.from('players').select('coros_beta,coros_user_id,coros_access_token,coros_refresh_token,coros_token_expires').eq('id',currentUser.id).single();
+  if(!data) return;
+  var block=document.getElementById('coros-connect-block');
+  if(block) block.style.display=data.coros_beta?'block':'none';
+  if(data.coros_access_token){
+    window.__corosToken=data.coros_access_token;
+    window.__corosRefresh=data.coros_refresh_token;
+    window.__corosExpires=data.coros_token_expires;
+    updateCorosUI(true);
+  }
+}
+
+function updateCorosUI(connected){
+  var statusEl=document.getElementById('coros-status');
+  if(!statusEl) return;
+  if(connected){
+    statusEl.innerHTML='<span style="color:var(--green)">✓ Connecté</span> <span onclick="event.stopPropagation();disconnectCoros()" style="color:#ff6060;font-size:.6rem;cursor:pointer;margin-left:.5rem;text-decoration:underline">Déconnecter</span>';
+  } else {
+    statusEl.innerHTML='Cliquer pour connecter';
+  }
+}
+
+async function disconnectCoros(){
+  if(!currentUser) return;
+  if(!await askConfirm('Tu pourras te reconnecter quand tu veux.',{title:'Déconnecter COROS',emoji:'🔌',okLabel:'Déconnecter',destructive:true})) return;
+  await window.fetch(supabaseUrl+'/rest/v1/players?id=eq.'+encodeURIComponent(currentUser.id),{
+    method:'PATCH',
+    headers:{'apikey':supabaseKey,'Authorization':'Bearer '+(window.__sessionToken||supabaseKey),'Content-Type':'application/json'},
+    body:JSON.stringify({coros_user_id:null,coros_access_token:null,coros_refresh_token:null,coros_token_expires:null})
+  });
+  window.__corosToken=null;
+  window.__corosRefresh=null;
+  window.__corosExpires=null;
+  updateCorosUI(false);
+  showToast('✓ COROS déconnecté');
+}
+
+// Encodage polyline (Google, même format que Strava summary_polyline) —
+// nécessaire côté COROS car l'API renvoie des points GPS bruts (fichier
+// .FIT), jamais un polyline tout prêt comme Strava. Inverse de decodePolyline
+// ci-dessous. points = [[lat,lng], ...].
+function encodePolyline(points){
+  function encodeNum(num){
+    num=num<0?~(num<<1):(num<<1);
+    var out='';
+    while(num>=0x20){
+      out+=String.fromCharCode((0x20|(num&0x1f))+63);
+      num>>=5;
+    }
+    out+=String.fromCharCode(num+63);
+    return out;
+  }
+  var out='',prevLat=0,prevLng=0;
+  for(var i=0;i<points.length;i++){
+    var lat=Math.round(points[i][0]*1e5),lng=Math.round(points[i][1]*1e5);
+    out+=encodeNum(lat-prevLat)+encodeNum(lng-prevLng);
+    prevLat=lat;prevLng=lng;
+  }
+  return out;
 }
 
 function decodePolyline(encoded){
@@ -25243,6 +25421,8 @@ function dashShowInviteCode(){
 (async function(){
   // Gérer le retour OAuth Strava
   if(typeof handleStravaCallback==='function') handleStravaCallback();
+  // Gérer le retour OAuth COROS (bêta fermée)
+  if(typeof handleCorosCallback==='function') handleCorosCallback();
   // Si on vient d'un lien "mot de passe oublié" : on NE navigue PAS vers le dashboard,
   // on laisse le formulaire "nouveau mot de passe" (géré plus haut) prendre la main.
   if(window.__isPasswordRecovery) return;
