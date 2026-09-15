@@ -10034,7 +10034,19 @@ function computePts(km,spd,elv,boost,gel){
   // sous le niveau d'avant le 01/09 (63%, jugé excessif à l'époque). MIROIR
   // EXACT de compute_run_points (base) — garder synchro.
   const divD=12+10*(elv/(elv+600));
-  const C=(elv/d)*(A/divD);
+  let C=(elv/d)*(A/divD);
+  // Bonus vitesse d'ascension (2026-09-15) : calibré sur les records du monde
+  // 10km plat (26:31, Kejelcha) vs Kilomètre Vertical (27:21, Rémi Bonnet,
+  // 1000m D+/1,9km) — quasi le même temps au niveau élite, donc grimper vite
+  // doit peser presque autant que courir vite. climbMh = mètres de D+ grimpés
+  // par heure. Courbe CONTINUE dès le premier mètre de D+ (pas de palier —
+  // décision explicite pour éviter l'effet de cassure type « 6,99 vs 7,01 »),
+  // plafonnée à ×3,5 (sinon un record du monde de KV exploserait à des
+  // dizaines de milliers de points). Un coureur rapide sans D+ n'est jamais
+  // affecté. MIROIR EXACT de compute_run_points (base) — garder synchro.
+  const climbMh = (elv>0 && spd>0) ? elv/(d/spd) : 0;
+  const climbFactor = Math.min(1+Math.pow(climbMh/650,2), 3.5);
+  C = C*climbFactor;
   let res=A+B+C;
   // Malus marche : en dessous de 7 km/h, facteur progressif (spd/7)² — mais
   // calculé sur une VITESSE AJUSTÉE AU TERRAIN (2026-09-13), pas la vitesse
