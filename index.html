@@ -10137,17 +10137,24 @@ function computePts(km,spd,elv,boost,gel){
   // EXACT de compute_run_points (base) — garder synchro.
   const divD=12+10*(elv/(elv+600));
   let C=(elv/d)*(A/divD);
-  // Bonus vitesse d'ascension (2026-09-15) : calibré sur les records du monde
-  // 10km plat (26:31, Kejelcha) vs Kilomètre Vertical (27:21, Rémi Bonnet,
-  // 1000m D+/1,9km) — quasi le même temps au niveau élite, donc grimper vite
-  // doit peser presque autant que courir vite. climbMh = mètres de D+ grimpés
-  // par heure. Courbe CONTINUE dès le premier mètre de D+ (pas de palier —
-  // décision explicite pour éviter l'effet de cassure type « 6,99 vs 7,01 »),
-  // plafonnée à ×3,5 (sinon un record du monde de KV exploserait à des
-  // dizaines de milliers de points). Un coureur rapide sans D+ n'est jamais
-  // affecté. MIROIR EXACT de compute_run_points (base) — garder synchro.
+  // Bonus vitesse d'ascension (2026-09-15, réglages affinés 2026-09-16) :
+  // calibré sur les records du monde 10km plat (26:31, Kejelcha) vs Kilomètre
+  // Vertical (27:21, Rémi Bonnet, 1000m D+/1,9km) — quasi le même temps au
+  // niveau élite, donc grimper vite doit peser presque autant que courir
+  // vite. climbMh = mètres de D+ grimpés par heure. Courbe CONTINUE dès le
+  // premier mètre de D+ (pas de palier — décision explicite pour éviter
+  // l'effet de cassure type « 6,99 vs 7,01 »). Seuil abaissé de 650 à 600,
+  // exposant adouci de 2 (carré) à 1,6, plafond relevé de ×3,5 à ×5,5 le
+  // 2026-09-16 : un premier essai avait aussi fait bouger le diviseur (ligne
+  // ci-dessus) à 18, mais vérifié sur les 383 vraies courses de septembre,
+  // ça pénalisait en fait tous les coureurs qui font du dénivelé (corrélation
+  // -0,94 entre D+/km et perte de points) — le diviseur RESTE à 10 (validé
+  // FC le 09/13, voir ci-dessus), seul le trio seuil/exposant/plafond bouge.
+  // Revérifié ensuite : corrélation +0,97 (tous les profils D+ gagnent un
+  // peu, personne ne perd). Un coureur rapide sans D+ n'est jamais affecté.
+  // MIROIR EXACT de compute_run_points (base) — garder synchro.
   const climbMh = (elv>0 && spd>0) ? elv/(d/spd) : 0;
-  const climbFactor = Math.min(1+Math.pow(climbMh/650,2), 3.5);
+  const climbFactor = Math.min(1+Math.pow(climbMh/600,1.6), 5.5);
   C = C*climbFactor;
   let res=A+B+C;
   // Malus marche : en dessous de 7 km/h, facteur progressif (spd/7)² — mais
