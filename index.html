@@ -19899,6 +19899,15 @@ async function handleStravaCallback(){
           return;
         }
       }
+      // Exclusivité mutuelle Strava/COROS (2026-09-16) : une montre COROS exporte
+      // souvent déjà vers Strava, donc avoir les 2 connectés fait importer la
+      // même course 2 fois (doublons de points/RPC silencieux, vécu avec
+      // Carotrail/Ciel). On ne bloque jamais l'utilisateur — on bascule
+      // proprement de l'autre côté à la connexion.
+      if(window.__corosToken){
+        await _clearCoros();
+        showToast('⚠️ COROS déconnecté (un seul appareil GPS à la fois)');
+      }
       // Sauvegarder en DB
       var patchData={
         strava_id:stravaId,
@@ -19986,9 +19995,12 @@ function updateStravaUI(connected){
   }
 }
 
-async function disconnectStrava(){
-  if(!currentUser) return;
-  if(!await askConfirm('Tu pourras te reconnecter quand tu veux.',{title:'Déconnecter Strava',emoji:'🔌',okLabel:'Déconnecter',destructive:true})) return;
+// Révocation + nettoyage DB Strava, SANS confirmation ni toast dédié — factorisé
+// pour être appelé aussi bien par disconnectStrava() (bouton explicite) que par
+// la bascule automatique dans handleCorosCallback() (cf plus bas : connecter
+// COROS déconnecte Strava, jamais les 2 en même temps sur un même compte —
+// évite les doublons de courses silencieux entre 2 sources, cf 2026-09-16).
+async function _revokeAndClearStrava(){
   // Révoquer l'autorisation côté Strava VIA NOTRE SERVEUR (l'appel direct
   // navigateur → strava.com est bloqué par CORS et échouait en silence, laissant
   // l'autorisation "fantôme" active chez Strava). Le serveur rafraîchit le jeton
@@ -20002,22 +20014,28 @@ async function disconnectStrava(){
       });
     }catch(e){}
   }
-  // Supprimer les tokens en DB
-  await window.fetch(supabaseUrl+'/rest/v1/players?id=eq.'+encodeURIComponent(currentUser.id),{
-    method:'PATCH',
-    headers:{'apikey':supabaseKey,'Authorization':'Bearer '+(window.__sessionToken||supabaseKey),'Content-Type':'application/json'},
-    body:JSON.stringify({strava_id:null,strava_access_token:null,strava_refresh_token:null,strava_token_expires:null})
-  });
+  if(currentUser){
+    await window.fetch(supabaseUrl+'/rest/v1/players?id=eq.'+encodeURIComponent(currentUser.id),{
+      method:'PATCH',
+      headers:{'apikey':supabaseKey,'Authorization':'Bearer '+(window.__sessionToken||supabaseKey),'Content-Type':'application/json'},
+      body:JSON.stringify({strava_id:null,strava_access_token:null,strava_refresh_token:null,strava_token_expires:null})
+    });
+  }
   window.__stravaToken=null;
   window.__stravaRefresh=null;
   window.__stravaExpires=null;
-  // Reset UI
   var statusEl=document.getElementById('strava-status');
   var syncBtn=document.getElementById('strava-sync-btn');
   var block=document.getElementById('strava-connect-block');
   if(statusEl) statusEl.innerHTML='Cliquer pour connecter';
   if(syncBtn) syncBtn.style.display='none';
   if(block) block.style.borderColor='rgba(252,76,2,.3)';
+}
+
+async function disconnectStrava(){
+  if(!currentUser) return;
+  if(!await askConfirm('Tu pourras te reconnecter quand tu veux.',{title:'Déconnecter Strava',emoji:'🔌',okLabel:'Déconnecter',destructive:true})) return;
+  await _revokeAndClearStrava();
   showToast('✓ Strava déconnecté — place libérée');
 }
 
@@ -20406,6 +20424,12 @@ async function handleCorosCallback(){
         return;
       }
     }
+    // Exclusivité mutuelle Strava/COROS (2026-09-16) : cf commentaire symétrique
+    // dans handleStravaCallback — jamais les 2 connectés en même temps.
+    if(window.__stravaToken||window.__stravaRefresh){
+      await _revokeAndClearStrava();
+      showToast('⚠️ Strava déconnecté (un seul appareil GPS à la fois)');
+    }
     var expiresAt=data.expires_in?Math.floor(Date.now()/1000)+parseInt(data.expires_in,10):null;
     if(currentUser){
       var saveResp=await window.fetch(supabaseUrl+'/rest/v1/players?id=eq.'+encodeURIComponent(currentUser.id),{
@@ -20453,18 +20477,28 @@ function updateCorosUI(connected){
   }
 }
 
-async function disconnectCoros(){
-  if(!currentUser) return;
-  if(!await askConfirm('Tu pourras te reconnecter quand tu veux.',{title:'Déconnecter COROS',emoji:'🔌',okLabel:'Déconnecter',destructive:true})) return;
-  await window.fetch(supabaseUrl+'/rest/v1/players?id=eq.'+encodeURIComponent(currentUser.id),{
-    method:'PATCH',
-    headers:{'apikey':supabaseKey,'Authorization':'Bearer '+(window.__sessionToken||supabaseKey),'Content-Type':'application/json'},
-    body:JSON.stringify({coros_user_id:null,coros_access_token:null,coros_refresh_token:null,coros_token_expires:null})
-  });
+// Nettoyage DB COROS, SANS confirmation ni toast dédié — factorisé pour être
+// appelé aussi bien par disconnectCoros() (bouton explicite) que par la bascule
+// automatique dans handleStravaCallback() (connecter Strava déconnecte COROS,
+// jamais les 2 en même temps — cf _revokeAndClearStrava ci-dessus).
+async function _clearCoros(){
+  if(currentUser){
+    await window.fetch(supabaseUrl+'/rest/v1/players?id=eq.'+encodeURIComponent(currentUser.id),{
+      method:'PATCH',
+      headers:{'apikey':supabaseKey,'Authorization':'Bearer '+(window.__sessionToken||supabaseKey),'Content-Type':'application/json'},
+      body:JSON.stringify({coros_user_id:null,coros_access_token:null,coros_refresh_token:null,coros_token_expires:null})
+    });
+  }
   window.__corosToken=null;
   window.__corosRefresh=null;
   window.__corosExpires=null;
   updateCorosUI(false);
+}
+
+async function disconnectCoros(){
+  if(!currentUser) return;
+  if(!await askConfirm('Tu pourras te reconnecter quand tu veux.',{title:'Déconnecter COROS',emoji:'🔌',okLabel:'Déconnecter',destructive:true})) return;
+  await _clearCoros();
   showToast('✓ COROS déconnecté');
 }
 
