@@ -20400,16 +20400,20 @@ async function handleCorosCallback(){
       }
     }
     var expiresAt=data.expires_in?Math.floor(Date.now()/1000)+parseInt(data.expires_in,10):null;
-    window.__corosToken=data.access_token;
-    window.__corosRefresh=data.refresh_token;
-    window.__corosExpires=expiresAt;
     if(currentUser){
-      await window.fetch(supabaseUrl+'/rest/v1/players?id=eq.'+encodeURIComponent(currentUser.id),{
+      var saveResp=await window.fetch(supabaseUrl+'/rest/v1/players?id=eq.'+encodeURIComponent(currentUser.id),{
         method:'PATCH',
         headers:{'apikey':supabaseKey,'Authorization':'Bearer '+(window.__sessionToken||supabaseKey),'Content-Type':'application/json'},
         body:JSON.stringify({coros_user_id:corosUserId,coros_access_token:data.access_token,coros_refresh_token:data.refresh_token,coros_token_expires:expiresAt})
       });
+      if(!saveResp.ok){
+        showToast('⚠️ Connexion COROS non enregistrée, réessaie');
+        return;
+      }
     }
+    window.__corosToken=data.access_token;
+    window.__corosRefresh=data.refresh_token;
+    window.__corosExpires=expiresAt;
     updateCorosUI(true);
     showToast('✓ COROS connecté');
   }catch(e){
