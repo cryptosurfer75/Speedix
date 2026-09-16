@@ -15720,11 +15720,21 @@ async function postComment(runId){
   if(!input) return;
   var content=input.value.trim();
   if(!content) return;
-  await window.fetch(supabaseUrl+'/rest/v1/run_comments',{
-    method:'POST',
-    headers:{'apikey':supabaseKey,'Authorization':'Bearer '+(window.__sessionToken||supabaseKey),'Content-Type':'application/json','Prefer':'return=minimal'},
-    body:JSON.stringify({run_id:runId,player_id:currentUser.id,content:content})
-  });
+  var resp;
+  try{
+    resp=await window.fetch(supabaseUrl+'/rest/v1/run_comments',{
+      method:'POST',
+      headers:{'apikey':supabaseKey,'Authorization':'Bearer '+(window.__sessionToken||supabaseKey),'Content-Type':'application/json','Prefer':'return=minimal'},
+      body:JSON.stringify({run_id:runId,player_id:currentUser.id,content:content})
+    });
+  }catch(e){
+    showToast('⚠️ Commentaire non envoyé, réessaie');
+    return;
+  }
+  if(!resp.ok){
+    showToast('⚠️ Commentaire non envoyé, réessaie');
+    return;
+  }
   input.value='';
   renderSocialFeed();
 }
