@@ -19904,7 +19904,23 @@ async function handleStravaCallback(){
       // même course 2 fois (doublons de points/RPC silencieux, vécu avec
       // Carotrail/Ciel). On ne bloque jamais l'utilisateur — on bascule
       // proprement de l'autre côté à la connexion.
-      if(window.__corosToken){
+      // ⚠️ Bug corrigé 2026-09-18 : ce handler tourne au chargement de la page,
+      // AVANT que loadCorosToken() (appelé après login, avec 500ms de délai)
+      // ait eu le temps de peupler window.__corosToken — le flag mémoire est
+      // donc quasi toujours vide ici, même si COROS est bien connecté en DB
+      // (vécu avec Carotrail : les 2 sont restés connectés en parallèle). On
+      // vérifie donc la vérité en base plutôt que ce flag mémoire pas fiable.
+      var corosConnected=!!window.__corosToken;
+      if(!corosConnected&&currentUser){
+        try{
+          var corosCheckResp=await window.fetch(supabaseUrl+'/rest/v1/players?id=eq.'+encodeURIComponent(currentUser.id)+'&select=coros_access_token',{
+            headers:{'apikey':supabaseKey,'Authorization':'Bearer '+(window.__sessionToken||supabaseKey),'Accept':'application/json'}
+          });
+          var corosCheckData=await corosCheckResp.json();
+          corosConnected=!!(corosCheckData&&corosCheckData[0]&&corosCheckData[0].coros_access_token);
+        }catch(e){}
+      }
+      if(corosConnected){
         await _clearCoros();
         showToast('⚠️ COROS déconnecté (un seul appareil GPS à la fois)');
       }
@@ -20426,7 +20442,20 @@ async function handleCorosCallback(){
     }
     // Exclusivité mutuelle Strava/COROS (2026-09-16) : cf commentaire symétrique
     // dans handleStravaCallback — jamais les 2 connectés en même temps.
-    if(window.__stravaToken||window.__stravaRefresh){
+    // ⚠️ Bug corrigé 2026-09-18 : même souci que côté Strava, ce handler tourne
+    // avant que loadStravaToken() n'ait peuplé window.__stravaToken — on
+    // vérifie donc la vérité en base plutôt que ce flag mémoire pas fiable.
+    var stravaConnected=!!(window.__stravaToken||window.__stravaRefresh);
+    if(!stravaConnected&&currentUser){
+      try{
+        var stravaCheckResp=await window.fetch(supabaseUrl+'/rest/v1/players?id=eq.'+encodeURIComponent(currentUser.id)+'&select=strava_access_token',{
+          headers:{'apikey':supabaseKey,'Authorization':'Bearer '+(window.__sessionToken||supabaseKey),'Accept':'application/json'}
+        });
+        var stravaCheckData=await stravaCheckResp.json();
+        stravaConnected=!!(stravaCheckData&&stravaCheckData[0]&&stravaCheckData[0].strava_access_token);
+      }catch(e){}
+    }
+    if(stravaConnected){
       await _revokeAndClearStrava();
       showToast('⚠️ Strava déconnecté (un seul appareil GPS à la fois)');
     }
