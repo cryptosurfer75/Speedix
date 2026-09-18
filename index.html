@@ -4542,6 +4542,9 @@ select option{background:#040c1c}
             <div style="font-weight:700;color:#0fb8ac">Coros <span style="font-size:.6rem;font-weight:600;color:var(--muted2);text-transform:uppercase;letter-spacing:.5px">(bêta)</span></div>
             <div id="coros-status" style="font-size:.72rem;color:var(--muted2)">Cliquer pour connecter</div>
           </div>
+          <div id="coros-sync-btn" style="display:none">
+            <button onclick="event.stopPropagation();syncCorosActivities()" style="padding:.25rem .6rem;border-radius:5px;border:1.5px solid #0fb8ac;background:rgba(15,184,172,.1);color:#0fb8ac;font-size:.7rem;font-weight:700;cursor:pointer">Sync</button>
+          </div>
         </div>
       </div>
       <div class="block" style="border-color:rgba(0,124,195,.3);opacity:.4">
@@ -20356,6 +20359,7 @@ async function syncStravaActivities(silent){
 var COROS_CLIENT_ID='f874baf9-9975-408f-804f-5b0a39ff53c0';
 var COROS_OAUTH_BASE='https://mcpeu.coros.com';
 var COROS_OAUTH_ENDPOINT=supabaseUrl+'/functions/v1/coros-oauth';
+var COROS_SYNC_ENDPOINT=supabaseUrl+'/functions/v1/coros-sync';
 var COROS_REDIRECT='https://speedixleague.com';
 
 function _corosB64url(bytes){
@@ -20498,11 +20502,64 @@ async function loadCorosToken(){
 
 function updateCorosUI(connected){
   var statusEl=document.getElementById('coros-status');
+  var syncBtn=document.getElementById('coros-sync-btn');
+  if(syncBtn) syncBtn.style.display=connected?'block':'none';
   if(!statusEl) return;
   if(connected){
     statusEl.innerHTML='<span style="color:var(--green)">✓ Connecté</span> <span onclick="event.stopPropagation();disconnectCoros()" style="color:#ff6060;font-size:.6rem;cursor:pointer;margin-left:.5rem;text-decoration:underline">Déconnecter</span>';
   } else {
     statusEl.innerHTML='Cliquer pour connecter';
+  }
+}
+
+// Sync manuel COROS (2026-09-18) : pas de webhook côté COROS (cron toutes les 10 min,
+// cf project_speedix_coros_mcp_integration), donc un RP qui vient de courir et ne veut
+// pas attendre clique ici. On appelle coros-sync avec SON PROPRE token de session
+// (jamais le secret admin, réservé au cron) : l'Edge Function ne synchronise QUE ce
+// joueur, jamais un autre (cf validation serveur). Anti-spam : cooldown 90s côté serveur.
+async function syncCorosActivities(){
+  if(!currentUser||!window.__corosToken){showToast('⚠️ Connecte COROS d\'abord');return;}
+  if(typeof isInInfirmerie==='function' && isInInfirmerie()){
+    showToast('🏥 Tu es en infirmerie — sync bloqué jusqu\'à ton retour');
+    return;
+  }
+  showToast('🔄 Import des activités COROS…');
+  try{
+    var resp=await window.fetch(COROS_SYNC_ENDPOINT,{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+(window.__sessionToken||'')},
+      body:'{}'
+    });
+    var data=await resp.json().catch(function(){return {};});
+    if(resp.status===429){
+      var waitS=Math.ceil((data.retry_in_ms||0)/1000);
+      showToast('⏳ Attends encore '+waitS+'s avant de resynchroniser');
+      return;
+    }
+    if(resp.status===400&&data.error==='coros_not_connected'){
+      showToast('⚠️ COROS non connecté');
+      return;
+    }
+    if(!resp.ok){showToast('⚠️ Erreur sync COROS');return;}
+    var results=(data.players&&data.players[0]&&data.players[0].result&&data.players[0].result.results)||[];
+    var inserted=results.filter(function(r){return r.result&&r.result.status==='inserted';}).length;
+    var duplicates=results.filter(function(r){return r.result&&r.result.status==='duplicate';}).length;
+    if(inserted>0){
+      showToast('✓ '+inserted+' course'+(inserted>1?'s':'')+' importée'+(inserted>1?'s':''));
+      // Le crédit RPC/promo/badges est déjà fait côté serveur (ingestRun) — ces
+      // appels ne font que rafraîchir l'affichage, même pattern que syncStravaActivities.
+      if(typeof renderHistory==='function') renderHistory();
+      if(typeof loadPlayersFromSupabase==='function') loadPlayersFromSupabase();
+      if(typeof triggerCollabProgressSync==='function') triggerCollabProgressSync();
+      if(typeof adminCheckStarterPromotion==='function') adminCheckStarterPromotion(currentUser.id,'Moi');
+      if(typeof triggerBadgeCheck==='function') triggerBadgeCheck();
+    } else if(duplicates>0){
+      showToast('✓ Déjà à jour');
+    } else {
+      showToast('✓ Aucune nouvelle course sur COROS');
+    }
+  }catch(e){
+    showToast('⚠️ Erreur sync COROS : '+e.message);
   }
 }
 
