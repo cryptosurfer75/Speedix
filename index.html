@@ -6296,9 +6296,9 @@ const I18N = {
     // — Disponibilité (infirmerie)
     'avail.in.singular'         : '🏥 En infirmerie · {n}j restant',
     'avail.in.plural'           : '🏥 En infirmerie · {n}j restants',
-    'avail.in.desc'             : 'Tu es invisible aux autres joueurs et ta league est figée jusqu\'à la fin de l\'infirmerie.',
+    'avail.in.desc'             : 'Aucune course enregistrée, immunité totale au Gel. À partir de 10 jours, ta position de ligue est protégée (pas de descente).',
     'avail.in.manage'           : 'Gérer mon infirmerie',
-    'avail.off.desc'            : 'En cas de blessure ou indisponibilité, déclare-toi en infirmerie. Ta league reste figée et tu n\'apparais plus dans les classements pendant la durée choisie.',
+    'avail.off.desc'            : 'En cas de blessure ou indisponibilité, déclare-toi en infirmerie. Immunité au Gel dès le 1er jour ; à partir de 10 jours, ta position de ligue est protégée.',
     'avail.off.declare'         : '🏥 Me déclarer en infirmerie',
     'edit.tooltip'              : 'Modifier',
     // — Page Classement League (page-league HTML statique)
@@ -6574,7 +6574,7 @@ const I18N = {
     // — Bloc Lands
     // — Bloc Infirmerie
     'rules.inf.title'           : '🏥 <span class="hl">Infirmerie</span>',
-    'rules.inf.body'            : 'En cas de blessure ou indisponibilité, déclare-toi en infirmerie depuis ta Player Card.<br>Choisis ta durée — décision <strong style="color:var(--red)">DÉFINITIVE</strong> (pas de reprise anticipée).<br><br><strong style="color:var(--gold)">Pendant l\'infirmerie :</strong><br>• Aucune course ne peut être enregistrée<br>• Ta league est <strong style="color:var(--text)">figée tant que l\'infirmerie est active</strong> (pas de relégation) — <strong style="color:var(--text)">mais</strong> si elle se termine avant la fin de la période, tu redeviens évaluable normalement sur tes points de la période (relégation possible si le compte n\'y est pas, à cause des jours manqués)<br>• Tes loyers : <strong style="color:var(--text)">15j</strong> plein tarif · <strong style="color:var(--text)">30j</strong> demi-tarif · <strong style="color:var(--text)">45/60j</strong> suspendus<br>• Tu gardes tes récompenses<br>• Ta chaîne de connexion <strong style="color:var(--text)">n\'est pas gelée</strong> : continue à te connecter chaque jour (même blessé) pour la garder, sinon elle se casse<br><br><strong style="color:var(--gold)">Reprise :</strong> tu reprends en statut <strong>R</strong> (Reprise) jusqu\'à la fin de la période en cours. Si tes points sont supérieurs au seuil de ta league, tu redeviens compétitif. Sinon tu restes une période supplémentaire en reprise.<br><br><strong style="color:var(--gold)">Plafond :</strong> 2 activations par période de 12 mois.',
+    'rules.inf.body'            : 'En cas de blessure ou indisponibilité, déclare-toi en infirmerie depuis ta Player Card.<br>Choisis ta durée — décision <strong style="color:var(--red)">DÉFINITIVE</strong> (pas de reprise anticipée).<br><br><strong style="color:var(--gold)">Pendant l\'infirmerie :</strong><br>• Aucune course ne peut être enregistrée<br>• <strong style="color:var(--text)">Immunité totale au Gel</strong> (joueur et auto-système), dès le 1er jour<br>• À partir de <strong style="color:var(--text)">10 jours</strong> : ta position de ligue est protégée, pas de descente possible même à 0 point<br>• En dessous de 10 jours : classement normal, descente possible si le compte n\'y est pas<br>• Tu gardes tes récompenses<br>• Ta chaîne de connexion <strong style="color:var(--text)">n\'est pas gelée</strong> : continue à te connecter chaque jour (même blessé) pour la garder, sinon elle se casse<br><br><strong style="color:var(--gold)">Sortie :</strong> à la fin de l\'infirmerie, tu retrouves directement ta ligue actuelle en évaluation normale — pas de statut intermédiaire.<br><br><strong style="color:var(--gold)">Plafond :</strong> 2 activations max, 60 jours cumulés max, par période de 12 mois.',
     // — Bloc Activité & relégation
     'rules.releg.title'         : '📉 <span class="hl">Activité &amp; relégation</span>',
     'rules.releg.body'          : '<strong style="color:var(--gold)">🏆 40 pts minimum / période</strong> — Pour rester actif sportivement et faire profiter ta team de ton bonus de 2%, fait au moins 40 pts par période.<br><br><strong style="color:var(--gold)">Descente protégée :</strong> au rollover, un RP ne peut descendre que d\'<strong style="color:var(--text)">une league</strong> par période.<br><br><strong style="color:var(--gold)">RP fantôme (0 pt) :</strong> descente 1 league + devient <strong style="color:var(--text)">invisible</strong> dans le classement. 2ème période consécutive à 0 pt → retour au <strong style="color:var(--text)">départ du jeu, Zone Starter et calibrage</strong>.',
@@ -7058,9 +7058,9 @@ const I18N = {
     // — Availability (infirmary)
     'avail.in.singular'         : '🏥 In infirmary · {n} day left',
     'avail.in.plural'           : '🏥 In infirmary · {n} days left',
-    'avail.in.desc'             : 'You\'re invisible to other players and your league is frozen until you leave the infirmary.',
+    'avail.in.desc'             : 'No runs recorded, total Gel immunity. From 10 days onward, your league position is protected (no relegation).',
     'avail.in.manage'           : 'Manage my infirmary',
-    'avail.off.desc'            : 'If injured or unavailable, check into the infirmary. Your league stays frozen and you don\'t appear in rankings for the chosen duration.',
+    'avail.off.desc'            : 'If injured or unavailable, check into the infirmary. Gel immunity from day 1; from 10 days onward, your league position is protected.',
     'avail.off.declare'         : '🏥 Check into infirmary',
     'edit.tooltip'              : 'Edit',
     // — League ranking page (page-league static HTML)
@@ -7336,7 +7336,7 @@ const I18N = {
     // — Lands block
     // — Infirmary block
     'rules.inf.title'           : '🏥 <span class="hl">Infirmary</span>',
-    'rules.inf.body'            : 'If you\'re injured or unavailable, check into the infirmary from your Player Card.<br>Choose your duration — decision is <strong style="color:var(--red)">FINAL</strong> (no early return).<br><br><strong style="color:var(--gold)">While in the infirmary:</strong><br>• No runs can be recorded<br>• Your league is <strong style="color:var(--text)">frozen while the infirmary is active</strong> (no relegation) — <strong style="color:var(--text)">but</strong> if it ends before the period is over, you become normally evaluable again on your period points (relegation possible if they fall short because of the missed days)<br>• Your rent: <strong style="color:var(--text)">15d</strong> full price · <strong style="color:var(--text)">30d</strong> half price · <strong style="color:var(--text)">45/60d</strong> suspended<br>• You keep your rewards<br>• Your login streak <strong style="color:var(--text)">is not frozen</strong>: keep logging in every day (even injured) to keep it, otherwise it breaks<br><br><strong style="color:var(--gold)">Return:</strong> you come back in <strong>R</strong> (Return) status until the end of the current period. If your points exceed your league threshold, you become competitive again. Otherwise you stay one more period in return mode.<br><br><strong style="color:var(--gold)">Cap:</strong> 2 activations per 12-month period.',
+    'rules.inf.body'            : 'If you\'re injured or unavailable, check into the infirmary from your Player Card.<br>Choose your duration — decision is <strong style="color:var(--red)">FINAL</strong> (no early return).<br><br><strong style="color:var(--gold)">While in the infirmary:</strong><br>• No runs can be recorded<br>• <strong style="color:var(--text)">Total Gel immunity</strong> (player and auto-system), from day 1<br>• From <strong style="color:var(--text)">10 days</strong> onward: your league position is protected, no relegation possible even at 0 points<br>• Below 10 days: normal ranking rules apply, relegation possible if you fall short<br>• You keep your rewards<br>• Your login streak <strong style="color:var(--text)">is not frozen</strong>: keep logging in every day (even injured) to keep it, otherwise it breaks<br><br><strong style="color:var(--gold)">Return:</strong> once the infirmary ends, you go straight back to normal evaluation in your current league — no intermediate status.<br><br><strong style="color:var(--gold)">Cap:</strong> 2 activations max, 60 days total max, per 12-month period.',
     // — Relegation block
     'rules.releg.title'         : '📉 <span class="hl">Activity &amp; relegation</span>',
     'rules.releg.body'          : '<strong style="color:var(--gold)">🏆 40 pts minimum / period</strong> — To stay sportively active and let your team benefit from your 2% bonus, earn at least 40 pts per period.<br><br><strong style="color:var(--gold)">Protected drop:</strong> at rollover, an RP can only drop <strong style="color:var(--text)">one league</strong> per period.<br><br><strong style="color:var(--gold)">Ghost RP (0 pt):</strong> 1-league drop + becomes <strong style="color:var(--text)">invisible</strong> in the ranking. 2nd consecutive period at 0 pt → back to <strong style="color:var(--text)">game start, Starter Zone and calibration</strong>.',
@@ -13404,7 +13404,10 @@ async function _processEndOfPeriodInner(){
   }
 
   // 6. Reclassement de TOUS les RP — règles "mou progressif" :
-  //    - En infirmerie → league figée (skip)
+  //    - En infirmerie >= 10 jours (règle simplifiée 2026-09-19) → league figée,
+  //      TOUJOURS visible au classement même à 0 point (exempté fantôme).
+  //    - En infirmerie < 10 jours → aucune protection, évaluation normale
+  //      ci-dessous sur les points réellement marqués (descente possible).
   //    - 0 pt sur une période COMPLÈTE = FANTÔME (invisible au classement, mais
   //      toujours compté dans le total à droite de la league) :
   //         • en league  → invisible + descente -1 league ; 2ème 0 consécutif → retour Starter (calibrage)
@@ -13422,7 +13425,16 @@ async function _processEndOfPeriodInner(){
   for(var ri=0;ri<allPlayers.length;ri++){
     var rpFull=allPlayers[ri];
     var rpInInf=rpFull.infirmerie_until && new Date(rpFull.infirmerie_until)>new Date();
-    if(rpInInf) continue; // league figée pendant infirmerie
+    var rpDurationDays=rpFull.infirmerie_duration_days||0;
+    if(rpInInf && rpDurationDays>=10){
+      // Position protégée : league figée, toujours visible même à 0 pt.
+      if(rpFull.is_visible===false){
+        await supabaseClient.rpc('rotation_patch_player',{p_player_id:rpFull.id,p_patch:{is_visible:true}});
+      }
+      continue;
+    }
+    // Infirmerie < 10 jours (ou pas en infirmerie) : pas de protection,
+    // évaluation normale ci-dessous sur les points réellement marqués.
     var currentLk=(rpFull.league||'starter').toLowerCase();
     var currentIdx=LEAGUES.findIndex(function(l){return l.key===currentLk;});
     var targetKey=currentLk;
@@ -19378,19 +19390,20 @@ function isInInfirmerie(){
 
 // Quotas glissants 12 mois : 15j 2× · 30j 2× · 45j 1× · 60j 1× · plafond 2 activations totales.
 // Retourne {15:nb,30:nb,45:nb,60:nb,total:nb,canActivate:{15:bool,30:bool,45:bool,60:bool}}
+// Quota simplifié (2026-09-19) : 2 activations max / 365 jours glissants,
+// 60 jours cumulés max. Durée libre par activation (1 à 60j, dans la limite
+// du solde restant) — plus de paliers fixes 15/30/45/60.
 function getInfirmerieQuotaStatus(){
   var hist=(window.__infirmerie&&window.__infirmerie.history)||[];
-  var counts={15:0,30:0,45:0,60:0,total:0};
-  hist.forEach(function(h){
-    var d=h.duration_days;
-    if(d===15||d===30||d===45||d===60){counts[d]++;counts.total++;}
-  });
-  var maxByDuration={15:2,30:2,45:1,60:1};
-  var canActivate={};
-  [15,30,45,60].forEach(function(d){
-    canActivate[d]=(counts[d]<maxByDuration[d])&&(counts.total<2);
-  });
-  return {counts:counts, canActivate:canActivate};
+  var activationsUsed=hist.length;
+  var daysUsed=hist.reduce(function(s,h){return s+(h.duration_days||0);},0);
+  var activationsLeft=Math.max(0,2-activationsUsed);
+  var daysLeft=Math.max(0,60-daysUsed);
+  return {
+    activationsUsed:activationsUsed, activationsLeft:activationsLeft,
+    daysUsed:daysUsed, daysLeft:daysLeft,
+    canActivate:activationsLeft>0 && daysLeft>0
+  };
 }
 
 // Ouvre le modal de choix durée + affiche les quotas restants.
@@ -19412,26 +19425,21 @@ function openInfirmerieModal(){
     return;
   }
   var q=getInfirmerieQuotaStatus();
-  var btn=function(d){
-    var disabled=!q.canActivate[d];
-    var maxD=d<=30?2:1;
-    var used=q.counts[d];
-    return '<button '+(disabled?'disabled':'onclick="closeModal(\'land-modal\');setTimeout(function(){activateInfirmerie('+d+');},150)"')
-      +' style="width:100%;padding:.65rem;margin-bottom:.45rem;border-radius:8px;'
-      +'border:1.5px solid '+(disabled?'rgba(255,255,255,.1)':'var(--gold)')+';'
-      +'background:'+(disabled?'rgba(255,255,255,.03)':'rgba(245,200,66,.08)')+';'
-      +'color:'+(disabled?'var(--muted)':'var(--gold)')+';'
-      +'font-family:Bebas Neue,sans-serif;font-size:.95rem;letter-spacing:2px;font-weight:700;'
-      +'cursor:'+(disabled?'not-allowed':'pointer')+';display:flex;justify-content:space-between;align-items:center">'
-      +'<span>🏥 '+d+' JOURS</span>'
-      +'<span style="font-size:.6rem;font-family:Space Mono,monospace;letter-spacing:0;color:'+(disabled?'var(--red)':'var(--muted2)')+'">'+used+'/'+maxD+(disabled?' · quota atteint':'')+'</span>'
-      +'</button>';
-  };
   document.getElementById('lm-title').textContent='🏥 Infirmerie';
   document.getElementById('lm-sub').textContent='Pause sportive volontaire';
+  if(!q.canActivate){
+    document.getElementById('lm-body').innerHTML=
+      '<div style="font-size:.8rem;color:var(--text);line-height:1.6">Quota épuisé pour les 12 derniers mois : <strong style="color:var(--gold)">'+q.activationsUsed+'/2</strong> activations, <strong style="color:var(--gold)">'+q.daysUsed+'/60</strong> jours utilisés.</div>';
+    openModal('land-modal');
+    return;
+  }
   document.getElementById('lm-body').innerHTML=
-    '<div style="font-size:.78rem;color:var(--text);line-height:1.5;margin-bottom:.85rem">Choisis ta durée. Pendant l\'infirmerie : <strong>aucune course</strong>, league figée, récompenses normales. Ta chaîne de connexion <strong>n\'est pas gelée</strong> : connecte-toi chaque jour (même blessé) pour la garder.</div>'
-    +btn(15)+btn(30)+btn(45)+btn(60);
+    '<div style="font-size:.78rem;color:var(--text);line-height:1.6;margin-bottom:.85rem">'
+    +'Choisis ta durée (<strong style="color:var(--gold)">'+q.daysLeft+' jour'+(q.daysLeft>1?'s':'')+'</strong> restant'+(q.daysLeft>1?'s':'')+' sur ton solde annuel, <strong style="color:var(--gold)">'+q.activationsLeft+'</strong> activation'+(q.activationsLeft>1?'s':'')+' restante'+(q.activationsLeft>1?'s':'')+').<br><br>'
+    +'Pendant l\'infirmerie : <strong>aucune course</strong>, <strong>immunité totale au Gel</strong> dès le 1er jour, récompenses normales. À partir de <strong style="color:var(--gold)">10 jours</strong>, ta position de ligue est protégée (pas de descente) même à 0 point. Ta chaîne de connexion <strong>n\'est pas gelée</strong> : connecte-toi chaque jour (même blessé) pour la garder.'
+    +'</div>'
+    +'<input id="inf-days-input" type="number" min="1" max="'+q.daysLeft+'" value="'+Math.min(10,q.daysLeft)+'" style="width:100%;box-sizing:border-box;margin-bottom:.5rem;padding:.5rem .7rem;border-radius:8px;border:1.5px solid rgba(245,200,66,.3);background:rgba(0,0,0,.2);color:var(--text);font-size:.9rem;text-align:center">'
+    +'<button onclick="var d=parseInt(document.getElementById(\'inf-days-input\').value,10)||0;closeModal(\'land-modal\');setTimeout(function(){activateInfirmerie(d);},150)" style="width:100%;padding:.65rem;border-radius:8px;border:1.5px solid var(--gold);background:rgba(245,200,66,.08);color:var(--gold);font-family:Bebas Neue,sans-serif;font-size:.95rem;letter-spacing:2px;font-weight:700;cursor:pointer">🏥 ACTIVER</button>';
   openModal('land-modal');
 }
 
@@ -19439,29 +19447,30 @@ function openInfirmerieModal(){
 async function activateInfirmerie(days){
   if(!currentUser) return false;
   if(isInInfirmerie()){ showToast('⚠️ Tu es déjà en infirmerie'); return false; }
-  if([15,30,45,60].indexOf(days)<0){ showToast('⚠️ Durée invalide'); return false; }
+  if(!days||days<1||days>60){ showToast('⚠️ Durée invalide (1 à 60 jours)'); return false; }
   var q=getInfirmerieQuotaStatus();
-  if(!q.canActivate[days]){
-    showToast('⚠️ Quota '+days+'j atteint cette année (max '+(days<=30?2:1)+')');
+  if(!q.canActivate || days>q.daysLeft){
+    showToast('⚠️ Solde insuffisant : '+q.daysLeft+' jour'+(q.daysLeft>1?'s':'')+' / '+q.activationsLeft+' activation'+(q.activationsLeft>1?'s':'')+' restante'+(q.activationsLeft>1?'s':''));
     return false;
   }
   var ok=await askConfirm(
     'Tu vas être en infirmerie pendant <strong style="color:var(--gold)">'+days+' jours</strong>.<br><br>'
     +'• Aucune course ne pourra être enregistrée<br>'
-    +'• Ta league est figée (pas de relégation)<br>'
-    +'• Loyers : '+(days<=15?'plein tarif':days<=30?'demi-tarif':'suspendus')+'<br>'
-    +'• Tu peux te connecter et garder ta streak<br>'
-    +'• Tu touches les RPC des passages sur tes Lands<br><br>'
+    +'• Immunité totale au Gel dès aujourd\'hui<br>'
+    +(days>=10?'• Ta position de ligue est protégée (pas de descente)<br>':'• Moins de 10 jours : classement normal (descente possible)<br>')
+    +'• Tu peux te connecter et garder ta streak<br><br>'
     +'⚠️ <strong style="color:var(--red)">Action DÉFINITIVE</strong> : pas de reprise anticipée possible.',
     {title:'Activer l\'infirmerie ?', emoji:'🏥', okLabel:'Activer ('+days+' j)', destructive:true}
   );
   if(!ok) return false;
-  // infirmerie_activate (2026-08-14) remplace le PATCH direct + insert historique :
-  // même effet, mais le quota (2 activations/12 mois, cf getInfirmerieQuotaStatus)
-  // est désormais revérifié côté serveur, pas seulement dans l'interface.
+  // infirmerie_activate (2026-09-19, quota simplifié) : 2 activations/365j,
+  // 60 jours cumulés max, durée libre — revérifié côté serveur (source unique).
   var {data:_infRes,error:_infErr}=await supabaseClient.rpc('infirmerie_activate',{p_days:days});
   if(_infErr || !_infRes || !_infRes.ok){
-    showToast('⚠️ Impossible d\'activer l\'infirmerie'+(_infRes&&_infRes.error==='quota_reached'?' (quota atteint)':''));
+    var _infErrMsg='⚠️ Impossible d\'activer l\'infirmerie';
+    if(_infRes&&_infRes.error==='quota_reached') _infErrMsg+=' (2 activations déjà utilisées)';
+    else if(_infRes&&_infRes.error==='days_quota_exceeded') _infErrMsg+=' ('+(_infRes.days_left||0)+' jour'+((_infRes.days_left||0)>1?'s':'')+' restant'+((_infRes.days_left||0)>1?'s':'')+')';
+    showToast(_infErrMsg);
     return false;
   }
   var nowIso=new Date().toISOString();
@@ -19793,6 +19802,7 @@ async function activateGelOnTarget(){
   if(_gelErr||!_gelRes||!_gelRes.ok){
     var _gelMsg='⚠️ Erreur lors du gel';
     if(_gelRes&&_gelRes.reason==='already_gelled') _gelMsg='⚠️ Ce RP est déjà gelé';
+    else if(_gelRes&&_gelRes.reason==='target_in_infirmerie') _gelMsg='🏥 Ce RP est en infirmerie, impossible de le geler';
     else if(_gelRes&&_gelRes.reason==='no_stock') _gelMsg='⚠️ Aucun Gel en réserve';
     // Plafond mensuel (6 Gels reçus max par RP, demande explicite 2026-08-12) :
     // source unique = apply_gel_to_target (gel_received_month/_count), le
