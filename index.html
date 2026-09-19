@@ -19955,6 +19955,20 @@ async function handleStravaCallback(){
         await _clearCoros();
         showToast('⚠️ COROS déconnecté (un seul appareil GPS à la fois)');
       }
+      var intervalsConnected=!!window.__intervalsConnected;
+      if(!intervalsConnected&&currentUser){
+        try{
+          var intervalsCheckResp=await window.fetch(supabaseUrl+'/rest/v1/players?id=eq.'+encodeURIComponent(currentUser.id)+'&select=intervals_athlete_id',{
+            headers:{'apikey':supabaseKey,'Authorization':'Bearer '+(window.__sessionToken||supabaseKey),'Accept':'application/json'}
+          });
+          var intervalsCheckData=await intervalsCheckResp.json();
+          intervalsConnected=!!(intervalsCheckData&&intervalsCheckData[0]&&intervalsCheckData[0].intervals_athlete_id);
+        }catch(e){}
+      }
+      if(intervalsConnected){
+        await _clearIntervals();
+        showToast('⚠️ Intervals.icu déconnecté (un seul appareil GPS à la fois)');
+      }
       // Sauvegarder en DB
       var patchData={
         strava_id:stravaId,
@@ -20492,6 +20506,20 @@ async function handleCorosCallback(){
       await _revokeAndClearStrava();
       showToast('⚠️ Strava déconnecté (un seul appareil GPS à la fois)');
     }
+    var intervalsConnectedC=!!window.__intervalsConnected;
+    if(!intervalsConnectedC&&currentUser){
+      try{
+        var intervalsCheckRespC=await window.fetch(supabaseUrl+'/rest/v1/players?id=eq.'+encodeURIComponent(currentUser.id)+'&select=intervals_athlete_id',{
+          headers:{'apikey':supabaseKey,'Authorization':'Bearer '+(window.__sessionToken||supabaseKey),'Accept':'application/json'}
+        });
+        var intervalsCheckDataC=await intervalsCheckRespC.json();
+        intervalsConnectedC=!!(intervalsCheckDataC&&intervalsCheckDataC[0]&&intervalsCheckDataC[0].intervals_athlete_id);
+      }catch(e){}
+    }
+    if(intervalsConnectedC){
+      await _clearIntervals();
+      showToast('⚠️ Intervals.icu déconnecté (un seul appareil GPS à la fois)');
+    }
     var expiresAt=data.expires_in?Math.floor(Date.now()/1000)+parseInt(data.expires_in,10):null;
     if(currentUser){
       var saveResp=await window.fetch(supabaseUrl+'/rest/v1/players?id=eq.'+encodeURIComponent(currentUser.id),{
@@ -20640,6 +20668,22 @@ async function connectIntervals(){
   if(!athleteId||!apiKey){showToast('⚠️ Renseigne l\'Athlete ID et l\'API Key');return;}
   showToast('⌚ Vérification…');
   try{
+    // Exclusivité mutuelle Strava/COROS/Intervals.icu : un seul appareil GPS à
+    // la fois (même règle que Strava↔COROS depuis le 2026-09-16, étendue ici).
+    var _excl=!!(window.__stravaToken||window.__stravaRefresh);
+    var _exclCoros=!!window.__corosToken;
+    if((!_excl||!_exclCoros)&&currentUser){
+      try{
+        var _exclResp=await window.fetch(supabaseUrl+'/rest/v1/players?id=eq.'+encodeURIComponent(currentUser.id)+'&select=strava_access_token,coros_access_token',{
+          headers:{'apikey':supabaseKey,'Authorization':'Bearer '+(window.__sessionToken||supabaseKey),'Accept':'application/json'}
+        });
+        var _exclData=await _exclResp.json();
+        if(!_excl) _excl=!!(_exclData&&_exclData[0]&&_exclData[0].strava_access_token);
+        if(!_exclCoros) _exclCoros=!!(_exclData&&_exclData[0]&&_exclData[0].coros_access_token);
+      }catch(e){}
+    }
+    if(_excl){ await _revokeAndClearStrava(); showToast('⚠️ Strava déconnecté (un seul appareil GPS à la fois)'); }
+    if(_exclCoros){ await _clearCoros(); showToast('⚠️ COROS déconnecté (un seul appareil GPS à la fois)'); }
     var saveResp=await window.fetch(supabaseUrl+'/rest/v1/players?id=eq.'+encodeURIComponent(currentUser.id),{
       method:'PATCH',
       headers:{'apikey':supabaseKey,'Authorization':'Bearer '+(window.__sessionToken||supabaseKey),'Content-Type':'application/json'},
@@ -20707,16 +20751,25 @@ async function loadIntervalsToken(){
   }
 }
 
+// Nettoyage DB Intervals.icu, SANS confirmation ni toast dédié — factorisé pour
+// être appelé aussi bien par disconnectIntervals() (bouton explicite) que par
+// la bascule auto d'exclusivité mutuelle (cf _revokeAndClearStrava/_clearCoros).
+async function _clearIntervals(){
+  if(currentUser){
+    await window.fetch(supabaseUrl+'/rest/v1/players?id=eq.'+encodeURIComponent(currentUser.id),{
+      method:'PATCH',
+      headers:{'apikey':supabaseKey,'Authorization':'Bearer '+(window.__sessionToken||supabaseKey),'Content-Type':'application/json'},
+      body:JSON.stringify({intervals_athlete_id:null,intervals_api_key:null})
+    });
+  }
+  window.__intervalsConnected=false;
+  updateIntervalsUI(false);
+}
+
 async function disconnectIntervals(){
   if(!currentUser) return;
   if(!await askConfirm('Tu pourras te reconnecter quand tu veux.',{title:'Déconnecter Intervals.icu',emoji:'🔌',okLabel:'Déconnecter',destructive:true})) return;
-  await window.fetch(supabaseUrl+'/rest/v1/players?id=eq.'+encodeURIComponent(currentUser.id),{
-    method:'PATCH',
-    headers:{'apikey':supabaseKey,'Authorization':'Bearer '+(window.__sessionToken||supabaseKey),'Content-Type':'application/json'},
-    body:JSON.stringify({intervals_athlete_id:null,intervals_api_key:null})
-  });
-  window.__intervalsConnected=false;
-  updateIntervalsUI(false);
+  await _clearIntervals();
   showToast('✓ Intervals.icu déconnecté');
 }
 
