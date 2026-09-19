@@ -4721,7 +4721,7 @@ select option{background:#040c1c}
 
         <details class="faq-q"><summary data-i18n="faq.q.9">Combien de temps pour qu'une course Strava remonte ?</summary><div class="faq-a" data-i18n-html="faq.a.9">En général <strong>moins d'une minute</strong> après la fin de ta course (dès que Strava la valide). Si tu attends plus de 5 min, ferme et rouvre l'app pour forcer le refresh.</div></details>
 
-        <details class="faq-q"><summary data-i18n="faq.q.10">Je n'ai pas Strava, je peux jouer ?</summary><div class="faq-a" data-i18n-html="faq.a.10">Strava est <strong>obligatoire</strong> pour valider tes kilomètres et garantir l'équité du classement. Crée un compte gratuit sur <strong>strava.com</strong>, connecte une montre (Garmin, Apple Watch, Coros, Polar...) ou utilise l'app Strava sur ton téléphone pour tracker tes runs.</div></details>
+        <details class="faq-q"><summary data-i18n="faq.q.10">Je n'ai pas Strava, je peux jouer ?</summary><div class="faq-a" data-i18n-html="faq.a.10">Oui ! Une synchronisation via <strong>Strava, Coros ou Intervals.icu</strong> est nécessaire pour valider tes kilomètres et garantir l'équité du classement, mais Strava n'est pas obligatoire. Montre Coros → connecte-la directement. Montre Garmin, Polar ou Suunto → passe par <strong>intervals.icu</strong> (gratuit) qui la connecte pour toi. Pas de montre → Strava reste le plus simple : compte gratuit sur <strong>strava.com</strong> et l'app sur ton téléphone.</div></details>
 
         <details class="faq-q"><summary data-i18n="faq.q.11">Strava me demande mon mot de passe ?</summary><div class="faq-a" data-i18n-html="faq.a.11">C'est <strong>l'écran officiel Strava</strong>, pas un écran SPEEDIX. SPEEDIX ne voit JAMAIS ton mot de passe Strava — on reçoit juste une autorisation pour lire tes courses. Tu peux révoquer cette autorisation à tout moment dans les paramètres Strava.</div></details>
 
@@ -5558,7 +5558,7 @@ function askConfirm(message, opts){
       <div class="block-header" style="border-color:rgba(74,144,255,.2)"><div class="block-title" data-i18n-html="rules.principle.title">🏃 Le <span class="hl">Principe</span></div></div>
       <div class="block-body-sm" data-i18n-html="rules.principle.body" style="font-size:.8rem;color:var(--muted2);line-height:1.9">
         SPEEDIX est un jeu de gamification de la course à pied.<br>
-        Synchronise tes activités via <strong style="color:var(--text)">Strava ou Garmin</strong> — chaque course rapporte des <strong style="color:var(--gold)">points</strong>.<br>
+        Synchronise tes activités via <strong style="color:var(--text)">Strava/Coros/Intervals</strong> — chaque course rapporte des <strong style="color:var(--gold)">points</strong>.<br>
         Les points déterminent ton classement dans ta <strong style="color:var(--text)">League</strong>.<br>
         Une <strong style="color:var(--text)">Période = 1 mois</strong>. Les classements se réinitialisent, le palmarès reste.
       </div>
@@ -5608,16 +5608,16 @@ function askConfirm(message, opts){
     <div style="background:#0c0f1a;clip-path:polygon(10px 0,calc(100% - 10px) 0,100% 10px,100% calc(100% - 10px),calc(100% - 10px) 100%,10px 100%,0 calc(100% - 10px),0 10px)">
       <div class="block-header" style="border-color:rgba(255,128,128,.2)"><div class="block-title" data-i18n-html="rules.inf.title">🏥 <span class="hl">Infirmerie</span></div></div>
       <div class="block-body-sm" data-i18n-html="rules.inf.body" style="font-size:.8rem;color:var(--muted2);line-height:1.9">
-        En cas de blessure ou indisponibilité, déclare-toi en infirmerie depuis ta Player Card.<br>
-        Choisis ta durée — décision <strong style="color:var(--red)">DÉFINITIVE</strong> (pas de reprise anticipée).<br><br>
+        En cas de blessure ou indisponibilité, déclare-toi en infirmerie depuis ton profil.<br>
+        Tu en sors quand tu veux, dès que tu te sens prêt à reprendre la course.<br><br>
         <strong style="color:var(--gold)">Pendant l'infirmerie :</strong><br>
         • Aucune course ne peut être enregistrée<br>
-        • Ta league est <strong style="color:var(--text)">figée tant que l'infirmerie est active</strong> (pas de relégation) — <strong style="color:var(--text)">mais</strong> si elle se termine avant la fin de la période, tu redeviens évaluable normalement sur tes points de la période (relégation possible si le compte n'y est pas, à cause des jours manqués)<br>
-        • Tes loyers : <strong style="color:var(--text)">15j</strong> plein tarif · <strong style="color:var(--text)">30j</strong> demi-tarif · <strong style="color:var(--text)">45/60j</strong> suspendus<br>
-        • Tu gardes tes récompenses<br>
-        • Ta chaîne de connexion <strong style="color:var(--text)">n'est pas gelée</strong> : continue à te connecter chaque jour (même blessé) pour la garder, sinon elle se casse<br><br>
-        <strong style="color:var(--gold)">Reprise :</strong> tu reprends en statut <strong>R</strong> (Reprise) jusqu'à la fin de la période en cours. Si tes points sont supérieurs au seuil de ta league, tu redeviens compétitif. Sinon tu restes une période supplémentaire en reprise.<br><br>
-        <strong style="color:var(--gold)">Plafond :</strong> 2 activations par période de 12 mois.
+        • <strong style="color:var(--text)">Immunité totale au Gel</strong> dès le 1er jour<br>
+        • À partir de <strong style="color:var(--text)">10 jours</strong> : ta position de ligue est protégée, pas de descente possible<br>
+        • En dessous de 10 jours : classement normal, descente possible si le compte n'y est pas<br>
+        • Tu gardes tes récompenses<br><br>
+        <strong style="color:var(--gold)">Sortie :</strong> à la fin de l'infirmerie, tu retrouves directement ta ligue actuelle en évaluation normale.<br><br>
+        <strong style="color:var(--gold)">Plafond :</strong> 2 activations max par période de 12 mois.
       </div>
     </div>
     </div>
@@ -5637,7 +5637,7 @@ function askConfirm(message, opts){
     <div style="background:#0c0f1a;clip-path:polygon(10px 0,calc(100% - 10px) 0,100% 10px,100% calc(100% - 10px),calc(100% - 10px) 100%,10px 100%,0 calc(100% - 10px),0 10px)">
       <div class="block-header" style="border-color:rgba(245,200,66,.2)"><div class="block-title" data-i18n-html="rules.coins.title">💰 Les <span class="hl">Monnaies</span></div></div>
       <div class="block-body-sm" data-i18n-html="rules.coins.body" style="font-size:.8rem;color:var(--muted2);line-height:1.9">
-        <strong style="color:var(--gold)">💰 RPC</strong> — gagnés en courant et via les Lands. Utilisés pour le buy-in, les Étoiles, les loyers.<br><br>
+        <strong style="color:var(--gold)">💰 RPC</strong> — gagnés en courant, grâce au Speedix Tour, les défis, les challenges. Utilisés pour le buy-in, les Étoiles, les locations, les loyers.<br><br>
         <strong style="color:var(--green)">💎 NYX</strong> — monnaie Premium. Utilisée pour les Lands, les Boosts et les Licences Team.
       </div>
     </div>
@@ -5661,7 +5661,7 @@ function askConfirm(message, opts){
         Crée ou rejoins une Team de <strong style="color:var(--text)">6 à 20 RP</strong>.<br>
         Score Team = moyenne des <strong style="color:var(--text)">6 meilleurs</strong> + bonus par RP supp.<br>
         Bonus = <strong style="color:var(--green)">+2%</strong> par RP au-delà des 6 meilleurs, à condition d'avoir <strong style="color:var(--text)">≥ 40 pts</strong> sur la période.<br>
-        ⚠️ Un RP qui rejoint une team <strong style="color:var(--text)">après le 10 du mois</strong> ne contribue au score qu'à partir de la <strong style="color:var(--text)">période suivante</strong> (anti-recrutement de dernière minute).<br>
+        ⚠️ Un RP qui rejoint une team <strong style="color:var(--text)">après le 10 du mois</strong> ne contribue au score qu'à partir de la <strong style="color:var(--text)">période suivante</strong>.<br>
         Podium récompensé en <strong style="color:var(--gold)">RPC</strong> + <strong style="color:var(--green)">NYX</strong> + médaille permanente sur la PC.
       </div>
     </div>
@@ -5671,7 +5671,7 @@ function askConfirm(message, opts){
     <div style="background:#0c0f1a;clip-path:polygon(10px 0,calc(100% - 10px) 0,100% 10px,100% calc(100% - 10px),calc(100% - 10px) 100%,10px 100%,0 calc(100% - 10px),0 10px)">
       <div class="block-header" style="border-color:rgba(74,144,255,.2)"><div class="block-title" data-i18n-html="rules.bonus.title">⚡ Bonus & <span class="hl">Connexion</span></div></div>
       <div class="block-body-sm" data-i18n-html="rules.bonus.body" style="font-size:.8rem;color:var(--muted2);line-height:1.9">
-        <strong style="color:var(--text)">Chaîne de connexion</strong> — connecte-toi chaque jour pour maintenir ta chaîne et réclamer un bonus RPC. Un jour raté remet la chaîne à zéro avec une baisse des récompenses.<br><br>
+        <strong style="color:var(--text)">Chaîne de connexion</strong> — connecte-toi chaque jour pour maintenir ta chaîne et réclamer un bonus RPC. Un jour raté remet la chaîne à zéro avec une baisse des récompenses. 5 échecs et la chaîne est définitivement terminée.<br><br>
         <strong style="color:var(--text)">Boost</strong> — <strong style="color:var(--green)">+10%</strong> de points sur les 24h suivantes.<br>
         <strong style="color:var(--text)">Gel</strong> — <strong style="color:#4ac8ff">-5%</strong> de points sur les 24h suivantes.
       </div>
@@ -5696,14 +5696,14 @@ function askConfirm(message, opts){
         <div style="position:relative;background:rgba(255,68,68,.35);clip-path:polygon(11px 0,calc(100% - 11px) 0,100% 11px,100% calc(100% - 11px),calc(100% - 11px) 100%,11px 100%,0 calc(100% - 11px),0 11px);padding:1.5px;grid-column:1 / -1">
     <div style="background:#0c0f1a;clip-path:polygon(10px 0,calc(100% - 10px) 0,100% 10px,100% calc(100% - 10px),calc(100% - 10px) 100%,10px 100%,0 calc(100% - 10px),0 10px)">
       <div class="block-header" style="border-color:rgba(255,68,68,.2);background:rgba(255,68,68,.04)">
-        <div class="block-title" data-i18n-html="rules.pirate.title">🏴‍☠️ Île du <span style="color:var(--red)">Pirate</span> — Tolérance zéro</div>
+        <div class="block-title" data-i18n-html="rules.pirate.title">🪑 Banc de <span style="color:var(--red)">touche</span> — Tolérance zéro</div>
       </div>
       <div class="block-body-sm" data-i18n-html="rules.pirate.body" style="font-size:.8rem;color:var(--muted2);line-height:1.9">
         SPEEDIX est un jeu basé sur l'<strong style="color:var(--text)">effort réel</strong>. Toute tentative de triche est détectée et sanctionnée immédiatement.<br><br>
-        <strong style="color:var(--text)">Sont considérées comme triche :</strong> vitesse supérieure à <strong style="color:var(--text)">20 km/h</strong> (vélo, voiture, transport), activités importées manuellement sans trace GPS cohérente, manipulation de données Strava/Garmin.<br><br>
+        <strong style="color:var(--text)">Sont considérées comme triche :</strong> vitesse moyenne supérieure à <strong style="color:var(--text)">20km/h</strong> (vélo, voiture, transport), activités importées manuellement sans trace GPS cohérente, manipulation de données de course.<br><br>
         <strong style="color:var(--red)">Conséquences progressives :</strong><br>
-        <strong style="color:var(--text)">1ère triche</strong> — exil sur l'Île du Pirate, jeu en pause pendant <strong style="color:var(--text)">1 période</strong> : aucun point comptabilisé, aucune League.<br>
-        <strong style="color:var(--text)">2ème triche</strong> — exil prolongé de <strong style="color:var(--text)">6 périodes</strong>.<br>
+        <strong style="color:var(--text)">1ère triche</strong> — mis au banc de touche, jeu en pause pendant <strong style="color:var(--text)">1 période</strong> : aucun point comptabilisé, aucune League.<br>
+        <strong style="color:var(--text)">2ème triche</strong> — banc de touche prolongé de <strong style="color:var(--text)">3 périodes</strong>.<br>
         💀 <strong style="color:var(--text)">3ème triche</strong> — perte de l'ID unique, de la Player Card, de toutes les Lands et de l'intégralité des acquis dans le jeu.<br><br>
         <em style="color:var(--muted)">SPEEDIX met en valeur les athlètes honnêtes et fair-play. Chaque effort est récompensé parce que tu le mérites.</em>
       </div>
@@ -5756,10 +5756,10 @@ function askConfirm(message, opts){
         L'inscription est gratuite et ouverte à toute personne physique <strong style="color:var(--text)">majeure (18 ans ou plus)</strong>. À l'inscription, l'utilisateur (ci-après "RP") certifie sur l'honneur être majeur en cochant la case prévue à cet effet. L'inscription d'un mineur entraîne la suppression immédiate du compte sans préavis. Le RP s'engage à fournir des informations exactes. Un seul compte par personne est autorisé. Le username doit respecter les bonnes mœurs.<br><br>
 
         <strong style="color:var(--text)">3. Fonctionnement du jeu</strong><br>
-        Les points sont calculés à partir des activités sportives réelles synchronisées via Strava ou Garmin. Les monnaies virtuelles (RPC et NYX) n'ont aucune valeur monétaire réelle et ne peuvent être échangées contre de l'argent. Les classements et récompenses sont basés sur les performances sportives réelles.<br><br>
+        Les points sont calculés à partir des activités sportives réelles synchronisées via Strava, Coros ou Intervals.icu. Les monnaies virtuelles (RPC et NYX) n'ont aucune valeur monétaire réelle et ne peuvent être échangées contre de l'argent. Les classements et récompenses sont basés sur les performances sportives réelles.<br><br>
 
         <strong style="color:var(--text)">4. Fair-play et anti-triche</strong><br>
-        Toute tentative de triche (vitesse irréaliste, GPS falsifié, multi-comptes, import GPX) est détectée et sanctionnée. Les sanctions sont progressives : 1 période d'exclusion, puis 6 périodes, puis exclusion définitive avec perte de tous les acquis.<br><br>
+        Toute tentative de triche (vitesse irréaliste, GPS falsifié, multi-comptes, import GPX) est détectée et sanctionnée. Les sanctions sont progressives : 1 période d'exclusion, puis 3 périodes, puis exclusion définitive avec perte de tous les acquis.<br><br>
 
         <strong style="color:var(--text)">5. Données personnelles</strong><br>
         Les données collectées (email, username, nationalité, avatar, données sportives) sont utilisées uniquement pour le fonctionnement du jeu. Elles ne sont ni vendues ni partagées à des tiers commerciaux. Consulte la Politique de confidentialité (RGPD) pour le détail complet des traitements, destinataires et droits. L'utilisateur peut demander la suppression de son compte et de ses données en contactant contact@speedixleague.com.<br><br>
@@ -5816,7 +5816,7 @@ function askConfirm(message, opts){
 
         <strong style="color:var(--text)">2. Données collectées</strong><br>
         — <strong style="color:var(--text)">À l'inscription</strong> : username, email, nationalité, mot de passe (chiffré), avatar, déclaration de majorité (18+), acceptation des CGU<br>
-        — <strong style="color:var(--text)">Données sportives</strong> : activités de course importées via Strava/Garmin (distance, durée, vitesse, dénivelé, fréquence cardiaque, tracé GPS)<br>
+        — <strong style="color:var(--text)">Données sportives</strong> : activités de course importées via Strava/Coros/Intervals.icu (distance, durée, vitesse, dénivelé, fréquence cardiaque, tracé GPS)<br>
         — <strong style="color:var(--text)">Données de jeu</strong> : points, classement, lands, passages, équipe, parrainages, réactions, commentaires, photos<br>
         — <strong style="color:var(--text)">Préférences</strong> : couleur de carte, configuration diverses<br>
         — <strong style="color:var(--text)">Données techniques</strong> : adresse IP, type de navigateur, logs serveur standards<br><br>
@@ -5834,7 +5834,7 @@ function askConfirm(message, opts){
         <strong style="color:var(--text)">6. Partage des données</strong><br>
         Les données ne sont ni vendues ni louées à des tiers commerciaux. Elles sont partagées uniquement avec :<br>
         — <strong style="color:var(--text)">Supabase</strong> (hébergement base de données et Edge Functions, Etats-Unis / Union Européenne)<br>
-        — <strong style="color:var(--text)">Strava / Garmin</strong> (synchronisation des activités, avec consentement OAuth explicite)<br>
+        — <strong style="color:var(--text)">Strava / Coros / Intervals.icu</strong> (synchronisation des activités, avec consentement OAuth explicite)<br>
         — <strong style="color:var(--text)">Apple App Store / Google Play Store</strong> (traitement des paiements et abonnements, selon le système d'exploitation de l'utilisateur)<br>
         — <strong style="color:var(--text)">GitHub Pages</strong> (hébergement du site)<br><br>
 
@@ -5854,7 +5854,7 @@ function askConfirm(message, opts){
         SPEEDIX League est strictement réservé aux personnes <strong style="color:var(--text)">majeures (18 ans ou plus)</strong>. La majorité est déclarée sur l'honneur à l'inscription (case à cocher obligatoire). Aucune donnée de mineur n'est volontairement collectée. Si un compte de mineur est identifié, il sera supprimé sans préavis, avec effacement immédiat de toutes les données associées. Pour signaler un compte de mineur : <strong style="color:var(--text)">contact@speedixleague.com</strong>.<br><br>
 
         <strong style="color:var(--text)">10. Sécurité</strong><br>
-        Les mots de passe sont chiffrés. Les communications sont sécurisées via HTTPS. L'accès à la base de données est protégé par des politiques de sécurité (RLS). Les tokens Strava/Garmin sont stockés de manière sécurisée.<br><br>
+        Les mots de passe sont chiffrés. Les communications sont sécurisées via HTTPS. L'accès à la base de données est protégé par des politiques de sécurité (RLS). Les tokens Strava/Coros/Intervals.icu sont stockés de manière sécurisée.<br><br>
 
         <strong style="color:var(--text)">11. Réclamation</strong><br>
         En cas de litige, vous pouvez adresser une réclamation à la CNIL (Commission Nationale de l'Informatique et des Libertés) : <strong style="color:var(--text)">www.cnil.fr</strong>
@@ -6294,8 +6294,8 @@ const I18N = {
     'gender.female'             : 'Femme',
     'gender.other'              : 'Autre',
     // — Disponibilité (infirmerie)
-    'avail.in.singular'         : '🏥 En infirmerie · {n}j restant',
-    'avail.in.plural'           : '🏥 En infirmerie · {n}j restants',
+    'avail.in.singular'         : '🏥 En infirmerie depuis {n}j',
+    'avail.in.plural'           : '🏥 En infirmerie depuis {n}j',
     'avail.in.desc'             : 'Aucune course enregistrée, immunité totale au Gel. À partir de 10 jours, ta position de ligue est protégée (pas de descente).',
     'avail.in.manage'           : 'Gérer mon infirmerie',
     'avail.off.desc'            : 'En cas de blessure ou indisponibilité, déclare-toi en infirmerie. Immunité au Gel dès le 1er jour ; à partir de 10 jours, ta position de ligue est protégée.',
@@ -6561,7 +6561,7 @@ const I18N = {
     'rules.page.subtitle'       : 'SPEEDIX League — Comment jouer ?',
     // — Bloc Principe
     'rules.principle.title'     : '🏃 Le <span class="hl">Principe</span>',
-    'rules.principle.body'      : 'SPEEDIX est un jeu de gamification de la course à pied.<br>Synchronise tes activités via <strong style="color:var(--text)">Strava ou Garmin</strong> — chaque course rapporte des <strong style="color:var(--gold)">points</strong>.<br>Les points déterminent ton classement dans ta <strong style="color:var(--text)">League</strong>.<br>Une <strong style="color:var(--text)">Période = 1 mois</strong>. Les classements se réinitialisent, le palmarès reste.',
+    'rules.principle.body'      : 'SPEEDIX est un jeu de gamification de la course à pied.<br>Synchronise tes activités via <strong style="color:var(--text)">Strava/Coros/Intervals</strong> — chaque course rapporte des <strong style="color:var(--gold)">points</strong>.<br>Les points déterminent ton classement dans ta <strong style="color:var(--text)">League</strong>.<br>Une <strong style="color:var(--text)">Période = 1 mois</strong>. Les classements se réinitialisent, le palmarès reste.',
     // — Bloc Points
     'rules.points.title'        : '⭐ Les <span class="hl">Points</span>',
     'rules.points.body'         : 'Calculés selon ta <strong style="color:var(--text)">distance</strong>, ta <strong style="color:var(--text)">vitesse</strong> et ton <strong style="color:var(--text)">dénivelé</strong>.<br>La formule est <strong style="color:var(--gold)">secrète</strong> — elle valorise l\'effort global.<br>Un <strong style="color:var(--text)">Boost</strong> ajoute <strong style="color:var(--green)">+10%</strong> pendant 24h.<br>Un <strong style="color:var(--text)">Gel</strong> te ralenti de <strong style="color:#6ec3ff">-5%</strong> pendant 24h.<br>Vitesse <strong>moyenne</strong> &gt; 20 km/h = activité <strong style="color:var(--red)">invalidée</strong> 🏴‍☠️',
@@ -6570,43 +6570,43 @@ const I18N = {
     'rules.starter.body'        : 'Tout nouveau RP commence en Starter Zone.<br>Phase de démarrage : pas de compétition, de podium, de récompenses.<br>Passé <strong style="color:var(--gold)">500 pts</strong>, le RP entre dans la League.<br>Il monte en fonction de son niveau jusqu\'à la fin de période.<br>La période suivante dite de <strong style="color:#ffffff">calibrage</strong> <span style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:3px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.4);font-family:\'Bebas Neue\',sans-serif;font-size:.65rem;font-weight:700;color:#ffffff;line-height:1;vertical-align:middle">C</span>, la montée est encore libre afin de définir le niveau sportif du RP. Pas de buy-in, pas de podium, pas de prize pool.<br>La période suivante, la <strong style="color:var(--green)">compétition officielle</strong> commence avec les podiums, médailles et prize pool.',
     // — Bloc Leagues
     'rules.leagues.title'       : '🏆 Les <span class="hl">Leagues</span>',
-    'rules.leagues.body'        : 'Chaque RP est placé dans une League selon son niveau.<br>10 niveaux de <strong style="color:#8090a0">Fer</strong> à <strong style="color:#f5c842">Or</strong>.<br>En fin de période, chaque RP est <strong style="color:var(--text)">reclassé</strong> dans la League correspondant à ses points.<br>Le <strong style="color:var(--gold)">buy-in</strong> RPC de chaque RP constitue le prize pool redistribué en fonction du nombre de participants dans la ligue.<br><br><strong style="color:var(--gold)">🏅 Médailles du podium (top 3)</strong> — distribuées uniquement dans les leagues ayant au moins <strong style="color:var(--text)">40 RP</strong> ayant payé leur buy-in au démarrage de la période. En dessous de 40, le buy-in et le prize pool continuent normalement, mais pas de médaille permanente ce mois-là.',
+    'rules.leagues.body'        : 'Chaque RP est placé dans une League selon son niveau.<br>10 niveaux de <strong style="color:#8090a0">Fer</strong> à <strong style="color:#f5c842">Or</strong>.<br>En fin de période, chaque RP est <strong style="color:var(--text)">reclassé</strong> dans la League correspondant à ses points.<br>Le <strong style="color:var(--gold)">buy-in</strong> RPC de chaque RP constitue le prize pool redistribué en fonction du nombre de participants dans la ligue.<br><br><strong style="color:var(--gold)">🏅 Médailles du podium (top 3)</strong> — distribuées dans les leagues ayant au moins <strong style="color:var(--text)">40 RP</strong> compétiteurs.',
     // — Bloc Lands
     // — Bloc Infirmerie
     'rules.inf.title'           : '🏥 <span class="hl">Infirmerie</span>',
-    'rules.inf.body'            : 'En cas de blessure ou indisponibilité, déclare-toi en infirmerie depuis ta Player Card.<br>Choisis ta durée — décision <strong style="color:var(--red)">DÉFINITIVE</strong> (pas de reprise anticipée).<br><br><strong style="color:var(--gold)">Pendant l\'infirmerie :</strong><br>• Aucune course ne peut être enregistrée<br>• <strong style="color:var(--text)">Immunité totale au Gel</strong> dès le 1er jour<br>• À partir de <strong style="color:var(--text)">10 jours</strong> : ta position de ligue est protégée, pas de descente possible même à 0 point<br>• En dessous de 10 jours : classement normal, descente possible si le compte n\'y est pas<br>• Tu gardes tes récompenses<br>• Ta chaîne de connexion <strong style="color:var(--text)">n\'est pas gelée</strong> : continue à te connecter chaque jour (même blessé) pour la garder, sinon elle se casse<br><br><strong style="color:var(--gold)">Sortie :</strong> à la fin de l\'infirmerie, tu retrouves directement ta ligue actuelle en évaluation normale — pas de statut intermédiaire.<br><br><strong style="color:var(--gold)">Plafond :</strong> 2 activations max, 60 jours cumulés max, par période de 12 mois.',
+    'rules.inf.body'            : 'En cas de blessure ou indisponibilité, déclare-toi en infirmerie depuis ton profil.<br>Tu en sors quand tu veux, dès que tu te sens prêt à reprendre la course.<br><br><strong style="color:var(--gold)">Pendant l\'infirmerie :</strong><br>• Aucune course ne peut être enregistrée<br>• <strong style="color:var(--text)">Immunité totale au Gel</strong> dès le 1er jour<br>• À partir de <strong style="color:var(--text)">10 jours</strong> : ta position de ligue est protégée, pas de descente possible<br>• En dessous de 10 jours : classement normal, descente possible si le compte n\'y est pas<br>• Tu gardes tes récompenses<br><br><strong style="color:var(--gold)">Sortie :</strong> à la fin de l\'infirmerie, tu retrouves directement ta ligue actuelle en évaluation normale.<br><br><strong style="color:var(--gold)">Plafond :</strong> 2 activations max par période de 12 mois.',
     // — Bloc Activité & relégation
     'rules.releg.title'         : '📉 <span class="hl">Activité &amp; relégation</span>',
     'rules.releg.body'          : '<strong style="color:var(--gold)">🏆 40 pts minimum / période</strong> — Pour rester actif sportivement et faire profiter ta team de ton bonus de 2%, fait au moins 40 pts par période.<br><br><strong style="color:var(--gold)">Descente protégée :</strong> au rollover, un RP ne peut descendre que d\'<strong style="color:var(--text)">une league</strong> par période.<br><br><strong style="color:var(--gold)">RP fantôme (0 pt) :</strong> descente 1 league + devient <strong style="color:var(--text)">invisible</strong> dans le classement. 2ème période consécutive à 0 pt → retour au <strong style="color:var(--text)">départ du jeu, Zone Starter et calibrage</strong>.',
     // — Bloc Monnaies
     'rules.coins.title'         : '💰 Les <span class="hl">Monnaies</span>',
-    'rules.coins.body'          : '<strong style="color:var(--gold)">💰 RPC</strong> — gagnés en courant et via les Lands. Utilisés pour le buy-in, les Étoiles, les loyers.<br><br><strong style="color:var(--green)">💎 NYX</strong> — monnaie Premium. Utilisée pour les Lands, les Boosts et les Licences Team.',
+    'rules.coins.body'          : '<strong style="color:var(--gold)">💰 RPC</strong> — gagnés en courant, grâce au Speedix Tour, les défis, les challenges. Utilisés pour le buy-in, les Étoiles, les locations, les loyers.<br><br><strong style="color:var(--green)">💎 NYX</strong> — monnaie Premium. Utilisée pour les Lands, les Boosts et les Licences Team.',
     // — Bloc Grades
     'rules.grades.title'        : '🎖️ Les <span class="hl">Grades</span>',
     'rules.grades.body'         : 'Ton grade reflète ton engagement global — points cumulés, Lands, ancienneté.<br>6 niveaux : <strong style="color:#8090b0">Starter</strong> · <strong style="color:#4a90ff">Débutant</strong> · <strong style="color:#2ddb80">Confirmé</strong> · <strong style="color:#f5c842">Expert</strong> · <strong style="color:#ff6020">Pro</strong> · <strong style="color:#9060f0">Elite</strong>.<br>Il détermine la couleur de ton <strong style="color:var(--text)">avatar dans le classement</strong>.',
     // — Bloc Teams
     'rules.teams.title'         : '🦁 Les <span class="hl">Teams</span>',
-    'rules.teams.body'          : 'Crée ou rejoins une Team de <strong style="color:var(--text)">6 à 20 RP</strong>.<br>Score Team = moyenne des <strong style="color:var(--text)">6 meilleurs</strong> + bonus par RP supp.<br>Bonus = <strong style="color:var(--green)">+2%</strong> par RP au-delà des 6 meilleurs, à condition d\'avoir <strong style="color:var(--text)">≥ 40 pts</strong> sur la période.<br>⚠️ Un RP qui rejoint une team <strong style="color:var(--text)">après le 10 du mois</strong> ne contribue au score qu\'à partir de la <strong style="color:var(--text)">période suivante</strong> (anti-recrutement de dernière minute).<br>Podium récompensé en <strong style="color:var(--gold)">RPC</strong> + <strong style="color:var(--green)">NYX</strong> + médaille permanente sur la PC.',
+    'rules.teams.body'          : 'Crée ou rejoins une Team de <strong style="color:var(--text)">6 à 20 RP</strong>.<br>Score Team = moyenne des <strong style="color:var(--text)">6 meilleurs</strong> + bonus par RP supp.<br>Bonus = <strong style="color:var(--green)">+2%</strong> par RP au-delà des 6 meilleurs, à condition d\'avoir <strong style="color:var(--text)">≥ 40 pts</strong> sur la période.<br>⚠️ Un RP qui rejoint une team <strong style="color:var(--text)">après le 10 du mois</strong> ne contribue au score qu\'à partir de la <strong style="color:var(--text)">période suivante</strong>.<br>Podium récompensé en <strong style="color:var(--gold)">RPC</strong> + <strong style="color:var(--green)">NYX</strong> + médaille permanente sur la PC.',
     // — Bloc Bonus & Connexion
     'rules.bonus.title'         : '⚡ Bonus & <span class="hl">Connexion</span>',
-    'rules.bonus.body'          : '<strong style="color:var(--text)">Chaîne de connexion</strong> — connecte-toi chaque jour pour maintenir ta chaîne et réclamer un bonus RPC. Un jour raté remet la chaîne à zéro avec une baisse des récompenses.<br><br><strong style="color:var(--text)">Boost</strong> — <strong style="color:var(--green)">+10%</strong> de points sur les 24h suivantes.<br><strong style="color:var(--text)">Gel</strong> — <strong style="color:#4ac8ff">-5%</strong> de points sur les 24h suivantes.',
+    'rules.bonus.body'          : '<strong style="color:var(--text)">Chaîne de connexion</strong> — connecte-toi chaque jour pour maintenir ta chaîne et réclamer un bonus RPC. Un jour raté remet la chaîne à zéro avec une baisse des récompenses. 5 échecs et la chaîne est définitivement terminée.<br><br><strong style="color:var(--text)">Boost</strong> — <strong style="color:var(--green)">+10%</strong> de points sur les 24h suivantes.<br><strong style="color:var(--text)">Gel</strong> — <strong style="color:#4ac8ff">-5%</strong> de points sur les 24h suivantes.',
     // — Bloc Parrainage
     'rules.sponsor.title'       : '🤝 Parrainage — <span class="hl">Titres de noblesse</span>',
     'rules.sponsor.body'        : 'Parraine de nouveaux RP et obtiens ton <strong style="color:var(--gold)">titre de noblesse</strong> dans SPEEDIX.<br><strong style="color:#c050d0">Ambassadeur</strong> — 10 parrainages<br><strong style="color:var(--green)">Gouverneur</strong> — 20 parrainages<br><strong style="color:var(--gold)">Empereur</strong> — 30 parrainages et +<br><strong style="color:#1090e0">Fondateur</strong> — 40 parrainages et +',
     // — Bloc Pirate
-    'rules.pirate.title'        : '🏴‍☠️ Île du <span style="color:var(--red)">Pirate</span> — Tolérance zéro',
-    'rules.pirate.body'         : 'SPEEDIX est un jeu basé sur l\'<strong style="color:var(--text)">effort réel</strong>. Toute tentative de triche est détectée et sanctionnée immédiatement.<br><br><strong style="color:var(--text)">Sont considérées comme triche :</strong> vitesse supérieure à <strong style="color:var(--text)">20 km/h</strong> (vélo, voiture, transport), activités importées manuellement sans trace GPS cohérente, manipulation de données Strava/Garmin.<br><br><strong style="color:var(--red)">Conséquences progressives :</strong><br><strong style="color:var(--text)">1ère triche</strong> — exil sur l\'Île du Pirate, jeu en pause pendant <strong style="color:var(--text)">1 période</strong> : aucun point comptabilisé, aucune League.<br><strong style="color:var(--text)">2ème triche</strong> — exil prolongé de <strong style="color:var(--text)">6 périodes</strong>.<br>💀 <strong style="color:var(--text)">3ème triche</strong> — perte de l\'ID unique, de la Player Card, de toutes les Lands et de l\'intégralité des acquis dans le jeu.<br><br><em style="color:var(--muted)">SPEEDIX met en valeur les athlètes honnêtes et fair-play. Chaque effort est récompensé parce que tu le mérites.</em>',
+    'rules.pirate.title'        : '🪑 Banc de <span style="color:var(--red)">touche</span> — Tolérance zéro',
+    'rules.pirate.body'         : 'SPEEDIX est un jeu basé sur l\'<strong style="color:var(--text)">effort réel</strong>. Toute tentative de triche est détectée et sanctionnée immédiatement.<br><br><strong style="color:var(--text)">Sont considérées comme triche :</strong> vitesse moyenne supérieure à <strong style="color:var(--text)">20km/h</strong> (vélo, voiture, transport), activités importées manuellement sans trace GPS cohérente, manipulation de données de course.<br><br><strong style="color:var(--red)">Conséquences progressives :</strong><br><strong style="color:var(--text)">1ère triche</strong> — mis au banc de touche, jeu en pause pendant <strong style="color:var(--text)">1 période</strong> : aucun point comptabilisé, aucune League.<br><strong style="color:var(--text)">2ème triche</strong> — banc de touche prolongé de <strong style="color:var(--text)">3 périodes</strong>.<br>💀 <strong style="color:var(--text)">3ème triche</strong> — perte de l\'ID unique, de la Player Card, de toutes les Lands et de l\'intégralité des acquis dans le jeu.<br><br><em style="color:var(--muted)">SPEEDIX met en valeur les athlètes honnêtes et fair-play. Chaque effort est récompensé parce que tu le mérites.</em>',
     // — Bloc Préférences confidentialité
     // — Page CGU/CGV/Mentions légales
     'legal.page.title'          : '<span style="color:var(--text)">CGV</span> <span style="color:var(--gold)">/ CGU</span>',
     'legal.contact.title'       : '📧 Nous <span class="hl">contacter</span>',
     'legal.contact.body'        : 'Email : <strong style="color:var(--text)">contact@speedixleague.com</strong><br>Site : <strong style="color:var(--text)">https://speedixleague.com</strong>',
     'legal.cgu.title'           : '📋 Conditions Générales d\'<span class="hl">Utilisation</span>',
-    'legal.cgu.body'            : '<strong style="color:var(--text)">1. Objet</strong><br>SPEEDIX League est une plateforme de gamification de la course à pied. Les présentes CGU régissent l\'utilisation du site speedixleague.com et de ses services.<br><br><strong style="color:var(--text)">2. Inscription</strong><br>L\'inscription est gratuite et ouverte à toute personne physique <strong style="color:var(--text)">majeure (18 ans ou plus)</strong>. À l\'inscription, l\'utilisateur (ci-après "RP") certifie sur l\'honneur être majeur en cochant la case prévue à cet effet. L\'inscription d\'un mineur entraîne la suppression immédiate du compte sans préavis. Le RP s\'engage à fournir des informations exactes. Un seul compte par personne est autorisé. Le username doit respecter les bonnes mœurs.<br><br><strong style="color:var(--text)">3. Fonctionnement du jeu</strong><br>Les points sont calculés à partir des activités sportives réelles synchronisées via Strava ou Garmin. Les monnaies virtuelles (RPC et NYX) n\'ont aucune valeur monétaire réelle et ne peuvent être échangées contre de l\'argent. Les classements et récompenses sont basés sur les performances sportives réelles.<br><br><strong style="color:var(--text)">4. Fair-play et anti-triche</strong><br>Toute tentative de triche (vitesse irréaliste, GPS falsifié, multi-comptes, import GPX) est détectée et sanctionnée. Les sanctions sont progressives : 1 période d\'exclusion, puis 6 périodes, puis exclusion définitive avec perte de tous les acquis.<br><br><strong style="color:var(--text)">5. Données personnelles</strong><br>Les données collectées (email, username, nationalité, avatar, données sportives) sont utilisées uniquement pour le fonctionnement du jeu. Elles ne sont ni vendues ni partagées à des tiers commerciaux. Consulte la Politique de confidentialité (RGPD) pour le détail complet des traitements, destinataires et droits. L\'utilisateur peut demander la suppression de son compte et de ses données en contactant contact@speedixleague.com.<br><br><strong style="color:var(--text)">6. Propriété intellectuelle</strong><br>Le contenu du site (design, code, logos, blasons) est la propriété de SPEEDIX League. Toute reproduction est interdite sans autorisation.<br><br><strong style="color:var(--text)">7. Responsabilité</strong><br>SPEEDIX League ne peut être tenu responsable des blessures liées à la pratique sportive. L\'utilisateur pratique la course à pied sous sa propre responsabilité. Le service est fourni "tel quel" sans garantie de disponibilité permanente.<br><br><strong style="color:var(--text)">8. Modification des CGU</strong><br>SPEEDIX League se réserve le droit de modifier les présentes CGU. Les utilisateurs seront informés des modifications.',
+    'legal.cgu.body'            : '<strong style="color:var(--text)">1. Objet</strong><br>SPEEDIX League est une plateforme de gamification de la course à pied. Les présentes CGU régissent l\'utilisation du site speedixleague.com et de ses services.<br><br><strong style="color:var(--text)">2. Inscription</strong><br>L\'inscription est gratuite et ouverte à toute personne physique <strong style="color:var(--text)">majeure (18 ans ou plus)</strong>. À l\'inscription, l\'utilisateur (ci-après "RP") certifie sur l\'honneur être majeur en cochant la case prévue à cet effet. L\'inscription d\'un mineur entraîne la suppression immédiate du compte sans préavis. Le RP s\'engage à fournir des informations exactes. Un seul compte par personne est autorisé. Le username doit respecter les bonnes mœurs.<br><br><strong style="color:var(--text)">3. Fonctionnement du jeu</strong><br>Les points sont calculés à partir des activités sportives réelles synchronisées via Strava, Coros ou Intervals.icu. Les monnaies virtuelles (RPC et NYX) n\'ont aucune valeur monétaire réelle et ne peuvent être échangées contre de l\'argent. Les classements et récompenses sont basés sur les performances sportives réelles.<br><br><strong style="color:var(--text)">4. Fair-play et anti-triche</strong><br>Toute tentative de triche (vitesse irréaliste, GPS falsifié, multi-comptes, import GPX) est détectée et sanctionnée. Les sanctions sont progressives : 1 période d\'exclusion, puis 3 périodes, puis exclusion définitive avec perte de tous les acquis.<br><br><strong style="color:var(--text)">5. Données personnelles</strong><br>Les données collectées (email, username, nationalité, avatar, données sportives) sont utilisées uniquement pour le fonctionnement du jeu. Elles ne sont ni vendues ni partagées à des tiers commerciaux. Consulte la Politique de confidentialité (RGPD) pour le détail complet des traitements, destinataires et droits. L\'utilisateur peut demander la suppression de son compte et de ses données en contactant contact@speedixleague.com.<br><br><strong style="color:var(--text)">6. Propriété intellectuelle</strong><br>Le contenu du site (design, code, logos, blasons) est la propriété de SPEEDIX League. Toute reproduction est interdite sans autorisation.<br><br><strong style="color:var(--text)">7. Responsabilité</strong><br>SPEEDIX League ne peut être tenu responsable des blessures liées à la pratique sportive. L\'utilisateur pratique la course à pied sous sa propre responsabilité. Le service est fourni "tel quel" sans garantie de disponibilité permanente.<br><br><strong style="color:var(--text)">8. Modification des CGU</strong><br>SPEEDIX League se réserve le droit de modifier les présentes CGU. Les utilisateurs seront informés des modifications.',
     'legal.cgv.title'           : '💳 Conditions Générales de <span class="hl">Vente</span>',
     'legal.cgv.body'            : '<strong style="color:var(--text)">1. Services proposés</strong><br>SPEEDIX League propose un abonnement Premium optionnel à 5,99€/mois ou 59,99€/an. Le jeu de base est gratuit.<br><br><strong style="color:var(--text)">2. Abonnement Premium</strong><br>L\'abonnement Premium donne accès à : la consultation de tous les classements et Player Cards, le chat de team, le feed des amis, la recherche de RP, 5 boosts et 5 gels offerts par mois, 20 NYX et 15 000 RPC offerts par mois, la création de team privée offerte.<br><br><strong style="color:var(--text)">3. Essai gratuit</strong><br>Un essai gratuit de 15 jours est proposé une seule fois par utilisateur. L\'essai donne accès aux fonctionnalités de visualisation Premium mais pas aux récompenses mensuelles. L\'essai ne se transforme pas automatiquement en abonnement payant.<br><br><strong style="color:var(--text)">4. Paiement</strong><br>Le paiement est traité directement par l\'App Store d\'Apple (sur iOS) ou par le Google Play Store (sur Android), selon le système utilisé. L\'abonnement est renouvelé automatiquement sauf résiliation. La résiliation s\'effectue à tout moment depuis les réglages de ton compte Apple ou Google, ou en contactant contact@speedixleague.com.<br><br><strong style="color:var(--text)">5. Droit de rétractation</strong><br>Conformément à l\'article L221-28 du Code de la consommation, le droit de rétractation ne peut être exercé pour les contenus numériques fournis immédiatement après l\'achat. En acceptant l\'abonnement, l\'utilisateur renonce expressément à son droit de rétractation.<br><br><strong style="color:var(--text)">6. Remboursement</strong><br>Aucun remboursement n\'est prévu pour les périodes entamées. En cas de problème technique empêchant l\'utilisation du service, un avoir pourra être accordé sur demande à contact@speedixleague.com.<br><br><strong style="color:var(--text)">7. Monnaies virtuelles</strong><br>Les RPC et NYX sont des monnaies virtuelles internes au jeu. Elles n\'ont aucune valeur monétaire et ne peuvent en aucun cas être converties en argent réel ou transférées en dehors du jeu.',
     'legal.rgpd.title'          : '🔒 Politique de <span class="hl">Confidentialité</span> (RGPD)',
-    'legal.rgpd.body'           : '<strong style="color:var(--text)">1. Responsable du traitement</strong><br>SASU VDM Family, 115 rue Béranger, 80000 Amiens.<br>Contact : contact@speedixleague.com<br><br><strong style="color:var(--text)">2. Données collectées</strong><br>— <strong style="color:var(--text)">À l\'inscription</strong> : username, email, nationalité, mot de passe (chiffré), avatar, déclaration de majorité (18+), acceptation des CGU<br>— <strong style="color:var(--text)">Données sportives</strong> : activités de course importées via Strava/Garmin (distance, durée, vitesse, dénivelé, fréquence cardiaque, tracé GPS)<br>— <strong style="color:var(--text)">Données de jeu</strong> : points, classement, lands, passages, équipe, parrainages, réactions, commentaires, photos<br>— <strong style="color:var(--text)">Préférences</strong> : couleur de carte, configuration diverses<br>— <strong style="color:var(--text)">Données techniques</strong> : adresse IP, type de navigateur, logs serveur standards<br><br><strong style="color:var(--text)">3. Finalités du traitement</strong><br>Les données sont collectées pour : le fonctionnement du jeu et le calcul des classements, la gestion du compte utilisateur, la détection de triche, l\'amélioration du service.<br><br><strong style="color:var(--text)">4. Base légale</strong><br>Le traitement est basé sur le consentement de l\'utilisateur (inscription volontaire) et l\'exécution du contrat (CGU acceptées).<br><br><strong style="color:var(--text)">5. Durée de conservation</strong><br>— <strong style="color:var(--text)">Compte et données de jeu</strong> : conservés pendant toute la durée d\'utilisation du compte. En cas de suppression du compte, les données sont effacées sous 30 jours.<br>— <strong style="color:var(--text)">Données de facturation</strong> : conservées 10 ans (obligation légale).<br><br><strong style="color:var(--text)">6. Partage des données</strong><br>Les données ne sont ni vendues ni louées à des tiers commerciaux. Elles sont partagées uniquement avec :<br>— <strong style="color:var(--text)">Supabase</strong> (hébergement base de données et Edge Functions, Etats-Unis / Union Européenne)<br>— <strong style="color:var(--text)">Strava / Garmin</strong> (synchronisation des activités, avec consentement OAuth explicite)<br>— <strong style="color:var(--text)">Apple App Store / Google Play Store</strong> (traitement des paiements et abonnements, selon le système d\'exploitation de l\'utilisateur)<br>— <strong style="color:var(--text)">GitHub Pages</strong> (hébergement du site)<br><br><strong style="color:var(--text)">7. Cookies</strong><br>Le site utilise le localStorage du navigateur pour stocker la session utilisateur et les préférences. Aucun cookie tiers publicitaire n\'est utilisé.<br><br><strong style="color:var(--text)">8. Vos droits (RGPD)</strong><br>Conformément au Règlement Général sur la Protection des Données, vous disposez des droits suivants :<br>— <strong style="color:var(--text)">Droit d\'accès</strong> : obtenir une copie de vos données personnelles<br>— <strong style="color:var(--text)">Droit de rectification</strong> : corriger vos données inexactes<br>— <strong style="color:var(--text)">Droit à l\'effacement</strong> : demander la suppression de votre compte et données<br>— <strong style="color:var(--text)">Droit à la portabilité</strong> : recevoir vos données dans un format lisible<br>— <strong style="color:var(--text)">Droit d\'opposition</strong> : vous opposer au traitement de vos données<br><br>Pour exercer ces droits : <strong style="color:var(--text)">contact@speedixleague.com</strong><br><br><strong style="color:var(--text)">9. Mineurs</strong><br>SPEEDIX League est strictement réservé aux personnes <strong style="color:var(--text)">majeures (18 ans ou plus)</strong>. La majorité est déclarée sur l\'honneur à l\'inscription (case à cocher obligatoire). Aucune donnée de mineur n\'est volontairement collectée. Si un compte de mineur est identifié, il sera supprimé sans préavis, avec effacement immédiat de toutes les données associées. Pour signaler un compte de mineur : <strong style="color:var(--text)">contact@speedixleague.com</strong>.<br><br><strong style="color:var(--text)">10. Sécurité</strong><br>Les mots de passe sont chiffrés. Les communications sont sécurisées via HTTPS. L\'accès à la base de données est protégé par des politiques de sécurité (RLS). Les tokens Strava/Garmin sont stockés de manière sécurisée.<br><br><strong style="color:var(--text)">11. Réclamation</strong><br>En cas de litige, vous pouvez adresser une réclamation à la CNIL (Commission Nationale de l\'Informatique et des Libertés) : <strong style="color:var(--text)">www.cnil.fr</strong>',
+    'legal.rgpd.body'           : '<strong style="color:var(--text)">1. Responsable du traitement</strong><br>SASU VDM Family, 115 rue Béranger, 80000 Amiens.<br>Contact : contact@speedixleague.com<br><br><strong style="color:var(--text)">2. Données collectées</strong><br>— <strong style="color:var(--text)">À l\'inscription</strong> : username, email, nationalité, mot de passe (chiffré), avatar, déclaration de majorité (18+), acceptation des CGU<br>— <strong style="color:var(--text)">Données sportives</strong> : activités de course importées via Strava/Coros/Intervals.icu (distance, durée, vitesse, dénivelé, fréquence cardiaque, tracé GPS)<br>— <strong style="color:var(--text)">Données de jeu</strong> : points, classement, lands, passages, équipe, parrainages, réactions, commentaires, photos<br>— <strong style="color:var(--text)">Préférences</strong> : couleur de carte, configuration diverses<br>— <strong style="color:var(--text)">Données techniques</strong> : adresse IP, type de navigateur, logs serveur standards<br><br><strong style="color:var(--text)">3. Finalités du traitement</strong><br>Les données sont collectées pour : le fonctionnement du jeu et le calcul des classements, la gestion du compte utilisateur, la détection de triche, l\'amélioration du service.<br><br><strong style="color:var(--text)">4. Base légale</strong><br>Le traitement est basé sur le consentement de l\'utilisateur (inscription volontaire) et l\'exécution du contrat (CGU acceptées).<br><br><strong style="color:var(--text)">5. Durée de conservation</strong><br>— <strong style="color:var(--text)">Compte et données de jeu</strong> : conservés pendant toute la durée d\'utilisation du compte. En cas de suppression du compte, les données sont effacées sous 30 jours.<br>— <strong style="color:var(--text)">Données de facturation</strong> : conservées 10 ans (obligation légale).<br><br><strong style="color:var(--text)">6. Partage des données</strong><br>Les données ne sont ni vendues ni louées à des tiers commerciaux. Elles sont partagées uniquement avec :<br>— <strong style="color:var(--text)">Supabase</strong> (hébergement base de données et Edge Functions, Etats-Unis / Union Européenne)<br>— <strong style="color:var(--text)">Strava / Coros / Intervals.icu</strong> (synchronisation des activités, avec consentement OAuth explicite)<br>— <strong style="color:var(--text)">Apple App Store / Google Play Store</strong> (traitement des paiements et abonnements, selon le système d\'exploitation de l\'utilisateur)<br>— <strong style="color:var(--text)">GitHub Pages</strong> (hébergement du site)<br><br><strong style="color:var(--text)">7. Cookies</strong><br>Le site utilise le localStorage du navigateur pour stocker la session utilisateur et les préférences. Aucun cookie tiers publicitaire n\'est utilisé.<br><br><strong style="color:var(--text)">8. Vos droits (RGPD)</strong><br>Conformément au Règlement Général sur la Protection des Données, vous disposez des droits suivants :<br>— <strong style="color:var(--text)">Droit d\'accès</strong> : obtenir une copie de vos données personnelles<br>— <strong style="color:var(--text)">Droit de rectification</strong> : corriger vos données inexactes<br>— <strong style="color:var(--text)">Droit à l\'effacement</strong> : demander la suppression de votre compte et données<br>— <strong style="color:var(--text)">Droit à la portabilité</strong> : recevoir vos données dans un format lisible<br>— <strong style="color:var(--text)">Droit d\'opposition</strong> : vous opposer au traitement de vos données<br><br>Pour exercer ces droits : <strong style="color:var(--text)">contact@speedixleague.com</strong><br><br><strong style="color:var(--text)">9. Mineurs</strong><br>SPEEDIX League est strictement réservé aux personnes <strong style="color:var(--text)">majeures (18 ans ou plus)</strong>. La majorité est déclarée sur l\'honneur à l\'inscription (case à cocher obligatoire). Aucune donnée de mineur n\'est volontairement collectée. Si un compte de mineur est identifié, il sera supprimé sans préavis, avec effacement immédiat de toutes les données associées. Pour signaler un compte de mineur : <strong style="color:var(--text)">contact@speedixleague.com</strong>.<br><br><strong style="color:var(--text)">10. Sécurité</strong><br>Les mots de passe sont chiffrés. Les communications sont sécurisées via HTTPS. L\'accès à la base de données est protégé par des politiques de sécurité (RLS). Les tokens Strava/Coros/Intervals.icu sont stockés de manière sécurisée.<br><br><strong style="color:var(--text)">11. Réclamation</strong><br>En cas de litige, vous pouvez adresser une réclamation à la CNIL (Commission Nationale de l\'Informatique et des Libertés) : <strong style="color:var(--text)">www.cnil.fr</strong>',
     'legal.mentions.title'      : '⚖️ Mentions <span class="hl">légales</span>',
     'legal.mentions.body'       : '<strong style="color:var(--text)">Éditeur</strong><br>SASU VDM Family<br>115 rue Béranger, 80000 Amiens, France<br>RCS Amiens 752 957 464<br>TVA intracommunautaire : FR36752957464<br>Contact : contact@speedixleague.com<br><br><strong style="color:var(--text)">Hébergement</strong><br>GitHub Pages (GitHub, Inc.)<br>88 Colin P Kelly Jr St, San Francisco, CA 94107, USA<br><br><strong style="color:var(--text)">Base de données</strong><br>Supabase, Inc.<br><br><strong style="color:var(--text)">Domaine</strong><br>speedixleague.com — enregistré chez IONOS<br><br><strong style="color:var(--text)">Droit applicable</strong><br>Droit français. Tout litige sera soumis aux tribunaux compétents.',
     'legal.lastupdate'          : 'Dernière mise à jour : avril 2026',
@@ -6865,7 +6865,7 @@ const I18N = {
     'faq.q.9' : 'Combien de temps pour qu\'une course Strava remonte ?',
     'faq.a.9' : 'En général <strong>moins d\'une minute</strong> après la fin de ta course (dès que Strava la valide). Si tu attends plus de 5 min, ferme et rouvre l\'app pour forcer le refresh.',
     'faq.q.10': 'Je n\'ai pas Strava, je peux jouer ?',
-    'faq.a.10': 'Strava est <strong>obligatoire</strong> pour valider tes kilomètres et garantir l\'équité du classement. Crée un compte gratuit sur <strong>strava.com</strong>, connecte une montre (Garmin, Apple Watch, Coros, Polar...) ou utilise l\'app Strava sur ton téléphone pour tracker tes runs.',
+    'faq.a.10': 'Oui ! Une synchronisation via <strong>Strava, Coros ou Intervals.icu</strong> est nécessaire pour valider tes kilomètres et garantir l\'équité du classement, mais Strava n\'est pas obligatoire. Montre Coros → connecte-la directement. Montre Garmin, Polar ou Suunto → passe par <strong>intervals.icu</strong> (gratuit) qui la connecte pour toi. Pas de montre → Strava reste le plus simple : compte gratuit sur <strong>strava.com</strong> et l\'app sur ton téléphone.',
     'faq.q.11': 'Strava me demande mon mot de passe ?',
     'faq.a.11': 'C\'est <strong>l\'écran officiel Strava</strong>, pas un écran SPEEDIX. SPEEDIX ne voit JAMAIS ton mot de passe Strava — on reçoit juste une autorisation pour lire tes courses. Tu peux révoquer cette autorisation à tout moment dans les paramètres Strava.',
     'faq.q.12': 'J\'ai déconnecté Strava puis reconnecté, certaines courses sont en double ?',
@@ -7056,8 +7056,8 @@ const I18N = {
     'gender.female'             : 'Female',
     'gender.other'              : 'Other',
     // — Availability (infirmary)
-    'avail.in.singular'         : '🏥 In infirmary · {n} day left',
-    'avail.in.plural'           : '🏥 In infirmary · {n} days left',
+    'avail.in.singular'         : '🏥 In infirmary for {n} day',
+    'avail.in.plural'           : '🏥 In infirmary for {n} days',
     'avail.in.desc'             : 'No runs recorded, total Gel immunity. From 10 days onward, your league position is protected (no relegation).',
     'avail.in.manage'           : 'Manage my infirmary',
     'avail.off.desc'            : 'If injured or unavailable, check into the infirmary. Gel immunity from day 1; from 10 days onward, your league position is protected.',
@@ -7323,7 +7323,7 @@ const I18N = {
     'rules.page.subtitle'       : 'SPEEDIX League — How to play?',
     // — Principle block
     'rules.principle.title'     : '🏃 The <span class="hl">principle</span>',
-    'rules.principle.body'      : 'SPEEDIX is a gamification of running.<br>Sync your activities via <strong style="color:var(--text)">Strava or Garmin</strong> — each run earns <strong style="color:var(--gold)">points</strong>.<br>Points determine your ranking in your <strong style="color:var(--text)">League</strong>.<br>A <strong style="color:var(--text)">Period = 1 month</strong>. Rankings reset, your record stays.',
+    'rules.principle.body'      : 'SPEEDIX is a gamification of running.<br>Sync your activities via <strong style="color:var(--text)">Strava/Coros/Intervals</strong> — each run earns <strong style="color:var(--gold)">points</strong>.<br>Points determine your ranking in your <strong style="color:var(--text)">League</strong>.<br>A <strong style="color:var(--text)">Period = 1 month</strong>. Rankings reset, your record stays.',
     // — Points block
     'rules.points.title'        : '⭐ The <span class="hl">points</span>',
     'rules.points.body'         : 'Calculated from your <strong style="color:var(--text)">distance</strong>, your <strong style="color:var(--text)">speed</strong> and your <strong style="color:var(--text)">elevation</strong>.<br>The formula is <strong style="color:var(--gold)">secret</strong> — it rewards overall effort.<br>A <strong style="color:var(--text)">Boost</strong> adds <strong style="color:var(--green)">+10%</strong> for 24h.<br>A <strong style="color:var(--text)">Freeze</strong> slows you by <strong style="color:#6ec3ff">-5%</strong> for 24h.<br><strong>Average</strong> speed &gt; 20 km/h = activity <strong style="color:var(--red)">invalidated</strong> 🏴‍☠️',
@@ -7332,43 +7332,43 @@ const I18N = {
     'rules.starter.body'        : 'Every new RP starts in the Starter Zone.<br>Warm-up phase: no competition, no podium, no rewards.<br>Past <strong style="color:var(--gold)">500 pts</strong>, the RP enters a League.<br>They climb based on their level until the end of the period.<br>The next period, called <strong style="color:#ffffff">calibration</strong> <span style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:3px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.4);font-family:\'Bebas Neue\',sans-serif;font-size:.65rem;font-weight:700;color:#ffffff;line-height:1;vertical-align:middle">C</span>, the climb is still open to lock in the RP\'s real level. No buy-in, no podium, no prize pool.<br>The following period, the <strong style="color:var(--green)">official competition</strong> begins with podiums, medals and prize pool.',
     // — Leagues block
     'rules.leagues.title'       : '🏆 The <span class="hl">Leagues</span>',
-    'rules.leagues.body'        : 'Each RP is placed in a League based on level.<br>10 tiers from <strong style="color:#8090a0">Iron</strong> to <strong style="color:#f5c842">Gold</strong>.<br>At the end of each period, each RP is <strong style="color:var(--text)">re-ranked</strong> into the League matching their points.<br>The RPC <strong style="color:var(--gold)">buy-in</strong> of each RP forms the prize pool distributed based on the number of participants in the league.<br><br><strong style="color:var(--gold)">🏅 Podium medals (top 3)</strong> — only awarded in leagues with at least <strong style="color:var(--text)">40 RPs</strong> who paid their buy-in at the start of the period. Below 40, the buy-in and prize pool still work normally, but no permanent medal that month.',
+    'rules.leagues.body'        : 'Each RP is placed in a League based on level.<br>10 tiers from <strong style="color:#8090a0">Iron</strong> to <strong style="color:#f5c842">Gold</strong>.<br>At the end of each period, each RP is <strong style="color:var(--text)">re-ranked</strong> into the League matching their points.<br>The RPC <strong style="color:var(--gold)">buy-in</strong> of each RP forms the prize pool distributed based on the number of participants in the league.<br><br><strong style="color:var(--gold)">🏅 Podium medals (top 3)</strong> — awarded in leagues with at least <strong style="color:var(--text)">40</strong> competing RPs.',
     // — Lands block
     // — Infirmary block
     'rules.inf.title'           : '🏥 <span class="hl">Infirmary</span>',
-    'rules.inf.body'            : 'If you\'re injured or unavailable, check into the infirmary from your Player Card.<br>Choose your duration — decision is <strong style="color:var(--red)">FINAL</strong> (no early return).<br><br><strong style="color:var(--gold)">While in the infirmary:</strong><br>• No runs can be recorded<br>• <strong style="color:var(--text)">Total Gel immunity</strong> from day 1<br>• From <strong style="color:var(--text)">10 days</strong> onward: your league position is protected, no relegation possible even at 0 points<br>• Below 10 days: normal ranking rules apply, relegation possible if you fall short<br>• You keep your rewards<br>• Your login streak <strong style="color:var(--text)">is not frozen</strong>: keep logging in every day (even injured) to keep it, otherwise it breaks<br><br><strong style="color:var(--gold)">Return:</strong> once the infirmary ends, you go straight back to normal evaluation in your current league — no intermediate status.<br><br><strong style="color:var(--gold)">Cap:</strong> 2 activations max, 60 days total max, per 12-month period.',
+    'rules.inf.body'            : 'If you\'re injured or unavailable, check into the infirmary from your profile.<br>You leave whenever you want, as soon as you feel ready to run again.<br><br><strong style="color:var(--gold)">While in the infirmary:</strong><br>• No runs can be recorded<br>• <strong style="color:var(--text)">Total Gel immunity</strong> from day 1<br>• From <strong style="color:var(--text)">10 days</strong> onward: your league position is protected, no relegation possible<br>• Below 10 days: normal ranking rules apply, relegation possible if you fall short<br>• You keep your rewards<br><br><strong style="color:var(--gold)">Return:</strong> once you leave the infirmary, you go straight back to normal evaluation in your current league.<br><br><strong style="color:var(--gold)">Cap:</strong> 2 activations max per 12-month period.',
     // — Relegation block
     'rules.releg.title'         : '📉 <span class="hl">Activity &amp; relegation</span>',
     'rules.releg.body'          : '<strong style="color:var(--gold)">🏆 40 pts minimum / period</strong> — To stay sportively active and let your team benefit from your 2% bonus, earn at least 40 pts per period.<br><br><strong style="color:var(--gold)">Protected drop:</strong> at rollover, an RP can only drop <strong style="color:var(--text)">one league</strong> per period.<br><br><strong style="color:var(--gold)">Ghost RP (0 pt):</strong> 1-league drop + becomes <strong style="color:var(--text)">invisible</strong> in the ranking. 2nd consecutive period at 0 pt → back to <strong style="color:var(--text)">game start, Starter Zone and calibration</strong>.',
     // — Currencies block
     'rules.coins.title'         : '💰 The <span class="hl">currencies</span>',
-    'rules.coins.body'          : '<strong style="color:var(--gold)">💰 RPC</strong> — earned by running and via Lands. Used for buy-in, Stars, rent.<br><br><strong style="color:var(--green)">💎 NYX</strong> — Premium currency. Used for Lands, Boosts and Team Licenses.',
+    'rules.coins.body'          : '<strong style="color:var(--gold)">💰 RPC</strong> — earned by running, through the Speedix Tour, challenges and events. Used for buy-in, Stars, rentals, rent.<br><br><strong style="color:var(--green)">💎 NYX</strong> — Premium currency. Used for Lands, Boosts and Team Licenses.',
     // — Grades block
     'rules.grades.title'        : '🎖️ The <span class="hl">grades</span>',
     'rules.grades.body'         : 'Your grade reflects your overall commitment — total points, Lands, seniority.<br>6 tiers: <strong style="color:#8090b0">Starter</strong> · <strong style="color:#4a90ff">Beginner</strong> · <strong style="color:#2ddb80">Confirmed</strong> · <strong style="color:#f5c842">Expert</strong> · <strong style="color:#ff6020">Pro</strong> · <strong style="color:#9060f0">Elite</strong>.<br>It sets the color of your <strong style="color:var(--text)">avatar in the rankings</strong>.',
     // — Teams block
     'rules.teams.title'         : '🦁 The <span class="hl">Teams</span>',
-    'rules.teams.body'          : 'Create or join a Team of <strong style="color:var(--text)">6 to 20 RPs</strong>.<br>Team score = average of the <strong style="color:var(--text)">top 6</strong> + bonus per extra RP.<br>Bonus = <strong style="color:var(--green)">+2%</strong> per RP beyond the top 6, provided they have <strong style="color:var(--text)">≥ 40 pts</strong> in the period.<br>⚠️ An RP who joins a team <strong style="color:var(--text)">after the 10th of the month</strong> only contributes to the score starting from the <strong style="color:var(--text)">next period</strong> (anti last-minute recruiting).<br>Podium rewarded in <strong style="color:var(--gold)">RPC</strong> + <strong style="color:var(--green)">NYX</strong> + permanent medal on the PC.',
+    'rules.teams.body'          : 'Create or join a Team of <strong style="color:var(--text)">6 to 20 RPs</strong>.<br>Team score = average of the <strong style="color:var(--text)">top 6</strong> + bonus per extra RP.<br>Bonus = <strong style="color:var(--green)">+2%</strong> per RP beyond the top 6, provided they have <strong style="color:var(--text)">≥ 40 pts</strong> in the period.<br>⚠️ An RP who joins a team <strong style="color:var(--text)">after the 10th of the month</strong> only contributes to the score starting from the <strong style="color:var(--text)">next period</strong>.<br>Podium rewarded in <strong style="color:var(--gold)">RPC</strong> + <strong style="color:var(--green)">NYX</strong> + permanent medal on the PC.',
     // — Bonus & Login block
     'rules.bonus.title'         : '⚡ Bonus & <span class="hl">login</span>',
-    'rules.bonus.body'          : '<strong style="color:var(--text)">Login streak</strong> — log in every day to keep your streak and claim an RPC bonus. A missed day resets the streak to zero with a drop in rewards.<br><br><strong style="color:var(--text)">Boost</strong> — <strong style="color:var(--green)">+10%</strong> points over the next 24h.<br><strong style="color:var(--text)">Freeze</strong> — <strong style="color:#4ac8ff">-5%</strong> points over the next 24h.',
+    'rules.bonus.body'          : '<strong style="color:var(--text)">Login streak</strong> — log in every day to keep your streak and claim an RPC bonus. A missed day resets the streak to zero with a drop in rewards. 5 failures and the streak is definitively over.<br><br><strong style="color:var(--text)">Boost</strong> — <strong style="color:var(--green)">+10%</strong> points over the next 24h.<br><strong style="color:var(--text)">Freeze</strong> — <strong style="color:#4ac8ff">-5%</strong> points over the next 24h.',
     // — Referral block
     'rules.sponsor.title'       : '🤝 Referrals — <span class="hl">noble titles</span>',
     'rules.sponsor.body'        : 'Sponsor new RPs and earn your <strong style="color:var(--gold)">noble title</strong> in SPEEDIX.<br><strong style="color:#c050d0">Ambassador</strong> — 10 referrals<br><strong style="color:var(--green)">Governor</strong> — 20 referrals<br><strong style="color:var(--gold)">Emperor</strong> — 30+ referrals<br><strong style="color:#1090e0">Founder</strong> — 40+ referrals',
     // — Pirate block
-    'rules.pirate.title'        : '🏴‍☠️ <span style="color:var(--red)">Pirate</span> Island — Zero tolerance',
-    'rules.pirate.body'         : 'SPEEDIX is built on <strong style="color:var(--text)">real effort</strong>. Any cheating attempt is detected and sanctioned immediately.<br><br><strong style="color:var(--text)">What counts as cheating:</strong> speed above <strong style="color:var(--text)">20 km/h</strong> (bike, car, transport), manually imported activities without a coherent GPS trace, manipulating Strava/Garmin data.<br><br><strong style="color:var(--red)">Progressive consequences:</strong><br><strong style="color:var(--text)">1st cheat</strong> — exile to Pirate Island, game on pause for <strong style="color:var(--text)">1 period</strong>: no points counted, no League.<br><strong style="color:var(--text)">2nd cheat</strong> — exile extended to <strong style="color:var(--text)">6 periods</strong>.<br>💀 <strong style="color:var(--text)">3rd cheat</strong> — loss of unique ID, Player Card, all Lands and all in-game progress.<br><br><em style="color:var(--muted)">SPEEDIX rewards honest, fair-play athletes. Every effort is rewarded because you deserve it.</em>',
+    'rules.pirate.title'        : '🪑 <span style="color:var(--red)">Bench</span> — Zero tolerance',
+    'rules.pirate.body'         : 'SPEEDIX is built on <strong style="color:var(--text)">real effort</strong>. Any cheating attempt is detected and sanctioned immediately.<br><br><strong style="color:var(--text)">What counts as cheating:</strong> average speed above <strong style="color:var(--text)">20km/h</strong> (bike, car, transport), manually imported activities without a coherent GPS trace, manipulating run data.<br><br><strong style="color:var(--red)">Progressive consequences:</strong><br><strong style="color:var(--text)">1st cheat</strong> — benched, game on pause for <strong style="color:var(--text)">1 period</strong>: no points counted, no League.<br><strong style="color:var(--text)">2nd cheat</strong> — bench extended to <strong style="color:var(--text)">3 periods</strong>.<br>💀 <strong style="color:var(--text)">3rd cheat</strong> — loss of unique ID, Player Card, all Lands and all in-game progress.<br><br><em style="color:var(--muted)">SPEEDIX rewards honest, fair-play athletes. Every effort is rewarded because you deserve it.</em>',
     // — Privacy preferences block
     // — Legal page (Terms / Sale Terms / Privacy / Notices)
     'legal.page.title'          : '<span style="color:var(--text)">Legal</span> <span style="color:var(--gold)">Notices</span>',
     'legal.contact.title'       : '📧 <span class="hl">Contact</span> us',
     'legal.contact.body'        : 'Email: <strong style="color:var(--text)">contact@speedixleague.com</strong><br>Website: <strong style="color:var(--text)">https://speedixleague.com</strong>',
     'legal.cgu.title'           : '📋 Terms of <span class="hl">Use</span>',
-    'legal.cgu.body'            : '<strong style="color:var(--text)">1. Purpose</strong><br>SPEEDIX League is a running gamification platform. These Terms of Use govern the use of speedixleague.com and its services.<br><br><strong style="color:var(--text)">2. Sign-up</strong><br>Sign-up is free and open to any individual <strong style="color:var(--text)">aged 18 or over</strong>. At sign-up, the user (hereafter "RP") declares on their honor to be of legal age by checking the dedicated box. Sign-up by a minor leads to immediate account deletion without notice. The RP commits to providing accurate information. Only one account per person is allowed. The username must respect public decency.<br><br><strong style="color:var(--text)">3. How the game works</strong><br>Points are calculated from real sports activities synced via Strava or Garmin. The virtual currencies (RPC and NYX) have no real monetary value and cannot be exchanged for money. Rankings and rewards are based on real sports performances.<br><br><strong style="color:var(--text)">4. Fair-play and anti-cheating</strong><br>Any cheating attempt (unrealistic speed, GPS spoofing, multi-accounts, GPX import) is detected and sanctioned. Sanctions are progressive: 1 period of exclusion, then 6 periods, then permanent exclusion with loss of all progress.<br><br><strong style="color:var(--text)">5. Personal data</strong><br>The data collected (email, username, nationality, avatar, sports data) is used only for the game\'s operation. It is neither sold nor shared with commercial third parties. See the Privacy Policy (GDPR) for the full breakdown of processing, recipients and rights. The user can request deletion of their account and data by contacting contact@speedixleague.com.<br><br><strong style="color:var(--text)">6. Intellectual property</strong><br>The site\'s content (design, code, logos, crests) is the property of SPEEDIX League. Any reproduction is forbidden without authorization.<br><br><strong style="color:var(--text)">7. Liability</strong><br>SPEEDIX League cannot be held liable for injuries related to sports practice. The user runs at their own risk. The service is provided "as is" without any guarantee of permanent availability.<br><br><strong style="color:var(--text)">8. Changes to Terms</strong><br>SPEEDIX League reserves the right to modify these Terms. Users will be informed of changes.',
+    'legal.cgu.body'            : '<strong style="color:var(--text)">1. Purpose</strong><br>SPEEDIX League is a running gamification platform. These Terms of Use govern the use of speedixleague.com and its services.<br><br><strong style="color:var(--text)">2. Sign-up</strong><br>Sign-up is free and open to any individual <strong style="color:var(--text)">aged 18 or over</strong>. At sign-up, the user (hereafter "RP") declares on their honor to be of legal age by checking the dedicated box. Sign-up by a minor leads to immediate account deletion without notice. The RP commits to providing accurate information. Only one account per person is allowed. The username must respect public decency.<br><br><strong style="color:var(--text)">3. How the game works</strong><br>Points are calculated from real sports activities synced via Strava, Coros or Intervals.icu. The virtual currencies (RPC and NYX) have no real monetary value and cannot be exchanged for money. Rankings and rewards are based on real sports performances.<br><br><strong style="color:var(--text)">4. Fair-play and anti-cheating</strong><br>Any cheating attempt (unrealistic speed, GPS spoofing, multi-accounts, GPX import) is detected and sanctioned. Sanctions are progressive: 1 period of exclusion, then 3 periods, then permanent exclusion with loss of all progress.<br><br><strong style="color:var(--text)">5. Personal data</strong><br>The data collected (email, username, nationality, avatar, sports data) is used only for the game\'s operation. It is neither sold nor shared with commercial third parties. See the Privacy Policy (GDPR) for the full breakdown of processing, recipients and rights. The user can request deletion of their account and data by contacting contact@speedixleague.com.<br><br><strong style="color:var(--text)">6. Intellectual property</strong><br>The site\'s content (design, code, logos, crests) is the property of SPEEDIX League. Any reproduction is forbidden without authorization.<br><br><strong style="color:var(--text)">7. Liability</strong><br>SPEEDIX League cannot be held liable for injuries related to sports practice. The user runs at their own risk. The service is provided "as is" without any guarantee of permanent availability.<br><br><strong style="color:var(--text)">8. Changes to Terms</strong><br>SPEEDIX League reserves the right to modify these Terms. Users will be informed of changes.',
     'legal.cgv.title'           : '💳 Terms of <span class="hl">Sale</span>',
     'legal.cgv.body'            : '<strong style="color:var(--text)">1. Services offered</strong><br>SPEEDIX League offers an optional Premium subscription at €5.99/month or €59.99/year. The base game is free.<br><br><strong style="color:var(--text)">2. Premium subscription</strong><br>The Premium subscription gives access to: viewing all rankings and Player Cards, team chat, friends feed, RP search, 5 boosts and 5 freezes free per month, 20 NYX and 15,000 RPC free per month, free private team creation.<br><br><strong style="color:var(--text)">3. Free trial</strong><br>A 15-day free trial is offered once per user. The trial provides access to Premium viewing features but not to monthly rewards. The trial does not automatically convert into a paid subscription.<br><br><strong style="color:var(--text)">4. Payment</strong><br>Payment is handled directly by Apple\'s App Store (on iOS) or Google Play Store (on Android), depending on the system used. The subscription auto-renews unless cancelled. Cancellation is available at any time from your Apple or Google account settings, or by contacting contact@speedixleague.com.<br><br><strong style="color:var(--text)">5. Right of withdrawal</strong><br>In accordance with article L221-28 of the French Consumer Code, the right of withdrawal cannot be exercised for digital content delivered immediately after purchase. By accepting the subscription, the user expressly waives their right of withdrawal.<br><br><strong style="color:var(--text)">6. Refunds</strong><br>No refunds are offered for periods already started. In case of a technical issue preventing service use, a credit may be granted upon request to contact@speedixleague.com.<br><br><strong style="color:var(--text)">7. Virtual currencies</strong><br>RPC and NYX are virtual currencies internal to the game. They have no monetary value and can in no case be converted to real money or transferred outside the game.',
     'legal.rgpd.title'          : '🔒 <span class="hl">Privacy</span> Policy (GDPR)',
-    'legal.rgpd.body'           : '<strong style="color:var(--text)">1. Data controller</strong><br>SASU VDM Family, 115 rue Béranger, 80000 Amiens, France.<br>Contact: contact@speedixleague.com<br><br><strong style="color:var(--text)">2. Data collected</strong><br>— <strong style="color:var(--text)">At sign-up</strong>: username, email, nationality, password (encrypted), avatar, age declaration (18+), Terms acceptance<br>— <strong style="color:var(--text)">Sports data</strong>: running activities imported via Strava/Garmin (distance, duration, speed, elevation, heart rate, GPS trace)<br>— <strong style="color:var(--text)">Game data</strong>: points, ranking, lands, crossings, team, referrals, reactions, comments, photos<br>— <strong style="color:var(--text)">Preferences</strong>: map color, various configuration<br>— <strong style="color:var(--text)">Technical data</strong>: IP address, browser type, standard server logs<br><br><strong style="color:var(--text)">3. Processing purposes</strong><br>Data is collected for: game operation and ranking calculation, user account management, cheating detection, service improvement.<br><br><strong style="color:var(--text)">4. Legal basis</strong><br>Processing is based on user consent (voluntary sign-up) and contract performance (Terms accepted).<br><br><strong style="color:var(--text)">5. Retention period</strong><br>— <strong style="color:var(--text)">Account and game data</strong>: kept for the entire duration of account use. If the account is deleted, data is erased within 30 days.<br>— <strong style="color:var(--text)">Billing data</strong>: kept for 10 years (legal obligation).<br><br><strong style="color:var(--text)">6. Data sharing</strong><br>Data is neither sold nor rented to commercial third parties. It is shared only with:<br>— <strong style="color:var(--text)">Supabase</strong> (database and Edge Functions hosting, USA / European Union)<br>— <strong style="color:var(--text)">Strava / Garmin</strong> (activity sync, with explicit OAuth consent)<br>— <strong style="color:var(--text)">Apple App Store / Google Play Store</strong> (payment and subscription processing, depending on user\'s operating system)<br>— <strong style="color:var(--text)">GitHub Pages</strong> (site hosting)<br><br><strong style="color:var(--text)">7. Cookies</strong><br>The site uses the browser\'s localStorage to store the user session and preferences. No third-party advertising cookies are used.<br><br><strong style="color:var(--text)">8. Your rights (GDPR)</strong><br>In accordance with the General Data Protection Regulation, you have the following rights:<br>— <strong style="color:var(--text)">Right of access</strong>: obtain a copy of your personal data<br>— <strong style="color:var(--text)">Right of rectification</strong>: correct inaccurate data<br>— <strong style="color:var(--text)">Right of erasure</strong>: request deletion of your account and data<br>— <strong style="color:var(--text)">Right of portability</strong>: receive your data in a readable format<br>— <strong style="color:var(--text)">Right of objection</strong>: object to the processing of your data<br><br>To exercise these rights: <strong style="color:var(--text)">contact@speedixleague.com</strong><br><br><strong style="color:var(--text)">9. Minors</strong><br>SPEEDIX League is strictly reserved for people <strong style="color:var(--text)">aged 18 or over</strong>. Age is declared on honor at sign-up (mandatory checkbox). No minor data is intentionally collected. If a minor account is identified, it will be deleted without notice, with immediate erasure of all associated data. To report a minor account: <strong style="color:var(--text)">contact@speedixleague.com</strong>.<br><br><strong style="color:var(--text)">10. Security</strong><br>Passwords are encrypted. Communications are secured via HTTPS. Database access is protected by security policies (RLS). Strava/Garmin tokens are stored securely.<br><br><strong style="color:var(--text)">11. Complaints</strong><br>In case of dispute, you may file a complaint with the CNIL (French National Commission on Informatics and Liberty): <strong style="color:var(--text)">www.cnil.fr</strong>',
+    'legal.rgpd.body'           : '<strong style="color:var(--text)">1. Data controller</strong><br>SASU VDM Family, 115 rue Béranger, 80000 Amiens, France.<br>Contact: contact@speedixleague.com<br><br><strong style="color:var(--text)">2. Data collected</strong><br>— <strong style="color:var(--text)">At sign-up</strong>: username, email, nationality, password (encrypted), avatar, age declaration (18+), Terms acceptance<br>— <strong style="color:var(--text)">Sports data</strong>: running activities imported via Strava/Coros/Intervals.icu (distance, duration, speed, elevation, heart rate, GPS trace)<br>— <strong style="color:var(--text)">Game data</strong>: points, ranking, lands, crossings, team, referrals, reactions, comments, photos<br>— <strong style="color:var(--text)">Preferences</strong>: map color, various configuration<br>— <strong style="color:var(--text)">Technical data</strong>: IP address, browser type, standard server logs<br><br><strong style="color:var(--text)">3. Processing purposes</strong><br>Data is collected for: game operation and ranking calculation, user account management, cheating detection, service improvement.<br><br><strong style="color:var(--text)">4. Legal basis</strong><br>Processing is based on user consent (voluntary sign-up) and contract performance (Terms accepted).<br><br><strong style="color:var(--text)">5. Retention period</strong><br>— <strong style="color:var(--text)">Account and game data</strong>: kept for the entire duration of account use. If the account is deleted, data is erased within 30 days.<br>— <strong style="color:var(--text)">Billing data</strong>: kept for 10 years (legal obligation).<br><br><strong style="color:var(--text)">6. Data sharing</strong><br>Data is neither sold nor rented to commercial third parties. It is shared only with:<br>— <strong style="color:var(--text)">Supabase</strong> (database and Edge Functions hosting, USA / European Union)<br>— <strong style="color:var(--text)">Strava / Coros / Intervals.icu</strong> (activity sync, with explicit OAuth consent)<br>— <strong style="color:var(--text)">Apple App Store / Google Play Store</strong> (payment and subscription processing, depending on user\'s operating system)<br>— <strong style="color:var(--text)">GitHub Pages</strong> (site hosting)<br><br><strong style="color:var(--text)">7. Cookies</strong><br>The site uses the browser\'s localStorage to store the user session and preferences. No third-party advertising cookies are used.<br><br><strong style="color:var(--text)">8. Your rights (GDPR)</strong><br>In accordance with the General Data Protection Regulation, you have the following rights:<br>— <strong style="color:var(--text)">Right of access</strong>: obtain a copy of your personal data<br>— <strong style="color:var(--text)">Right of rectification</strong>: correct inaccurate data<br>— <strong style="color:var(--text)">Right of erasure</strong>: request deletion of your account and data<br>— <strong style="color:var(--text)">Right of portability</strong>: receive your data in a readable format<br>— <strong style="color:var(--text)">Right of objection</strong>: object to the processing of your data<br><br>To exercise these rights: <strong style="color:var(--text)">contact@speedixleague.com</strong><br><br><strong style="color:var(--text)">9. Minors</strong><br>SPEEDIX League is strictly reserved for people <strong style="color:var(--text)">aged 18 or over</strong>. Age is declared on honor at sign-up (mandatory checkbox). No minor data is intentionally collected. If a minor account is identified, it will be deleted without notice, with immediate erasure of all associated data. To report a minor account: <strong style="color:var(--text)">contact@speedixleague.com</strong>.<br><br><strong style="color:var(--text)">10. Security</strong><br>Passwords are encrypted. Communications are secured via HTTPS. Database access is protected by security policies (RLS). Strava/Coros/Intervals.icu tokens are stored securely.<br><br><strong style="color:var(--text)">11. Complaints</strong><br>In case of dispute, you may file a complaint with the CNIL (French National Commission on Informatics and Liberty): <strong style="color:var(--text)">www.cnil.fr</strong>',
     'legal.mentions.title'      : '⚖️ Legal <span class="hl">notices</span>',
     'legal.mentions.body'       : '<strong style="color:var(--text)">Publisher</strong><br>SASU VDM Family<br>115 rue Béranger, 80000 Amiens, France<br>RCS Amiens 752 957 464<br>EU VAT number: FR36752957464<br>Contact: contact@speedixleague.com<br><br><strong style="color:var(--text)">Hosting</strong><br>GitHub Pages (GitHub, Inc.)<br>88 Colin P Kelly Jr St, San Francisco, CA 94107, USA<br><br><strong style="color:var(--text)">Database</strong><br>Supabase, Inc.<br><br><strong style="color:var(--text)">Domain</strong><br>speedixleague.com — registered with IONOS<br><br><strong style="color:var(--text)">Applicable law</strong><br>French law. Any dispute will be submitted to the competent courts.',
     'legal.lastupdate'          : 'Last update: April 2026',
@@ -7627,7 +7627,7 @@ const I18N = {
     'faq.q.9' : 'How long for a Strava run to sync?',
     'faq.a.9' : 'Usually <strong>less than a minute</strong> after your run ends (as soon as Strava validates it). If you wait more than 5 min, close and reopen the app to force a refresh.',
     'faq.q.10': 'I don\'t have Strava, can I play?',
-    'faq.a.10': 'Strava is <strong>required</strong> to validate your kilometers and ensure ranking fairness. Create a free account on <strong>strava.com</strong>, connect a watch (Garmin, Apple Watch, Coros, Polar...) or use the Strava app on your phone to track your runs.',
+    'faq.a.10': 'Yes! A sync via <strong>Strava, Coros or Intervals.icu</strong> is required to validate your kilometers and ensure ranking fairness, but Strava isn\'t mandatory. Coros watch → connect it directly. Garmin, Polar or Suunto watch → go through <strong>intervals.icu</strong> (free), which connects it for you. No watch → Strava is the simplest option: free account on <strong>strava.com</strong> and the app on your phone.',
     'faq.q.11': 'Strava is asking for my password?',
     'faq.a.11': 'That\'s the <strong>official Strava screen</strong>, not a SPEEDIX one. SPEEDIX NEVER sees your Strava password — we just get an authorization to read your runs. You can revoke it anytime in your Strava settings.',
     'faq.q.12': 'I disconnected and reconnected Strava, some runs are duplicated?',
@@ -13425,7 +13425,11 @@ async function _processEndOfPeriodInner(){
   for(var ri=0;ri<allPlayers.length;ri++){
     var rpFull=allPlayers[ri];
     var rpInInf=rpFull.infirmerie_until && new Date(rpFull.infirmerie_until)>new Date();
-    var rpDurationDays=rpFull.infirmerie_duration_days||0;
+    // v2 (2026-09-19) : plus de durée pré-déclarée (sortie volontaire), donc
+    // calcul DYNAMIQUE du nombre de jours écoulés depuis le début de l'infirmerie
+    // en cours (infirmerie_started_at), au lieu de lire infirmerie_duration_days
+    // (qui n'est plus posé qu'à la SORTIE, dans l'historique — jamais pendant).
+    var rpDurationDays=rpFull.infirmerie_started_at?Math.floor((new Date()-new Date(rpFull.infirmerie_started_at))/(24*3600*1000)):0;
     if(rpInInf && rpDurationDays>=10){
       // Position protégée : league figée, toujours visible même à 0 pt.
       if(rpFull.is_visible===false){
@@ -19345,34 +19349,13 @@ async function loadInfirmerieData(){
   if(!currentUser) return;
   try {
     var {data:p}=await supabaseClient.from('players')
-      .select('infirmerie_until,infirmerie_started_at,infirmerie_duration_days,competitive')
+      .select('infirmerie_until,infirmerie_started_at,competitive')
       .eq('id',currentUser.id).single();
     if(p){
       window.__infirmerie.until=p.infirmerie_until||null;
       window.__infirmerie.startedAt=p.infirmerie_started_at||null;
-      window.__infirmerie.durationDays=p.infirmerie_duration_days||0;
-      // ── Transition sortie d'infirmerie ──
-      // Si infirmerie_until existe ET déjà passé → l'infirmerie s'est terminée
-      // (potentiellement hors-ligne). Action : passer le RP en statut R
-      // (competitive=false) et clear infirmerie_until pour ne pas re-trigger.
-      // Historique préservé via infirmerie_activations.
-      if(p.infirmerie_until && new Date(p.infirmerie_until)<=new Date()){
-        // calibration_period = période en cours : la logique de rotation (§4) exige
-        // ce champ non-null pour réévaluer un RP non-compétitif et le sortir du
-        // statut Reprise (sinon il reste bloqué en Reprise indéfiniment — bug vécu
-        // avec Dedel, corrigé 2026-08-01). On vise "jusqu'à la fin de la période en
-        // cours" : la valeur pointe donc sur la période EN COURS (pas +1), pour que
-        // la toute prochaine rotation (qui clôture cette période) le réévalue.
-        // infirmerie_process_expiry (2026-08-14) remplace le PATCH direct — même
-        // effet (competitive=false + calibration_period=période en cours), mais
-        // recalculé côté serveur.
-        await supabaseClient.rpc('infirmerie_process_expiry');
-        window.__infirmerie.until=null;
-        if(window.__myPlayer) window.__myPlayer.competitive=false;
-        showToast('🏥 Fin d\'infirmerie — tu es en mode Reprise (R) jusqu\'à la fin de la période');
-      }
     }
-    // Historique sur 12 mois pour calcul des quotas
+    // Historique sur 12 mois pour calcul du quota (2 activations/an)
     var oneYearAgo=new Date(Date.now()-365*24*3600*1000).toISOString();
     var {data:hist}=await supabaseClient.from('infirmerie_activations')
       .select('started_at,duration_days,ended_at')
@@ -19381,105 +19364,110 @@ async function loadInfirmerieData(){
   } catch(e){ console.warn('loadInfirmerieData fail',e); }
 }
 
-// True si une infirmerie est en cours (until > now).
+// True si une infirmerie est en cours (until > now). Sortie désormais TOUJOURS
+// volontaire (2026-09-19, v2 ON/OFF) : infirmerie_until est posé à +10 ans à
+// l'activation (juste un signal "actif" pour tout le reste du code, jamais
+// une vraie date de fin) — plus d'expiration passive à gérer ici.
 function isInInfirmerie(){
   var i=window.__infirmerie;
   if(!i||!i.until) return false;
   return new Date(i.until)>new Date();
 }
 
-// Quotas glissants 12 mois : 15j 2× · 30j 2× · 45j 1× · 60j 1× · plafond 2 activations totales.
-// Retourne {15:nb,30:nb,45:nb,60:nb,total:nb,canActivate:{15:bool,30:bool,45:bool,60:bool}}
-// Quota simplifié (2026-09-19) : 2 activations max / 365 jours glissants,
-// 60 jours cumulés max. Durée libre par activation (1 à 60j, dans la limite
-// du solde restant) — plus de paliers fixes 15/30/45/60.
+// Quota simplifié (2026-09-19, v2) : 2 activations max / 365 jours glissants,
+// AUCUNE limite de jours cumulés (durée libre à chaque activation, sortie
+// volontaire quand le RP se sent prêt — demande explicite).
 function getInfirmerieQuotaStatus(){
   var hist=(window.__infirmerie&&window.__infirmerie.history)||[];
   var activationsUsed=hist.length;
-  var daysUsed=hist.reduce(function(s,h){return s+(h.duration_days||0);},0);
   var activationsLeft=Math.max(0,2-activationsUsed);
-  var daysLeft=Math.max(0,60-daysUsed);
-  return {
-    activationsUsed:activationsUsed, activationsLeft:activationsLeft,
-    daysUsed:daysUsed, daysLeft:daysLeft,
-    canActivate:activationsLeft>0 && daysLeft>0
-  };
+  return {activationsUsed:activationsUsed, activationsLeft:activationsLeft, canActivate:activationsLeft>0};
 }
 
-// Ouvre le modal de choix durée + affiche les quotas restants.
+// Ouvre le modal infirmerie : soit l'état "en cours" (avec bouton Reprendre),
+// soit l'écran d'activation (plus de choix de durée, cf v2).
 function openInfirmerieModal(){
   if(!currentUser) return;
   if(window.__viewedPlayer){ showToast('👀 Mode consultation'); return; }
+  document.getElementById('lm-title').textContent='🏥 Infirmerie';
+  document.getElementById('lm-sub').textContent='Pause sportive volontaire';
   if(isInInfirmerie()){
     var i=window.__infirmerie;
-    var endDate=new Date(i.until);
-    var daysLeft=Math.ceil((endDate-new Date())/(24*3600*1000));
-    askConfirm(
-      'Tu es en infirmerie depuis le <strong>'+new Date(i.startedAt).toLocaleDateString(SPEEDIX_LANG)+'</strong>.<br>'
-      +'Durée choisie : <strong>'+i.durationDays+' jours</strong><br>'
-      +'Reste : <strong style="color:var(--gold)">'+daysLeft+' jour'+(daysLeft>1?'s':'')+'</strong><br><br>'
-      +'Sortie automatique le <strong>'+endDate.toLocaleDateString(SPEEDIX_LANG)+'</strong>.<br><br>'
-      +'<em style="color:var(--muted2)">Reprise anticipée impossible.</em>',
-      {title:'Infirmerie en cours', emoji:'🏥', okLabel:'OK'}
-    );
+    var startDate=new Date(i.startedAt);
+    var daysSoFar=Math.max(1,Math.ceil((new Date()-startDate)/(24*3600*1000)));
+    document.getElementById('lm-body').innerHTML=
+      '<div style="font-size:.8rem;color:var(--text);line-height:1.6;margin-bottom:.85rem">'
+      +'En infirmerie depuis le <strong style="color:var(--gold)">'+startDate.toLocaleDateString(SPEEDIX_LANG)+'</strong> (<strong style="color:var(--gold)">'+daysSoFar+' jour'+(daysSoFar>1?'s':'')+'</strong>).<br><br>'
+      +(daysSoFar>=10?'Ta position de ligue est protégée.<br><br>':'')
+      +'Reviens ici dès que tu te sens prêt à reprendre la course.'
+      +'</div>'
+      +'<button onclick="closeModal(\'land-modal\');setTimeout(function(){deactivateInfirmerie();},150)" style="width:100%;padding:.65rem;border-radius:8px;border:1.5px solid var(--green);background:rgba(60,200,120,.08);color:var(--green);font-family:Bebas Neue,sans-serif;font-size:.95rem;letter-spacing:2px;font-weight:700;cursor:pointer">✅ JE SUIS PRÊT, REPRENDRE</button>';
+    openModal('land-modal');
     return;
   }
   var q=getInfirmerieQuotaStatus();
-  document.getElementById('lm-title').textContent='🏥 Infirmerie';
-  document.getElementById('lm-sub').textContent='Pause sportive volontaire';
   if(!q.canActivate){
     document.getElementById('lm-body').innerHTML=
-      '<div style="font-size:.8rem;color:var(--text);line-height:1.6">Quota épuisé pour les 12 derniers mois : <strong style="color:var(--gold)">'+q.activationsUsed+'/2</strong> activations, <strong style="color:var(--gold)">'+q.daysUsed+'/60</strong> jours utilisés.</div>';
+      '<div style="font-size:.8rem;color:var(--text);line-height:1.6">Quota épuisé pour les 12 derniers mois : <strong style="color:var(--gold)">'+q.activationsUsed+'/2</strong> activations utilisées.</div>';
     openModal('land-modal');
     return;
   }
   document.getElementById('lm-body').innerHTML=
     '<div style="font-size:.78rem;color:var(--text);line-height:1.6;margin-bottom:.85rem">'
-    +'Choisis ta durée (<strong style="color:var(--gold)">'+q.daysLeft+' jour'+(q.daysLeft>1?'s':'')+'</strong> restant'+(q.daysLeft>1?'s':'')+' sur ton solde annuel, <strong style="color:var(--gold)">'+q.activationsLeft+'</strong> activation'+(q.activationsLeft>1?'s':'')+' restante'+(q.activationsLeft>1?'s':'')+').<br><br>'
-    +'Pendant l\'infirmerie : <strong>aucune course</strong>, <strong>immunité totale au Gel</strong> dès le 1er jour, récompenses normales. À partir de <strong style="color:var(--gold)">10 jours</strong>, ta position de ligue est protégée (pas de descente) même à 0 point. Ta chaîne de connexion <strong>n\'est pas gelée</strong> : connecte-toi chaque jour (même blessé) pour la garder.'
+    +'<strong style="color:var(--gold)">'+q.activationsLeft+'</strong> activation'+(q.activationsLeft>1?'s':'')+' restante'+(q.activationsLeft>1?'s':'')+' cette année.<br><br>'
+    +'Pendant l\'infirmerie : <strong>aucune course</strong>, <strong>immunité totale au Gel</strong> dès le 1er jour, récompenses normales. À partir de <strong style="color:var(--gold)">10 jours</strong>, ta position de ligue est protégée (pas de descente). Tu sors quand tu veux, dès que tu te sens prêt.'
     +'</div>'
-    +'<input id="inf-days-input" type="number" min="1" max="'+q.daysLeft+'" value="'+Math.min(10,q.daysLeft)+'" style="width:100%;box-sizing:border-box;margin-bottom:.5rem;padding:.5rem .7rem;border-radius:8px;border:1.5px solid rgba(245,200,66,.3);background:rgba(0,0,0,.2);color:var(--text);font-size:.9rem;text-align:center">'
-    +'<button onclick="var d=parseInt(document.getElementById(\'inf-days-input\').value,10)||0;closeModal(\'land-modal\');setTimeout(function(){activateInfirmerie(d);},150)" style="width:100%;padding:.65rem;border-radius:8px;border:1.5px solid var(--gold);background:rgba(245,200,66,.08);color:var(--gold);font-family:Bebas Neue,sans-serif;font-size:.95rem;letter-spacing:2px;font-weight:700;cursor:pointer">🏥 ACTIVER</button>';
+    +'<button onclick="closeModal(\'land-modal\');setTimeout(function(){activateInfirmerie();},150)" style="width:100%;padding:.65rem;border-radius:8px;border:1.5px solid var(--gold);background:rgba(245,200,66,.08);color:var(--gold);font-family:Bebas Neue,sans-serif;font-size:.95rem;letter-spacing:2px;font-weight:700;cursor:pointer">🏥 ACTIVER</button>';
   openModal('land-modal');
 }
 
-// Active l'infirmerie pour la durée donnée. DÉFINITIF, pas de reprise anticipée.
-async function activateInfirmerie(days){
+// Active l'infirmerie (v2, 2026-09-19) : pas de durée à choisir, sortie
+// volontaire via deactivateInfirmerie() quand le RP se sent prêt.
+async function activateInfirmerie(){
   if(!currentUser) return false;
   if(isInInfirmerie()){ showToast('⚠️ Tu es déjà en infirmerie'); return false; }
-  if(!days||days<1||days>60){ showToast('⚠️ Durée invalide (1 à 60 jours)'); return false; }
   var q=getInfirmerieQuotaStatus();
-  if(!q.canActivate || days>q.daysLeft){
-    showToast('⚠️ Solde insuffisant : '+q.daysLeft+' jour'+(q.daysLeft>1?'s':'')+' / '+q.activationsLeft+' activation'+(q.activationsLeft>1?'s':'')+' restante'+(q.activationsLeft>1?'s':''));
+  if(!q.canActivate){
+    showToast('⚠️ Quota atteint : 2 activations déjà utilisées cette année');
     return false;
   }
   var ok=await askConfirm(
-    'Tu vas être en infirmerie pendant <strong style="color:var(--gold)">'+days+' jours</strong>.<br><br>'
+    'Tu vas être en infirmerie.<br><br>'
     +'• Aucune course ne pourra être enregistrée<br>'
     +'• Immunité totale au Gel dès aujourd\'hui<br>'
-    +(days>=10?'• Ta position de ligue est protégée (pas de descente)<br>':'• Moins de 10 jours : classement normal (descente possible)<br>')
-    +'• Tu peux te connecter et garder ta streak<br><br>'
-    +'⚠️ <strong style="color:var(--red)">Action DÉFINITIVE</strong> : pas de reprise anticipée possible.',
-    {title:'Activer l\'infirmerie ?', emoji:'🏥', okLabel:'Activer ('+days+' j)', destructive:true}
+    +'• À partir de 10 jours, ta position de ligue est protégée<br>'
+    +'• Tu peux te connecter et garder ta streak<br>'
+    +'• Tu sors quand tu veux, dès que tu te sens prêt<br><br>'
+    +'<em style="color:var(--muted2)">Compte comme 1 des 2 activations disponibles cette année.</em>',
+    {title:'Activer l\'infirmerie ?', emoji:'🏥', okLabel:'Activer', destructive:true}
   );
   if(!ok) return false;
-  // infirmerie_activate (2026-09-19, quota simplifié) : 2 activations/365j,
-  // 60 jours cumulés max, durée libre — revérifié côté serveur (source unique).
-  var {data:_infRes,error:_infErr}=await supabaseClient.rpc('infirmerie_activate',{p_days:days});
+  var {data:_infRes,error:_infErr}=await supabaseClient.rpc('infirmerie_activate');
   if(_infErr || !_infRes || !_infRes.ok){
-    var _infErrMsg='⚠️ Impossible d\'activer l\'infirmerie';
-    if(_infRes&&_infRes.error==='quota_reached') _infErrMsg+=' (2 activations déjà utilisées)';
-    else if(_infRes&&_infRes.error==='days_quota_exceeded') _infErrMsg+=' ('+(_infRes.days_left||0)+' jour'+((_infRes.days_left||0)>1?'s':'')+' restant'+((_infRes.days_left||0)>1?'s':'')+')';
-    showToast(_infErrMsg);
+    showToast('⚠️ Impossible d\'activer l\'infirmerie'+(_infRes&&_infRes.error==='quota_reached'?' (2 activations déjà utilisées)':''));
     return false;
   }
   var nowIso=new Date().toISOString();
-  var until=_infRes.until;
-  window.__infirmerie.until=until;
+  window.__infirmerie.until=new Date(Date.now()+10*365*24*3600*1000).toISOString();
   window.__infirmerie.startedAt=nowIso;
-  window.__infirmerie.durationDays=days;
-  window.__infirmerie.history.push({started_at:nowIso,duration_days:days,ended_at:until});
-  showToast('🏥 Infirmerie activée pour '+days+' jours');
+  showToast('🏥 Infirmerie activée');
+  if(typeof renderDashboard==='function') renderDashboard();
+  return true;
+}
+
+// Sortie volontaire d'infirmerie (v2, 2026-09-19) : retour direct en
+// évaluation normale dans la ligue actuelle, pas de statut intermédiaire.
+async function deactivateInfirmerie(){
+  if(!currentUser || !isInInfirmerie()) return false;
+  var {data:_res,error:_err}=await supabaseClient.rpc('infirmerie_deactivate');
+  if(_err || !_res || !_res.ok){
+    showToast('⚠️ Erreur lors de la reprise');
+    return false;
+  }
+  window.__infirmerie.until=null;
+  window.__infirmerie.startedAt=null;
+  window.__infirmerie.history.push({started_at:null,duration_days:_res.days,ended_at:new Date().toISOString()});
+  showToast('✅ De retour de l\'infirmerie ('+_res.days+' jour'+(_res.days>1?'s':'')+') — bonne reprise !');
   if(typeof renderDashboard==='function') renderDashboard();
   return true;
 }
@@ -26031,8 +26019,11 @@ function _renderSettingsAvailability(p){
   var until=p.infirmerie_until?new Date(p.infirmerie_until):null;
   var inInf=until && until>new Date();
   if(inInf){
-    var daysLeft=Math.ceil((until-new Date())/(24*3600*1000));
-    var inLbl=(daysLeft>1?t('avail.in.plural'):t('avail.in.singular')).replace('{n}',daysLeft);
+    // v2 (2026-09-19) : sortie volontaire, plus de date de fin connue — on
+    // affiche depuis combien de jours le RP est en pause (pas un compte à rebours).
+    var startedAt=p.infirmerie_started_at?new Date(p.infirmerie_started_at):new Date();
+    var daysSince=Math.max(1,Math.ceil((new Date()-startedAt)/(24*3600*1000)));
+    var inLbl=(daysSince>1?t('avail.in.plural'):t('avail.in.singular')).replace('{n}',daysSince);
     el.innerHTML=''
       +'<div style="font-size:.75rem;color:var(--gold);font-weight:700;margin-bottom:.4rem">'+inLbl+'</div>'
       +'<div style="font-size:.7rem;color:var(--muted2);margin-bottom:.7rem;line-height:1.5">'+t('avail.in.desc')+'</div>'
