@@ -25136,10 +25136,89 @@ async function showBadgeDetail(badgeId){
       +(challengeTxt?'<div style="font-size:.78rem;color:var(--muted2);margin-top:.6rem;padding:.55rem .7rem;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:8px;line-height:1.5">🎯 '+challengeTxt+'</div>':'')
       +(rewards.length?'<div style="font-family:Space Mono,monospace;font-size:.82rem;color:var(--gold);margin-top:.6rem">Récompense : '+rewards.join(' · ')+'</div>':'');
   }
+  // Bouton Classement : uniquement les Events "distance" (event_run, pas les
+  // défis "durée" type Run & Furious où le classement km n'a pas de sens).
+  if(b.threshold_type==='event_run' && !b.event_by_duration){
+    bodyHtml+='<button onclick="showEventRanking('+b.id+')" style="margin-top:.7rem;padding:.5rem 1.1rem;border-radius:8px;border:1.5px solid '+color+';background:rgba(255,255,255,.04);color:'+color+';font-family:Bebas Neue,sans-serif;font-size:.85rem;letter-spacing:1.5px;cursor:pointer">🏆 CLASSEMENT</button>';
+  }
   bodyHtml+='</div>';
   document.getElementById('lm-body').innerHTML=bodyHtml;
   _applyBadgeModalFrame(color);
   openModal('land-modal');
+}
+
+// ============================================================
+// CLASSEMENT D'EVENT (2026-09-19) — plus rapide → moins rapide, par distance
+// ============================================================
+// Course qui valide chaque badge = player_badges.qualifying_run_id (posé côté
+// serveur par checkBadges.ts au moment du crédit). Le classement lit ça via la
+// recette base get_event_ranking (SOURCE UNIQUE, JOIN badges+player_badges+
+// runs+players+player_event_participations) — jamais recalculé côté client.
+var _eventRankingState=null; // {badges:[...], activeBadgeId, rowsByBadge:{}}
+function _fmtRankTime(timeMin){
+  if(!timeMin||timeMin<=0) return '—';
+  var totalSec=Math.round(timeMin*60);
+  var h=Math.floor(totalSec/3600), m=Math.floor((totalSec-h*3600)/60), s=totalSec-h*3600-m*60;
+  var pad=function(n){return n<10?'0'+n:''+n;};
+  return (h>0)?(h+':'+pad(m)+':'+pad(s)):(m+':'+pad(s));
+}
+function _fmtRankPace(km,timeMin){
+  if(!km||!timeMin) return '—';
+  var spd=km/(timeMin/60);
+  if(spd<=0) return '—';
+  var paceTotal=60/spd, pm=Math.floor(paceTotal), ps=Math.round((paceTotal-pm)*60);
+  if(ps===60){pm++;ps=0;}
+  return pm+':'+(ps<10?'0':'')+ps+'/km';
+}
+async function showEventRanking(badgeId){
+  if(!_badgesCatalog) return;
+  var b=_badgesCatalog.find(function(x){return x.id===badgeId;});
+  if(!b) return;
+  var siblings=(b.event_group
+    ? _badgesCatalog.filter(function(x){return x.event_group===b.event_group && x.threshold_type==='event_run';})
+    : [b]
+  ).sort(function(a,z){return (a.threshold_value||0)-(z.threshold_value||0);});
+  var color=b.color||'#f5c842';
+  document.getElementById('lm-title').textContent='🏆 Classement';
+  document.getElementById('lm-sub').textContent=b.name||'';
+  document.getElementById('lm-body').innerHTML='<div style="text-align:center;color:var(--muted2);font-size:.8rem;padding:1.5rem 0">Chargement…</div>';
+  _applyBadgeModalFrame(color);
+  openModal('land-modal');
+  var {data:rows,error}=await supabaseClient.rpc('get_event_ranking',{p_badge_ids:siblings.map(function(s){return s.id;})});
+  var rowsByBadge={};
+  (rows||[]).forEach(function(r){ (rowsByBadge[r.badge_id]=rowsByBadge[r.badge_id]||[]).push(r); });
+  _eventRankingState={siblings:siblings,rowsByBadge:rowsByBadge,activeBadgeId:badgeId,color:color};
+  _renderEventRanking();
+}
+function _renderEventRanking(){
+  var st=_eventRankingState;
+  if(!st) return;
+  var tabsHtml=st.siblings.map(function(s){
+    var active=s.id===st.activeBadgeId;
+    var label=(s.threshold_value>=1?Math.round(s.threshold_value*10)/10:s.threshold_value)+' KM';
+    return '<button onclick="_switchEventRankingTab('+s.id+')" style="padding:.3rem .65rem;border-radius:6px;border:1.5px solid '+(active?st.color:'rgba(255,255,255,.15)')+';background:'+(active?'rgba(255,255,255,.08)':'transparent')+';color:'+(active?st.color:'var(--muted2)')+';font-family:Bebas Neue,sans-serif;font-size:.7rem;letter-spacing:1px;cursor:pointer;white-space:nowrap">'+label+'</button>';
+  }).join('');
+  var list=st.rowsByBadge[st.activeBadgeId]||[];
+  var listHtml=list.length ? list.map(function(r,i){
+    return '<div style="display:flex;align-items:center;gap:.55rem;padding:.4rem 0;border-bottom:1px solid rgba(255,255,255,.06)">'
+      +'<div style="width:1.6rem;text-align:center;font-family:Bebas Neue,sans-serif;font-size:.9rem;color:'+(i<3?st.color:'var(--muted2)')+'">'+(i+1)+'</div>'
+      +'<div style="width:1.8rem;height:1.8rem;border-radius:50%;background-image:url(\''+(r.avatar||'')+'\');background-size:cover;background-position:center;flex-shrink:0;background-color:rgba(255,255,255,.08)"></div>'
+      +'<div style="flex:1;min-width:0;display:flex;align-items:center;gap:.35rem;overflow:hidden">'
+      +'<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.78rem;color:var(--text)">'+escapeHtml(r.username||'?')+'</span>'
+      +(r.bib_number?'<span title="Dossard" style="flex-shrink:0;padding:.05rem .3rem;border:1px solid rgba(255,255,255,.25);border-radius:4px;font-family:Space Mono,monospace;font-size:.6rem;color:var(--muted2)">#'+escapeHtml(r.bib_number)+'</span>':'')
+      +'</div>'
+      +'<div style="text-align:right;font-family:Space Mono,monospace;font-size:.72rem;color:var(--muted2)">'+_fmtRankPace(r.distance,r.time_min)+'</div>'
+      +'<div style="text-align:right;width:3.6rem;font-family:Space Mono,monospace;font-size:.82rem;font-weight:700;color:'+st.color+'">'+_fmtRankTime(r.time_min)+'</div>'
+      +'</div>';
+  }).join('') : '<div style="text-align:center;color:var(--muted2);font-size:.78rem;padding:1.5rem 0">Aucun résultat pour cette distance pour l\'instant.</div>';
+  document.getElementById('lm-body').innerHTML=
+     '<div style="display:flex;gap:.4rem;overflow-x:auto;padding-bottom:.6rem;margin-bottom:.5rem">'+tabsHtml+'</div>'
+    +'<div style="max-height:340px;overflow-y:auto">'+listHtml+'</div>';
+}
+function _switchEventRankingTab(badgeId){
+  if(!_eventRankingState) return;
+  _eventRankingState.activeBadgeId=badgeId;
+  _renderEventRanking();
 }
 
 // Cadre biseauté coloré (technique double-couche, cf. reference_speedix_bevel_technique)
