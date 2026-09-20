@@ -9597,19 +9597,27 @@ const COLORS=['#f5c842','#2ddb80','#4a90ff','#ff6020','#9060f0','#20d0e0','#ff44
 
 // Leagues ordered Starter (lowest) → L Elite (highest)
 const LEAGUES=[
-  {key:'starter', name:'Starter',  label:'Zone',       emoji:'⚙️',  min:0,     max:500,    color:'#7a8090', buyin:0},
-  {key:'l10',     name:'L10',      label:'Fer',        emoji:'⚫',  min:501,   max:1200,  color:'#8090a0', buyin:1200},
-  {key:'l9',      name:'L9',       label:'Cuivre',     emoji:'🟠',  min:1201,  max:1800,  color:'#c07830', buyin:1800},
-  {key:'l8',      name:'L8',       label:'Jade',       emoji:'🟢',  min:1801,  max:2500,  color:'#2fd9a0', buyin:2500},
-  {key:'l7',      name:'L7',       label:'Saphir',     emoji:'🔵',  min:2501,  max:3200,  max2:4500, color:'#2080e0', buyin:3200},
-  {key:'l6',      name:'L6',       label:'Rubis',      emoji:'🔴',  min:3201,  max:4500,  color:'#e03040', buyin:4500},
-  {key:'l5',      name:'L5',       label:'Améthyste',  emoji:'🟣',  min:4501,  max:6000,  color:'#9050d0', buyin:6000},
-  {key:'l4',      name:'L4',       label:'Émeraude',   emoji:'🟢',  min:6001,  max:7500,  color:'#20c060', buyin:7500},
-  {key:'l3',      name:'L3',       label:'Bronze',     emoji:'🟤',  min:7501,  max:10000, color:'#c07030', buyin:10000},
-  {key:'l2',      name:'L2',       label:'Argent',     emoji:'⚪',  min:10001, max:13000, color:'#b0c0d0', buyin:13000},
-  {key:'l1',      name:'L1',       label:'Or',         emoji:'🟡',  min:13001, max:20000, max2:null, color:'#f5c842', buyin:20000},
-  {key:'lelite',  name:'L Elite',  label:'Diamant',    emoji:'⚪',  min:20001, max:null,  color:'#a0e0ff', buyin:25000},
+  {key:'starter', name:'Starter',  label:'Zone',       label_en:'Zone',      emoji:'⚙️',  min:0,     max:500,    color:'#7a8090', buyin:0},
+  {key:'l10',     name:'L10',      label:'Fer',        label_en:'Iron',      emoji:'⚫',  min:501,   max:1200,  color:'#8090a0', buyin:1200},
+  {key:'l9',      name:'L9',       label:'Cuivre',     label_en:'Copper',    emoji:'🟠',  min:1201,  max:1800,  color:'#c07830', buyin:1800},
+  {key:'l8',      name:'L8',       label:'Jade',       label_en:'Jade',      emoji:'🟢',  min:1801,  max:2500,  color:'#2fd9a0', buyin:2500},
+  {key:'l7',      name:'L7',       label:'Saphir',     label_en:'Sapphire',  emoji:'🔵',  min:2501,  max:3200,  max2:4500, color:'#2080e0', buyin:3200},
+  {key:'l6',      name:'L6',       label:'Rubis',      label_en:'Ruby',      emoji:'🔴',  min:3201,  max:4500,  color:'#e03040', buyin:4500},
+  {key:'l5',      name:'L5',       label:'Améthyste',  label_en:'Amethyst',  emoji:'🟣',  min:4501,  max:6000,  color:'#9050d0', buyin:6000},
+  {key:'l4',      name:'L4',       label:'Émeraude',   label_en:'Emerald',   emoji:'🟢',  min:6001,  max:7500,  color:'#20c060', buyin:7500},
+  {key:'l3',      name:'L3',       label:'Bronze',     label_en:'Bronze',    emoji:'🟤',  min:7501,  max:10000, color:'#c07030', buyin:10000},
+  {key:'l2',      name:'L2',       label:'Argent',     label_en:'Silver',    emoji:'⚪',  min:10001, max:13000, color:'#b0c0d0', buyin:13000},
+  {key:'l1',      name:'L1',       label:'Or',         label_en:'Gold',      emoji:'🟡',  min:13001, max:20000, max2:null, color:'#f5c842', buyin:20000},
+  {key:'lelite',  name:'L Elite',  label:'Diamant',    label_en:'Diamond',   emoji:'⚪',  min:20001, max:null,  color:'#a0e0ff', buyin:25000},
 ];
+// Libellé de palier (Or/Argent/Bronze…) localisé — SOURCE UNIQUE, jamais lire
+// .label directement pour de l'affichage joueur (MIROIR : label_en ci-dessus
+// doit rester synchro palier par palier). 2026-09-20, signalé par l'user :
+// la version EN affichait encore "League Gold" etc. avec le libellé français.
+function leagueLabel(l){
+  if(!l) return '';
+  return (SPEEDIX_LANG==='en' && l.label_en) ? l.label_en : l.label;
+}
 
 // Masse critique de compétiteurs pour qu'une league distribue son PALMARÈS PERMANENT
 // (les médailles cumulées à côté de la Player Card, table `palmares`). En dessous, le
@@ -10511,7 +10519,7 @@ function renderDashboard(){
         if(leagueRing) leagueRing.style.background='rgba('+hexToRgb('#7a8090')+',.5)';
       } else {
         leagueEl.style.display='';
-        leagueEl.textContent=league.emoji+'  '+league.name+' '+league.label.toUpperCase();
+        leagueEl.textContent=league.emoji+'  '+league.name+' '+leagueLabel(league).toUpperCase();
         leagueEl.style.color=league.color;
         if(leagueRing) leagueRing.style.background='rgba('+hexToRgb(league.color)+',.5)';
       }
@@ -11307,7 +11315,7 @@ function buildLeaguePicker(){
         ${isMyLeague?'<span style="width:6px;height:6px;border-radius:50%;background:var(--blue);flex-shrink:0;margin-right:.5rem"></span>':'<span style="width:6px;margin-right:.5rem"></span>'}
         <span style="font-size:.9rem;margin-right:1.1rem">${l.emoji}</span>
         <span class="lp-name${isActive?' lp-active':''}" style="font-family:'Bebas Neue',sans-serif;letter-spacing:1.5px;font-size:.9rem;color:${isActive?l.color:'var(--muted2)'}">${l.name}</span>
-        <span class="lp-label${isActive?' lp-active':''}" style="font-size:.65rem;color:${isActive?l.color:'var(--muted)'};margin-left:.5rem">— ${l.label}</span>
+        <span class="lp-label${isActive?' lp-active':''}" style="font-size:.65rem;color:${isActive?l.color:'var(--muted)'};margin-left:.5rem">— ${leagueLabel(l)}</span>
       </div>
       ${counts[l.key]?`<span class="lp-count" style="font-size:.65rem;color:var(--muted);background:rgba(255,255,255,.07);border-radius:10px;padding:.1rem .45rem">${counts[l.key]}</span>`:''}
     </div>`;
@@ -11320,7 +11328,7 @@ function updateLeaguePickerLabel(){
   const league=LEAGUES.find(l=>l.key===activeLeagueKey);
   if(!league)return;
   const lbl=document.getElementById('league-picker-label');
-  if(lbl)lbl.innerHTML=`<span style="color:${league.color}">${league.name} — ${league.label}</span>`;
+  if(lbl)lbl.innerHTML=`<span style="color:${league.color}">${league.name} — ${leagueLabel(league)}</span>`;
   // Contour de la tuile sélecteur de league = couleur de la league active (Cuivre,
   // Jade, Saphir, Rubis…), pas figé en doré — cohérent avec le reste de l'identité.
   document.querySelectorAll('.lp-side-bar').forEach(function(el){
@@ -11371,7 +11379,7 @@ function renderLeagueNav(){
         ${isCurrent?'<div class="ln-me"></div>':''}
         <span style="font-size:.85rem;line-height:1">${l.emoji}</span>
         <span class="ln-name" style="margin-left:1.5rem;color:${l.key===activeLeagueKey?l.color:'var(--muted2)'}">${l.name}</span>
-        <span style="font-size:.65rem;color:${l.key===activeLeagueKey?l.color:'var(--muted)'}">— ${l.label}</span>
+        <span style="font-size:.65rem;color:${l.key===activeLeagueKey?l.color:'var(--muted)'}">— ${leagueLabel(l)}</span>
       </div>
       <div style="display:flex;align-items:center;gap:.4rem">
         ${counts[l.key]?`<span class="ln-count">${counts[l.key]}</span>`:''}
@@ -11479,7 +11487,7 @@ function searchLeaguePlayers(query){
     el.innerHTML=matches.map(function(p){
       var gc=GRADE_COLORS[p.grade]||'#8090b0';
       var lg=LEAGUES.find(function(l){return l.key===p.leagueKey;});
-      var lgLabel=lg?(lg.emoji+' '+lg.name+' — '+lg.label):'';
+      var lgLabel=lg?(lg.emoji+' '+lg.name+' — '+leagueLabel(lg)):'';
       var initial=escapeHtml(p.name.charAt(0).toUpperCase());
       var av=p.avatar
         ?'<img src="'+escapeHtml(p.avatar)+'" style="width:28px;height:28px;border-radius:6px;object-fit:cover;border:1.5px solid '+gc+'">'
@@ -11872,7 +11880,7 @@ function renderLeaguePanel(){
 
   function makeSepLine(targetLeagueIdx){
     var tl=targetLeagueIdx>=0&&targetLeagueIdx<LEAGUES.length?LEAGUES[targetLeagueIdx]:null;
-    var tName=tl?(tl.name+' — '+tl.label):t('league.sep.upperFallback');
+    var tName=tl?(tl.name+' — '+leagueLabel(tl)):t('league.sep.upperFallback');
     var tColor=tl?tl.color:league.color;
     return '<tr><td colspan="3" style="padding:6px 0">'
       +'<div style="height:2px;background:linear-gradient(90deg,'+tColor+'00,'+tColor+','+tColor+'00);position:relative;display:flex;align-items:center;justify-content:center">'
@@ -11935,7 +11943,7 @@ function renderLeaguePanel(){
   // Helper pour la ligne de descente (en bas) — extraite pour réutilisation
   function makeRelegLine(){
     var lowerLeague=leagueIdx>0?LEAGUES[leagueIdx-1]:null;
-    var lName=lowerLeague?(lowerLeague.name+' — '+lowerLeague.label):t('league.sep.lowerFallback');
+    var lName=lowerLeague?(lowerLeague.name+' — '+leagueLabel(lowerLeague)):t('league.sep.lowerFallback');
     var lColor=lowerLeague?lowerLeague.color:'#ff4444';
     return '<tr><td colspan="3" style="padding:6px 0">'
       +'<div style="height:2px;background:linear-gradient(90deg,'+lColor+'00,'+lColor+','+lColor+'00);position:relative;display:flex;align-items:center;justify-content:center">'
@@ -13894,25 +13902,25 @@ async function renderPeriodRecap(player, closedPeriod, opts){
     resultBox.style.background='rgba(120,140,180,.08)';
     resultBox.style.border='1px solid rgba(120,140,180,.25)';
     resultBox.style.color='var(--muted2)';
-    resultBox.innerHTML=(_en?'Current league: ':'League actuelle : ')+'<strong style="color:'+(newLg?newLg.color:'var(--text)')+'">'+(newLg?newLg.emoji+' '+newLg.name+' — '+newLg.label:'—')+'</strong>';
+    resultBox.innerHTML=(_en?'Current league: ':'League actuelle : ')+'<strong style="color:'+(newLg?newLg.color:'var(--text)')+'">'+(newLg?newLg.emoji+' '+newLg.name+' — '+leagueLabel(newLg):'—')+'</strong>';
   } else if(newIdx>prevIdx){
     // MONTÉE
     resultBox.style.background='rgba(45,219,128,.10)';
     resultBox.style.border='1.5px solid rgba(45,219,128,.45)';
     resultBox.style.color='var(--green)';
-    resultBox.innerHTML=(_en?'🎉 Congratulations! You move up to ':'🎉 Félicitations ! Tu montes en ')+'<strong style="color:'+newLg.color+'">'+newLg.emoji+' '+newLg.name+' — '+newLg.label+'</strong>';
+    resultBox.innerHTML=(_en?'🎉 Congratulations! You move up to ':'🎉 Félicitations ! Tu montes en ')+'<strong style="color:'+newLg.color+'">'+newLg.emoji+' '+newLg.name+' — '+leagueLabel(newLg)+'</strong>';
   } else if(newIdx<prevIdx){
     // RÉTROGRADATION
     resultBox.style.background='rgba(255,68,68,.10)';
     resultBox.style.border='1.5px solid rgba(255,68,68,.4)';
     resultBox.style.color='var(--red)';
-    resultBox.innerHTML=(_en?'Sorry, you\'re relegated to ':'Désolé, tu es rétrogradé en ')+'<strong style="color:'+newLg.color+'">'+newLg.emoji+' '+newLg.name+' — '+newLg.label+'</strong>';
+    resultBox.innerHTML=(_en?'Sorry, you\'re relegated to ':'Désolé, tu es rétrogradé en ')+'<strong style="color:'+newLg.color+'">'+newLg.emoji+' '+newLg.name+' — '+leagueLabel(newLg)+'</strong>';
   } else {
     // MAINTIEN
     resultBox.style.background='rgba(245,200,66,.08)';
     resultBox.style.border='1px solid rgba(245,200,66,.3)';
     resultBox.style.color='var(--gold)';
-    resultBox.innerHTML=(_en?'You stay in ':'Tu te maintiens en ')+'<strong style="color:'+newLg.color+'">'+newLg.emoji+' '+newLg.name+' — '+newLg.label+'</strong>';
+    resultBox.innerHTML=(_en?'You stay in ':'Tu te maintiens en ')+'<strong style="color:'+newLg.color+'">'+newLg.emoji+' '+newLg.name+' — '+leagueLabel(newLg)+'</strong>';
   }
   // Mémoriser pour le close (skip patch si test)
   window._prcCurrentPeriod=_periodData.period;
