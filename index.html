@@ -816,6 +816,22 @@ body::after{
   /* Rang à 3 chiffres (zone Starter >100) : on élargit le cadre et on réduit un
      poil la police pour que le numéro ne déborde plus sous le drapeau voisin. */
   #league-main-panel .rank-num{width:28px;font-size:.8rem;overflow:hidden}
+  /* Mes Courses (#hist-tbl) : même resserrement que le classement ci-dessus --
+     signalé par l'user (2026-09-20) : colonne Points coupée à droite sur mobile,
+     le padding par défaut (.75rem × 2 par cellule × 5 colonnes) dépassait la
+     largeur de l'écran. table-layout:fixed + largeurs explicites sur les
+     colonnes courtes (Date/Vitesse/Dénivelé/Points), Distance récupère le reste. */
+  #hist-tbl{table-layout:fixed !important}
+  #hist-tbl th,
+  #hist-tbl td{padding:.4rem .3rem}
+  #hist-tbl th:first-child,
+  #hist-tbl td:first-child{width:40px !important;padding-left:.2rem}
+  #hist-tbl th:nth-child(3),
+  #hist-tbl td:nth-child(3){width:52px !important}
+  #hist-tbl th:nth-child(4),
+  #hist-tbl td:nth-child(4){width:46px !important}
+  #hist-tbl th:last-child,
+  #hist-tbl td:last-child{width:48px !important;padding-right:.4rem}
   /* Le td contenant le joueur doit pouvoir rétrécir pour permettre l'ellipsis */
   #league-main-panel .tbl td:nth-child(2){min-width:0;overflow:hidden;padding-left:.2rem}
   #league-main-panel .tbl td:nth-child(2) > div{min-width:0;flex-wrap:nowrap;gap:.4rem}
