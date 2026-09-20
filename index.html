@@ -20542,8 +20542,10 @@ async function loadCorosToken(){
   if(!currentUser) return;
   var {data}=await supabaseClient.from('players').select('coros_beta,coros_user_id,coros_access_token,coros_refresh_token,coros_token_expires').eq('id',currentUser.id).single();
   if(!data) return;
+  // Bêta fermée levée le 2026-09-20 (OAuth validé, demande explicite) : bloc
+  // affiché à tout le monde désormais, coros_beta n'est plus lu ici.
   var block=document.getElementById('coros-connect-block');
-  if(block) block.style.display=data.coros_beta?'block':'none';
+  if(block) block.style.display='block';
   if(data.coros_access_token){
     window.__corosToken=data.coros_access_token;
     window.__corosRefresh=data.coros_refresh_token;
@@ -20744,8 +20746,10 @@ async function loadIntervalsToken(){
   if(!currentUser) return;
   var {data}=await supabaseClient.from('players').select('intervals_beta,intervals_athlete_id,intervals_api_key,intervals_access_token').eq('id',currentUser.id).single();
   if(!data) return;
+  // Bêta fermée levée le 2026-09-20 (OAuth validé, demande explicite) : bloc
+  // affiché à tout le monde désormais, intervals_beta n'est plus lu ici.
   var block=document.getElementById('intervals-connect-block');
-  if(block) block.style.display=data.intervals_beta?'block':'none';
+  if(block) block.style.display='block';
   if(data.intervals_access_token||(data.intervals_athlete_id&&data.intervals_api_key)){
     window.__intervalsConnected=true;
     updateIntervalsUI(true);
