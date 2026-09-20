@@ -14606,7 +14606,7 @@ async function renderSocialFeed(){
     // un tracé GPS (avant les photos éventuelles du RP, façon Strava).
     var mapThumbHtml='';
     if(r.polyline){
-      mapThumbHtml='<div id="polymap-'+r.id+'" style="margin:.5rem 0;width:100%;aspect-ratio:640/280;border-radius:10px;overflow:hidden;background:#e9e7e0;display:flex;align-items:center;justify-content:center;color:#8a8a8a;font-size:.7rem">🗺️ Chargement du tracé…</div>';
+      mapThumbHtml='<div id="polymap-'+r.id+'" style="margin:.5rem 0;width:100%;aspect-ratio:640/480;border-radius:10px;overflow:hidden;background:#e9e7e0;display:flex;align-items:center;justify-content:center;color:#8a8a8a;font-size:.7rem">🗺️ Chargement du tracé…</div>';
       _pendingMapThumbs.push({id:r.id,polyline:r.polyline});
     }
     // Grille photo intelligente : 1 photo = full width XL, 2 photos = 2 colonnes,
@@ -14750,10 +14750,10 @@ async function renderSocialFeed(){
         var runId=entry.target.id.replace('polymap-','');
         var item=_pendingMapThumbs.find(function(x){return x.id===runId;});
         if(!item) return;
-        renderPolylineMapThumb(item.polyline, 640, 280).then(function(dataUrl){
+        renderPolylineMapThumb(item.polyline, 640, 480).then(function(dataUrl){
           if(!dataUrl) return;
           var el=document.getElementById('polymap-'+runId);
-          if(el) el.outerHTML='<div style="margin:.5rem 0"><img src="'+dataUrl+'" onclick="zoomPhoto(this.src)" style="width:100%;aspect-ratio:640/280;object-fit:cover;border-radius:10px;border:1px solid rgba(74,144,255,.15);display:block;cursor:pointer" loading="lazy"></div>';
+          if(el) el.outerHTML='<div style="margin:.5rem 0"><img src="'+dataUrl+'" onclick="zoomPhoto(this.src)" style="width:100%;aspect-ratio:640/480;object-fit:cover;border-radius:10px;border:1px solid rgba(74,144,255,.15);display:block;cursor:pointer" loading="lazy"></div>';
         });
       });
     },{rootMargin:'300px 0px'});
@@ -14768,9 +14768,13 @@ async function renderSocialFeed(){
 // à chaque re-rendu du feed pour la même course).
 var _polylineThumbCache={};
 
-// Génère une vignette "carte + tracé" (tuiles Esri Light Gray, gratuites sans
-// clé API — CARTO exige désormais une clé, cf carte Lands) à partir d'un
-// polyline Strava encodé.
+// Génère une vignette "carte + tracé" (tuiles OpenStreetMap Standard, gratuites
+// sans clé API — bascule du 20/09 depuis Esri Light Gray, trop plat pour
+// distinguer rues/parcs. ⚠️ Serveur communautaire OSM, pas un service produit :
+// attribution obligatoire dessinée sur le canvas ci-dessous, à ne jamais retirer.
+// Si ce serveur venait à limiter/bloquer notre trafic (même risque déjà vécu
+// avec CARTO), migrer vers un fournisseur à clé API type MapTiler/Stadia Maps.
+// à partir d'un polyline Strava encodé.
 // Retourne une Promise<dataURL> (ou null si échec/pas de tracé exploitable).
 function renderPolylineMapThumb(polyline,W,H){
   W=W||640;H=H||280;
@@ -14779,6 +14783,12 @@ function renderPolylineMapThumb(polyline,W,H){
   return new Promise(function(resolve){
     try{
       var pts=decodePolyline(polyline);
+      // Filtre "Null Island" : certains GPS écrivent quelques points (0,0) avant
+      // d'obtenir un fix satellite (bug vécu le 20/09 — 34 points (0,0) en tête
+      // d'un tracé Val-DM, faisant zoomer la vignette sur la moitié du globe et
+      // traçant une ligne parasite Amiens→golfe de Guinée). (0,0) est en plein
+      // océan, aucune vraie course ne peut légitimement y passer.
+      if(pts) pts=pts.filter(function(p){ return Math.abs(p[0])>0.001 || Math.abs(p[1])>0.001; });
       if(!pts||pts.length<2){resolve(null);return;}
       var minLat=Infinity,maxLat=-Infinity,minLng=Infinity,maxLng=-Infinity;
       pts.forEach(function(p){
@@ -14794,8 +14804,8 @@ function renderPolylineMapThumb(polyline,W,H){
         return [x,y];
       }
       // Zoom le plus élevé qui fait tenir tout le tracé dans le cadre (avec marge).
-      // Plafonné à 16 : zoom natif max des tuiles Esri Light Gray utilisées ci-dessous.
-      var zoom=16;
+      // Plafonné à 19 : zoom natif max des tuiles OSM Standard utilisées ci-dessous.
+      var zoom=19;
       for(;zoom>=2;zoom--){
         var a=worldPx(maxLat,minLng,zoom), b=worldPx(minLat,maxLng,zoom);
         if(Math.abs(b[0]-a[0])<=(W-pad*2) && Math.abs(b[1]-a[1])<=(H-pad*2)) break;
@@ -14818,7 +14828,7 @@ function renderPolylineMapThumb(polyline,W,H){
           if(ty<0||ty>=nTiles) continue;
           (function(tx,ty){
             var wrappedX=((tx%nTiles)+nTiles)%nTiles;
-            var url='https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/'+zoom+'/'+ty+'/'+wrappedX;
+            var url='https://tile.openstreetmap.org/'+zoom+'/'+wrappedX+'/'+ty+'.png';
             var dx=tx*256-originX, dy=ty*256-originY;
             jobs.push(new Promise(function(res){
               var img=new Image();
@@ -14831,7 +14841,7 @@ function renderPolylineMapThumb(polyline,W,H){
         }
       }
       Promise.all(jobs).then(function(){
-        // Tracé : ligne cerclée sombre + centre doré (contraste sur fond de carte clair).
+        // Tracé : ligne cerclée sombre + centre orange Strava (contraste sur fond de carte OSM).
         cx.beginPath();
         pts.forEach(function(p,i){
           var wp=worldPx(p[0],p[1],zoom);
@@ -14839,7 +14849,7 @@ function renderPolylineMapThumb(polyline,W,H){
           if(i===0)cx.moveTo(x,y);else cx.lineTo(x,y);
         });
         cx.strokeStyle='rgba(10,16,32,.55)';cx.lineWidth=7;cx.lineCap='round';cx.lineJoin='round';cx.stroke();
-        cx.strokeStyle='#f5c842';cx.lineWidth=3.2;cx.stroke();
+        cx.strokeStyle='#fc4c02';cx.lineWidth=3.2;cx.stroke();
         function dot(lat,lng,color){
           var wp=worldPx(lat,lng,zoom);
           var x=wp[0]-originX,y=wp[1]-originY;
@@ -14848,6 +14858,14 @@ function renderPolylineMapThumb(polyline,W,H){
         }
         dot(pts[0][0],pts[0][1],'#2ddb80');
         dot(pts[pts.length-1][0],pts[pts.length-1][1],'#ff4444');
+        // Attribution OSM obligatoire (politique d'usage des tuiles) — jamais à retirer.
+        var attr='© OpenStreetMap';
+        cx.font='10px sans-serif';
+        var attrW=cx.measureText(attr).width;
+        cx.fillStyle='rgba(255,255,255,.72)';
+        cx.fillRect(W-attrW-10,H-16,attrW+8,16);
+        cx.fillStyle='#333';
+        cx.fillText(attr,W-attrW-6,H-5);
         var dataUrl=canvas.toDataURL('image/png');
         _polylineThumbCache[cacheKey]=dataUrl;
         resolve(dataUrl);
