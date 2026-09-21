@@ -16456,11 +16456,20 @@ async function loadAdminStats(){
 
     // Players des 7 derniers jours (avec strava + premium pour breakdown période)
     var {data:p7}=await supabaseClient.from('players').select('created_at,strava_access_token,premium').gte('created_at',startWeekDate+'T00:00:00.000Z');
+    // Connexions (ouvertures réelles de l'appli) des 7 derniers jours -- via
+    // streak_last_date (date Paris, posée par checkAndClaimStreak() à CHAQUE
+    // vrai lancement en session authentifiée). Jamais last_sign_in_at, qui ne
+    // bouge qu'à une ré-authentification et sous-compte massivement les RP
+    // actifs au quotidien (cf. mémoire reference_speedix_detection_inactifs_streak).
+    // C'est une DATE (pas un timestamp) donc déjà dédupliqué à 1/jour/RP par
+    // construction -- exactement la demande "1 connexion par RP et par jour".
+    var {data:c7}=await supabaseClient.from('players').select('streak_last_date').gte('streak_last_date',startWeekDate);
     // Totaux globaux (pas filtrés)
-    var [{count:totalPlayers},{count:totalStrava},{count:totalPremium}]=await Promise.all([
+    var [{count:totalPlayers},{count:totalStrava},{count:totalPremium},{count:totalConnected}]=await Promise.all([
       supabaseClient.from('players').select('*',{count:'exact',head:true}),
       supabaseClient.from('players').select('*',{count:'exact',head:true}).not('strava_access_token','is',null),
-      supabaseClient.from('players').select('*',{count:'exact',head:true}).eq('premium',true)
+      supabaseClient.from('players').select('*',{count:'exact',head:true}).eq('premium',true),
+      supabaseClient.from('players').select('*',{count:'exact',head:true}).not('streak_last_date','is',null)
     ]);
     // Runs des 7 derniers jours + total
     // ⚠️ .order('run_date',{ascending:false}) obligatoire : le plafond PostgREST
@@ -16484,6 +16493,11 @@ async function loadAdminStats(){
     var stToday=(p7||[]).filter(function(p){return p.strava_access_token && inToday(p.created_at);}).length;
     var stYest=(p7||[]).filter(function(p){return p.strava_access_token && inYest(p.created_at);}).length;
     var st7=(p7||[]).filter(function(p){return p.strava_access_token;}).length;
+
+    // streak_last_date est déjà une date Paris (string "YYYY-MM-DD"), comparaison directe sans conversion.
+    var connToday=(c7||[]).filter(function(p){return p.streak_last_date===startTodayDate;}).length;
+    var connYest=(c7||[]).filter(function(p){return p.streak_last_date===startYestDate;}).length;
+    var conn7=(c7||[]).length;
 
     // Bug fix : runs.run_date est un TIMESTAMP UTC ("2026-05-02 09:42:35+00").
     // On compare la date Paris de chaque run pour rester cohérent avec startTodayDate.
@@ -16520,6 +16534,8 @@ async function loadAdminStats(){
 
     var subSpark=dailyCounts(p7,function(p){return p.created_at;},false);
     var stSpark=dailyCounts(p7,function(p){return p.strava_access_token?p.created_at:null;},false);
+    // isDateString=true : streak_last_date est déjà une date Paris (string), pas un timestamp.
+    var connSpark=dailyCounts(c7,function(p){return p.streak_last_date;},true);
     // isDateString=false → comparaison range timestamp (cohérent avec le fait
     // que run_date est un timestamp et non une date)
     var runSpark=dailyCounts(r7,function(r){return r.run_date;},false);
@@ -16550,6 +16566,12 @@ async function loadAdminStats(){
         '<td style="text-align:right">'+runs7+'</td>'+
         '<td style="text-align:right;color:#4a90ff;font-weight:700">'+(totalRuns||0)+'</td></tr>'+
       '<tr><td colspan="5" style="padding:0 .25rem">'+sparkBar(runSpark,'#4a90ff')+'</td></tr>'+
+      '<tr><td style="padding:.4rem .25rem;color:#bb66dd">📱 RP connectés</td>'+
+        '<td style="text-align:right;color:var(--green);font-weight:700">'+connToday+'</td>'+
+        '<td style="text-align:right">'+connYest+'</td>'+
+        '<td style="text-align:right">'+conn7+'</td>'+
+        '<td style="text-align:right;color:#bb66dd;font-weight:700">'+(totalConnected||0)+'</td></tr>'+
+      '<tr><td colspan="5" style="padding:0 .25rem">'+sparkBar(connSpark,'#bb66dd')+'</td></tr>'+
       '<tr><td style="padding:.4rem .25rem;color:var(--gold)">💎 Premium actifs</td>'+
         '<td style="text-align:right;color:var(--muted2)">—</td>'+
         '<td style="text-align:right;color:var(--muted2)">—</td>'+
