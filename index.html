@@ -5479,7 +5479,7 @@ function askConfirm(message, opts){
          pour repérer à l'oeil les grosses sorties suspectes/anormales. -->
     <div class="block" style="margin-top:1rem;border-color:rgba(255,96,32,.3)">
       <div class="block-header" style="border-color:rgba(255,96,32,.15)">
-        <div class="block-title">🚩 Top courses <span class="hl">(&gt;1000 pts)</span></div>
+        <div class="block-title">🚩 <span class="hl">Top courses</span></div>
       </div>
       <div class="block-body-sm">
         <div id="admin-flagged-list" style="font-size:.75rem;color:var(--muted2)">Chargement…</div>
@@ -16142,7 +16142,7 @@ async function adminLoadFlagged(){
     var date=r.run_date?new Date(r.run_date).toLocaleDateString(SPEEDIX_LANG,{day:'2-digit',month:'2-digit'}):'—';
     return '<div style="display:flex;align-items:center;justify-content:space-between;padding:.35rem .2rem;border-bottom:1px solid rgba(30,37,53,.5)">'
       +'<div style="flex:1;min-width:0">'
-      +'<div style="font-size:.72rem"><strong style="color:var(--text)">'+name+'</strong> — '+(r.name||'Course')+' <span style="color:var(--muted)">'+date+'</span></div>'
+      +'<div style="font-size:.72rem"><strong style="color:var(--text)">'+name+'</strong> — <span style="color:var(--gold)">'+(r.name||'Course')+'</span> <span style="color:var(--muted)">'+date+'</span></div>'
       +'<div style="font-size:.65rem;color:var(--muted2)">'+km+' km · '+spd+' km/h · '+r.points+' pts'+(r.avg_hr?' · ❤️'+r.avg_hr:'')+'</div>'
       +'</div>'
       +'<div style="display:flex;gap:.3rem;flex-shrink:0">'
@@ -19236,6 +19236,21 @@ async function checkAndClaimStreak(){
     }
   });
 }
+
+// Reprise après arrière-plan prolongé (2026-09-21, signalé par l'user à propos
+// du stat admin "RP connectés") : checkAndClaimStreak() ne tourne qu'au vrai
+// chargement du script (onLoginSuccess). Si l'OS garde l'appli en vie en
+// mémoire sans jamais recharger la page (PWA épinglée qu'on ne fait que
+// basculer au premier plan), le script ne se réexécute pas — un RP peut donc
+// rouvrir l'appli plusieurs jours de suite sans jamais être recompté. On
+// revérifie donc à chaque retour au premier plan ; l'appel est sans risque à
+// rejouer, checkAndClaimStreak() sort immédiatement si streak_last_date est
+// déjà celui d'aujourd'hui.
+document.addEventListener('visibilitychange', function(){
+  if(document.visibilityState==='visible' && currentUser && typeof checkAndClaimStreak==='function'){
+    checkAndClaimStreak();
+  }
+});
 
 function updateStreakDisplay(count, phase, misses){
   misses=Array.isArray(misses)?misses:[];
