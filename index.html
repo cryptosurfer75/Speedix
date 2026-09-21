@@ -16374,8 +16374,8 @@ async function loadAdminStats(){
     var startToday=startTodayDate; // date string "YYYY-MM-DD" Paris
     var startYesterday=startYestDate;
 
-    // Players des 7 derniers jours (avec strava + premium pour breakdown période)
-    var {data:p7}=await supabaseClient.from('players').select('created_at,strava_access_token,premium').gte('created_at',startWeekDate+'T00:00:00.000Z');
+    // Players des 7 derniers jours (avec strava/coros/intervals + premium pour breakdown période)
+    var {data:p7}=await supabaseClient.from('players').select('created_at,strava_access_token,coros_access_token,intervals_access_token,intervals_athlete_id,premium').gte('created_at',startWeekDate+'T00:00:00.000Z');
     // Connexions (ouvertures réelles de l'appli) des 7 derniers jours -- via
     // streak_last_date (date Paris, posée par checkAndClaimStreak() à CHAQUE
     // vrai lancement en session authentifiée). Jamais last_sign_in_at, qui ne
@@ -16385,9 +16385,12 @@ async function loadAdminStats(){
     // construction -- exactement la demande "1 connexion par RP et par jour".
     var {data:c7}=await supabaseClient.from('players').select('streak_last_date').gte('streak_last_date',startWeekDate);
     // Totaux globaux (pas filtrés)
-    var [{count:totalPlayers},{count:totalStrava},{count:totalPremium},{count:totalConnected}]=await Promise.all([
+    // "Comptes connectés" = Strava OU COROS OU Intervals.icu (OAuth ou ancienne
+    // clé API manuelle) -- plus un total Strava-only, ça mélangeait les 3
+    // sources de synchro depuis l'ouverture de COROS/Intervals au public.
+    var [{count:totalPlayers},{count:totalConnectedAcc},{count:totalPremium},{count:totalConnected}]=await Promise.all([
       supabaseClient.from('players').select('*',{count:'exact',head:true}),
-      supabaseClient.from('players').select('*',{count:'exact',head:true}).not('strava_access_token','is',null),
+      supabaseClient.from('players').select('*',{count:'exact',head:true}).or('strava_access_token.not.is.null,coros_access_token.not.is.null,intervals_access_token.not.is.null,intervals_athlete_id.not.is.null'),
       supabaseClient.from('players').select('*',{count:'exact',head:true}).eq('premium',true),
       supabaseClient.from('players').select('*',{count:'exact',head:true}).not('streak_last_date','is',null)
     ]);
@@ -16410,9 +16413,10 @@ async function loadAdminStats(){
     var subYest=(p7||[]).filter(function(p){return inYest(p.created_at);}).length;
     var sub7=(p7||[]).length;
 
-    var stToday=(p7||[]).filter(function(p){return p.strava_access_token && inToday(p.created_at);}).length;
-    var stYest=(p7||[]).filter(function(p){return p.strava_access_token && inYest(p.created_at);}).length;
-    var st7=(p7||[]).filter(function(p){return p.strava_access_token;}).length;
+    function hasAnySync(p){return !!(p.strava_access_token||p.coros_access_token||p.intervals_access_token||p.intervals_athlete_id);}
+    var stToday=(p7||[]).filter(function(p){return hasAnySync(p) && inToday(p.created_at);}).length;
+    var stYest=(p7||[]).filter(function(p){return hasAnySync(p) && inYest(p.created_at);}).length;
+    var st7=(p7||[]).filter(hasAnySync).length;
 
     // streak_last_date est déjà une date Paris (string "YYYY-MM-DD"), comparaison directe sans conversion.
     var connToday=(c7||[]).filter(function(p){return p.streak_last_date===startTodayDate;}).length;
@@ -16425,7 +16429,7 @@ async function loadAdminStats(){
     var runsYest=(r7||[]).filter(function(r){return r.run_date && _parisDateStr(new Date(r.run_date))===startYestDate;}).length;
     var runs7=(r7||[]).length;
 
-    var stravaPct=totalPlayers?Math.round((totalStrava||0)/totalPlayers*100):0;
+    var stravaPct=totalPlayers?Math.round((totalConnectedAcc||0)/totalPlayers*100):0;
     var premiumPct=totalPlayers?Math.round((totalPremium||0)/totalPlayers*100):0;
 
     // Sparkline : 7 jours, du plus ancien au plus récent
@@ -16453,7 +16457,7 @@ async function loadAdminStats(){
     }
 
     var subSpark=dailyCounts(p7,function(p){return p.created_at;},false);
-    var stSpark=dailyCounts(p7,function(p){return p.strava_access_token?p.created_at:null;},false);
+    var stSpark=dailyCounts(p7,function(p){return hasAnySync(p)?p.created_at:null;},false);
     // isDateString=true : streak_last_date est déjà une date Paris (string), pas un timestamp.
     var connSpark=dailyCounts(c7,function(p){return p.streak_last_date;},true);
     // isDateString=false → comparaison range timestamp (cohérent avec le fait
@@ -16474,16 +16478,16 @@ async function loadAdminStats(){
         '<td style="text-align:right">'+sub7+'</td>'+
         '<td style="text-align:right;color:var(--cyan,#20d0e0);font-weight:700">'+(totalPlayers||0)+'</td></tr>'+
       '<tr><td colspan="5" style="padding:0 .25rem">'+sparkBar(subSpark,'#20d0e0')+'</td></tr>'+
-      '<tr><td style="padding:.4rem .25rem;color:#fc4c02">⚡ Strava connectés</td>'+
+      '<tr><td style="padding:.4rem .25rem;color:#2ddb80">🔗 Comptes connectés</td>'+
         '<td style="text-align:right;color:var(--green);font-weight:700">'+stToday+'</td>'+
         '<td style="text-align:right">'+stYest+'</td>'+
         '<td style="text-align:right">'+st7+'</td>'+
-        '<td style="text-align:right;color:#fc4c02;font-weight:700">'+(totalStrava||0)+'</td></tr>'+
-      '<tr><td colspan="5" style="padding:0 .25rem">'+sparkBar(stSpark,'#fc4c02')+'</td></tr>'+
+        '<td style="text-align:right;color:#2ddb80;font-weight:700">'+(totalConnectedAcc||0)+'</td></tr>'+
+      '<tr><td colspan="5" style="padding:0 .25rem">'+sparkBar(stSpark,'#2ddb80')+'</td></tr>'+
       '<tr><td style="padding:.4rem .25rem;color:#4a90ff">🏃 Courses importées</td>'+
         '<td style="text-align:right;color:var(--green);font-weight:700">'+runsToday+'</td>'+
         '<td style="text-align:right">'+runsYest+'</td>'+
-        '<td style="text-align:right">'+runs7+'</td>'+
+        '<td style="text-align:right;color:var(--muted2)">—</td>'+
         '<td style="text-align:right;color:#4a90ff;font-weight:700">'+(totalRuns||0)+'</td></tr>'+
       '<tr><td colspan="5" style="padding:0 .25rem">'+sparkBar(runSpark,'#4a90ff')+'</td></tr>'+
       '<tr><td style="padding:.4rem .25rem;color:#bb66dd">📱 RP connectés</td>'+
