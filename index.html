@@ -819,19 +819,28 @@ body::after{
   /* Mes Courses (#hist-tbl) : même resserrement que le classement ci-dessus --
      signalé par l'user (2026-09-20) : colonne Points coupée à droite sur mobile,
      le padding par défaut (.75rem × 2 par cellule × 5 colonnes) dépassait la
-     largeur de l'écran. table-layout:fixed + largeurs explicites sur les
-     colonnes courtes (Date/Vitesse/Dénivelé/Points), Distance récupère le reste. */
+     largeur de l'écran. table-layout:fixed + largeurs explicites sur TOUTES
+     les colonnes (Distance incluse -- la laisser sans largeur explicite avait
+     cassé l'alignement le 20/09 : la pilule Date, plus large que ses 40px
+     forcés, débordait sur Distance). Largeurs = contenu réel mesuré (pilule
+     Date ~58px, en-têtes Distance/Vitesse/Dénivelé/Points) SANS compter le
+     padding, que le navigateur rajoute par-dessus en box-sizing:content-box
+     (piège vécu : compter le padding dans la largeur le fait compter 2x).
+     Vérifié sans coupure/chevauchement de 320 à 428px de large avant de
+     redéployer (cf. simulation locale, jamais retester juste "à l'oeil"). */
   #hist-tbl{table-layout:fixed !important}
   #hist-tbl th,
   #hist-tbl td{padding:.4rem .3rem}
   #hist-tbl th:first-child,
-  #hist-tbl td:first-child{width:40px !important;padding-left:.2rem}
+  #hist-tbl td:first-child{width:59px !important;padding-left:.2rem}
+  #hist-tbl th:nth-child(2),
+  #hist-tbl td:nth-child(2){width:62px !important}
   #hist-tbl th:nth-child(3),
   #hist-tbl td:nth-child(3){width:52px !important}
   #hist-tbl th:nth-child(4),
-  #hist-tbl td:nth-child(4){width:46px !important}
+  #hist-tbl td:nth-child(4){width:60px !important}
   #hist-tbl th:last-child,
-  #hist-tbl td:last-child{width:48px !important;padding-right:.4rem}
+  #hist-tbl td:last-child{width:47px !important;padding-right:.4rem}
   /* Le td contenant le joueur doit pouvoir rétrécir pour permettre l'ellipsis */
   #league-main-panel .tbl td:nth-child(2){min-width:0;overflow:hidden;padding-left:.2rem}
   #league-main-panel .tbl td:nth-child(2) > div{min-width:0;flex-wrap:nowrap;gap:.4rem}
