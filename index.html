@@ -5474,21 +5474,6 @@ function askConfirm(message, opts){
       </div>
     </div>
 
-    <!-- Doublons par RP -->
-    <div class="block" style="margin-top:1rem;border-color:rgba(255,68,68,.3)">
-      <div class="block-header" style="border-color:rgba(255,68,68,.15)">
-        <div class="block-title">🔁 Doublons <span class="hl">par RP</span></div>
-      </div>
-      <div class="block-body-sm">
-        <div style="font-size:.72rem;color:var(--muted2);margin-bottom:.4rem">Trouver les courses en doublon (départs à moins de 2 min ou intervalles qui se chevauchent) chez un joueur. La suppression débite automatiquement les RPC associés.</div>
-        <div style="display:flex;gap:.4rem;align-items:center">
-          <input id="admin-dup-user" type="text" placeholder="Pseudo du RP" style="flex:1;padding:.4rem;border-radius:5px;border:1px solid var(--border2);background:var(--bg3);color:var(--text);font-size:.78rem">
-          <button onclick="adminFindPlayerDuplicates()" style="padding:.4rem .8rem;border-radius:5px;border:1.5px solid var(--red);background:rgba(255,68,68,.08);color:var(--red);font-weight:700;font-size:.75rem;cursor:pointer">🔍 Chercher</button>
-        </div>
-        <div id="admin-dup-msg" style="font-size:.72rem;min-height:1rem;margin-top:.4rem"></div>
-      </div>
-    </div>
-
     <!-- Grosses courses (2026-09-05 : remplace le filtre "flaggées" GPS, jugé
          illisible par l'user — critère simple et transparent = points > 1000,
          pour repérer à l'oeil les grosses sorties suspectes/anormales. -->
@@ -6234,7 +6219,7 @@ function askConfirm(message, opts){
 // rester alignée avec CLAUDE.md.
 // §11  PÉRIODES & FIN DE CYCLE                    (~9251)  processEndOfPeriod, renderPeriodRecap, startPeriodTimer
 // §12  CHAT TEAMS & SOCIAL FEED                   (~9997)  loadTeamChat, renderSocialFeed, toggleReaction, postComment
-// §13  ADMIN — UTILS & PRÉSENCE EN LIGNE          (~10940) isAdmin, initPresence, initAdminPanel, adminFindPlayerDuplicates
+// §13  ADMIN — UTILS & PRÉSENCE EN LIGNE          (~10940) isAdmin, initPresence, initAdminPanel
 // §14  PLAYER CARD & TERRITOIRE                   (~11593) showPlayerCard
 // §15  ÉCONOMIE & PREMIUM                         (~12112) isPremium, isFullPremium, updatePremiumUI, _checkPremiumExpiration
 // §16  NAV / MODALS / TOASTS / WALLET / LICENCES  (~12439) nav, openModal, walletLoad, buyLicence
@@ -15839,7 +15824,7 @@ async function postComment(runId){
 // ████████████████████████████████████████████████████████████████████████████
 // §13 — ADMIN — UTILS & PRÉSENCE EN LIGNE
 // ADMIN_UID = seul compte admin du jeu. isAdmin() compare à cet UID.
-// initPresence, initAdminPanel, adminFindPlayerDuplicates, adminAddRun, etc.
+// initPresence, initAdminPanel, adminAddRun, etc.
 // ████████████████████████████████████████████████████████████████████████████
 
 var ADMIN_UID='0cba7ec2-3d9d-4b08-9b51-280aa0c05a28';
@@ -16216,71 +16201,6 @@ async function adminDeleteRun(runId){
   showToast('✕ Course supprimée'+(rpcDebit>0?' · −'+rpcDebit.toLocaleString(SPEEDIX_LANG)+' RPC':'')+' · RP alerté');
   if(typeof adminLoadFlagged==='function') adminLoadFlagged();
   if(typeof loadPlayersFromSupabase==='function') loadPlayersFromSupabase();
-}
-
-// ── Admin: recherche & suppression des doublons d'un RP ──
-async function adminFindPlayerDuplicates(){
-  if(!isAdmin()) return;
-  var msg=document.getElementById('admin-dup-msg');
-  var name=(document.getElementById('admin-dup-user').value||'').trim();
-  if(!name){if(msg){msg.style.color='var(--red)';msg.textContent='Saisis un pseudo.';}return;}
-  if(msg){msg.style.color='var(--cyan,#20d0e0)';msg.textContent='Recherche…';}
-
-  var {data:players}=await supabaseClient.from('players').select('id,username').ilike('username',name).limit(5);
-  if(!players||!players.length){if(msg){msg.style.color='var(--red)';msg.textContent='Aucun RP trouvé pour "'+name+'"';}return;}
-  var player=players[0];
-
-  var {data:runs}=await supabaseClient.from('runs').select('id,name,distance,time,points,run_date,strava_activity_id').eq('player_id',player.id).order('run_date');
-  if(!runs||runs.length<2){if(msg){msg.style.color='var(--muted2)';msg.textContent=player.username+' — pas assez de courses pour avoir des doublons.';}return;}
-
-  // Détecter les paires en doublon (même règles que l'import)
-  var pairs=[];
-  var seen={};
-  for(var i=0;i<runs.length;i++){
-    var ra=runs[i];
-    if(!ra.run_date) continue;
-    var aStart=new Date(ra.run_date).getTime();
-    if(isNaN(aStart)) continue;
-    var aEnd=aStart+(ra.time||0)*60*1000;
-    for(var j=i+1;j<runs.length;j++){
-      var rb=runs[j];
-      if(!rb.run_date) continue;
-      var bStart=new Date(rb.run_date).getTime();
-      if(isNaN(bStart)) continue;
-      var bEnd=bStart+(rb.time||0)*60*1000;
-      var closeStart=Math.abs(aStart-bStart)<120*1000;
-      var overlap=Math.max(aStart,bStart)<Math.min(aEnd,bEnd);
-      if(closeStart||overlap){
-        var key=ra.id+'|'+rb.id;
-        if(!seen[key]){seen[key]=true; pairs.push({a:ra,b:rb,reason:closeStart?'départ < 2 min':'chevauchement temporel'});}
-      }
-    }
-  }
-
-  if(!pairs.length){if(msg){msg.style.color='var(--green)';msg.textContent='✓ Aucun doublon détecté pour '+player.username;}return;}
-
-  var html='<div style="margin-top:.4rem;padding:.5rem;border:1px solid var(--red);border-radius:6px;text-align:left;max-height:50vh;overflow-y:auto">';
-  html+='<div style="font-weight:700;color:var(--red);margin-bottom:.5rem">'+pairs.length+' doublon'+(pairs.length>1?'s':'')+' détecté'+(pairs.length>1?'s':'')+' chez <strong>'+player.username+'</strong></div>';
-  pairs.forEach(function(p){
-    html+='<div style="margin-bottom:.5rem;padding:.4rem;border:1px solid var(--border);border-radius:5px;background:rgba(255,68,68,.04)">';
-    html+='<div style="font-size:.68rem;color:var(--red);margin-bottom:.35rem">⚠ '+p.reason+'</div>';
-    [p.a,p.b].forEach(function(r){
-      var dt=r.run_date?(r.run_date.substring(0,16).replace('T',' ')):'—';
-      html+='<div style="display:flex;justify-content:space-between;align-items:center;font-size:.68rem;padding:.25rem 0;gap:.4rem">'
-        +'<span style="flex:1;color:var(--text)">'+dt+' · '+(r.name||'(sans nom)')+' · '+r.distance+' km · '+(r.time||0)+' min · <strong>'+r.points+' pts</strong></span>'
-        +'<button onclick="adminDeleteRunAndRefreshDup(\''+r.id+'\')" style="padding:.2rem .5rem;border-radius:4px;border:1.5px solid var(--red);background:rgba(255,68,68,.1);color:var(--red);font-size:.62rem;font-weight:700;cursor:pointer">✕ Supprimer</button>'
-        +'</div>';
-    });
-    html+='</div>';
-  });
-  html+='</div>';
-  if(msg){msg.style.color='var(--text)';msg.innerHTML=html;}
-}
-
-async function adminDeleteRunAndRefreshDup(runId){
-  if(!confirm('Supprimer cette course ? Les RPC associés seront aussi débités.')) return;
-  await adminDeleteRun(runId);
-  setTimeout(function(){adminFindPlayerDuplicates();}, 500);
 }
 
 function adminPreviewPts(){
