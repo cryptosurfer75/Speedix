@@ -23633,7 +23633,7 @@ async function _recomputeCollabProgressForPlayer(playerId){
     // Charger les défis in_progress où le joueur participe (avec accepted_at
     // pour ordre FIFO de l'attribution des runs).
     var {data:myParts}=await supabaseClient.from('collab_challenge_participants')
-      .select('id,challenge_id,progress,completed_individually,accepted_at')
+      .select('id,challenge_id,progress,completed_individually,accepted_at,priority_order')
       .eq('player_id',playerId);
     if(!myParts || !myParts.length) return;
     var chalIds=myParts.map(function(p){return p.challenge_id;});
@@ -23642,19 +23642,39 @@ async function _recomputeCollabProgressForPlayer(playerId){
       .in('id',chalIds).eq('status','in_progress');
     if(!chals || !chals.length) return;
     var chalById={}; chals.forEach(function(c){chalById[c.id]=c;});
+    // Ne garder que les participations réellement en cours (une ligne peut
+    // exister pour un défi déjà résolu/expiré : elle n'entre pas dans l'ordre).
+    myParts=myParts.filter(function(p){return !!chalById[p.challenge_id];});
 
-    // Tri FIFO + règle "1 course = 1 défi PAR CATÉGORIE de mesure".
-    // Catégories :
+    // Tri par ordre de priorité choisi par le joueur (priority_order, 1=en
+    // premier) — par défaut (jamais touché) c'est l'ordre FIFO d'acceptation.
+    // Règle "1 course = 1 défi PAR CATÉGORIE de mesure" inchangée :
     //   - 'km'    : km_each, km_total, runs_each, long_run_each, long_run_same_day, streak_each
     //   - 'dplus' : dplus_each
-    // Un run consommé par un défi 'km' n'alimente PAS un autre défi 'km' plus jeune.
-    // En revanche il peut alimenter en parallèle un défi 'dplus' (objectif orthogonal).
-    // Le défi le plus ancien (FIFO) consomme en priorité les runs qu'il utilise réellement.
+    // Un run consommé par un défi 'km' n'alimente PAS un autre défi 'km' plus bas
+    // en priorité. En revanche il peut alimenter en parallèle un défi 'dplus'.
+    // Le défi en tête de liste (priority_order le plus petit) consomme en
+    // priorité les runs qu'il utilise réellement.
     myParts.sort(function(a,b){
+      var pa=(a.priority_order!=null)?a.priority_order:Infinity;
+      var pb=(b.priority_order!=null)?b.priority_order:Infinity;
+      if(pa!==pb) return pa-pb;
       var da=a.accepted_at?new Date(a.accepted_at).getTime():0;
       var db=b.accepted_at?new Date(b.accepted_at).getTime():0;
       return da-db;
     });
+    // Auto-réparation : garantit un rang 1..N contigu (comble les trous laissés
+    // par un défi terminé/expiré, initialise priority_order pour les anciennes
+    // lignes qui n'en avaient pas encore). Permet à l'UI de faire un simple
+    // échange de rang entre 2 lignes sans jamais se soucier des trous.
+    for(var ri=0; ri<myParts.length; ri++){
+      var wantRank=ri+1;
+      if(myParts[ri].priority_order!==wantRank){
+        await supabaseClient.from('collab_challenge_participants')
+          .update({priority_order:wantRank}).eq('id',myParts[ri].id);
+        myParts[ri].priority_order=wantRank;
+      }
+    }
     var _consumedByCategory={}; // { km:Set<runId>, dplus:Set<runId>, time:Set<runId> }
     function _critCategory(t){
       if(t==='dplus_each') return 'dplus';
@@ -23833,7 +23853,7 @@ async function renderCollabChallenges(){
 
     // 1. Charger mes lignes participants + leur défi associé + l'autre participant
     var {data:myParts}=await supabaseClient.from('collab_challenge_participants')
-      .select('id,challenge_id,player_id,accepted_at,declined,declined_reason,progress,completed_individually,completed_at')
+      .select('id,challenge_id,player_id,accepted_at,declined,declined_reason,progress,completed_individually,completed_at,priority_order')
       .eq('player_id',currentUser.id);
     if(!myParts || !myParts.length){
       var helpHeaderEmpty='<div style="display:flex;justify-content:center;margin-bottom:.5rem">'
@@ -23997,7 +24017,17 @@ async function renderCollabChallenges(){
     // EN COURS — pas de titre de section ici : redondant avec le sous-onglet
     // "EN COURS" qui contient déjà toute cette liste (2026-07-21).
     if(inProgress.length){
-      inProgress.forEach(function(it){
+      // Ordre choisi par le joueur (priority_order, 1=premier servi côté
+      // attribution des courses, cf. _recomputeCollabProgressForPlayer) —
+      // affiché ici sous forme de pastille numérotée cliquable pour permettre
+      // au joueur de réordonner selon la sortie qu'il vient de faire.
+      inProgress.sort(function(a,b){
+        var pa=(a.part.priority_order!=null)?a.part.priority_order:Infinity;
+        var pb=(b.part.priority_order!=null)?b.part.priority_order:Infinity;
+        return pa-pb;
+      });
+      var _showRankBadge=inProgress.length>1;
+      inProgress.forEach(function(it,idx){
         var meta=_challengeMeta(it.chal.challenge_code);
         var myProg=(it.part.progress&&typeof it.part.progress==='object')?it.part.progress:{};
         var neighProg=(it.neighbor&&it.neighbor.progress&&typeof it.neighbor.progress==='object')?it.neighbor.progress:{};
@@ -24032,8 +24062,23 @@ async function renderCollabChallenges(){
           var myMin=myProg.time_done||0, nMin=neighProg.time_done||0;
           progLine='Total à deux : '+_fmtMin(myMin+nMin)+'/'+_fmtMin(crit.value)+' · Toi : '+_fmtMin(myMin)+' · '+_neighborChip(it.neighborInfo)+' : '+_fmtMin(nMin);
         }
+        // Pastille de rang cliquable (2 défis en cours max en Premium, mais code
+        // générique) — permet de choisir quel défi consomme en priorité la
+        // prochaine course (cf. règle FIFO dans _recomputeCollabProgressForPlayer).
+        // Clic sur un rang != 1 → passe en tête. Clic sur le rang 1 → échange
+        // avec le rang 2 (retour possible, "et vice versa").
+        var rankBadgeHtml='';
+        if(_showRankBadge){
+          var targetIdx=(idx===0)?1:0;
+          var targetPart=inProgress[targetIdx]?inProgress[targetIdx].part:null;
+          var rankNum=it.part.priority_order||(idx+1);
+          if(targetPart){
+            rankBadgeHtml='<button onclick="event.stopPropagation();swapCollabPriority(\''+it.part.id+'\',\''+targetPart.id+'\')" title="Changer quel défi consomme en priorité ta prochaine course" style="position:absolute;top:.5rem;left:.5rem;width:1.5rem;height:1.5rem;border-radius:50%;border:1.5px solid var(--purple);background:#0c0f1a;color:var(--purple);font-family:\'Bebas Neue\',sans-serif;font-size:.8rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;line-height:1">'+rankNum+'</button>';
+          }
+        }
         var inner=
-          '<div style="font-family:\'Bebas Neue\',sans-serif;font-size:.85rem;letter-spacing:1.3px;color:var(--text);margin-bottom:.35rem">'+meta.title+'</div>'
+          rankBadgeHtml
+          +'<div style="font-family:\'Bebas Neue\',sans-serif;font-size:.85rem;letter-spacing:1.3px;color:var(--text);margin-bottom:.35rem">'+meta.title+'</div>'
           +'<div style="font-size:.72rem;color:var(--text);margin-bottom:.3rem">'+progLine+'</div>'
           +'<div style="font-size:.65rem;color:var(--muted2);font-family:Space Mono,monospace">⏱ '+_countdownSpan(it.chal.deadline)+' · 🎁 '+_rewardLine(it.chal)+'</div>';
         html+=_collabBadgeShell('var(--green)','rgba(45,219,128,.2)','🏃',inner);
@@ -24169,6 +24214,31 @@ function _collabCountdownTick(){
 }
 if(!window._collabCountdownInterval){
   window._collabCountdownInterval=setInterval(_collabCountdownTick, 1000);
+}
+
+// Échange le rang de priorité (priority_order) entre 2 de mes propres défis
+// collaboratifs EN COURS. Ne touche jamais aux lignes du voisin (l'ordre
+// d'attribution des courses est individuel à chaque joueur, cf. règle FIFO
+// dans _recomputeCollabProgressForPlayer). Sécurisé par .eq('player_id',...)
+// pour ne jamais permettre de patcher la ligne de quelqu'un d'autre.
+async function swapCollabPriority(participantIdA,participantIdB){
+  if(!currentUser || !participantIdA || !participantIdB || participantIdA===participantIdB) return;
+  try {
+    var {data:rows}=await supabaseClient.from('collab_challenge_participants')
+      .select('id,priority_order').in('id',[participantIdA,participantIdB])
+      .eq('player_id',currentUser.id);
+    if(!rows || rows.length!==2) return;
+    var rowA=rows.find(function(r){return r.id===participantIdA;});
+    var rowB=rows.find(function(r){return r.id===participantIdB;});
+    if(!rowA || !rowB) return;
+    await supabaseClient.from('collab_challenge_participants')
+      .update({priority_order:rowB.priority_order}).eq('id',rowA.id).eq('player_id',currentUser.id);
+    await supabaseClient.from('collab_challenge_participants')
+      .update({priority_order:rowA.priority_order}).eq('id',rowB.id).eq('player_id',currentUser.id);
+    await renderCollabChallenges();
+  } catch(e){
+    console.warn('[collab] swap priority error:', e);
+  }
 }
 
 async function acceptCollabChallenge(participantId){
