@@ -28206,13 +28206,13 @@ window.Tour.init = async function(){
   // de main. Résultat : la même personne pouvait changer de couleur d'une
   // session à l'autre. players.tour_color = SOURCE UNIQUE désormais, posée une
   // fois pour toutes au 1er croisement et jamais recalculée après.
-  function _tourOwnerObj(id, nameMap, eligMap, startIdxMap, colorMap){
+  function _tourOwnerObj(id, nameMap, eligMap, startIdxMap, colorMap, lapsMap){
     if(!id) return null;
     if(currentUser && id===currentUser.id) return ME;
     if(!_tourOwnerCache[id]){
       var _existingColor=colorMap&&colorMap[id];
       var _color=_existingColor||OTHER_TOUR_COLORS[_otherColorIdx++ % OTHER_TOUR_COLORS.length];
-      _tourOwnerCache[id] = {id:id, name:(nameMap&&nameMap[id])||'RP', color:_color, eligible:!!(eligMap&&eligMap[id]), real:true, startIdx:(startIdxMap&&startIdxMap[id])||0};
+      _tourOwnerCache[id] = {id:id, name:(nameMap&&nameMap[id])||'RP', color:_color, eligible:!!(eligMap&&eligMap[id]), real:true, startIdx:(startIdxMap&&startIdxMap[id])||0, laps:(lapsMap&&lapsMap[id])||0};
       if(!_existingColor){
         supabaseClient.from('players').update({tour_color:_color}).eq('id',id).is('tour_color',null)
           .then(function(res){ if(res && res.error) console.warn('[Tour] tour_color PATCH failed', res.error); });
@@ -28233,13 +28233,14 @@ window.Tour.init = async function(){
       // numéro de case seul (l.idx) n'est parlant QUE pour un départ Paris (idx 0,
       // case=km). Pour un départ Marseille (idx 451 par ex.), il faut soustraire
       // le vrai tour_start_idx de CE propriétaire pour retrouver sa distance.
-      let _names = {}, _elig = {}, _startIdx = {}, _colors = {};
+      let _names = {}, _elig = {}, _startIdx = {}, _colors = {}, _laps = {};
       if(_ids.size){
-        const {data:ownerRows} = await supabaseClient.from('players').select('id,username,premium,tour_acquisition_rights,grade,tour_start_idx,tour_color').in('id', Array.from(_ids));
+        const {data:ownerRows} = await supabaseClient.from('players').select('id,username,premium,tour_acquisition_rights,grade,tour_start_idx,tour_color,tour_laps').in('id', Array.from(_ids));
         (ownerRows||[]).forEach(p=>{
           _names[p.id]=p.username;
           _elig[p.id] = !!p.premium || !!p.tour_acquisition_rights || TOUR_ELIGIBLE_GRADES.includes(p.grade);
           _startIdx[p.id] = p.tour_start_idx||0;
+          _laps[p.id] = p.tour_laps||0;
           if(p.tour_color) _colors[p.id] = p.tour_color;
         });
       }
@@ -28247,7 +28248,7 @@ window.Tour.init = async function(){
         const l = LANDS[row.idx];
         if(!l) return;
         if(row.type==='etape'){
-          if(row.etape_owner_id){ l.ownerEtape=_tourOwnerObj(row.etape_owner_id,_names,_elig,_startIdx,_colors); l.stars=row.stars||0; if(l.ownerEtape===ME) l.mine=true; }
+          if(row.etape_owner_id){ l.ownerEtape=_tourOwnerObj(row.etape_owner_id,_names,_elig,_startIdx,_colors,_laps); l.stars=row.stars||0; if(l.ownerEtape===ME) l.mine=true; }
           // Bug corrigé (2026-08-06, signalé par l'user — "je mets Angers en
           // vente, ça revient dans Mes Lands après un refresh") : for_sale/
           // sale_price (et visits/earned) n'étaient jamais relus pour les
@@ -28272,7 +28273,7 @@ window.Tour.init = async function(){
         l.visits = row.visits||0;
         l.earned = row.earned||0;
         if(row.for_sale){ l.forSale=true; l.salePrice=row.sale_price; l.listedAt=row.listed_at||null; }
-        if(row.holder_id){ l.owner=_tourOwnerObj(row.holder_id,_names,_elig,_startIdx,_colors); if(l.owner===ME) l.mine=true; }
+        if(row.holder_id){ l.owner=_tourOwnerObj(row.holder_id,_names,_elig,_startIdx,_colors,_laps); if(l.owner===ME) l.mine=true; }
       });
     }catch(e){ console.warn('[Tour] chargement tour_lands échoué, plateau vide affiché', e); }
   }
@@ -28424,7 +28425,7 @@ window.Tour.init = async function(){
         // fait plusieurs tours") -- revu depuis, un numéro de case seul n'est parlant
         // que pour un départ Paris (idx 0), pas Marseille. p.tour_start_idx est déjà
         // chargé dans la requête `others` (ligne ~28455), juste pas encore utilisé ici.
-        const friendKm = pos.i - (p.tour_start_idx||0);
+        const friendKm = (((pos.i - (p.tour_start_idx||0)) % TOTAL_CELLS + TOTAL_CELLS) % TOTAL_CELLS) + (p.tour_laps||0)*TOTAL_CELLS;
         m.bindPopup(`❤️ ${p.username||'RP suivi'} — ${friendKm} km parcourus → case n°${pos.i}<br><span style="color:#5b2c8f;font-weight:600">${landsCount} Land${landsCount>1?'s':''}</span> active${landsCount>1?'s':''} sur le tracé<div style="margin-top:6px">${swatches}</div>`);
       } else {
         // Couleurs corrigées (2026-08-08) : même défaut que le point "RP simulé" de
@@ -28437,7 +28438,7 @@ window.Tour.init = async function(){
         // "X km parcourus → case n°Y" + Lands actives (2026-08-08, demande explicite
         // user, généralisé depuis le popup amis suivis) : même calcul, mêmes données
         // déjà chargées (p.tour_start_idx, landsCounts élargi à tous les ids ci-dessus).
-        const otherKm = pos.i - (p.tour_start_idx||0);
+        const otherKm = (((pos.i - (p.tour_start_idx||0)) % TOTAL_CELLS + TOTAL_CELLS) % TOTAL_CELLS) + (p.tour_laps||0)*TOTAL_CELLS;
         const otherLandsCount = landsCounts[p.id]||0;
         m.bindPopup(`${p.username||'RP'} — ${otherKm} km parcourus → case n°${pos.i}<br><span style="color:#5b2c8f;font-weight:600">${otherLandsCount} Land${otherLandsCount>1?'s':''}</span> active${otherLandsCount>1?'s':''} sur le tracé`);
       }
@@ -29840,7 +29841,7 @@ window.Tour.init = async function(){
     // Pour un départ Marseille (ou toute autre ville), km = l.idx - le vrai
     // tour_start_idx DE CE PROPRIÉTAIRE (cf owner.startIdx, _tourOwnerObj) --
     // même format que le popup "RP simulé"/ami existant plus bas (simulate150()).
-    const _kmLine = l.owner ? `${l.idx - (l.owner.startIdx||0)} km parcourus → case n°${l.idx}<br>` : '';
+    const _kmLine = l.owner ? `${(((l.idx - (l.owner.startIdx||0)) % TOTAL_CELLS + TOTAL_CELLS) % TOTAL_CELLS) + (l.owner.laps||0)*TOTAL_CELLS} km parcourus → case n°${l.idx}<br>` : '';
     if(l.status==='rented') return `<b>En location</b><br>${_kmLine}Locataire : ${l.owner.name}<br>Prélèvement d'une redevance de : ${landRedevance(l)} RPC`;
     if(l.status==='owned') return `<b>Land propriétaire</b><br>${_kmLine}Propriétaire : ${l.owner.name} (${'★'.repeat(l.stars)})<br>Prélèvement d'une redevance de : ${landRedevance(l)} RPC`;
     return '';
