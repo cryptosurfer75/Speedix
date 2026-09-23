@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SPEEDIX LEAGUE — Télécharger l'app</title>
+<meta name="robots" content="noindex">
+<style>
+  body{margin:0;background:#0c0f1a;color:#fff;font-family:Arial,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;text-align:center;padding:24px;box-sizing:border-box}
+  a{color:#f0b429;text-decoration:none;font-weight:700}
+</style>
+</head>
+<body>
+  <div>
+    <p>Redirection vers SPEEDIX LEAGUE…</p>
+    <p><a href="https://apps.apple.com/app/speedix/id6763503175">App Store</a> ·
+       <a href="https://play.google.com/store/apps/details?id=com.speedixleague.runner">Google Play</a> ·
+       <a href="https://speedixleague.com/go">Continuer sur le web</a></p>
+  </div>
+  <script>
+    var ua = navigator.userAgent || '';
+    var url;
+    if (/iPhone|iPad|iPod/i.test(ua)) {
+      url = 'https://apps.apple.com/app/speedix/id6763503175';
+    } else if (/Android/i.test(ua)) {
+      url = 'https://play.google.com/store/apps/details?id=com.speedixleague.runner';
+    } else {
+      url = 'https://speedixleague.com/go';
+    }
+    location.replace(url);
+  </script>
+</body>
+</html>
