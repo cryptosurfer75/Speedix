@@ -16432,7 +16432,11 @@ async function loadAdminStats(){
 
     var connToday=(c7||[]).filter(function(p){return inToday(p.created_at);}).length;
     var connYest=(c7||[]).filter(function(p){return inYest(p.created_at);}).length;
-    var conn7=(c7||[]).length;
+    // 7J = RP UNIQUES sur la semaine (2026-09-25, demande explicite), pas la
+    // somme des connexions/jour -- un RP actif 7j/7 ne doit compter que pour 1,
+    // pas 7. Volume vérifié sans risque (~300 lignes/semaine, largement sous le
+    // plafond PostgREST de 1000 -- pas besoin de RPC ici, contrairement au TOTAL.
+    var conn7=new Set((c7||[]).map(function(p){return p.player_id;})).size;
 
     // Bug fix : runs.run_date est un TIMESTAMP UTC ("2026-05-02 09:42:35+00").
     // On compare la date Paris de chaque run pour rester cohérent avec startTodayDate.
