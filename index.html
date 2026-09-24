@@ -17168,11 +17168,12 @@ async function acceptTrial(){
   showToast('⭐ Essai Premium activé — 15 jours gratuits !');
 }
 
-// ── Lands en trop après fin de Premium/essai : calendrier 15/30/45 jours ───
+// ── Lands en trop après fin de Premium/essai : calendrier 10/15/30 jours ───
 // Décidé le 2026-08-31 (v2, remplace la 1ère version "3 connexions" du même
-// soir) : basé sur le temps RÉEL écoulé depuis la fin du Premium, pas sur le
+// soir), délais raccourcis 15/30/45 → 10/15/30 le 2026-09-25 (demande
+// explicite). Basé sur le temps RÉEL écoulé depuis la fin du Premium, pas sur le
 // nombre de connexions — sinon un RP qui ne se reconnecte plus garderait ses
-// Lands indéfiniment. La progression 15/30/45j + la libération finale sont
+// Lands indéfiniment. La progression 10/15/30j + la libération finale sont
 // gérées par le cron serveur `land_grace_batch` (avec notification push à
 // chaque étape, pour toucher aussi les RP inactifs) — ce bloc client se
 // contente d'AFFICHER l'étape courante quand le RP se reconnecte, et propose
@@ -17188,7 +17189,7 @@ async function _checkLandGraceNotice(){
   await supabaseClient.from('players').update({land_grace_last_date:today}).eq('id',currentUser.id);
 
   if(pdata.land_grace_notices>=3){
-    // Déjà résolu côté serveur (libération auto au jour 45) — simple récap,
+    // Déjà résolu côté serveur (libération auto au jour 30) — simple récap,
     // on efface le marqueur pour ne pas réafficher indéfiniment.
     await supabaseClient.from('players').update({land_grace_notices:0}).eq('id',currentUser.id);
     _openLandGraceResolvedModal();
@@ -17214,7 +17215,7 @@ function _openLandGraceNoticeModal(nbLoc, step){
     +' Tu as <b style="color:var(--gold)">'+nbLoc+' Lands</b> en location, au-dessus de la limite Free (<b>8 max</b>).</div>'
     +'<div style="font-size:.78rem;color:var(--muted2);line-height:1.6;margin-bottom:1rem">'
     +(step===1
-      ?'Pas d\'inquiétude : tu as encore <b style="color:var(--text)">30 jours</b> avant un ajustement automatique. D\'ici là, choisis toi-même lesquelles garder, ou repasse Premium pour lever la limite.'
+      ?'Pas d\'inquiétude : tu as encore <b style="color:var(--text)">20 jours</b> avant un ajustement automatique. D\'ici là, choisis toi-même lesquelles garder, ou repasse Premium pour lever la limite.'
       :'Plus que <b style="color:var(--text)">15 jours</b> avant l\'ajustement automatique (on gardera tes 8 Lands les plus anciennes, le reste sera libéré).')
     +'</div>'
     +'<div style="display:flex;gap:.5rem;justify-content:center;flex-wrap:wrap">'
@@ -17229,7 +17230,7 @@ function _openLandGraceResolvedModal(){
   document.getElementById('lm-sub').textContent='';
   document.getElementById('lm-body').innerHTML='<div style="text-align:center">'
     +'<div style="font-size:2.5rem;margin-bottom:.4rem">📦</div>'
-    +'<div style="font-size:.85rem;color:var(--text);line-height:1.65;margin-bottom:.8rem">45 jours sont passés depuis la fin de ton Premium : pour respecter la limite Free (8 Lands), tes Lands en location les plus récentes ont été libérées automatiquement.</div>'
+    +'<div style="font-size:.85rem;color:var(--text);line-height:1.65;margin-bottom:.8rem">30 jours sont passés depuis la fin de ton Premium : pour respecter la limite Free (8 Lands), tes Lands en location les plus récentes ont été libérées automatiquement.</div>'
     +'<div style="font-size:.75rem;color:var(--muted2);line-height:1.6;margin-bottom:1rem">Tu gardes tes 8 Lands les plus anciennes. Repasse Premium à tout moment pour lever cette limite.</div>'
     +'<button onclick="closeModal(\'land-modal\')" style="width:100%;padding:.6rem;border-radius:8px;border:1.5px solid var(--gold);background:rgba(245,200,66,.12);color:var(--gold);font-weight:700;font-size:.85rem;cursor:pointer">J\'ai compris</button>'
     +'</div>';
