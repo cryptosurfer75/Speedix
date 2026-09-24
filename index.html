@@ -20976,6 +20976,18 @@ function toggleTeamChallengeHistory(){
   _renderTeamChallengeModal();
 }
 var _teamChallengeTab='intro';
+// Menu déroulant "participants" au clic sur une team du Classement
+// (2026-09-26, demande explicite : "en premium je puisse voir les
+// participants des autres team et leur progression", "sous forme d'un
+// menu déroulant comme le menu des onglets en haut à gauche" -- même
+// composant visuel que #rtw-menu/.rtw-item). Rien à refetch : les
+// participants de CHAQUE team sont déjà dans c.allTeamsStats[].rows.
+var _teamChallengeOpenTeamId=null;
+function toggleTeamChallengeRankingDropdown(teamId){
+  if(!isPremium()) return;
+  _teamChallengeOpenTeamId=(_teamChallengeOpenTeamId===teamId)?null:teamId;
+  _renderTeamChallengeModal();
+}
 
 // Format court "sam. 26 - dim. 27 sept." à partir des dates réelles de
 // l'édition (2026-09-26, plus de texte codé en dur -- une édition future
@@ -21083,14 +21095,19 @@ async function openTeamWeekendChallenge(){
     };
 
     // Classement = stats de TOUTES les teams impliquées (moi comprise), triées
-    // par progression décroissante -- calculé une fois, réutilisé par les 2 onglets.
-    allTeamsStats=teamIdsInvolved.map(buildTeamStats).sort(function(a,b){return b.progressPct-a.progressPct;});
+    // par km cumulés décroissants -- demande explicite 2026-09-26 : "dans
+    // l'ordre des km réalisés dans sa totalité, la première étant celle qui
+    // aura fait la plus grande distance". Tri sur totalCapped (pas
+    // progressPct, qui plafonne visuellement à 100% et perdrait l'ordre
+    // entre 2 teams ayant toutes deux dépassé l'objectif).
+    allTeamsStats=teamIdsInvolved.map(buildTeamStats).sort(function(a,b){return b.totalCapped-a.totalCapped;});
   }
 
   _teamChallengeCache={myTeamId:teamId, edition:edition, capKm:capKm, allTeamsStats:allTeamsStats,
     successCount:successCount||0, failedCount:failedCount||0, history:historyRows};
   _teamChallengeTab='intro';
   _teamChallengeHistoryOpen=false;
+  _teamChallengeOpenTeamId=null;
   _renderTeamChallengeModal();
   // Cadre violet dédié (2026-09-25, demande explicite) -- même technique que
   // les autres cadres colorés de land-modal, reset automatique par
@@ -21218,15 +21235,34 @@ function _renderTeamChallengeModal(){
       var nm=o.team?o.team.name:'Team';
       var col=o.team&&o.team.color?o.team.color:'var(--muted2)';
       var isMine=o.team&&o.team.id===c.myTeamId;
-      return '<div style="padding:.5rem .6rem;border-radius:6px;border:1.5px solid '+(isMine?'var(--gold)':'var(--border)')+';background:rgba(255,255,255,.03);margin-bottom:.35rem">'
-        +'<div style="display:flex;justify-content:space-between;align-items:center;font-size:.78rem;margin-bottom:.3rem">'
-          +'<span style="color:var(--muted2);font-family:Space Mono,monospace;margin-right:.4rem">#'+(i+1)+'</span>'
-          +'<span style="color:'+col+';font-weight:700;flex:1">'+nm.toUpperCase()+'</span>'
-          +'<span style="color:var(--muted2);font-family:Space Mono,monospace;font-size:.7rem">'+o.joinedIds.length+'/'+o.teamSize+' RP · '+o.totalCapped.toFixed(1)+'/'+edition.goal_km+' km</span>'
+      var tid=o.team?o.team.id:'';
+      var isOpen=tid&&tid===_teamChallengeOpenTeamId;
+      // Menu déroulant participants (2026-09-26, demande explicite) -- même
+      // composant visuel que #rtw-menu/.rtw-item (le menu des onglets en
+      // haut à gauche) : boîte sombre, liseré violet, ombre, lignes plates.
+      var dropdownHtml=!isOpen?'':(
+        '<div style="position:absolute;top:100%;left:0;right:0;z-index:50;background:#080e1e;border:1px solid rgba(144,96,240,.4);border-radius:10px;box-shadow:0 8px 30px rgba(0,0,0,.5);overflow:hidden;margin-top:6px">'
+        +(o.rows.length?o.rows.map(function(r){
+            var atCap=r.raw>=capKm;
+            return '<div style="padding:.5rem 1rem;font-size:.78rem;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(255,255,255,.06)">'
+              +'<span style="color:var(--text)">'+r.name+'</span>'
+              +'<span style="color:var(--muted2);font-family:Space Mono,monospace">'+r.raw.toFixed(1)+' km<b style="color:'+(atCap?'var(--green)':'var(--text)')+';margin-left:.4rem">'+r.pct+'%</b></span>'
+            +'</div>';
+          }).join(''):'<div style="padding:.6rem 1rem;font-size:.75rem;color:var(--muted2);text-align:center">Personne inscrit pour l\'instant.</div>')
         +'</div>'
-        +'<div style="width:100%;height:9px;border-radius:5px;background:rgba(255,255,255,.06);overflow:hidden">'
-          +'<div style="height:100%;width:'+o.progressPct+'%;background:linear-gradient(90deg,#f5c842,#ffdd77)"></div>'
+      );
+      return '<div style="position:relative;margin-bottom:.35rem">'
+        +'<div onclick="toggleTeamChallengeRankingDropdown(\''+tid+'\')" style="padding:.5rem .6rem;border-radius:6px;border:1.5px solid '+(isMine?'var(--gold)':'var(--border)')+';background:rgba(255,255,255,.03);cursor:pointer">'
+          +'<div style="display:flex;justify-content:space-between;align-items:center;font-size:.78rem;margin-bottom:.3rem">'
+            +'<span style="color:var(--muted2);font-family:Space Mono,monospace;margin-right:.4rem">#'+(i+1)+'</span>'
+            +'<span style="color:'+col+';font-weight:700;flex:1">'+nm.toUpperCase()+'</span>'
+            +'<span style="color:var(--muted2);font-family:Space Mono,monospace;font-size:.7rem">'+o.joinedIds.length+'/'+o.teamSize+' RP · '+o.totalCapped.toFixed(1)+'/'+edition.goal_km+' km</span>'
+          +'</div>'
+          +'<div style="width:100%;height:9px;border-radius:5px;background:rgba(255,255,255,.06);overflow:hidden">'
+            +'<div style="height:100%;width:'+o.progressPct+'%;background:linear-gradient(90deg,#f5c842,#ffdd77)"></div>'
+          +'</div>'
         +'</div>'
+        +dropdownHtml
       +'</div>';
     }).join(''):'<div style="text-align:center;color:var(--muted2);font-size:.8rem;padding:1rem">Aucune team inscrite pour l\'instant.</div>');
   } else if(_teamChallengeTab==='mine'){
