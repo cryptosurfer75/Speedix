@@ -16377,13 +16377,17 @@ async function loadAdminStats(){
     // Players des 7 derniers jours (avec strava/coros/intervals + premium pour breakdown période)
     var {data:p7}=await supabaseClient.from('players').select('created_at,strava_access_token,coros_access_token,intervals_access_token,intervals_athlete_id,premium').gte('created_at',startWeekDate+'T00:00:00.000Z');
     // Connexions (ouvertures réelles de l'appli) des 7 derniers jours -- via
-    // streak_last_date (date Paris, posée par checkAndClaimStreak() à CHAQUE
-    // vrai lancement en session authentifiée). Jamais last_sign_in_at, qui ne
-    // bouge qu'à une ré-authentification et sous-compte massivement les RP
-    // actifs au quotidien (cf. mémoire reference_speedix_detection_inactifs_streak).
-    // C'est une DATE (pas un timestamp) donc déjà dédupliqué à 1/jour/RP par
-    // construction -- exactement la demande "1 connexion par RP et par jour".
-    var {data:c7}=await supabaseClient.from('players').select('streak_last_date').gte('streak_last_date',startWeekDate);
+    // wallet_tx 'Chaîne jour N' (créé par checkAndClaimStreak() à CHAQUE vrai
+    // lancement en session authentifiée, au plus 1/jour/RP puisque la fonction
+    // sort immédiatement si streak_last_date===aujourd'hui). Jamais
+    // last_sign_in_at (ne bouge qu'à une ré-authentification, sous-compte
+    // massivement, cf. reference_speedix_detection_inactifs_streak) NI
+    // players.streak_last_date (bug corrigé 2026-09-25, signalé par l'user :
+    // cette colonne est ÉCRASÉE à chaque nouvelle connexion, donc un RP connecté
+    // hier qui se reconnecte aujourd'hui disparaît du total d'HIER — le chiffre
+    // "HIER" se dégradait au fil de la journée au lieu de rester figé. wallet_tx
+    // est un vrai journal, jamais réécrit : source stable pour AUJ/HIER/7J.
+    var {data:c7}=await supabaseClient.from('wallet_tx').select('player_id,created_at').ilike('reason','Cha%ne jour%').gte('created_at',startWeekDate);
     // Totaux globaux (pas filtrés)
     // "Comptes connectés" = Strava OU COROS OU Intervals.icu (OAuth ou ancienne
     // clé API manuelle) -- plus un total Strava-only, ça mélangeait les 3
@@ -16418,9 +16422,8 @@ async function loadAdminStats(){
     var stYest=(p7||[]).filter(function(p){return hasAnySync(p) && inYest(p.created_at);}).length;
     var st7=(p7||[]).filter(hasAnySync).length;
 
-    // streak_last_date est déjà une date Paris (string "YYYY-MM-DD"), comparaison directe sans conversion.
-    var connToday=(c7||[]).filter(function(p){return p.streak_last_date===startTodayDate;}).length;
-    var connYest=(c7||[]).filter(function(p){return p.streak_last_date===startYestDate;}).length;
+    var connToday=(c7||[]).filter(function(p){return inToday(p.created_at);}).length;
+    var connYest=(c7||[]).filter(function(p){return inYest(p.created_at);}).length;
     var conn7=(c7||[]).length;
 
     // Bug fix : runs.run_date est un TIMESTAMP UTC ("2026-05-02 09:42:35+00").
@@ -16458,8 +16461,8 @@ async function loadAdminStats(){
 
     var subSpark=dailyCounts(p7,function(p){return p.created_at;},false);
     var stSpark=dailyCounts(p7,function(p){return hasAnySync(p)?p.created_at:null;},false);
-    // isDateString=true : streak_last_date est déjà une date Paris (string), pas un timestamp.
-    var connSpark=dailyCounts(c7,function(p){return p.streak_last_date;},true);
+    // isDateString=false : created_at est un timestamp (comme run_date), pas une date Paris déjà prête.
+    var connSpark=dailyCounts(c7,function(p){return p.created_at;},false);
     // isDateString=false → comparaison range timestamp (cohérent avec le fait
     // que run_date est un timestamp et non une date)
     var runSpark=dailyCounts(r7,function(r){return r.run_date;},false);
