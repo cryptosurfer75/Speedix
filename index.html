@@ -4089,7 +4089,7 @@ select option{background:#040c1c}
 
   <!-- Bouton Rejoindre — descendu sous le titre pour laisser la croix seule
        sur la ligne du titre, quelle que soit la largeur d'écran (2026-07-21). -->
-  <div style="display:grid;grid-template-columns:auto 1fr auto;gap:.5rem;margin-bottom:1.25rem">
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:.5rem;margin-bottom:1.25rem">
     <!-- Ordre demandé explicitement (2026-09-25) : Rejoindre une Team · Chat ·
          Défi collectif. Structure + COULEURS IDENTIQUES aux tabs Moi/Mes
          amis/Tous du Feed (feed-tab-me-outer) et à Ma team/Classement de la
@@ -4109,7 +4109,7 @@ select option{background:#040c1c}
       onmouseover="this.style.background='linear-gradient(135deg,#2ddb8033,#2ddb8008),#0c0f1a';this.style.color='#ffffff'"
       onmouseout="this.style.background='linear-gradient(135deg,#ffffff33,#ffffff08),#0c0f1a';this.style.color='rgba(255,255,255,.65)'"
       onclick="openJoinTeamModal()">
-        <span style="font-size:1.2rem;line-height:1">🤝</span><span data-i18n="teams.btn.join" style="line-height:1;white-space:nowrap;font-size:clamp(.68rem,3.3vw,1.05rem)">Rejoindre une Team</span>
+        <span style="font-size:1.2rem;line-height:1">🤝</span><span data-i18n="teams.btn.join.short" style="line-height:1;white-space:nowrap;font-size:clamp(.68rem,3.3vw,1.05rem)">Rejoindre</span>
       </button>
     </div>
     <!-- Chat -- scroll vers le panneau de chat d'équipe déjà existant
@@ -6725,6 +6725,7 @@ const I18N = {
     'teams.page.title'          : 'Mode <span style="color:var(--gold)">Team</span>',
     'teams.page.subtitle'       : 'Classement mensuel · Bonus collectifs · 6 à 20 RP',
     'teams.btn.join'            : 'Rejoindre une Team',
+    'teams.btn.join.short'      : 'Rejoindre',
     'teams.rank.title'          : 'Classement <span class="hl">Général</span>',
     'teams.rank.subtitle'       : 'Moy. des 6 meilleurs RP + bonus',
     'teams.loading'             : 'Chargement…',
@@ -7487,6 +7488,7 @@ const I18N = {
     'teams.page.title'          : '<span style="color:var(--gold)">Team</span> mode',
     'teams.page.subtitle'       : 'Monthly ranking · Collective bonuses · 6 to 20 RPs',
     'teams.btn.join'            : 'Join a Team',
+    'teams.btn.join.short'      : 'Join',
     'teams.rank.title'          : '<span class="hl">Overall</span> ranking',
     'teams.rank.subtitle'       : 'Avg. of top 6 RPs + bonus',
     'teams.loading'             : 'Loading…',
