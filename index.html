@@ -16429,18 +16429,22 @@ async function loadAdminStats(){
 
     // Players des 7 derniers jours (avec strava/coros/intervals + premium pour breakdown période)
     var {data:p7}=await supabaseClient.from('players').select('created_at,strava_access_token,coros_access_token,intervals_access_token,intervals_athlete_id,premium').gte('created_at',startWeekDate+'T00:00:00.000Z');
-    // Connexions (ouvertures réelles de l'appli) des 7 derniers jours -- via
-    // wallet_tx 'Chaîne jour N' (créé par checkAndClaimStreak() à CHAQUE vrai
-    // lancement en session authentifiée, au plus 1/jour/RP puisque la fonction
-    // sort immédiatement si streak_last_date===aujourd'hui). Jamais
-    // last_sign_in_at (ne bouge qu'à une ré-authentification, sous-compte
-    // massivement, cf. reference_speedix_detection_inactifs_streak) NI
-    // players.streak_last_date (bug corrigé 2026-09-25, signalé par l'user :
-    // cette colonne est ÉCRASÉE à chaque nouvelle connexion, donc un RP connecté
-    // hier qui se reconnecte aujourd'hui disparaît du total d'HIER — le chiffre
-    // "HIER" se dégradait au fil de la journée au lieu de rester figé. wallet_tx
-    // est un vrai journal, jamais réécrit : source stable pour AUJ/HIER/7J.
-    var {data:c7}=await supabaseClient.from('wallet_tx').select('player_id,created_at').ilike('reason','Cha%ne jour%').gte('created_at',startWeekDate);
+    // Connexions (ouvertures réelles de l'appli) -- via wallet_tx 'Chaîne
+    // jour N' (créé par checkAndClaimStreak() à CHAQUE vrai lancement en
+    // session authentifiée, au plus 1/jour/RP). Jamais last_sign_in_at
+    // (sous-compte massivement) NI players.streak_last_date (écrasée à
+    // chaque connexion). wallet_tx est un vrai journal, jamais réécrit --
+    // source stable pour AUJ/HIER/7J/TOTAL.
+    // ⚠️ 2026-09-24, bug signalé par l'user ("1 partout") : `wallet_tx` porte
+    // une RLS `wallet_tx_read_own` (auth.uid()=player_id) posée pendant le
+    // durcissement sécurité du 14/08 -- un SELECT brut depuis le client (même
+    // admin) ne voyait donc QUE les lignes de l'admin lui-même (1/jour). Fix :
+    // tout passe désormais par des RPC SECURITY DEFINER dédiées (admin-only,
+    // check auth.uid()===ADMIN_UID en interne) qui contournent la RLS pour de
+    // vrai côté base -- plus aucun calcul d'agrégat sur wallet_tx côté client.
+    var {data:connStats,error:connStatsErr}=await supabaseClient.rpc('admin_connected_players_stats',{p_today_paris:startTodayDate,p_days_back:7});
+    if(connStatsErr) console.error('[admin stats] admin_connected_players_stats',connStatsErr);
+    connStats=connStats||{today:0,yesterday:0,week:0,daily:[0,0,0,0,0,0,0]};
     // Totaux globaux (pas filtrés)
     // "Comptes connectés" = Strava OU COROS OU Intervals.icu (OAuth ou ancienne
     // clé API manuelle) -- plus un total Strava-only, ça mélangeait les 3
@@ -16454,6 +16458,7 @@ async function loadAdminStats(){
       // explicite) car un COUNT(DISTINCT player_id) sur wallet_tx (7000+ lignes
       // "Chaîne jour") dépasserait le plafond PostgREST de 1000 lignes si fait
       // par un SELECT brut côté client (cf piège documenté dans CLAUDE.md).
+      // Passée en SECURITY DEFINER le 2026-09-24 (même bug RLS que ci-dessus).
       supabaseClient.rpc('count_unique_connected_players')
     ]);
     var totalConnected=Array.isArray(totalConnectedRpc)?totalConnectedRpc[0]:totalConnectedRpc;
@@ -16481,13 +16486,15 @@ async function loadAdminStats(){
     var stYest=(p7||[]).filter(function(p){return hasAnySync(p) && inYest(p.created_at);}).length;
     var st7=(p7||[]).filter(hasAnySync).length;
 
-    var connToday=(c7||[]).filter(function(p){return inToday(p.created_at);}).length;
-    var connYest=(c7||[]).filter(function(p){return inYest(p.created_at);}).length;
-    // 7J = RP UNIQUES sur la semaine (2026-09-25, demande explicite), pas la
-    // somme des connexions/jour -- un RP actif 7j/7 ne doit compter que pour 1,
-    // pas 7. Volume vérifié sans risque (~300 lignes/semaine, largement sous le
-    // plafond PostgREST de 1000 -- pas besoin de RPC ici, contrairement au TOTAL.
-    var conn7=new Set((c7||[]).map(function(p){return p.player_id;})).size;
+    // 2026-09-24 : les 3 valeurs viennent désormais de la RPC
+    // admin_connected_players_stats() (calculées CÔTÉ BASE, en SECURITY
+    // DEFINER, donc plus soumises à la RLS wallet_tx_read_own qui limitait
+    // avant tout calcul client à la seule ligne de l'admin -- cf plus haut).
+    // 7J = RP UNIQUES sur la semaine (demande explicite 2026-09-25), pas la
+    // somme des connexions/jour -- un RP actif 7j/7 ne doit compter que pour 1.
+    var connToday=connStats.today||0;
+    var connYest=connStats.yesterday||0;
+    var conn7=connStats.week||0;
 
     // Bug fix : runs.run_date est un TIMESTAMP UTC ("2026-05-02 09:42:35+00").
     // On compare la date Paris de chaque run pour rester cohérent avec startTodayDate.
@@ -16524,8 +16531,10 @@ async function loadAdminStats(){
 
     var subSpark=dailyCounts(p7,function(p){return p.created_at;},false);
     var stSpark=dailyCounts(p7,function(p){return hasAnySync(p)?p.created_at:null;},false);
-    // isDateString=false : created_at est un timestamp (comme run_date), pas une date Paris déjà prête.
-    var connSpark=dailyCounts(c7,function(p){return p.created_at;},false);
+    // Sparkline "RP connectés" -- déjà pré-calculée jour par jour côté base
+    // par admin_connected_players_stats() (même raison que connToday/
+    // connYest/conn7 ci-dessus : plus de calcul sur wallet_tx côté client).
+    var connSpark=connStats.daily||[0,0,0,0,0,0,0];
     // isDateString=false → comparaison range timestamp (cohérent avec le fait
     // que run_date est un timestamp et non une date)
     var runSpark=dailyCounts(r7,function(r){return r.run_date;},false);
