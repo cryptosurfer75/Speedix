@@ -11646,7 +11646,7 @@ function renderLeaguePanel(){
   var max2Pts=league.max2||Infinity; // second promo line threshold (for L7 → L5)
 
   // Jours restants avant la fin de la période : utilisé pour différer l'alarme
-  // rouge sur les RPs en zone de rétrogradation. Tant qu'il reste plus de 7
+  // rouge sur les RPs en zone de rétrogradation. Tant qu'il reste plus de 5
   // jours, on garde le doré pour ne pas stresser inutilement les retardataires
   // (ils ont encore le temps de remonter). Calculé depuis period_end (précis,
   // contrairement à un seuil fixe "jour 21" qui dépendait de la durée du mois).
@@ -11706,10 +11706,11 @@ function renderLeaguePanel(){
     // Fond rouge aligné sur la même règle que ptColor plus bas (2026-08-09,
     // demande explicite -- "stressant" de voir son fond de ligne teinté rouge
     // dès le début de période, dès qu'on est sous la ligne de maintien) : le
-    // fond ne vire au rouge qu'à J-7 ou moins, jamais avant. Avant ce correctif,
-    // isReleg seul suffisait à teinter -- incohérent avec ptColor qui, lui,
-    // respectait déjà la fenêtre de 7 jours depuis 2026-07-21.
-    var rowBg=_rowMedalActive?('background:linear-gradient(100deg,'+p.medalBgC2+'40 0%,'+p.medalBgC1+'40 100%);'):((isReleg&&_daysLeftInPeriod<=7)?'background:rgba(255,68,68,.04);':isPromo?'background:rgba(45,219,128,.04);':(isMe?'background:rgba(4,12,35,.85);':''));
+    // fond ne vire au rouge qu'à J-5 ou moins (seuil aligné sur le chrono ⏱ de
+    // fin de période le 2026-09-25, demande explicite -- les 2 doivent rester
+    // synchronisés), jamais avant. Avant ce correctif, isReleg seul suffisait
+    // à teinter -- incohérent avec ptColor qui, lui, respectait déjà une fenêtre depuis 2026-07-21.
+    var rowBg=_rowMedalActive?('background:linear-gradient(100deg,'+p.medalBgC2+'40 0%,'+p.medalBgC1+'40 100%);'):((isReleg&&_daysLeftInPeriod<=5)?'background:rgba(255,68,68,.04);':isPromo?'background:rgba(45,219,128,.04);':(isMe?'background:rgba(4,12,35,.85);':''));
     // Liseré autour de la ligne d'un gagnant de Challenge (36h), même traitement
     // que le contour de MA ligne mais dans la couleur du skin gagné -- demande
     // explicite de l'user 2026-08-09 : "le bandeau bleu est sympa mais un peu à
@@ -11722,10 +11723,11 @@ function renderLeaguePanel(){
     // classes peuvent cohabiter sur la même ligne (moi + fraîchement rentré).
     var _revealCls=isMe?'my-row-enter':'';
     var _rowClassList=_revealCls?[_revealCls]:[];
-    // Rouge UNIQUEMENT si en zone de rétrogradation ET qu'il reste 7 jours ou
-    // moins avant la fin de la période (= alarme tardive, 2026-07-21 : avant
-    // J-10, jugé trop stressant pour les retardataires). Sinon doré comme tout le monde.
-    var ptColor=(isReleg && _daysLeftInPeriod<=7)?'var(--red)':'var(--gold)';
+    // Rouge UNIQUEMENT si en zone de rétrogradation ET qu'il reste 5 jours ou
+    // moins avant la fin de la période (seuil aligné sur le chrono ⏱, passé de
+    // 7 à 5 jours le 2026-09-25 -- demande explicite, les 2 doivent rester
+    // synchronisés). Sinon doré comme tout le monde.
+    var ptColor=(isReleg && _daysLeftInPeriod<=5)?'var(--red)':'var(--gold)';
     // MIROIR de getParrainageTitre() — garder synchro, NE PAS diverger (2026-08-08,
     // corrigé en même temps : couleurs alignées sur les vrais blasons parrainage).
     var parrainColors={A:'#c050d0',G:'var(--green)',E:'var(--gold)',F:'#1090e0'};
@@ -16392,12 +16394,18 @@ async function loadAdminStats(){
     // "Comptes connectés" = Strava OU COROS OU Intervals.icu (OAuth ou ancienne
     // clé API manuelle) -- plus un total Strava-only, ça mélangeait les 3
     // sources de synchro depuis l'ouverture de COROS/Intervals au public.
-    var [{count:totalPlayers},{count:totalConnectedAcc},{count:totalPremium},{count:totalConnected}]=await Promise.all([
+    var [{count:totalPlayers},{count:totalConnectedAcc},{count:totalPremium},{data:totalConnectedRpc}]=await Promise.all([
       supabaseClient.from('players').select('*',{count:'exact',head:true}),
       supabaseClient.from('players').select('*',{count:'exact',head:true}).or('strava_access_token.not.is.null,coros_access_token.not.is.null,intervals_access_token.not.is.null,intervals_athlete_id.not.is.null'),
       supabaseClient.from('players').select('*',{count:'exact',head:true}).eq('premium',true),
-      supabaseClient.from('players').select('*',{count:'exact',head:true}).not('streak_last_date','is',null)
+      // TOTAL "RP connectés" = RP UNIQUES (pas la somme des connexions/jour des
+      // colonnes AUJ/HIER/7J juste au-dessus) -- RPC dédiée (2026-09-25, demande
+      // explicite) car un COUNT(DISTINCT player_id) sur wallet_tx (7000+ lignes
+      // "Chaîne jour") dépasserait le plafond PostgREST de 1000 lignes si fait
+      // par un SELECT brut côté client (cf piège documenté dans CLAUDE.md).
+      supabaseClient.rpc('count_unique_connected_players')
     ]);
+    var totalConnected=Array.isArray(totalConnectedRpc)?totalConnectedRpc[0]:totalConnectedRpc;
     // Runs des 7 derniers jours + total
     // ⚠️ .order('run_date',{ascending:false}) obligatoire : le plafond PostgREST
     // (1000 lignes silencieuses) est régulièrement dépassé sur 7 jours de courses.
