@@ -4089,18 +4089,66 @@ select option{background:#040c1c}
 
   <!-- Bouton Rejoindre — descendu sous le titre pour laisser la croix seule
        sur la ligne du titre, quelle que soit la largeur d'écran (2026-07-21). -->
-  <div style="display:flex;justify-content:flex-end;margin-bottom:1.25rem">
-    <button style="
-      border-radius:6px;border:1.5px solid rgba(144,96,240,.7);background:linear-gradient(135deg,rgba(144,96,240,.28),rgba(144,96,240,.08));
-      color:#b07bff;font-weight:700;letter-spacing:.5px;
-      padding:.5rem 1.1rem;cursor:pointer;
-      transition:all .18s;white-space:nowrap;font-size:.88rem;
-    "
-    onmouseover="this.style.background='linear-gradient(135deg,rgba(144,96,240,.4),rgba(144,96,240,.14))'"
-    onmouseout="this.style.background='linear-gradient(135deg,rgba(144,96,240,.28),rgba(144,96,240,.08))'"
-    onclick="openJoinTeamModal()" data-i18n="teams.btn.join">
-      Rejoindre une Team
-    </button>
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:.5rem;margin-bottom:1.25rem">
+    <!-- Ordre demandé explicitement (2026-09-25) : Rejoindre une Team · Chat ·
+         Défi collectif. Structure + COULEURS IDENTIQUES aux tabs Moi/Mes
+         amis/Tous du Feed (feed-tab-me-outer) et à Ma team/Classement de la
+         modale du défi : gris au repos, vert au survol (même grammaire
+         visuelle "vert = actif" partout) -- plus de jaune/violet propres à un
+         bouton en particulier. -->
+    <div style="background:rgba(255,255,255,.4);clip-path:polygon(10px 0,calc(100% - 10px) 0,100% 10px,100% calc(100% - 10px),calc(100% - 10px) 100%,10px 100%,0 calc(100% - 10px),0 10px);padding:1.5px;transition:all .18s"
+      onmouseover="this.style.background='#2ddb80';this.style.boxShadow='0 0 10px rgba(45,219,128,.6)'"
+      onmouseout="this.style.background='rgba(255,255,255,.4)';this.style.boxShadow='none'">
+      <button style="
+        width:100%;height:100%;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.15rem;
+        border:none;clip-path:polygon(9px 0,calc(100% - 9px) 0,100% 9px,100% calc(100% - 9px),calc(100% - 9px) 100%,9px 100%,0 calc(100% - 9px),0 9px);
+        background:linear-gradient(135deg,#ffffff33,#ffffff08),#0c0f1a;
+        color:rgba(255,255,255,.65);font-family:'Bebas Neue',sans-serif;letter-spacing:1.5px;text-transform:uppercase;
+        padding:.35rem .3rem;cursor:pointer;font-size:1.05rem;
+      "
+      onmouseover="this.style.background='linear-gradient(135deg,#2ddb8033,#2ddb8008),#0c0f1a';this.style.color='#ffffff'"
+      onmouseout="this.style.background='linear-gradient(135deg,#ffffff33,#ffffff08),#0c0f1a';this.style.color='rgba(255,255,255,.65)'"
+      onclick="openJoinTeamModal()">
+        <span style="font-size:1.2rem;line-height:1">🤝</span><span data-i18n="teams.btn.join" style="line-height:1;white-space:nowrap;font-size:clamp(.68rem,3.3vw,1.05rem)">Rejoindre une Team</span>
+      </button>
+    </div>
+    <!-- Chat -- scroll vers le panneau de chat d'équipe déjà existant
+         (#myteam-chat-panel), via l'utilitaire _scrollToTeamPanel déjà en
+         place (2026-09-25). -->
+    <div style="background:rgba(255,255,255,.4);clip-path:polygon(10px 0,calc(100% - 10px) 0,100% 10px,100% calc(100% - 10px),calc(100% - 10px) 100%,10px 100%,0 calc(100% - 10px),0 10px);padding:1.5px;transition:all .18s"
+      onmouseover="this.style.background='#2ddb80';this.style.boxShadow='0 0 10px rgba(45,219,128,.6)'"
+      onmouseout="this.style.background='rgba(255,255,255,.4)';this.style.boxShadow='none'">
+      <button style="
+        width:100%;height:100%;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.15rem;
+        border:none;clip-path:polygon(9px 0,calc(100% - 9px) 0,100% 9px,100% calc(100% - 9px),calc(100% - 9px) 100%,9px 100%,0 calc(100% - 9px),0 9px);
+        background:linear-gradient(135deg,#ffffff33,#ffffff08),#0c0f1a;
+        color:rgba(255,255,255,.65);font-family:'Bebas Neue',sans-serif;letter-spacing:1.5px;text-transform:uppercase;
+        padding:.35rem .3rem;cursor:pointer;font-size:1.05rem;
+      "
+      onmouseover="this.style.background='linear-gradient(135deg,#2ddb8033,#2ddb8008),#0c0f1a';this.style.color='#ffffff'"
+      onmouseout="this.style.background='linear-gradient(135deg,#ffffff33,#ffffff08),#0c0f1a';this.style.color='rgba(255,255,255,.65)'"
+      onclick="openTeamChatShortcut()">
+        <span style="font-size:1.2rem;line-height:1">💬</span><span style="line-height:1;white-space:nowrap;font-size:clamp(.68rem,3.3vw,1.05rem)">Chat</span>
+      </button>
+    </div>
+    <!-- Défi collectif Team (2026-09-25, prototype LOCAL, pas encore déployé) --
+         voir openTeamWeekendChallenge(). -->
+    <div style="background:rgba(255,255,255,.4);clip-path:polygon(10px 0,calc(100% - 10px) 0,100% 10px,100% calc(100% - 10px),calc(100% - 10px) 100%,10px 100%,0 calc(100% - 10px),0 10px);padding:1.5px;transition:all .18s"
+      onmouseover="this.style.background='#2ddb80';this.style.boxShadow='0 0 10px rgba(45,219,128,.6)'"
+      onmouseout="this.style.background='rgba(255,255,255,.4)';this.style.boxShadow='none'">
+      <button style="
+        width:100%;height:100%;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.15rem;
+        border:none;clip-path:polygon(9px 0,calc(100% - 9px) 0,100% 9px,100% calc(100% - 9px),calc(100% - 9px) 100%,9px 100%,0 calc(100% - 9px),0 9px);
+        background:linear-gradient(135deg,#ffffff33,#ffffff08),#0c0f1a;
+        color:rgba(255,255,255,.65);font-family:'Bebas Neue',sans-serif;letter-spacing:1.5px;text-transform:uppercase;
+        padding:.35rem .3rem;cursor:pointer;font-size:1.05rem;
+      "
+      onmouseover="this.style.background='linear-gradient(135deg,#2ddb8033,#2ddb8008),#0c0f1a';this.style.color='#ffffff'"
+      onmouseout="this.style.background='linear-gradient(135deg,#ffffff33,#ffffff08),#0c0f1a';this.style.color='rgba(255,255,255,.65)'"
+      onclick="openTeamWeekendChallenge()">
+        <span style="font-size:1.2rem;line-height:1">🏆</span><span style="line-height:1;white-space:nowrap;font-size:clamp(.68rem,3.3vw,1.05rem)">Défi collectif</span>
+      </button>
+    </div>
   </div>
 
   <div class="layout-sidebar-r280">
@@ -5407,6 +5455,7 @@ function askConfirm(message, opts){
         <div id="admin-stats-content" style="font-size:.78rem;color:var(--muted2)">Chargement…</div>
       </div>
     </div>
+
 
     <!-- Import de course -->
     <div class="block" style="margin-top:1rem;border-color:rgba(74,144,255,.3)">
@@ -16630,6 +16679,23 @@ function _scrollToTeamPanel(panelId, opts){
     }
   },100);
 }
+// Raccourci bouton "Chat" du header Teams (2026-09-25, demande explicite :
+// "doit arriver sur le dernier message du chat pour gagner du temps") --
+// _scrollToTeamPanel amène juste le CADRE du chat en haut de la page, mais la
+// liste de messages (#team-chat-messages, scrollable à part) reste ouverte en
+// haut (plus ancien message) tant qu'on ne l'a pas scrollée elle-même. On
+// force donc en plus son scrollTop en bas pendant ~1.5s (le temps que
+// loadTeamChat() finisse de charger/re-render les messages en async).
+function openTeamChatShortcut(){
+  _scrollToTeamPanel('myteam-chat-panel');
+  var _tries=0;
+  var _iv=setInterval(function(){
+    _tries++;
+    var el=document.getElementById('team-chat-messages');
+    if(el) el.scrollTop=el.scrollHeight;
+    if(_tries>=15) clearInterval(_iv);
+  },100);
+}
 function goToPcTeam(){
   // Récupère le team_id affiché sur la PC et compare à ma team
   var _pcFrame=document.getElementById('pc-team-frame');
@@ -16650,25 +16716,14 @@ function goToPcTeam(){
   var _scrollToMyTeam=(!window.__viewedPlayer&&!!window.__myTeamId)
     ||(!!_pcTeamId&&!!window.__myTeamId&&_pcTeamId===window.__myTeamId);
   if(_scrollToMyTeam) window.__viewedPlayer=null;
-  // Message team non lu (pastille verte) → direct vers le BAS du CHAT (input +
-  // derniers messages juste au-dessus), pas le classement. Le chat est tout en bas
-  // de la page Teams (2026-09-08, signalé par l'user : sans ça un RP sans notif push
-  // activée scrolle rarement jusque-là et passe à côté).
-  // Corrigé (2026-09-09, 2e signalement : "ça pointe toujours le classement") :
-  // ne PLUS lire le style live de la pastille ici — entre le rendu de la PC et le
-  // clic, un poll (checkTeamChatUnread, 30s) ou un autre passage par nav('teams')
-  // a pu déjà l'éteindre sans que le RP l'ait vu s'éteindre à l'écran. Utiliser le
-  // flag persistant window.__teamChatUnread (posé par checkTeamChatUnread/
-  // loadTeamChat, jamais par une lecture DOM ponctuelle) comme seule source de
-  // vérité, et checker AVANT nav('teams') qui l'éteint immédiatement au passage.
-  var _hasUnreadChat=_scrollToMyTeam&&!!window.__teamChatUnread;
-  // La vérif free/premium + open/private se fait dans renderTeams (on a besoin du type de team)
+  // Scroll auto vers le chat / le classement SUPPRIMÉ (2026-09-25, demande
+  // explicite -- l'ouverture "sur le chat" ne fonctionnait de toute façon pas
+  // fiablement, retombait systématiquement au milieu de la page). On reste
+  // désormais en haut de la page Teams (boutons Défi collectif/Rejoindre +
+  // Classement général), comme une navigation normale. window.__viewedPlayer
+  // reste posé ci-dessus : ça décide toujours QUELLE team s'affiche (la
+  // mienne vs celle d'un coéquipier), seul le scroll forcé est retiré.
   nav('teams');
-  if(_hasUnreadChat){
-    _scrollToTeamPanel('team-chat-input',{block:'end'});
-  } else if(_scrollToMyTeam){
-    _scrollToTeamPanel('myteam-panel');
-  }
 }
 
 function showPlayerCardByUuid(uuid){
@@ -20887,6 +20942,301 @@ function decodePolyline(encoded){
     points.push([lat/1e5,lng/1e5]);
   }
   return points;
+}
+
+// ████████████████████████████████████████████████████████████████████████████
+// DÉFI COLLECTIF TEAM (2026-09-25, prototype -- 2026-09-26 : passage à des
+// "éditions" répétables en base, table `team_challenge_editions`).
+// ──────────────────────────────────────────────────────────────────────────
+// Chaque édition (120 km cumulés sur un week-end, mini 6 participants PAR
+// TEAM, plafond 20% de contribution/RP) vit en base dans
+// `team_challenge_editions` -- plus aucun paramètre codé en dur côté client
+// (source unique, cf doctrine anti-dérive). L'admin relance une nouvelle
+// édition à volonté via `create_next_team_challenge_edition()` (RPC,
+// bouton admin) -- le week-end suivant est calculé automatiquement.
+// `team_challenge_participants` porte désormais un `edition_id`
+// (unique(edition_id,player_id) -- un RP peut se réinscrire à CHAQUE
+// nouvelle édition, plus de blocage définitif comme avant). La résolution
+// (succès/échec + crédit des récompenses) est calculée UNE SEULE FOIS en
+// base par le cron `resolve-team-challenges` (15 min) qui appelle
+// `resolve_team_challenges()` -- jamais recalculée/re-décidée côté client.
+// ████████████████████████████████████████████████████████████████████████████
+
+// Cache rempli par openTeamWeekendChallenge(), relu par _renderTeamChallengeModal()
+// -- permet à switchTeamChallengeTab() de changer d'onglet ("Ma team" /
+// "Classement", demande explicite 2026-09-25) sans refaire toutes les requêtes.
+var _teamChallengeCache=null;
+var _teamChallengeTab='intro';
+
+// Format court "sam. 26 - dim. 27 sept." à partir des dates réelles de
+// l'édition (2026-09-26, plus de texte codé en dur -- une édition future
+// peut tomber sur d'autres dates/mois).
+function _formatTeamChallengeDates(startIso,endIso){
+  var s=new Date(startIso), e=new Date(endIso.slice ? endIso : endIso);
+  // endIso est le lendemain minuit (exclusif) -- le dernier jour affiché est la veille.
+  var eDisp=new Date(new Date(endIso).getTime()-1000);
+  var optsDay={weekday:'short',day:'2-digit'};
+  var optsMonth={month:'short'};
+  var sStr=s.toLocaleDateString('fr-FR',optsDay).replace('.','');
+  var eStr=eDisp.toLocaleDateString('fr-FR',optsDay).replace('.','');
+  var mStr=eDisp.toLocaleDateString('fr-FR',optsMonth).replace('.','');
+  return sStr+' - '+eStr+' '+mStr+'.';
+}
+
+async function openTeamWeekendChallenge(){
+  if(!currentUser){ showToast('Connecte-toi pour participer.'); return; }
+  var {data:myMembership}=await supabaseClient.from('team_members')
+    .select('team_id').eq('player_id',currentUser.id).maybeSingle();
+  if(!myMembership || !myMembership.team_id){
+    showToast('Rejoins une team pour participer au défi collectif.');
+    return;
+  }
+  var teamId=myMembership.team_id;
+
+  // Édition en cours ou à venir = celle dont la fin est la plus proche parmi
+  // celles pas encore terminées. Aucune trouvée -> état "aucun défi en cours"
+  // (cf _renderTeamChallengeModal), mais le palmarès de la team reste affiché.
+  var {data:edition}=await supabaseClient.from('team_challenge_editions')
+    .select('*').gt('end_at',new Date().toISOString()).order('end_at',{ascending:true}).limit(1).maybeSingle();
+
+  // Palmarès de MA team, toutes éditions confondues -- affiché de façon
+  // significative sous "Ma team" (demande explicite 2026-09-26 : "case
+  // défi réussi / défi échec... que tu places en dessous de manière très
+  // significative", comme les 2 tuiles Réussi/Échec des défis voisins).
+  var {count:successCount}=await supabaseClient.from('team_challenge_results')
+    .select('*',{count:'exact',head:true}).eq('team_id',teamId).eq('status','success');
+  var {count:failedCount}=await supabaseClient.from('team_challenge_results')
+    .select('*',{count:'exact',head:true}).eq('team_id',teamId).eq('status','failed');
+
+  var allTeamsStats=[], capKm=0;
+  if(edition){
+    capKm=edition.cap_km;
+
+    // Inscrits À CETTE ÉDITION, toutes teams confondues (2026-09-25, demande
+    // explicite : voir la progression des autres teams dans la même fenêtre)
+    // -- une seule requête plutôt qu'une par team.
+    var {data:allJoined}=await supabaseClient.from('team_challenge_participants')
+      .select('player_id,team_id').eq('edition_id',edition.id);
+    allJoined=allJoined||[];
+    var allPlayerIds=allJoined.map(function(j){return j.player_id;});
+    var teamIdsInvolved=Array.from(new Set(allJoined.map(function(j){return j.team_id;})));
+    if(teamIdsInvolved.indexOf(teamId)<0) teamIdsInvolved.push(teamId); // ma team affichée même à 0 inscrit
+
+    var names={};
+    if(allPlayerIds.length){
+      var {data:pl}=await supabaseClient.from('players').select('id,username').in('id',allPlayerIds);
+      (pl||[]).forEach(function(p){names[p.id]=p.username;});
+    }
+
+    // Km de TOUS les inscrits (toutes teams) sur la fenêtre de CETTE édition.
+    var kmByPlayer={};
+    if(allPlayerIds.length){
+      var {data:runs}=await supabaseClient.from('runs')
+        .select('player_id,distance')
+        .in('player_id',allPlayerIds)
+        .gte('run_date',edition.start_at)
+        .lt('run_date',edition.end_at);
+      (runs||[]).forEach(function(r){
+        kmByPlayer[r.player_id]=(kmByPlayer[r.player_id]||0)+(r.distance||0);
+      });
+    }
+
+    var {data:teamsInfo}=await supabaseClient.from('teams').select('id,name,color').in('id',teamIdsInvolved);
+    var teamById={}; (teamsInfo||[]).forEach(function(t){teamById[t.id]=t;});
+
+    // Taille de chaque team impliquée (nb de requêtes = nb de teams avec au
+    // moins 1 inscrit -- volume négligeable pour ce prototype).
+    var teamSizeById={};
+    await Promise.all(teamIdsInvolved.map(async function(tid){
+      var {count}=await supabaseClient.from('team_members').select('*',{count:'exact',head:true}).eq('team_id',tid);
+      teamSizeById[tid]=count||0;
+    }));
+
+    var buildTeamStats=function(tid){
+      var joinedIds=allJoined.filter(function(j){return j.team_id===tid;}).map(function(j){return j.player_id;});
+      var totalCapped=0;
+      var rows=joinedIds.map(function(pid){
+        var raw=kmByPlayer[pid]||0;
+        var capped=Math.min(raw,capKm);
+        totalCapped+=capped;
+        return {pid:pid, name:names[pid]||'RP', raw:raw, capped:capped, pct:Math.round(capped/edition.goal_km*100)};
+      }).sort(function(a,b){return b.capped-a.capped;});
+      return {
+        team:teamById[tid], teamSize:teamSizeById[tid]||0, joinedIds:joinedIds, rows:rows,
+        totalCapped:totalCapped, progressPct:Math.min(100,Math.round(totalCapped/edition.goal_km*100)),
+        minOk:joinedIds.length>=edition.min_participants
+      };
+    };
+
+    // Classement = stats de TOUTES les teams impliquées (moi comprise), triées
+    // par progression décroissante -- calculé une fois, réutilisé par les 2 onglets.
+    allTeamsStats=teamIdsInvolved.map(buildTeamStats).sort(function(a,b){return b.progressPct-a.progressPct;});
+  }
+
+  _teamChallengeCache={myTeamId:teamId, edition:edition, capKm:capKm, allTeamsStats:allTeamsStats,
+    successCount:successCount||0, failedCount:failedCount||0};
+  _teamChallengeTab='intro';
+  _renderTeamChallengeModal();
+  // Cadre violet dédié (2026-09-25, demande explicite) -- même technique que
+  // les autres cadres colorés de land-modal, reset automatique par
+  // closeModal('land-modal') via _resetBadgeModalFrame(), donc aucune fuite
+  // de style vers les autres usages de cette modale partagée.
+  if(typeof _applyBadgeModalFrame==='function') _applyBadgeModalFrame('#9060f0');
+  openModal('land-modal');
+}
+
+// Boutons "Ma team" / "Classement" en bas de la fenêtre (2026-09-25, demande
+// explicite) -- change juste l'onglet affiché, aucune requête refaite (cf cache).
+// "Classement" réservé Premium (demande explicite) : un Free reste sur son
+// onglet actuel et voit juste le message d'incitation standard du jeu.
+function switchTeamChallengeTab(tab){
+  if(tab==='ranking' && !isPremium()){
+    showPremiumGate('Le classement de toutes les teams est réservé au Premium.');
+    return;
+  }
+  _teamChallengeTab=tab;
+  _renderTeamChallengeModal();
+}
+
+function _renderTeamChallengeModal(){
+  var c=_teamChallengeCache; if(!c) return;
+  var edition=c.edition;
+  var mine=c.allTeamsStats.find(function(t){return t.team&&t.team.id===c.myTeamId;})||null;
+  var capKm=c.capKm;
+  var iJoined=mine?mine.joinedIds.indexOf(currentUser.id)>=0:false;
+
+  // Palmarès Réussi/Échec de la team, toutes éditions confondues (2026-09-26,
+  // demande explicite : "en dessous de manière très significative", même
+  // esprit que les 2 tuiles Réussi/Échec des défis voisins -- cf
+  // _collabSuccessCount/_collabFailedCount dans renderCollabChallenges).
+  var recordHtml='<div style="display:flex;gap:.5rem;margin-top:.8rem">'
+    +'<div style="flex:1;padding:.7rem;border-radius:10px;border:1.5px solid var(--green);background:#0c0f1a;text-align:center">'
+      +'<div style="font-family:Bebas Neue,sans-serif;font-size:1.5rem;color:var(--green)">'+c.successCount+'</div>'
+      +'<div style="font-size:.65rem;color:var(--muted2);text-transform:uppercase;letter-spacing:.5px">Défis réussis</div>'
+    +'</div>'
+    +'<div style="flex:1;padding:.7rem;border-radius:10px;border:1.5px solid #ff4444;background:#0c0f1a;text-align:center">'
+      +'<div style="font-family:Bebas Neue,sans-serif;font-size:1.5rem;color:#ff4444">'+c.failedCount+'</div>'
+      +'<div style="font-size:.65rem;color:var(--muted2);text-transform:uppercase;letter-spacing:.5px">Défis échoués</div>'
+    +'</div>'
+  +'</div>';
+
+  // Titre TOUJOURS "🏆 Défi collectif" (2026-09-25, demande explicite : "tu
+  // gardes le nom de la page") -- seul le nom de la team, en sous-titre,
+  // est grossi/coloré avec la couleur de la team pour être mis en avant.
+  document.getElementById('lm-title').innerHTML='🏆 <span style="color:#fff">Défi</span> collectif';
+  document.getElementById('lm-sub').innerHTML=(mine&&mine.team)
+    ?('<span style="font-size:1.15rem;font-weight:700;color:'+(mine.team.color||'var(--gold)')+'">TEAM '+mine.team.name.toUpperCase()+'</span>')
+    :'';
+
+  // Boutons "Ma team"/"Classement" -- même double-div biseauté que les tabs
+  // Moi/Mes amis/Tous du Feed (feed-tab-me-outer), pour cohérence visuelle
+  // (gris inactif, vert actif). Cf feedback_speedix_bevel_technique_couches.
+  function _teamChallengeTabBtn(tab, label, lockIcon){
+    var isOn=_teamChallengeTab===tab;
+    var outerBg=isOn?'#2ddb80':'rgba(255,255,255,.4)';
+    var outerShadow=isOn?'box-shadow:0 0 10px rgba(45,219,128,.6);':'';
+    var innerBg=isOn?'linear-gradient(135deg,#2ddb8033,#2ddb8008),#0c0f1a':'linear-gradient(135deg,#ffffff33,#ffffff08),#0c0f1a';
+    var textColor=isOn?'#ffffff':'rgba(255,255,255,.65)';
+    return '<div style="background:'+outerBg+';clip-path:polygon(10px 0,calc(100% - 10px) 0,100% 10px,100% calc(100% - 10px),calc(100% - 10px) 100%,10px 100%,0 calc(100% - 10px),0 10px);padding:1.5px;'+outerShadow+'transition:all .18s;flex:1">'
+      +'<button onclick="switchTeamChallengeTab(\''+tab+'\')" style="width:100%;display:block;padding:.5rem .3rem;border:none;clip-path:polygon(9px 0,calc(100% - 9px) 0,100% 9px,100% calc(100% - 9px),calc(100% - 9px) 100%,9px 100%,0 calc(100% - 9px),0 9px);background:'+innerBg+';cursor:pointer;font-family:\'Bebas Neue\',sans-serif;font-size:.92rem;letter-spacing:1.5px;color:'+textColor+';text-transform:uppercase">'+label+(lockIcon?' 🔒':'')+'</button>'
+    +'</div>';
+  }
+  var tabsHtml='<div style="display:flex;gap:.5rem;margin-top:.8rem">'
+    +_teamChallengeTabBtn('mine','Ma team',false)
+    +_teamChallengeTabBtn('ranking','Classement',!isPremium())
+    +'</div>';
+
+  // Bloc règles du défi -- réutilisé à l'identique sur "intro" (2026-09-25 :
+  // la 1ère page ne montre QUE l'explication + le bouton participer, plus de
+  // barre de progression/compteur d'inscrits ici puisqu'ils sont sur "Ma team").
+  // Rangement en liste à puces (2026-09-25, demande explicite : "comme le
+  // quizz") -- même convention que les autres blocs de règles du jeu
+  // (rules.inf.body, ch.step1, etc.) : une puce "•" par règle dans un encart
+  // teinté, plutôt que des paragraphes séparés.
+  var rulesHtml=!edition
+    ? '<div style="text-align:center;color:var(--muted2);font-size:.85rem;padding:1.5rem 0;line-height:1.6">'
+      +'<div style="font-size:2rem;margin-bottom:.4rem">🏆</div>'
+      +'Aucun défi collectif en cours.<br><span style="font-size:.72rem">Reviens dès qu\'une nouvelle édition sera lancée.</span>'
+    +'</div>'
+    : (''
+    +'<div style="text-align:center;margin-bottom:.6rem">'
+      +'<div style="font-family:\'Bebas Neue\',sans-serif;font-size:1.15rem;letter-spacing:1.3px;text-transform:uppercase;color:var(--text)">'+edition.label+'</div>'
+      +'<span style="color:var(--muted2);font-size:.7rem">('+_formatTeamChallengeDates(edition.start_at,edition.end_at)+')</span>'
+    +'</div>'
+    +'<div style="padding:.6rem .75rem;border-radius:7px;background:rgba(144,96,240,.08);border:1px solid rgba(144,96,240,.25);font-size:.76rem;color:var(--muted2);line-height:1.75;margin-bottom:.7rem">'
+      +'• Chaque RP de la Team peut participer.<br>'
+      +'• <b style="color:var(--text)">20% max</b> du total du défi / RP ('+capKm+' km).<br>'
+      +'• Récompense (<b style="color:var(--gold)">'+edition.reward_rpc+' RPC</b> + <b style="color:var(--green)">'+edition.reward_nyx+' NYX</b>).<br>'
+      +'• Faire au moins <b style="color:var(--text)">'+edition.min_km_for_reward+' km</b> individuels pour gagner la récompense si le défi est validé.<br>'
+      +'• Minimum <b style="color:var(--text)">'+edition.min_participants+' RP</b> inscrits pour déclencher le défi.'
+    +'</div>');
+
+  var bodyHtml='';
+
+  if(_teamChallengeTab==='ranking'){
+    bodyHtml=!edition
+      ? '<div style="text-align:center;color:var(--muted2);font-size:.8rem;padding:1rem">Aucun défi collectif en cours.</div>'
+      : (c.allTeamsStats.length?c.allTeamsStats.map(function(o,i){
+      var nm=o.team?o.team.name:'Team';
+      var col=o.team&&o.team.color?o.team.color:'var(--muted2)';
+      var isMine=o.team&&o.team.id===c.myTeamId;
+      return '<div style="padding:.5rem .6rem;border-radius:6px;border:1.5px solid '+(isMine?'var(--gold)':'var(--border)')+';background:rgba(255,255,255,.03);margin-bottom:.35rem">'
+        +'<div style="display:flex;justify-content:space-between;align-items:center;font-size:.78rem;margin-bottom:.3rem">'
+          +'<span style="color:var(--muted2);font-family:Space Mono,monospace;margin-right:.4rem">#'+(i+1)+'</span>'
+          +'<span style="color:'+col+';font-weight:700;flex:1">'+nm.toUpperCase()+'</span>'
+          +'<span style="color:var(--muted2);font-family:Space Mono,monospace;font-size:.7rem">'+o.joinedIds.length+'/'+o.teamSize+' RP · '+o.totalCapped.toFixed(1)+'/'+edition.goal_km+' km</span>'
+        +'</div>'
+        +'<div style="width:100%;height:9px;border-radius:5px;background:rgba(255,255,255,.06);overflow:hidden">'
+          +'<div style="height:100%;width:'+o.progressPct+'%;background:linear-gradient(90deg,#f5c842,#ffdd77)"></div>'
+        +'</div>'
+      +'</div>';
+    }).join(''):'<div style="text-align:center;color:var(--muted2);font-size:.8rem;padding:1rem">Aucune team inscrite pour l\'instant.</div>');
+  } else if(_teamChallengeTab==='mine'){
+    // "Ma team" (2026-09-25) : progression collective + tous les copains
+    // inscrits et leur avancement -- l'explication du défi reste sur "intro".
+    var rowsHtml=mine&&mine.rows.length?mine.rows.map(function(r){
+      var isMe=r.pid===currentUser.id;
+      var atCap=r.raw>=capKm;
+      var borderColor=atCap?'var(--green)':(isMe?'var(--gold)':'var(--border)');
+      var bg=atCap?'rgba(45,219,128,.08)':'rgba(255,255,255,.03)';
+      return '<div style="display:flex;align-items:center;justify-content:space-between;gap:.5rem;padding:.4rem .55rem;border-radius:6px;border:1px solid '+borderColor+';background:'+bg+';margin-bottom:.3rem;font-size:.75rem">'
+        +'<span style="color:'+(isMe?'var(--gold)':'var(--text)')+';font-weight:'+(isMe?'700':'400')+'">'+r.name+'</span>'
+        +'<span style="color:var(--muted2);font-family:Space Mono,monospace">'+r.raw.toFixed(1)+' km<b style="color:'+(atCap?'var(--green)':'var(--text)')+';margin-left:.4rem">'+r.pct+'%</b></span>'
+        +'</div>';
+    }).join(''):'<div style="text-align:center;color:var(--muted2);font-size:.78rem;padding:.5rem">Personne inscrit pour l\'instant.</div>';
+
+    bodyHtml=(!edition?'':(''
+      +'<div style="text-align:center;margin-bottom:.7rem">'
+        +'<div style="font-family:Space Mono,monospace;font-size:.8rem;color:var(--muted2);margin-bottom:.3rem">'+(mine?mine.totalCapped.toFixed(1):'0.0')+' / '+edition.goal_km+' km</div>'
+        +'<div style="width:100%;height:14px;border-radius:7px;background:rgba(255,255,255,.06);overflow:hidden;border:1px solid var(--border)">'
+          +'<div style="height:100%;width:'+(mine?mine.progressPct:0)+'%;background:linear-gradient(90deg,#f5c842,#ffdd77);transition:width .3s"></div>'
+        +'</div>'
+      +'</div>'
+      +'<div style="text-align:center;font-size:.76rem;color:var(--text);margin-bottom:.7rem">'
+        +(mine?mine.joinedIds.length:0)+' / '+(mine?mine.teamSize:0)+' RP de la team inscrits'
+      +'</div>'
+      +rowsHtml))
+      +recordHtml;
+  } else {
+    // "intro" (vue par défaut à l'ouverture) : juste l'explication du défi +
+    // le bouton pour participer, comme demandé -- rien d'autre.
+    bodyHtml=rulesHtml
+      +(!edition||iJoined
+        ? ''
+        : '<button onclick="joinTeamWeekendChallenge(\''+c.myTeamId+'\')" style="width:100%;margin-top:.4rem;padding:.5rem;border-radius:8px;border:1.5px solid var(--green);background:linear-gradient(175deg,rgba(45,219,128,.22),rgba(20,160,80,.12));color:var(--green);font-family:\'Bebas Neue\',sans-serif;font-size:1rem;letter-spacing:3px;cursor:pointer">PARTICIPER</button>');
+  }
+
+  document.getElementById('lm-body').innerHTML=bodyHtml+tabsHtml;
+}
+
+async function joinTeamWeekendChallenge(teamId){
+  var edition=_teamChallengeCache&&_teamChallengeCache.edition;
+  if(!edition) return;
+  var {error}=await supabaseClient.from('team_challenge_participants')
+    .insert({player_id:currentUser.id, team_id:teamId, edition_id:edition.id});
+  if(error){ showToast('⚠️ Inscription impossible ('+(error.message||'erreur')+')'); return; }
+  showToast('✅ Inscrit au défi collectif !');
+  openTeamWeekendChallenge();
 }
 
 // ████████████████████████████████████████████████████████████████████████████

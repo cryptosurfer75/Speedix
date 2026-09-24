@@ -9,7 +9,7 @@
 //   SKIP_WAITING, et recharge automatiquement dès que le nouveau prend le
 //   contrôle — les utilisateurs ont ainsi la nouvelle version sans refresh manuel.
 
-const CACHE_VERSION = 'speedix-V2-269';
+const CACHE_VERSION = 'speedix-V2-270';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
