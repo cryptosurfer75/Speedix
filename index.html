@@ -4132,9 +4132,13 @@ select option{background:#040c1c}
       </button>
     </div>
     <!-- Défi collectif Team (2026-09-25, prototype LOCAL, pas encore déployé) --
-         voir openTeamWeekendChallenge(). position:relative ajouté (2026-09-25)
-         pour ancrer la pastille team-challenge-tile-badge dans ce coin. -->
-    <div style="background:rgba(255,255,255,.4);clip-path:polygon(10px 0,calc(100% - 10px) 0,100% 10px,100% calc(100% - 10px),calc(100% - 10px) 100%,10px 100%,0 calc(100% - 10px),0 10px);padding:1.5px;transition:all .18s;position:relative"
+         voir openTeamWeekendChallenge(). Wrapper position:relative EXTÉRIEUR
+         ajouté (2026-09-25, fix : la pastille était enfant du bouton biseauté
+         et se faisait couper par son clip-path -- même piège déjà rencontré
+         et corrigé ailleurs, cf reference_speedix_corner_bracket_pattern :
+         la pastille doit être SŒUR du tile clippé, jamais enfant). -->
+    <div style="position:relative">
+    <div style="background:rgba(255,255,255,.4);clip-path:polygon(10px 0,calc(100% - 10px) 0,100% 10px,100% calc(100% - 10px),calc(100% - 10px) 100%,10px 100%,0 calc(100% - 10px),0 10px);padding:1.5px;transition:all .18s"
       onmouseover="this.style.background='#2ddb80';this.style.boxShadow='0 0 10px rgba(45,219,128,.6)'"
       onmouseout="this.style.background='rgba(255,255,255,.4)';this.style.boxShadow='none'">
       <button style="
@@ -4149,9 +4153,12 @@ select option{background:#040c1c}
       onclick="openTeamWeekendChallenge()">
         <span style="font-size:1.2rem;line-height:1">🏆</span><span style="line-height:1;white-space:nowrap;font-size:clamp(.68rem,3.3vw,1.05rem)">Défi collectif</span>
       </button>
+    </div>
       <!-- Pastille "nouveau défi" -- même pattern que defis-tile-badge, cf
            refreshTeamChallengeBadge()/_markTeamChallengeSeen(). display:none
-           par défaut, allumée uniquement si édition active + jamais ouverte. -->
+           par défaut, allumée uniquement si édition active + jamais ouverte.
+           SŒUR du div biseauté ci-dessus (pas enfant) pour ne pas être coupée
+           par son clip-path. -->
       <div id="team-challenge-tile-badge" style="display:none;position:absolute;top:-4px;right:-4px;width:14px;height:14px;border-radius:50%;background:#9060f0;box-shadow:0 0 8px rgba(144,96,240,.7);border:2px solid #0a1432;animation:onlinePulse 1.6s infinite;pointer-events:none"></div>
     </div>
   </div>
