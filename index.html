@@ -21238,9 +21238,17 @@ function _renderTeamChallengeModal(){
   var bodyHtml='';
 
   if(_teamChallengeTab==='ranking'){
+    // Liste enveloppée dans son propre scroll (max-height, cf. _renderEventRanking)
+    // -- 2026-09-25, bug signalé : avec beaucoup de teams, laisser .modal-box
+    // seul gérer le scroll (overflow-y:auto + max-height:85vh) coupait le cadre
+    // biseauté violet (_applyBadgeModalFrame) avant la fin de la liste, car ce
+    // cadre est dimensionné sur la hauteur RENDUE de .modal-box (bornée à 85vh),
+    // pas sur son scrollHeight réel. En gardant .modal-box à sa hauteur
+    // naturelle et en scrollant seulement CETTE liste, le cadre englobe à
+    // nouveau tout le contenu visible.
     bodyHtml=!edition
       ? '<div style="text-align:center;color:var(--muted2);font-size:.8rem;padding:1rem">Aucun défi collectif en cours.</div>'
-      : (c.allTeamsStats.length?c.allTeamsStats.map(function(o,i){
+      : '<div style="max-height:50vh;overflow-y:auto">'+(c.allTeamsStats.length?c.allTeamsStats.map(function(o,i){
       var nm=o.team?o.team.name:'Team';
       var col=o.team&&o.team.color?o.team.color:'var(--muted2)';
       var isMine=o.team&&o.team.id===c.myTeamId;
@@ -21273,11 +21281,14 @@ function _renderTeamChallengeModal(){
         +'</div>'
         +dropdownHtml
       +'</div>';
-    }).join(''):'<div style="text-align:center;color:var(--muted2);font-size:.8rem;padding:1rem">Aucune team inscrite pour l\'instant.</div>');
+    }).join(''):'<div style="text-align:center;color:var(--muted2);font-size:.8rem;padding:1rem">Aucune team inscrite pour l\'instant.</div>')+'</div>';
   } else if(_teamChallengeTab==='mine'){
     // "Ma team" (2026-09-25) : progression collective + tous les copains
     // inscrits et leur avancement -- l'explication du défi reste sur "intro".
-    var rowsHtml=mine&&mine.rows.length?mine.rows.map(function(r){
+    // Même wrapper à scroll dédié que l'onglet "Classement" (cf commentaire
+    // plus haut) -- une team pleine (jusqu'à 20 RP) peut aussi dépasser 85vh
+    // et couper le cadre biseauté violet.
+    var rowsHtml='<div style="max-height:50vh;overflow-y:auto">'+(mine&&mine.rows.length?mine.rows.map(function(r){
       var isMe=r.pid===currentUser.id;
       var atCap=r.raw>=capKm;
       var borderColor=atCap?'var(--green)':(isMe?'var(--gold)':'var(--border)');
@@ -21286,7 +21297,7 @@ function _renderTeamChallengeModal(){
         +'<span style="color:'+(isMe?'var(--gold)':'var(--text)')+';font-weight:'+(isMe?'700':'400')+'">'+r.name+'</span>'
         +'<span style="color:var(--muted2);font-family:Space Mono,monospace">'+r.raw.toFixed(1)+' km<b style="color:'+(atCap?'var(--green)':'var(--text)')+';margin-left:.4rem">'+r.pct+'%</b></span>'
         +'</div>';
-    }).join(''):'<div style="text-align:center;color:var(--muted2);font-size:.78rem;padding:.5rem">Personne inscrit pour l\'instant.</div>';
+    }).join(''):'<div style="text-align:center;color:var(--muted2);font-size:.78rem;padding:.5rem">Personne inscrit pour l\'instant.</div>')+'</div>';
 
     bodyHtml=(!edition?'':(''
       +'<div style="text-align:center;margin-bottom:.7rem">'
