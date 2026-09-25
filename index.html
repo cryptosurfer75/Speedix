@@ -4132,8 +4132,9 @@ select option{background:#040c1c}
       </button>
     </div>
     <!-- Défi collectif Team (2026-09-25, prototype LOCAL, pas encore déployé) --
-         voir openTeamWeekendChallenge(). -->
-    <div style="background:rgba(255,255,255,.4);clip-path:polygon(10px 0,calc(100% - 10px) 0,100% 10px,100% calc(100% - 10px),calc(100% - 10px) 100%,10px 100%,0 calc(100% - 10px),0 10px);padding:1.5px;transition:all .18s"
+         voir openTeamWeekendChallenge(). position:relative ajouté (2026-09-25)
+         pour ancrer la pastille team-challenge-tile-badge dans ce coin. -->
+    <div style="background:rgba(255,255,255,.4);clip-path:polygon(10px 0,calc(100% - 10px) 0,100% 10px,100% calc(100% - 10px),calc(100% - 10px) 100%,10px 100%,0 calc(100% - 10px),0 10px);padding:1.5px;transition:all .18s;position:relative"
       onmouseover="this.style.background='#2ddb80';this.style.boxShadow='0 0 10px rgba(45,219,128,.6)'"
       onmouseout="this.style.background='rgba(255,255,255,.4)';this.style.boxShadow='none'">
       <button style="
@@ -4148,6 +4149,10 @@ select option{background:#040c1c}
       onclick="openTeamWeekendChallenge()">
         <span style="font-size:1.2rem;line-height:1">🏆</span><span style="line-height:1;white-space:nowrap;font-size:clamp(.68rem,3.3vw,1.05rem)">Défi collectif</span>
       </button>
+      <!-- Pastille "nouveau défi" -- même pattern que defis-tile-badge, cf
+           refreshTeamChallengeBadge()/_markTeamChallengeSeen(). display:none
+           par défaut, allumée uniquement si édition active + jamais ouverte. -->
+      <div id="team-challenge-tile-badge" style="display:none;position:absolute;top:-4px;right:-4px;width:14px;height:14px;border-radius:50%;background:#9060f0;box-shadow:0 0 8px rgba(144,96,240,.7);border:2px solid #0a1432;animation:onlinePulse 1.6s infinite;pointer-events:none"></div>
     </div>
   </div>
 
@@ -8671,6 +8676,11 @@ async function onLoginSuccess(user, isNew){
   // Défis collaboratifs voisins — pastille onglet + bandeau si défi en attente
   if(typeof refreshCollabBadge==='function'){
     setTimeout(function(){ refreshCollabBadge(); }, 2200);
+  }
+  // Défi collectif Team — pastille + clignotement tant que le RP n'a pas
+  // ouvert l'édition en cours (cf refreshTeamChallengeBadge/_markTeamChallengeSeen)
+  if(typeof refreshTeamChallengeBadge==='function'){
+    setTimeout(function(){ refreshTeamChallengeBadge(); }, 2400);
   }
   // Cadeau d'anniversaire — popup si le RP se connecte le jour J (une seule
   // fois par an, cf birthday_gift_year, MIROIR : la vérité vient du clic
@@ -20973,6 +20983,43 @@ function decodePolyline(encoded){
 // `resolve_team_challenges()` -- jamais recalculée/re-décidée côté client.
 // ████████████████████████████████████████████████████████████████████████████
 
+// Pastille "nouveau défi" sur la tuile Défi collectif (2026-09-25, demande
+// explicite : point + clignotement tant que le RP n'a pas cliqué dessus,
+// jamais reproposé à chaque connexion une fois vu). Même principe que
+// collab_seen (cf _getCollabSeenIds) : IDs d'édition déjà ouverts persistés
+// en localStorage -- une NOUVELLE édition (nouveau week-end) réactive la
+// pastille, mais la même édition ne la rallume jamais après un 1er clic.
+function _teamChallengeSeenKey(){
+  return 'team_challenge_seen_'+(currentUser?currentUser.id:'anon');
+}
+function _getTeamChallengeSeenIds(){
+  try { var raw=localStorage.getItem(_teamChallengeSeenKey()); return raw?JSON.parse(raw):[]; }
+  catch(e){ return []; }
+}
+function _markTeamChallengeSeen(editionId){
+  if(!editionId) return;
+  _setBadgeBlink('team-challenge-tile-badge', false);
+  try {
+    var set={}; _getTeamChallengeSeenIds().forEach(function(id){set[id]=true;});
+    set[editionId]=true;
+    var arr=Object.keys(set);
+    if(arr.length>50) arr=arr.slice(-50); // cap pour éviter ballonnement
+    localStorage.setItem(_teamChallengeSeenKey(),JSON.stringify(arr));
+  } catch(e){}
+}
+// Appelé au login (cf onLoginSuccess) : allume la pastille seulement si une
+// édition est active/à venir ET pas encore vue par CE RP.
+async function refreshTeamChallengeBadge(){
+  if(!currentUser) return;
+  try {
+    var {data:edition}=await supabaseClient.from('team_challenge_editions')
+      .select('id').gt('end_at',new Date().toISOString()).order('end_at',{ascending:true}).limit(1).maybeSingle();
+    if(!edition){ _setBadgeBlink('team-challenge-tile-badge', false); return; }
+    var seen={}; _getTeamChallengeSeenIds().forEach(function(id){seen[id]=true;});
+    _setBadgeBlink('team-challenge-tile-badge', !seen[edition.id], '#9060f0');
+  } catch(e){}
+}
+
 // Cache rempli par openTeamWeekendChallenge(), relu par _renderTeamChallengeModal()
 // -- permet à switchTeamChallengeTab() de changer d'onglet ("Ma team" /
 // "Classement", demande explicite 2026-09-25) sans refaire toutes les requêtes.
@@ -21028,6 +21075,11 @@ async function openTeamWeekendChallenge(){
   // (cf _renderTeamChallengeModal), mais le palmarès de la team reste affiché.
   var {data:edition}=await supabaseClient.from('team_challenge_editions')
     .select('*').gt('end_at',new Date().toISOString()).order('end_at',{ascending:true}).limit(1).maybeSingle();
+
+  // Pastille "nouveau défi" (2026-09-25, demande explicite) : éteinte dès que
+  // le RP OUVRE la modale, jamais recliquée à chaque connexion -- persistée en
+  // localStorage par édition, même principe que _markCollabSeen.
+  if(edition) _markTeamChallengeSeen(edition.id);
 
   // Palmarès de MA team, toutes éditions confondues -- affiché de façon
   // significative sous "Ma team" (demande explicite 2026-09-26 : "case
