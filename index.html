@@ -25579,7 +25579,16 @@ async function pickQuestDirect(badgeId){
       // de "0/30", contraire au message même du jeu ("ta série repart à zéro")
       // et signalé par l'user sur le cas Pi-r_Bouh-rz. Toujours nowIso pour ce type.
       var isStreakType = b.threshold_type==='streak_days';
-      var since=(!isStreakType && !isReplay && pd && pd.created_at)?pd.created_at:nowIso;
+      // Défis "course non-stop de Xh" (single_run_duration_min, ex. DUREE_2H/3H)
+      // exclus du grandfathering aussi (2026-09-25, bug signalé -- 1er choix
+      // JAMAIS fait validait instantanément avec une VIEILLE sortie longue
+      // antérieure à la sélection, sans aucune course faite après avoir choisi
+      // le défi). Contrairement aux records de distance/vitesse (single_run_km,
+      // speed_over_5km...) où "qui peut le plus peut le moins" reste voulu, une
+      // course d'endurance en continu doit être une VRAIE tentative faite APRÈS
+      // avoir choisi le défi -- même logique que streak_days, jamais nowIso.
+      var isFreshAttemptType = b.threshold_type==='single_run_duration_min';
+      var since=(!isStreakType && !isFreshAttemptType && !isReplay && pd && pd.created_at)?pd.created_at:nowIso;
       await supabaseClient.from('player_active_quests').insert({player_id:currentUser.id,badge_id:badgeId,picked_at:nowIso,progress_since:since,active:true,banked_progress:0});
       if(isFirstEverBatch){
         await supabaseClient.from('players').update({quests_onboarded_at:nowIso}).eq('id',currentUser.id);
