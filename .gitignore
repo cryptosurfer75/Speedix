@@ -38,7 +38,10 @@ capacitor-wrap/
 # Assets non référencés par index.html (brouillons/exploration) — ancrés à la
 # racine (/xxx/) pour ne PAS exclure un dossier de même nom ailleurs, ex.
 # ai-icons/flags/ (vrais drapeaux utilisés par la Player Card, tout autre chose).
-/blasons/
+# ⚠️ /blasons/ RETIRÉ de cette liste le 2026-09-26 : ces 98 fichiers sont
+# désormais RÉFÉRENCÉS par index.html (AVAIL_BLASON_SMALL/AVAIL_BLASON_ZOOM,
+# remplacement du base64 inline qui faisait gonfler le fichier à 12 Mo) —
+# doivent être déployés, sinon tous les blasons d'équipe cassent en prod.
 /medals/
 /flags/
 /land-card-preview/
