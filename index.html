@@ -9679,13 +9679,13 @@ const LEAGUES=[
   {key:'l10',     name:'L10',      label:'Fer',        label_en:'Iron',      emoji:'⚫',  min:501,   max:1200,  color:'#8090a0', buyin:1200},
   {key:'l9',      name:'L9',       label:'Cuivre',     label_en:'Copper',    emoji:'🟠',  min:1201,  max:1800,  color:'#c07830', buyin:1800},
   {key:'l8',      name:'L8',       label:'Jade',       label_en:'Jade',      emoji:'🟢',  min:1801,  max:2500,  color:'#2fd9a0', buyin:2500},
-  {key:'l7',      name:'L7',       label:'Saphir',     label_en:'Sapphire',  emoji:'🔵',  min:2501,  max:3200,  max2:4500, color:'#2080e0', buyin:3200},
+  {key:'l7',      name:'L7',       label:'Saphir',     label_en:'Sapphire',  emoji:'🔵',  min:2501,  max:3200,  color:'#2080e0', buyin:3200},
   {key:'l6',      name:'L6',       label:'Rubis',      label_en:'Ruby',      emoji:'🔴',  min:3201,  max:4500,  color:'#e03040', buyin:4500},
   {key:'l5',      name:'L5',       label:'Améthyste',  label_en:'Amethyst',  emoji:'🟣',  min:4501,  max:6000,  color:'#9050d0', buyin:6000},
   {key:'l4',      name:'L4',       label:'Émeraude',   label_en:'Emerald',   emoji:'🟢',  min:6001,  max:7500,  color:'#20c060', buyin:7500},
   {key:'l3',      name:'L3',       label:'Bronze',     label_en:'Bronze',    emoji:'🟤',  min:7501,  max:10000, color:'#c07030', buyin:10000},
   {key:'l2',      name:'L2',       label:'Argent',     label_en:'Silver',    emoji:'⚪',  min:10001, max:13000, color:'#b0c0d0', buyin:13000},
-  {key:'l1',      name:'L1',       label:'Or',         label_en:'Gold',      emoji:'🟡',  min:13001, max:20000, max2:null, color:'#f5c842', buyin:20000},
+  {key:'l1',      name:'L1',       label:'Or',         label_en:'Gold',      emoji:'🟡',  min:13001, max:20000, color:'#f5c842', buyin:20000},
   {key:'lelite',  name:'L Elite',  label:'Diamant',    label_en:'Diamond',   emoji:'⚪',  min:20001, max:null,  color:'#a0e0ff', buyin:25000},
 ];
 // Libellé de palier (Or/Argent/Bronze…) localisé — SOURCE UNIQUE, jamais lire
@@ -11709,9 +11709,8 @@ function renderLeaguePanel(){
 
   var isStarter=(activeLeagueKey==='starter');
 
-  // Determine promotion thresholds: league.max = L+1 threshold; league.max2 (if exists) = L+2 threshold
+  // Determine promotion threshold: league.max = seuil de montée (au moins +1)
   var maxPts=league.max||Infinity;
-  var max2Pts=league.max2||Infinity; // second promo line threshold (for L7 → L5)
 
   // Jours restants avant la fin de la période : utilisé pour différer l'alarme
   // rouge sur les RPs en zone de rétrogradation. Tant qu'il reste plus de 5
@@ -12007,9 +12006,28 @@ function renderLeaguePanel(){
   var relegPlayers=hasLowerLeague?compPlayers.filter(function(p){return p.pts<minPts;}):[];
   var mainPlayers=hasLowerLeague?compPlayers.filter(function(p){return p.pts>=minPts;}):compPlayers;
 
-  var promo2Players=mainPlayers.filter(function(p){return p.pts>max2Pts;});
-  var promo1Players=mainPlayers.filter(function(p){return p.pts>maxPts && p.pts<=max2Pts;});
+  var promoPlayers=mainPlayers.filter(function(p){return p.pts>maxPts;});
   var normalPlayers=mainPlayers.filter(function(p){return p.pts<=maxPts;});
+
+  // MIROIR de _processEndOfPeriodInner (« Montée : on garde le multi-jump »,
+  // cf reverse find sur LEAGUES) -- un RP peut sauter n'importe quel nombre de
+  // leagues au-dessus s'il a les points, pas juste 1 (ancien mécanisme
+  // league.max2, qui ne concernait QUE L7→L5 et n'affichait jamais la ligne de
+  // séparation d'un saut multi dans les autres leagues -- 2026-09-26, bug
+  // signalé : "il n'y a pas la ligne en dessous pour indiquer la montée").
+  function _targetLeagueIdxForPts(pts){
+    for(var i=LEAGUES.length-1;i>leagueIdx;i--){
+      if(LEAGUES[i].key!=='lelite' && pts>=LEAGUES[i].min) return i;
+    }
+    return leagueIdx;
+  }
+  var promoGroups={}; // nb de leagues sautées -> [joueurs]
+  promoPlayers.forEach(function(p){
+    var lvl=_targetLeagueIdxForPts(p.pts)-leagueIdx;
+    if(lvl<=0) return;
+    (promoGroups[lvl]=promoGroups[lvl]||[]).push(p);
+  });
+  var promoLevels=Object.keys(promoGroups).map(Number).sort(function(a,b){return b-a;}); // du saut le + haut au + bas
 
   var rows='';
   var rankCursor=1;
@@ -12035,17 +12053,15 @@ function renderLeaguePanel(){
   // ── Zone promotion (haut) ──────────────────────────────────────
   // Pas de league supérieure si on est en L1 (L Elite fermée pendant la beta)
   var hasUpperLeague=(leagueIdx<LEAGUES.length-1)&&(activeLeagueKey!=='l1');
-  if(promo2Players.length>0){
-    rows+=promo2Players.map(function(p){return buildRowWithCompRank(p,true,false);}).join('');
-    rows+=makeSepLine(leagueIdx+2);
-  }
-  if(promo1Players.length>0){
-    rows+=promo1Players.map(function(p){return buildRowWithCompRank(p,true,false);}).join('');
-    rows+=makeSepLine(leagueIdx+1);
-  } else if(promo2Players.length===0 && compPlayers.some(function(p){return p.pts>maxPts;})){
-    var promoOnly=compPlayers.filter(function(p){return p.pts>maxPts;});
-    rows+=promoOnly.map(function(p){return buildRowWithCompRank(p,true,false);}).join('');
-    rows+=makeSepLine(leagueIdx+1);
+  if(promoLevels.length>0){
+    // Une ligne de séparation PAR PALIER traversé (du saut le plus haut au
+    // plus bas) -- ex. un RP qui saute 3 leagues a sa ligne juste en dessous
+    // de lui, puis celle du saut de 2, puis celle du saut de 1, avant le
+    // reste du classement.
+    promoLevels.forEach(function(lvl){
+      rows+=promoGroups[lvl].map(function(p){return buildRowWithCompRank(p,true,false);}).join('');
+      rows+=makeSepLine(leagueIdx+lvl);
+    });
   } else if(hasUpperLeague && !isStarter){
     // Aucun RP n'est dans la zone promotion — on affiche quand même la ligne comme repère
     rows+=makeSepLine(leagueIdx+1);
