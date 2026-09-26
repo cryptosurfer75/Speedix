@@ -21450,7 +21450,7 @@ function _renderTeamChallengeModal(){
         +'</div>'
       );
       return '<div style="position:relative;margin-bottom:.35rem">'
-        +'<div onclick="toggleTeamChallengeRankingDropdown(\''+tid+'\')" style="padding:.5rem .6rem;border-radius:6px;border:1.5px solid '+((isMine&&teamSucceeded)?'var(--green)':(isMine?'var(--gold)':'var(--border)'))+';background:var(--bg2);cursor:pointer">'
+        +'<div onclick="toggleTeamChallengeRankingDropdown(\''+tid+'\')" style="padding:.5rem .6rem;border-radius:6px;border:1.5px solid '+((isMine&&teamSucceeded)?'var(--green)':(isMine?'rgba(245,200,66,.55)':'var(--border)'))+';background:var(--bg2);cursor:pointer">'
           +'<div style="display:flex;justify-content:space-between;align-items:center;font-size:.78rem;margin-bottom:.35rem;gap:.4rem">'
             +'<span style="display:flex;align-items:center;gap:.35rem;min-width:0;flex:1">'
               +'<span style="color:var(--muted2);font-family:Space Mono,monospace;flex-shrink:0">#'+(i+1)+'</span>'
