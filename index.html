@@ -21229,6 +21229,40 @@ function switchTeamChallengeTab(tab){
   _renderTeamChallengeModal();
 }
 
+// Harmonise la luminosité du NOM de team affiché (2026-09-26, demande
+// explicite : "les noms des équipes n'ont pas la même luminosité" -- des
+// couleurs de team comme Rhinos #556677 (gris terne) ou Alligators #8B6914
+// (kaki sombre) restaient illisibles à côté de couleurs déjà vives comme
+// Toucan/Cagou). Relève juste le plancher de saturation/luminosité (HSL) --
+// une couleur déjà vive n'est pas touchée, seule une couleur trop terne est
+// remontée au niveau des plus lumineuses. Uniquement pour le TEXTE du nom
+// (jamais la barre de progression, qui garde la vraie couleur de la team).
+function _teamNameColor(hex){
+  if(!hex || hex.charAt(0)!=='#') return hex;
+  var r=parseInt(hex.slice(1,3),16)/255, g=parseInt(hex.slice(3,5),16)/255, b=parseInt(hex.slice(5,7),16)/255;
+  var max=Math.max(r,g,b), min=Math.min(r,g,b), l=(max+min)/2, s=0, h=0;
+  if(max!==min){
+    var d=max-min;
+    s=l>0.5?d/(2-max-min):d/(max+min);
+    if(max===r) h=(g-b)/d+(g<b?6:0);
+    else if(max===g) h=(b-r)/d+2;
+    else h=(r-g)/d+4;
+    h/=6;
+  }
+  s=Math.max(s,.6);
+  l=Math.max(l,.58);
+  function hue2rgb(p,q,t){
+    if(t<0)t+=1; if(t>1)t-=1;
+    if(t<1/6) return p+(q-p)*6*t;
+    if(t<1/2) return q;
+    if(t<2/3) return p+(q-p)*(2/3-t)*6;
+    return p;
+  }
+  var q=l<0.5?l*(1+s):l+s-l*s, p=2*l-q;
+  var rr=hue2rgb(p,q,h+1/3), gg=hue2rgb(p,q,h), bb=hue2rgb(p,q,h-1/3);
+  function toHex(x){var v=Math.round(x*255).toString(16); return v.length===1?'0'+v:v;}
+  return '#'+toHex(rr)+toHex(gg)+toHex(bb);
+}
 // Blason d'une team (même source que getBlasonIdx/AVAIL_BLASON_SMALL utilisés
 // sur la page Teams) -- fallback logo Open Team si pas de blason choisi.
 function _teamChallengeBlasonHtml(team,size){
@@ -21316,7 +21350,7 @@ function _renderTeamChallengeModal(){
     ? ('<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:.6rem;padding-right:1.6rem">'
         +'<div style="min-width:0">'
           +'<div style="white-space:nowrap">🏆 <span style="color:#fff">Défi</span> collectif</div>'
-          +'<div style="font-size:1.15rem;font-weight:700;color:'+(mine.team.color||'var(--gold)')+';margin-top:.2rem">TEAM '+mine.team.name.toUpperCase()+'</div>'
+          +'<div style="font-size:1.15rem;font-weight:700;color:'+_teamNameColor(mine.team.color||'var(--gold)')+';margin-top:.2rem">TEAM '+mine.team.name.toUpperCase()+'</div>'
         +'</div>'
         +_teamChallengeBlasonFrameHtml(mine.team,64)
       +'</div>')
@@ -21421,7 +21455,7 @@ function _renderTeamChallengeModal(){
             +'<span style="display:flex;align-items:center;gap:.35rem;min-width:0;flex:1">'
               +'<span style="color:var(--muted2);font-family:Space Mono,monospace;flex-shrink:0">#'+(i+1)+'</span>'
               +(o.team?_teamChallengeBlasonHtml(o.team,20):'')
-              +'<span style="color:'+col+';font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+nm.toUpperCase()+'</span>'
+              +'<span style="color:'+_teamNameColor(col)+';font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+nm.toUpperCase()+'</span>'
             +'</span>'
             +'<span style="color:var(--muted2);font-family:Space Mono,monospace;font-size:.7rem;flex-shrink:0">'+o.joinedIds.length+'/'+o.teamSize+' RP</span>'
           +'</div>'
