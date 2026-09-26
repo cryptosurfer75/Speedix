@@ -21049,7 +21049,16 @@ var _teamChallengeOpenTeamId=null;
 function toggleTeamChallengeRankingDropdown(teamId){
   if(!isPremium()) return;
   _teamChallengeOpenTeamId=(_teamChallengeOpenTeamId===teamId)?null:teamId;
+  // Le rendu remplace tout le innerHTML de lm-body -- ça remettait le scroll
+  // de la liste à 0 à chaque clic, et comme MA team apparaît souvent en haut,
+  // ça donnait l'impression que ça "remontait sur mon cadre" au lieu de rester
+  // sur la team cliquée (2026-09-26, demande explicite). On sauve/restaure la
+  // position de scroll du conteneur autour de ce re-rendu.
+  var _sc=document.getElementById('tc-ranking-scroll');
+  var _scTop=_sc?_sc.scrollTop:0;
   _renderTeamChallengeModal();
+  var _sc2=document.getElementById('tc-ranking-scroll');
+  if(_sc2) _sc2.scrollTop=_scTop;
 }
 
 // Format court "sam. 26 - dim. 27 sept." à partir des dates réelles de
@@ -21348,10 +21357,16 @@ function _renderTeamChallengeModal(){
     // nouveau tout le contenu visible.
     bodyHtml=!edition
       ? '<div style="text-align:center;color:var(--muted2);font-size:.8rem;padding:1rem">Aucun défi collectif en cours.</div>'
-      : '<div style="max-height:50vh;overflow-y:auto">'+(c.allTeamsStats.length?c.allTeamsStats.map(function(o,i){
+      : '<div id="tc-ranking-scroll" style="max-height:50vh;overflow-y:auto">'+(c.allTeamsStats.length?c.allTeamsStats.map(function(o,i){
       var nm=o.team?o.team.name:'Team';
       var col=o.team&&o.team.color?o.team.color:'var(--muted2)';
       var isMine=o.team&&o.team.id===c.myTeamId;
+      // Défi déjà validé pour CETTE team (objectif + minimum de RP atteints) --
+      // la résolution officielle (succès/échec, cf resolve_team_challenges())
+      // n'arrive qu'à la fin de l'édition, mais on peut déjà refléter visuellement
+      // un objectif atteint EN COURS de fenêtre (2026-09-26, demande explicite :
+      // cadre vert au lieu de doré une fois le défi réussi).
+      var teamSucceeded=o.minOk && o.totalCapped>=edition.goal_km;
       var tid=o.team?o.team.id:'';
       var isOpen=tid&&tid===_teamChallengeOpenTeamId;
       // Menu déroulant participants (2026-09-26, demande explicite) -- même
@@ -21372,7 +21387,7 @@ function _renderTeamChallengeModal(){
         +'</div>'
       );
       return '<div style="position:relative;margin-bottom:.35rem">'
-        +'<div onclick="toggleTeamChallengeRankingDropdown(\''+tid+'\')" style="padding:.5rem .6rem;border-radius:6px;border:1.5px solid '+(isMine?'var(--gold)':'var(--border)')+';background:rgba(255,255,255,.03);cursor:pointer">'
+        +'<div onclick="toggleTeamChallengeRankingDropdown(\''+tid+'\')" style="padding:.5rem .6rem;border-radius:6px;border:1.5px solid '+((isMine&&teamSucceeded)?'var(--green)':(isMine?'var(--gold)':'var(--border)'))+';background:rgba(255,255,255,.03);cursor:pointer">'
           +'<div style="display:flex;justify-content:space-between;align-items:center;font-size:.78rem;margin-bottom:.35rem;gap:.4rem">'
             +'<span style="display:flex;align-items:center;gap:.35rem;min-width:0;flex:1">'
               +'<span style="color:var(--muted2);font-family:Space Mono,monospace;flex-shrink:0">#'+(i+1)+'</span>'
