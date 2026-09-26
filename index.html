@@ -21342,6 +21342,13 @@ function _renderTeamChallengeModal(){
       +'• Récompense (<b style="color:var(--gold)">'+edition.reward_rpc+' RPC</b> + <b style="color:var(--green)">'+edition.reward_nyx+' NYX</b>).<br>'
       +'• Faire au moins <b style="color:var(--text)">'+edition.min_km_for_reward+' km</b> individuels pour gagner la récompense si le défi est validé.<br>'
       +'• Minimum <b style="color:var(--text)">'+edition.min_participants+' RP</b> inscrits pour déclencher le défi.'
+      // MIROIR de resolve_team_challenges() -- garder synchro, NE PAS diverger.
+      // Bonus "meilleure équipe" (2026-09-26, demande explicite) : motive à
+      // continuer de courir après avoir atteint goal_km plutôt que de s'arrêter
+      // pile à l'objectif. Montant lu depuis l'édition, jamais codé en dur ici.
+      +(edition.bonus_top_team_rpc>0
+        ? '<br>• Bonus : la team qui cumule le <b style="color:var(--text)">plus de km</b> du week-end gagne <b style="color:var(--gold)">+'+edition.bonus_top_team_rpc+' RPC</b> par RP en plus !'
+        : '')
     +'</div>');
 
   var bodyHtml='';
@@ -31470,12 +31477,27 @@ window.Tour.init = async function(){
       if(res.error==='not_eligible'){ showPreemptNoRightsModal(land); return; }
       _tourErrorToast(res.error); return;
     }
+    // Succès -- plus besoin de relancer automatiquement au prochain retour sur
+    // le Tour (2026-09-26, bug signalé par mail : sans ce reset, la Land déjà
+    // possédée redéclenchait quand même preemptLand() à chaque visite, qui
+    // retombait sur "pas assez de NYX" en boucle -- cf cancelPreemptRetry()
+    // plus bas pour le cas où le RP annule au lieu de réussir).
+    window._pendingBuyRetry = null;
     land.status = 'owned'; land.owner = ME; land.stars = 0; land.mine = true;
     delete land.leaseMonths; delete land.freeMonthsLeft; // possédée = plus de bail à surveiller
     land.layer.setStyle({fillColor: ME.color, fillOpacity:.95});
     land.layer.unbindPopup();
     await _tourSyncWallet();
     showCelebrationModal('🎉 Land préemptée !', `Tu viens de racheter cette Land à ${previousOwner}, qui traînait à l'acheter. Bon SPEEDIX Tour !`);
+  }
+  // Vraie annulation de la préemption (2026-09-26, bug signalé par mail :
+  // sans ça, cliquer "Annuler" sur une des 3 sous-fenêtres de blocage fermait
+  // juste la modale mais laissait window._pendingBuyRetry armé -- Tour.init()
+  // relançait alors preemptLand() en silence à CHAQUE retour sur le Tour,
+  // qui retombait indéfiniment sur "pas assez de NYX" même après annulation).
+  function cancelPreemptRetry(){
+    if(window._pendingBuyRetry===preemptLand) window._pendingBuyRetry=null;
+    closeRentModal();
   }
   // Sous-fenêtre "pas les droits" (2026-08-03, demande explicite) : remplace le
   // contenu de la modale déjà ouverte — 2 vrais choix (Premium ou droit
@@ -31489,7 +31511,7 @@ window.Tour.init = async function(){
     document.getElementById('tour-rm-inner').classList.remove('celebrate');
     document.getElementById('tour-rm-title').innerHTML = `🔒 <span style="color:#fff">DROITS</span> <span style="color:var(--orange)">INSUFFISANTS</span>`;
     document.getElementById('tour-rm-sub').innerHTML = `Désolé, tu n'as pas les droits nécessaires pour préempter (droit d'acquisition, Confirmé, Premium). Veux-tu les obtenir ?`;
-    document.getElementById('tour-rm-btns').innerHTML = `<button class="tour-btn" onclick="Tour.closeRentModal()">Annuler</button><button class="rm-btn-play" onclick="Tour.preemptGoPremium()">Passer Premium</button><button class="rm-btn-play pulse-cta" onclick="Tour.preemptBuyAcquisitionRight()">Droit d'acquisition</button>`;
+    document.getElementById('tour-rm-btns').innerHTML = `<button class="tour-btn" onclick="Tour.cancelPreemptRetry()">Annuler</button><button class="rm-btn-play" onclick="Tour.preemptGoPremium()">Passer Premium</button><button class="rm-btn-play pulse-cta" onclick="Tour.preemptBuyAcquisitionRight()">Droit d'acquisition</button>`;
     document.getElementById('tour-rm-status-strip').innerHTML = renderModalStatusStrip();
     window._rentModalLand = land;
   }
@@ -31527,7 +31549,7 @@ window.Tour.init = async function(){
     document.getElementById('tour-rm-inner').classList.remove('celebrate');
     document.getElementById('tour-rm-title').innerHTML = `💎 <span style="color:#fff">PAS ASSEZ DE</span> <span style="color:var(--green)">NYX</span>`;
     document.getElementById('tour-rm-sub').innerHTML = `Ton solde de NYX est insuffisant (${ME.nyx} NYX) pour acheter le droit d'acquisition (${ACQUISITION_RIGHT_PRICE_NYX} NYX). Tu peux en acheter à la Marketplace. Veux-tu y aller ?`;
-    document.getElementById('tour-rm-btns').innerHTML = `<button class="tour-btn" onclick="Tour.closeRentModal()">Annuler</button><button class="rm-btn-play pulse-cta" onclick="Tour.preemptGoToNyxMarketForRight()">Marketplace</button>`;
+    document.getElementById('tour-rm-btns').innerHTML = `<button class="tour-btn" onclick="Tour.cancelPreemptRetry()">Annuler</button><button class="rm-btn-play pulse-cta" onclick="Tour.preemptGoToNyxMarketForRight()">Marketplace</button>`;
     document.getElementById('tour-rm-status-strip').innerHTML = renderModalStatusStrip();
     window._rentModalLand = land;
   }
@@ -31544,7 +31566,7 @@ window.Tour.init = async function(){
     document.getElementById('tour-rm-inner').classList.remove('celebrate');
     document.getElementById('tour-rm-title').innerHTML = `💎 <span style="color:#fff">PAS ASSEZ DE</span> <span style="color:var(--green)">NYX</span>`;
     document.getElementById('tour-rm-sub').innerHTML = `Ton solde de NYX est insuffisant (${ME.nyx} NYX) pour préempter cette Land (${LAND_PRICE_NYX} NYX). Tu peux en acheter à la Marketplace. Veux-tu y aller ?`;
-    document.getElementById('tour-rm-btns').innerHTML = `<button class="tour-btn" onclick="Tour.closeRentModal()">Annuler</button><button class="rm-btn-play pulse-cta" onclick="Tour.preemptGoToNyxMarket()">Marketplace</button>`;
+    document.getElementById('tour-rm-btns').innerHTML = `<button class="tour-btn" onclick="Tour.cancelPreemptRetry()">Annuler</button><button class="rm-btn-play pulse-cta" onclick="Tour.preemptGoToNyxMarket()">Marketplace</button>`;
     document.getElementById('tour-rm-status-strip').innerHTML = renderModalStatusStrip();
     window._rentModalLand = land;
   }
@@ -32992,7 +33014,7 @@ window.Tour.init = async function(){
     buyAcquisitionRightDemo, openMyLandsPage, closeMyLandsPage,
     confirmRent, closeRentModal, goToRpcMarket,
     preemptLand, preemptGoPremium, preemptBuyAcquisitionRight, preemptGoToNyxMarket,
-    preemptGoToNyxMarketForRight,
+    preemptGoToNyxMarketForRight, cancelPreemptRetry,
     buyMyRentedLand, releaseLand, buyStarFromModal, openStarModal,
     openSellModal, confirmSellLand, cancelSale, focusLandOnMap,
     setRealFriendColor, attemptBuyEtape, attemptBuyLand, simulateGoPremium, goToNyxMarket,
