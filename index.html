@@ -12019,7 +12019,13 @@ function renderLeaguePanel(){
     for(var i=LEAGUES.length-1;i>leagueIdx;i--){
       if(LEAGUES[i].key!=='lelite' && pts>=LEAGUES[i].min) return i;
     }
-    return leagueIdx;
+    // Aucune league réelle au-dessus (ex. L1 : L Elite fermée pendant la bêta,
+    // donc jamais retenue ci-dessus) -- ne JAMAIS retourner leagueIdx tel quel :
+    // ça donnerait lvl=0 et ferait disparaître ce RP du classement (bug vécu
+    // 2026-09-26, "les 2 premiers ont disparu" -- Felix/AlexisClmb en L1,
+    // au-dessus du plafond mais nulle part où les classer). +1 par défaut,
+    // même filet que l'ancien code (toujours au moins "+1").
+    return leagueIdx+1;
   }
   var promoGroups={}; // nb de leagues sautées -> [joueurs]
   promoPlayers.forEach(function(p){
