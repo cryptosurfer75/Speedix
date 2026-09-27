@@ -24683,7 +24683,7 @@ async function renderCollabChallenges(){
           progLine='Toi : '+(myProg.km_done||0).toFixed(1)+'/'+crit.value+' km · '+_neighborChip(it.neighborInfo)+' : '+(neighProg.km_done||0).toFixed(1)+'/'+crit.value+' km';
         } else if(crit.type==='km_total'){
           var tot=(myProg.km_done||0)+(neighProg.km_done||0);
-          progLine='Total à deux : '+tot.toFixed(1)+'/'+crit.value+' km';
+          progLine='Total à deux : '+tot.toFixed(1)+'/'+crit.value+' km · Toi : '+(myProg.km_done||0).toFixed(1)+' km · '+_neighborChip(it.neighborInfo)+' : '+(neighProg.km_done||0).toFixed(1)+' km';
         } else if(crit.type==='runs_each'){
           progLine='Toi : '+(myProg.runs_done||0)+'/'+crit.value+' sorties · '+_neighborChip(it.neighborInfo)+' : '+(neighProg.runs_done||0)+'/'+crit.value+' sorties';
         } else if(crit.type==='dplus_each'){
