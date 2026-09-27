@@ -3799,6 +3799,13 @@ select option{background:#040c1c}
 
   <div class="block" style="padding:0;overflow:hidden;border:1.5px solid rgba(144,96,240,.6)">
     <div id="leaguechat-messages" style="height:60vh;min-height:320px;overflow-y:auto;display:flex;flex-direction:column;gap:.4rem;padding:1rem;scrollbar-width:thin;scrollbar-color:rgba(144,96,240,.25) transparent"></div>
+    <div id="leaguechat-reply-banner" style="display:none;align-items:center;gap:.5rem;padding:.4rem 1rem;border-top:1px solid rgba(144,96,240,.25);background:rgba(144,96,240,.06)">
+      <div style="flex:1;min-width:0">
+        <div style="font-size:.7rem;font-weight:700;color:var(--purple)">↩ Réponse à <span id="leaguechat-reply-name"></span></div>
+        <div id="leaguechat-reply-snippet" style="font-size:.72rem;color:var(--muted2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
+      </div>
+      <span onclick="cancelReplyTo()" style="cursor:pointer;color:var(--muted2);font-size:.85rem;padding:0 .2rem" title="Annuler">✕</span>
+    </div>
     <div style="display:flex;gap:.5rem;padding:.75rem 1rem;border-top:1px solid rgba(144,96,240,.25)">
       <input id="leaguechat-input" type="text" placeholder="Message…" maxlength="300" style="flex:1;min-width:0;padding:.7rem .8rem;border-radius:8px;border:1px solid rgba(144,96,240,.25);background:rgba(4,12,28,.5);color:var(--text);font-size:.95rem;outline:none" onkeydown="if(event.key==='Enter')sendLeagueMessage()">
       <button onclick="sendLeagueMessage()" style="flex-shrink:0;padding:.55rem 1.1rem;border-radius:8px;border:1.5px solid rgba(45,219,128,.6);background:linear-gradient(135deg,rgba(45,219,128,.28),rgba(45,219,128,.08));color:var(--green);font-size:.85rem;font-weight:700;cursor:pointer">→</button>
@@ -14313,7 +14320,7 @@ async function loadLeagueChat(key){
   }
   var el=document.getElementById('leaguechat-messages');
   if(!el||!key) return;
-  var resp=await window.fetch(supabaseUrl+'/rest/v1/league_messages?league=eq.'+encodeURIComponent(key)+'&select=id,player_id,content,created_at&order=created_at.desc&limit=100',{
+  var resp=await window.fetch(supabaseUrl+'/rest/v1/league_messages?league=eq.'+encodeURIComponent(key)+'&select=id,player_id,content,created_at,reply_to_id&order=created_at.desc&limit=100',{
     headers:{'apikey':supabaseKey,'Authorization':'Bearer '+(window.__sessionToken||supabaseKey),'Accept':'application/json'}
   });
   var msgs=await resp.json();
@@ -14321,7 +14328,20 @@ async function loadLeagueChat(key){
     el.innerHTML='<div style="text-align:center;padding:1.5rem;color:var(--muted2);font-size:.85rem">Aucun message. Sois le premier à lancer la discussion !</div>';
     return;
   }
-  var pids=[...new Set(msgs.map(function(m){return m.player_id;}))];
+  // Messages cités (réponses) : peuvent référencer un message plus vieux que
+  // les 100 chargés ici, donc requête séparée par id plutôt qu'un simple map
+  // local. reply_to_id passe à null tout seul (ON DELETE SET NULL) si le
+  // message d'origine est supprimé — pas de citation vers un message fantôme.
+  var replyIds=[...new Set(msgs.map(function(m){return m.reply_to_id;}).filter(Boolean))];
+  var replyMap={};
+  if(replyIds.length){
+    var replyResp=await window.fetch(supabaseUrl+'/rest/v1/league_messages?id=in.('+replyIds.join(',')+')&select=id,player_id,content',{
+      headers:{'apikey':supabaseKey,'Authorization':'Bearer '+(window.__sessionToken||supabaseKey),'Accept':'application/json'}
+    });
+    var replyRows=await replyResp.json().catch(function(){return [];});
+    (replyRows||[]).forEach(function(r){replyMap[r.id]=r;});
+  }
+  var pids=[...new Set(msgs.map(function(m){return m.player_id;}).concat(Object.values(replyMap).map(function(r){return r.player_id;})))];
   var {data:players}=await supabaseClient.from('players').select('id,username,avatar').in('id',pids);
   var pMap={};
   (players||[]).forEach(function(p){pMap[p.id]=p;});
@@ -14358,20 +14378,37 @@ async function loadLeagueChat(key){
     var date=m.created_at?new Date(m.created_at).toLocaleDateString(SPEEDIX_LANG,{day:'2-digit',month:'2-digit'}):'';
     var myEmo=myReaction[m.id]||null;
     var counts=reactionCounts[m.id]||{};
+    // Citation du message auquel on répond (si applicable) — clic dessus =
+    // scroll vers le message d'origine, façon WhatsApp/Messenger.
+    var replyQuoteHtml='';
+    if(m.reply_to_id && replyMap[m.reply_to_id]){
+      var rq=replyMap[m.reply_to_id];
+      var rqUser=pMap[rq.player_id]?pMap[rq.player_id].username:'?';
+      replyQuoteHtml='<div onclick="scrollToLeagueMessage(\''+m.reply_to_id+'\')" style="cursor:pointer;border-left:3px solid var(--purple);padding:.2rem .5rem;margin-bottom:.3rem;background:rgba(255,255,255,.04);border-radius:4px">'
+        +'<div style="font-size:.65rem;font-weight:700;color:var(--purple)">'+escapeHtml(rqUser)+'</div>'
+        +'<div style="font-size:.68rem;color:var(--muted2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:220px">'+escapeHtml(rq.content)+'</div>'
+        +'</div>';
+    }
     // Puces déjà posées (une par emoji distinct utilisé sur ce message), triées
     // par nombre décroissant façon Messenger/WhatsApp.
     var chips=Object.keys(counts).sort(function(a,b){return counts[b]-counts[a];}).map(function(emo){
       var mine=myEmo===emo;
       return '<span onclick="toggleLeagueMessageReaction(\''+m.id+'\',\''+emo+'\')" style="cursor:pointer;font-size:.72rem;line-height:1;user-select:none;display:inline-flex;align-items:center;gap:.15rem;padding:.1rem .4rem;border-radius:10px;background:'+(mine?'rgba(245,200,66,.15)':'rgba(255,255,255,.06)')+';border:1px solid '+(mine?'rgba(245,200,66,.4)':'rgba(255,255,255,.1)')+'">'+emo+'<span style="font-size:.65rem;color:'+(mine?'var(--gold)':'var(--muted)')+'">'+counts[emo]+'</span></span>';
     }).join('');
-    return '<div style="display:flex;gap:.5rem;align-items:flex-start'+(isMe?';flex-direction:row-reverse':'')+'">'
+    return '<div id="lm-msg-'+m.id+'" style="display:flex;gap:.5rem;align-items:flex-start'+(isMe?';flex-direction:row-reverse':'')+'">'
       +(p.avatar?'<img src="'+escapeHtml(p.avatar)+'" style="width:34px;height:34px;border-radius:8px;object-fit:cover;flex-shrink:0">':'<div style="width:34px;height:34px;border-radius:8px;background:rgba(74,144,255,.15);display:flex;align-items:center;justify-content:center;font-size:.8rem;font-weight:700;color:var(--muted2);flex-shrink:0">'+escapeHtml(p.username.charAt(0).toUpperCase())+'</div>')
       +'<div style="max-width:75%;padding:.5rem .75rem;border-radius:10px;background:'+(isMe?'rgba(74,144,255,.12)':'rgba(30,37,53,.6)')+';border:1px solid '+(isMe?'rgba(74,144,255,.2)':'rgba(30,37,53,.8)')+'">'
       +'<div style="display:flex;align-items:center;gap:.4rem;margin-bottom:.2rem">'
       +'<span style="font-size:.8rem;font-weight:700;color:'+(isMe?'#4a90ff':'var(--text)')+'">'+escapeHtml(p.username)+'</span>'
       +'<span style="font-size:.68rem;color:var(--muted)">'+date+' '+time+'</span>'
-      +(canDel?'<span onclick="deleteLeagueMessage(\''+m.id+'\')" style="margin-left:auto;color:#ff4444;cursor:pointer;font-size:.75rem;padding:0 .2rem" title="Supprimer">✕</span>':'')
+      +'<span onclick="toggleMsgMenu(\''+m.id+'\',event)" style="margin-left:auto;cursor:pointer;color:var(--muted2);font-size:.85rem;padding:0 .2rem;position:relative" title="Options">⌄'
+        +'<div id="msg-menu-'+m.id+'" style="display:none;position:absolute;top:100%;'+(isMe?'right:0':'left:0')+';margin-top:.2rem;background:var(--bg2);border:1px solid var(--border2);border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.4);z-index:25;min-width:130px;overflow:hidden;text-align:left">'
+          +'<div onclick="event.stopPropagation();startReplyTo(\''+m.id+'\');toggleMsgMenu(\''+m.id+'\')" style="padding:.5rem .7rem;font-size:.75rem;font-weight:400;color:var(--text);cursor:pointer" onmouseover="this.style.background=\'rgba(255,255,255,.06)\'" onmouseout="this.style.background=\'none\'">↩ Répondre</div>'
+          +(canDel?'<div onclick="event.stopPropagation();toggleMsgMenu(\''+m.id+'\');deleteLeagueMessage(\''+m.id+'\')" style="padding:.5rem .7rem;font-size:.75rem;font-weight:400;color:#ff4444;cursor:pointer;border-top:1px solid var(--border2)" onmouseover="this.style.background=\'rgba(255,68,68,.08)\'" onmouseout="this.style.background=\'none\'">🗑 Supprimer</div>':'')
+        +'</div>'
+      +'</span>'
       +'</div>'
+      +replyQuoteHtml
       +'<div style="font-size:.95rem;color:var(--text);line-height:1.45;word-break:break-word">'+escapeHtml(m.content)+'</div>'
       +'<div style="display:flex;align-items:center;gap:.3rem;margin-top:.35rem;flex-wrap:wrap;position:relative">'
       +chips
@@ -14477,18 +14514,74 @@ async function toggleLeagueMessageReaction(msgId,emoji){
   if(_leagueChatKey) loadLeagueChat(_leagueChatKey);
 }
 
+// Menu par message (⌄) : Répondre pour tout le monde, Supprimer pour l'auteur
+// ou l'admin (modération) — demande explicite de l'user, façon WhatsApp mais
+// réduit aux 2 actions utiles ici (pas de Transférer/Épingler/Signaler...).
+function toggleMsgMenu(msgId,evt){
+  if(evt) evt.stopPropagation();
+  document.querySelectorAll('[id^="msg-menu-"]').forEach(function(elx){
+    if(elx.id!=='msg-menu-'+msgId) elx.style.display='none';
+  });
+  var menu=document.getElementById('msg-menu-'+msgId);
+  if(!menu) return;
+  var opening=menu.style.display==='none'||!menu.style.display;
+  menu.style.display=opening?'block':'none';
+  if(opening){
+    setTimeout(function(){
+      document.addEventListener('click',function _close(e){
+        if(!menu.contains(e.target)){ menu.style.display='none'; document.removeEventListener('click',_close); }
+      });
+    },0);
+  }
+}
+
+var _replyingToId=null;
+function startReplyTo(msgId){
+  var bubble=document.getElementById('lm-msg-'+msgId);
+  if(!bubble) return;
+  var nameEl=bubble.querySelector('span[style*="font-weight:700"]');
+  var contentEl=bubble.querySelector('div[style*="line-height:1.45"]');
+  _replyingToId=msgId;
+  document.getElementById('leaguechat-reply-name').textContent=nameEl?nameEl.textContent:'';
+  document.getElementById('leaguechat-reply-snippet').textContent=contentEl?contentEl.textContent:'';
+  document.getElementById('leaguechat-reply-banner').style.display='flex';
+  var input=document.getElementById('leaguechat-input');
+  if(input) input.focus();
+}
+function cancelReplyTo(){
+  _replyingToId=null;
+  document.getElementById('leaguechat-reply-banner').style.display='none';
+}
+// Scroll vers le message cité (clic sur la citation) + petit flash visuel
+// pour aider à le repérer dans une longue conversation.
+function scrollToLeagueMessage(msgId){
+  var bubble=document.getElementById('lm-msg-'+msgId);
+  if(!bubble) return;
+  bubble.scrollIntoView({behavior:'smooth',block:'center'});
+  var inner=bubble.querySelector('div[style*="border-radius:10px"]');
+  if(inner){
+    var prevBg=inner.style.background;
+    inner.style.transition='background .3s';
+    inner.style.background='rgba(245,200,66,.25)';
+    setTimeout(function(){ inner.style.background=prevBg; },900);
+  }
+}
+
 async function sendLeagueMessage(){
   if(!currentUser||!_leagueChatKey) return;
   var input=document.getElementById('leaguechat-input');
   if(!input) return;
   var content=input.value.trim();
   if(!content) return;
+  var body={league:_leagueChatKey,player_id:currentUser.id,content:content};
+  if(_replyingToId) body.reply_to_id=_replyingToId;
   await window.fetch(supabaseUrl+'/rest/v1/league_messages',{
     method:'POST',
     headers:{'apikey':supabaseKey,'Authorization':'Bearer '+(window.__sessionToken||supabaseKey),'Content-Type':'application/json','Prefer':'return=minimal'},
-    body:JSON.stringify({league:_leagueChatKey,player_id:currentUser.id,content:content})
+    body:JSON.stringify(body)
   });
   input.value='';
+  cancelReplyTo();
   loadLeagueChat(_leagueChatKey);
 }
 
