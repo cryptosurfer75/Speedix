@@ -28788,6 +28788,79 @@ window.Tour.init = async function(){
     while(LANDS[idx].status==='etape' || LANDS[idx].status==='bonus' || LANDS[idx].status==='event' || LANDS[idx].status==='extra' || LANDS[idx].status==='gift') idx = (idx+1) % TOTAL_CELLS;
     LANDS[idx].status = 'gift';
   }
+  // ── 50 cases "surprise" supplémentaires (2026-09-27, demande explicite user :
+  // retirer 50 cases Lands classiques et les remplacer par 40 bonus + 10 pertes).
+  // Contrairement aux 100 cases bonus ci-dessus (carte piochée au hasard dans un
+  // deck partagé à l'atterrissage), celles-ci ont un texte/montant FIGÉ par case
+  // dès la génération — même mécanisme que les cases "event" (l.eventCard fixe).
+  // revealLand() n'y touche pas : sa condition `!l.bonusText` saute le tirage
+  // aléatoire dès que bonusText est déjà posé ici, donc chaque case garde
+  // TOUJOURS le même texte/montant (une des 40 toujours positive, une des 10
+  // toujours négative) — pas de mélange avec le deck BONUS_CARDS existant.
+  // idx choisis à la main (jamais une Land déjà achetée/louée par un vrai RP,
+  // jamais une case déjà étape/bonus/event/extra/gift) parmi les Lands encore
+  // libres au 2026-09-27, réparties le plus régulièrement possible sur ce pool.
+  const SURPRISE_EXTRA_BONUS = [
+    {idx:4,   text:"Tu retrouves une pièce oubliée dans la poche de ton legging de course", amount:180},
+    {idx:290, text:"Un pâtissier du quartier t'offre des viennoiseries après ton footing matinal", amount:150},
+    {idx:333, text:"Ta boutique de sport te fait une remise fidélité surprise", amount:250},
+    {idx:364, text:"Tu gagnes le quiz post-course organisé par les bénévoles", amount:200},
+    {idx:394, text:"Un passant t'applaudit et te glisse un bon d'achat pour ta prochaine paire", amount:220},
+    {idx:398, text:"Ta mutuelle rembourse enfin ta visite chez le podologue", amount:300},
+    {idx:407, text:"Tu es tiré au sort pour porter la flamme d'un relais local", amount:500},
+    {idx:419, text:"Un ami annule et te cède son dossard déjà payé pour un trail", amount:400},
+    {idx:435, text:"Tu remportes le concours de la plus belle photo Strava du mois", amount:350},
+    {idx:442, text:"Un kiné te propose une séance découverte gratuite après une belle perf", amount:250},
+    {idx:445, text:"Ton club t'élit coureur du mois, prime symbolique à la clé", amount:300},
+    {idx:452, text:"Une marque de boissons isotoniques te choisit comme testeur", amount:280},
+    {idx:508, text:"Tu retrouves ta vieille carte cadeau running non utilisée", amount:200},
+    {idx:530, text:"Un randonneur croisé sur le parcours te file des barres énergétiques premium à revendre", amount:150},
+    {idx:548, text:"Ton employeur rembourse ton inscription à la course d'entreprise", amount:350},
+    {idx:563, text:"Tu gagnes le pari amical du dernier kilomètre contre un pote", amount:180},
+    {idx:598, text:"Une appli de coaching t'offre 3 mois d'abonnement premium, tu la reventes", amount:260},
+    {idx:606, text:"Le speaker de la course cite ton nom au micro, un sponsor local t'envoie un cadeau", amount:220},
+    {idx:629, text:"Tu trouves une place de parking gratuite juste devant le point de départ", amount:100},
+    {idx:635, text:"Un ostéopathe du village t'offre une consultation post-marathon", amount:300},
+    {idx:673, text:"Tu remportes le tirage au sort des dossards VIP d'une course locale", amount:450},
+    {idx:678, text:"Ta banque t'offre des points fidélité en scannant ton dossard sponsorisé", amount:200},
+    {idx:689, text:"Un photographe bénévole t'envoie gratuitement tes plus belles photos de course, tu les revends", amount:180},
+    {idx:707, text:"Ton assurance sport te rembourse une paire de chaussures usées", amount:350},
+    {idx:713, text:"Tu gagnes le manager's challenge inter-entreprises", amount:400},
+    {idx:724, text:"Une salle de sport partenaire t'offre un mois gratuit, tu le revends", amount:220},
+    {idx:732, text:"Tu trouves un bon de réduction dans un sachet de gel énergétique", amount:130},
+    {idx:735, text:"Ton horloge connectée détecte un nouveau record de VO2max, la marque t'envoie une prime ambassadeur", amount:500},
+    {idx:743, text:"Un vétérinaire de quartier t'offre une consultation gratuite pour ton chien de course", amount:150},
+    {idx:749, text:"Tu es choisi comme visage d'une campagne d'affichage running locale", amount:600},
+    {idx:751, text:"Une conserverie locale sponsorise ton ravitaillement, tu empoches la différence", amount:170},
+    {idx:757, text:"Tu remportes le concours du meilleur temps de passage à un point de ravitaillement", amount:250},
+    {idx:765, text:"Un chauffeur VTC t'offre la course retour après ton marathon", amount:140},
+    {idx:771, text:"Ta ville t'accorde une prime sportif exemplaire", amount:400},
+    {idx:774, text:"Tu retrouves de l'argent glissé dans une vieille paire de baskets", amount:190},
+    {idx:777, text:"Un coach sportif t'offre une séance de préparation mentale", amount:260},
+    {idx:786, text:"Tu gagnes le pari du plus beau maillot de la course", amount:160},
+    {idx:788, text:"Une agence événementielle te recrute comme pacer rémunéré pour un jour", amount:550},
+    {idx:791, text:"Ton assurance annulation te rembourse un dossard non couru", amount:230},
+    {idx:794, text:"Tu es choisi pour tester en exclusivité une nouvelle appli de running", amount:240},
+  ];
+  const SURPRISE_EXTRA_PERTE = [
+    {idx:374, text:"Ta gourde fuit dans ton sac et abîme ton téléphone", amount:-220},
+    {idx:429, text:"Tu perds ton bracelet chronométré, remplacement facturé", amount:-150},
+    {idx:479, text:"Un chien en laisse s'emmêle dans tes lacets, tu dois racheter une paire", amount:-180},
+    {idx:586, text:"Ton brassard porte-téléphone casse en pleine sortie", amount:-90},
+    {idx:652, text:"Tu confonds les vestiaires et perds ta veste technique", amount:-200},
+    {idx:709, text:"Une averse surprise détruit ton dossard, réimpression express payante", amount:-110},
+    {idx:741, text:"Ton application de coaching bugue et te facture deux fois l'abonnement", amount:-160},
+    {idx:762, text:"Tu écrases accidentellement ta montre GPS en la posant sur le buffet", amount:-350},
+    {idx:782, text:"Un coup de vent t'arrache ta casquette dans le fossé, rachat obligatoire", amount:-80},
+    {idx:797, text:"Tu payes une amende pour avoir garé ton vélo sur la ligne d'arrivée", amount:-130},
+  ];
+  SURPRISE_EXTRA_BONUS.concat(SURPRISE_EXTRA_PERTE).forEach(function(c){
+    const l = LANDS[c.idx];
+    if(!l || l.status==='etape') return; // sécurité, ne devrait jamais arriver (idx choisis à la main)
+    l.status = 'bonus';
+    l.bonusText = c.text;
+    l.bonusAmount = c.amount;
+  });
   // ⚠️ Raccordé au vrai Wallet (2026-08-06, demande explicite — "tu peux déjà
   // brancher les Wallets dessus, il n'y a aucun risque puisque les Landes
   // classiques sont gelées en prod et ce Tour n'est déployé qu'en local") :
