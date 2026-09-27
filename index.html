@@ -3808,7 +3808,7 @@ select option{background:#040c1c}
     </div>
     <div style="display:flex;gap:.5rem;padding:.75rem 1rem;border-top:1px solid rgba(144,96,240,.25)">
       <input id="leaguechat-input" type="text" placeholder="Message…" maxlength="300" style="flex:1;min-width:0;padding:.7rem .8rem;border-radius:8px;border:1px solid rgba(144,96,240,.25);background:rgba(4,12,28,.5);color:var(--text);font-size:.95rem;outline:none" onkeydown="if(event.key==='Enter')sendLeagueMessage()">
-      <button onclick="sendLeagueMessage()" style="flex-shrink:0;padding:.55rem 1.1rem;border-radius:8px;border:1.5px solid rgba(45,219,128,.6);background:linear-gradient(135deg,rgba(45,219,128,.28),rgba(45,219,128,.08));color:var(--green);font-size:.85rem;font-weight:700;cursor:pointer">→</button>
+      <button id="leaguechat-send-btn" onclick="sendLeagueMessage()" style="flex-shrink:0;padding:.55rem 1.1rem;border-radius:8px;border:1.5px solid rgba(45,219,128,.6);background:linear-gradient(135deg,rgba(45,219,128,.28),rgba(45,219,128,.08));color:var(--green);font-size:.85rem;font-weight:700;cursor:pointer">→</button>
     </div>
   </div>
 </div>
@@ -14412,7 +14412,7 @@ async function loadLeagueChat(key){
       +'<div style="font-size:.95rem;color:var(--text);line-height:1.45;word-break:break-word">'+escapeHtml(m.content)+'</div>'
       +'<div style="display:flex;align-items:center;gap:.3rem;margin-top:.35rem;flex-wrap:wrap;position:relative">'
       +chips
-      +'<span onclick="toggleReactionPicker(\''+m.id+'\',event)" style="cursor:pointer;font-size:.8rem;line-height:1;user-select:none;padding:.1rem .3rem;border-radius:10px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1)" title="Réagir">'+(Object.keys(counts).length?'+':'🤍')+'</span>'
+      +'<span onclick="toggleReactionPicker(\''+m.id+'\',event)" style="cursor:pointer;font-size:.85rem;line-height:1;user-select:none;padding:.1rem .35rem;border-radius:10px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.85);display:inline-flex;align-items:center" title="Réagir">'+(Object.keys(counts).length?'+':'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" style="vertical-align:-2px"><circle cx="12" cy="12" r="9.5"/><path d="M8.5 14.5c1 1.3 2.2 2 3.5 2s2.5-.7 3.5-2"/><circle cx="8.7" cy="9.5" r="1" fill="currentColor" stroke="none"/><circle cx="15.3" cy="9.5" r="1" fill="currentColor" stroke="none"/></svg>')+'</span>'
       +'<div id="reaction-picker-'+m.id+'" style="display:none;position:absolute;bottom:100%;'+(isMe?'right:0':'left:0')+';margin-bottom:.3rem;background:var(--bg2);border:1px solid var(--border2);border-radius:20px;padding:.3rem .4rem;box-shadow:0 4px 16px rgba(0,0,0,.4);gap:.25rem;z-index:20;white-space:nowrap">'
       +REACTION_EMOJIS.map(function(emo){return '<span onclick="event.stopPropagation();toggleLeagueMessageReaction(\''+m.id+'\',\''+emo+'\');toggleReactionPicker(\''+m.id+'\')" style="cursor:pointer;font-size:1.1rem;padding:.1rem .15rem;display:inline-block;transition:transform .1s" onmouseover="this.style.transform=\'scale(1.25)\'" onmouseout="this.style.transform=\'scale(1)\'">'+emo+'</span>';}).join('')
       +'<span onclick="event.stopPropagation();toggleReactionPicker(\''+m.id+'\');openFullEmojiPicker(\''+m.id+'\')" style="cursor:pointer;font-size:1rem;padding:.1rem .3rem;display:inline-flex;align-items:center;justify-content:center;color:var(--muted2);border-left:1px solid var(--border2);margin-left:.15rem;padding-left:.4rem" title="Plus d\'emojis">+</span>'
@@ -14420,6 +14420,18 @@ async function loadLeagueChat(key){
       +'</div>'
       +'</div></div>';
   }).join('');
+  // Ré-applique un picker/menu resté ouvert avant ce rafraîchissement (le poll
+  // 3s reconstruit tout le innerHTML au-dessus, donc sans ça tout popup ouvert
+  // se ferme tout seul au prochain tick — cf commentaires sur les variables
+  // _openReactionPickerId / _openMsgMenuId).
+  if(_openReactionPickerId){
+    var _rp=document.getElementById('reaction-picker-'+_openReactionPickerId);
+    if(_rp) _rp.style.display='flex'; else _openReactionPickerId=null;
+  }
+  if(_openMsgMenuId){
+    var _mm=document.getElementById('msg-menu-'+_openMsgMenuId);
+    if(_mm) _mm.style.display='block'; else _openMsgMenuId=null;
+  }
   el.scrollTop=_wasAtBottom?el.scrollHeight:_prevScrollTop;
 }
 
@@ -14431,6 +14443,12 @@ var REACTION_EMOJIS=['👍','❤️','😂','😮','😢','🙏'];
 // Affiche/masque la petite rangée d'emojis au-dessus d'un message. On ferme
 // tout picker déjà ouvert ailleurs avant d'ouvrir le nouveau (un seul à la
 // fois), et un clic hors du picker le referme (listener posé à l'ouverture).
+// _openReactionPickerId survit au poll 3s (loadLeagueChat réapplique l'état
+// après avoir reconstruit el.innerHTML) — sinon le picker se refermait tout
+// seul dès le prochain rafraîchissement, signalé par l'user comme "se ferme
+// trop vite" (le vrai souci n'était pas un timing mais le poll qui écrasait
+// le DOM en dessous).
+var _openReactionPickerId=null;
 function toggleReactionPicker(msgId,evt){
   if(evt) evt.stopPropagation();
   document.querySelectorAll('[id^="reaction-picker-"]').forEach(function(elx){
@@ -14440,10 +14458,16 @@ function toggleReactionPicker(msgId,evt){
   if(!picker) return;
   var opening=picker.style.display==='none'||!picker.style.display;
   picker.style.display=opening?'flex':'none';
+  _openReactionPickerId=opening?msgId:null;
   if(opening){
     setTimeout(function(){
       document.addEventListener('click',function _close(e){
-        if(!picker.contains(e.target)){ picker.style.display='none'; document.removeEventListener('click',_close); }
+        if(!document.getElementById('reaction-picker-'+msgId)||!document.getElementById('reaction-picker-'+msgId).contains(e.target)){
+          var p=document.getElementById('reaction-picker-'+msgId);
+          if(p) p.style.display='none';
+          if(_openReactionPickerId===msgId) _openReactionPickerId=null;
+          document.removeEventListener('click',_close);
+        }
       });
     },0);
   }
@@ -14517,6 +14541,9 @@ async function toggleLeagueMessageReaction(msgId,emoji){
 // Menu par message (⌄) : Répondre pour tout le monde, Supprimer pour l'auteur
 // ou l'admin (modération) — demande explicite de l'user, façon WhatsApp mais
 // réduit aux 2 actions utiles ici (pas de Transférer/Épingler/Signaler...).
+// _openMsgMenuId : même correctif de survie au poll 3s que _openReactionPickerId
+// ci-dessus, même cause (innerHTML entier reconstruit par loadLeagueChat).
+var _openMsgMenuId=null;
 function toggleMsgMenu(msgId,evt){
   if(evt) evt.stopPropagation();
   document.querySelectorAll('[id^="msg-menu-"]').forEach(function(elx){
@@ -14526,10 +14553,16 @@ function toggleMsgMenu(msgId,evt){
   if(!menu) return;
   var opening=menu.style.display==='none'||!menu.style.display;
   menu.style.display=opening?'block':'none';
+  _openMsgMenuId=opening?msgId:null;
   if(opening){
     setTimeout(function(){
       document.addEventListener('click',function _close(e){
-        if(!menu.contains(e.target)){ menu.style.display='none'; document.removeEventListener('click',_close); }
+        var m=document.getElementById('msg-menu-'+msgId);
+        if(!m||!m.contains(e.target)){
+          if(m) m.style.display='none';
+          if(_openMsgMenuId===msgId) _openMsgMenuId=null;
+          document.removeEventListener('click',_close);
+        }
       });
     },0);
   }
@@ -14567,12 +14600,31 @@ function scrollToLeagueMessage(msgId){
   }
 }
 
+// Anti-spam (demande explicite de l'user, 2026-09-28) : un salon commun à
+// TOUS les RP sans aucun garde-fou permettait d'enchaîner les envois en
+// boucle. Cooldown côté client seulement (suffisant pour un salon de
+// discussion, pas un système anti-triche) — bouton + touche Entrée passent
+// tous les deux par sendLeagueMessage, donc un seul verrou couvre les deux.
+var _lastLeagueSendAt=0;
+var LEAGUE_CHAT_COOLDOWN_MS=2500;
 async function sendLeagueMessage(){
   if(!currentUser||!_leagueChatKey) return;
   var input=document.getElementById('leaguechat-input');
   if(!input) return;
   var content=input.value.trim();
   if(!content) return;
+  var elapsed=Date.now()-_lastLeagueSendAt;
+  if(elapsed<LEAGUE_CHAT_COOLDOWN_MS){
+    var btn=document.getElementById('leaguechat-send-btn');
+    if(btn){
+      var remain=Math.ceil((LEAGUE_CHAT_COOLDOWN_MS-elapsed)/1000);
+      var prevText=btn.textContent, prevDisabled=btn.disabled;
+      btn.disabled=true; btn.style.opacity='.5'; btn.textContent=remain+'s';
+      setTimeout(function(){ btn.disabled=prevDisabled; btn.style.opacity='1'; btn.textContent=prevText; },LEAGUE_CHAT_COOLDOWN_MS-elapsed);
+    }
+    return;
+  }
+  _lastLeagueSendAt=Date.now();
   var body={league:_leagueChatKey,player_id:currentUser.id,content:content};
   if(_replyingToId) body.reply_to_id=_replyingToId;
   await window.fetch(supabaseUrl+'/rest/v1/league_messages',{
