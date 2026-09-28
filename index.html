@@ -22501,7 +22501,16 @@ async function renderTeams(){
         // arrive sur Teams via la PC d'un autre RP (bug pastille qui revient sans
         // cesse, signalé 2026-09-08 : window.__viewedPlayer n'est réinitialisé que
         // par nav('dashboard'), pas par nav('teams')).
-        if(window.__myTeamId && typeof loadTeamChat==='function'){loadTeamChat(window.__myTeamId);startChatPoll(window.__myTeamId);}
+        // ⚠️ Ne le faire QUE si la page Teams est réellement affichée. renderTeams()
+        // est aussi appelée en fond (login, nav('dashboard') pour rafraîchir le
+        // blason team de la PC) — les éléments #myteam-panel/#myteam-actions restent
+        // dans le DOM même page cachée (juste sans classe .active), donc sans ce
+        // garde-fou loadTeamChat() marquait le chat "lu" à CHAQUE login alors que
+        // personne ne l'avait consulté → la pastille verte "nouveau message" posée
+        // 3s plus tôt par checkTeamChatUnread() se voyait effacée juste après
+        // (signalé 2026-09-28 : "la pastille apparaît puis disparaît de suite").
+        var _teamsPageActive=document.getElementById('page-teams')&&document.getElementById('page-teams').classList.contains('active');
+        if(_teamsPageActive && window.__myTeamId && typeof loadTeamChat==='function'){loadTeamChat(window.__myTeamId);startChatPoll(window.__myTeamId);}
       }
     }
 
