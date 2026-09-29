@@ -2154,12 +2154,10 @@ body::after{
 <body>
 
 <!-- ── Bandeau défilant "passe sur le store" (2026-09-29) ──
-     Affiché uniquement dans une app native ANCIENNE (APK sideload sans le plugin push,
-     donc avant le build Play Store/App Store) pour inviter à migrer avant la fermeture
-     de la version test. Lien = store de la plateforme. ✕ = masqué 24 h.
-     Aperçu de test : ajouter ?storebanner=1 à l'URL (force l'affichage, même sur PC).
-     À SUPPRIMER (ce bloc + son <script>) une fois la version test fermée.
-     LIMITE : TestFlight iOS n'est pas détectable en JS (même build/plugin que l'App Store). -->
+     Affiché à TOUS (TestFlight iOS et APK non distinguables de l'app store en JS) pour
+     inviter à migrer avant la fermeture de la version test. Lien = store de la plateforme.
+     ✕ = masqué 24 h. ?storebanner=1 force l'affichage même si masqué.
+     À SUPPRIMER (ce bloc + son <script>) une fois la version test fermée. -->
 <div id="store-ticker" style="display:none;position:relative;z-index:310;background:#0c0f1a;overflow:hidden;white-space:nowrap;cursor:pointer;padding-top:env(safe-area-inset-top);border-top:2px solid #e02020;border-bottom:2px solid #f5c842">
   <div style="display:flex;align-items:stretch;height:32px">
     <div style="flex:0 0 auto;display:flex;align-items:center;gap:6px;padding:0 16px 0 10px;background:linear-gradient(180deg,#ff3b30,#b3120c);color:#fff;font-family:'Bebas Neue',sans-serif;font-size:1rem;letter-spacing:1.5px;clip-path:polygon(0 0,100% 0,calc(100% - 9px) 100%,0 100%);position:relative;z-index:2">
@@ -2192,9 +2190,7 @@ body::after{
       var force=/[?&]storebanner=1/.test(location.search);
       var cap=window.Capacitor;
       var native=!!(cap && typeof cap.isNativePlatform==='function' && cap.isNativePlatform());
-      // Ancienne app native = pas de plugin push (embarqué dès le build Play Store 1.7).
-      var oldNative=native && !(cap.Plugins && cap.Plugins.PushNotifications);
-      if(!force && !oldNative) return;
+      // Affiché à TOUT LE MONDE (décision user 2026-09-29) : qui a déjà migré ferme avec le ✕ (masqué 24 h).
       try{ var until=parseInt(localStorage.getItem('speedix_store_ticker_hidden_until')||'0',10); if(!force && until>Date.now()) return; }catch(e){}
       var lang='fr'; try{ lang=localStorage.getItem('speedix_lang')||'fr'; }catch(e){}
       var msg=MSGS[lang]||MSGS.fr;
@@ -2203,7 +2199,7 @@ body::after{
       // Durée proportionnelle à la longueur (≈ 100 px/s) pour une lecture confortable.
       var dur=Math.max(8,Math.round((msg.length*8+window.innerWidth)/100));
       track.style.animation='storeTickerScroll '+dur+'s linear infinite';
-      var plat=(native && cap.getPlatform)?cap.getPlatform():(/iPhone|iPad|iPod/i.test(navigator.userAgent)?'ios':'android');
+      var plat=(native && cap.getPlatform)?cap.getPlatform():(/iPhone|iPad|iPod|Macintosh/i.test(navigator.userAgent)?'ios':'android');
       el.style.display='block';
       el.addEventListener('click',function(e){
         if(e.target && e.target.id==='store-ticker-close') return;
