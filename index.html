@@ -21398,6 +21398,11 @@ function toggleTeamChallengeRankingDropdown(teamId){
   _renderTeamChallengeModal();
   var _sc2=document.getElementById('tc-ranking-scroll');
   if(_sc2) _sc2.scrollTop=_scTop;
+  // Liste des participants affichée EN DESSOUS de la team (dans le flux, plus en
+  // absolu : pour la dernière team du classement elle sortait du conteneur à
+  // scroll et n'était pas visible -- bug signalé 2026-09-29, team Squirrels).
+  var _dd=document.getElementById('tc-open-dd');
+  if(_dd && _dd.scrollIntoView) _dd.scrollIntoView({block:'nearest'});
 }
 
 // Format court "sam. 26 - dim. 27 sept." à partir des dates réelles de
@@ -21767,7 +21772,7 @@ function _renderTeamChallengeModal(){
       // composant visuel que #rtw-menu/.rtw-item (le menu des onglets en
       // haut à gauche) : boîte sombre, liseré violet, ombre, lignes plates.
       var dropdownHtml=!isOpen?'':(
-        '<div style="position:absolute;top:100%;left:0;right:0;z-index:50;background:#080e1e;border:1px solid rgba(144,96,240,.4);border-radius:10px;box-shadow:0 8px 30px rgba(0,0,0,.5);overflow:hidden;margin-top:6px">'
+        '<div id="tc-open-dd" style="background:#080e1e;border:1px solid rgba(144,96,240,.4);border-radius:10px;box-shadow:0 8px 30px rgba(0,0,0,.5);overflow:hidden;margin-top:6px">'
         +(o.rows.length?o.rows.map(function(r){
             var atCap=isFinite(capKm)&&r.raw>=capKm;
             var avHtml=r.avatar
@@ -23121,6 +23126,7 @@ var _CITY_CREST_OVERRIDES=[
   {match:/MELBOURNE/i, image:'ai-icons/challenge-crests/melbourne-v1.png', medal:true, ribbonColors:['#ffcf5c','#a15a00'], ribbonFlat:true, medalImgH:84},
   {match:/AMSTERDAM/i, image:'ai-icons/challenge-crests/amsterdam-v1.png', medal:true, ribbonColors:['#c15aff','#3d0a52'], ribbonFlat:true, medalImgH:84},
   {match:/WITTELSHEIM|SAINTE.BARBE/i, image:'ai-icons/challenge-crests/wittelsheim-v1.png', medal:true, ribbonColors:['#ffb02e','#a83200'], ribbonFlat:true, medalImgH:84},
+  {match:/PHILADELPHI[AE]/i, image:'ai-icons/challenge-crests/philadelphie-v5.png', medal:true, ribbonColors:['#a8e0ff','#2a86d1'], ribbonPts:'29,0 71,0 71.0,21.9 69.5,21.3 68.0,20.9 66.5,20.3 65.0,19.7 63.5,19.2 62.0,18.7 60.5,18.2 59.0,18.2 57.5,18.7 56.0,19.2 54.5,19.9 53.0,20.3 51.5,20.9 50.0,21.0 48.5,20.3 47.0,19.7 45.5,19.2 44.0,18.5 42.5,18.0 41.0,18.2 39.5,18.7 38.0,19.3 36.5,19.9 35.0,20.1 33.5,20.7 32.0,21.2 30.5,21.7 29.0,22.2', medalImgH:92},
   {match:/ARRAS/i, image:'ai-icons/challenge-crests/arras-v1.png', medal:true, ribbonColors:['#fbb92f','#002c7c'], ribbonFlat:true, medalImgH:92},
   {match:/PROSPECTEUR/i, image:'ai-icons/defi-icons/prospecteur-v1.png', hexBadge:true},
   {match:/^5K$/i, image:'ai-icons/defi-icons/run5k-v1.png', hexBadge:true},
@@ -23174,7 +23180,7 @@ var _CITY_CREST_OVERRIDES=[
 function _decorateBadgeWithCityCrest(b){
   if(!b || b.image) return b; // déjà décoré (ou pas de match nécessaire)
   var ov=_CITY_CREST_OVERRIDES.find(function(o){return o.match.test(b.name||'');});
-  if(ov){ b.image=ov.image; b.image_x=15; b.image_y=18; b.image_w=70; b.image_h=74; b.medal=!!ov.medal; b.ribbonColors=ov.ribbonColors; b.ribbonRise=ov.ribbonRise||0; b.ribbonLen=ov.ribbonLen; b.ribbonFlat=!!ov.ribbonFlat; b.medalImgY=ov.medalImgY; b.medalImgW=ov.medalImgW; b.medalImgH=ov.medalImgH; b.hexBadge=!!ov.hexBadge; b.glowAlpha=ov.glowAlpha; b.medalBackdrop=!!ov.medalBackdrop; }
+  if(ov){ b.image=ov.image; b.image_x=15; b.image_y=18; b.image_w=70; b.image_h=74; b.medal=!!ov.medal; b.ribbonColors=ov.ribbonColors; b.ribbonRise=ov.ribbonRise||0; b.ribbonLen=ov.ribbonLen; b.ribbonFlat=!!ov.ribbonFlat; b.medalImgY=ov.medalImgY; b.medalImgW=ov.medalImgW; b.medalImgH=ov.medalImgH; b.hexBadge=!!ov.hexBadge; b.glowAlpha=ov.glowAlpha; b.medalBackdrop=!!ov.medalBackdrop; b.ribbonPts=ov.ribbonPts; }
   return b;
 }
 
@@ -23481,7 +23487,10 @@ function _renderBadgeHex(b,isUnlocked){
       // l'encoche flotte au-dessus d'un bord plat au lieu de s'y encastrer
       // (le V n'a de sens que sur un blason qui a lui-même une vraie pointe,
       // cf. Cali/Touquet/Porto).
-      var ribPts=b.ribbonFlat
+      // b.ribbonPts (2026-09-29) : polygone du ruban calé sur le contour du haut du blason
+      // (bas du ruban en "M" qui épouse les 2 pointes, caché derrière le blason) --
+      // pour les blasons dont l'encoche est trop étroite pour ribbonFlat/ribbonLen.
+      var ribPts=b.ribbonPts ? b.ribbonPts : b.ribbonFlat
         ? (29)+','+(0-rr)+' '+71+','+(0-rr)+' '+71+','+(rl-rr)+' '+29+','+(rl-rr)
         : (29)+','+(0-rr)+' '+71+','+(0-rr)+' '+71+','+(29-rr)+' '+50+','+(21-rr)+' '+29+','+(29-rr);
       // Taille/position du blason réglables par médaille (2026-08-07) —
