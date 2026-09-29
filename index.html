@@ -23095,7 +23095,7 @@ var _CITY_CREST_OVERRIDES=[
   {match:/MONZA/i, image:'ai-icons/challenge-crests/monza-v1.png', medal:true, ribbonColors:['#ff6060','#7f0202'], ribbonFlat:true, medalImgH:84},
   {match:/MELBOURNE/i, image:'ai-icons/challenge-crests/melbourne-v1.png', medal:true, ribbonColors:['#ffcf5c','#a15a00'], ribbonFlat:true, medalImgH:84},
   {match:/AMSTERDAM/i, image:'ai-icons/challenge-crests/amsterdam-v1.png', medal:true, ribbonColors:['#c15aff','#3d0a52'], ribbonFlat:true, medalImgH:84},
-  {match:/WITTELSHEIM|SAINTE.BARBE/i, image:'ai-icons/challenge-crests/wittelsheim-v1.png', medal:true, ribbonColors:['#ffb02e','#a83200'], yearColor:'#ffe25c', ribbonFlat:true, medalImgH:84},
+  {match:/WITTELSHEIM|SAINTE.BARBE/i, image:'ai-icons/challenge-crests/wittelsheim-v1.png', medal:true, ribbonColors:['#ffb02e','#a83200'], ribbonFlat:true, medalImgH:84},
   {match:/ARRAS/i, image:'ai-icons/challenge-crests/arras-v1.png', medal:true, ribbonColors:['#fbb92f','#002c7c'], ribbonFlat:true, medalImgH:92},
   {match:/PROSPECTEUR/i, image:'ai-icons/defi-icons/prospecteur-v1.png', hexBadge:true},
   {match:/^5K$/i, image:'ai-icons/defi-icons/run5k-v1.png', hexBadge:true},
@@ -23149,7 +23149,7 @@ var _CITY_CREST_OVERRIDES=[
 function _decorateBadgeWithCityCrest(b){
   if(!b || b.image) return b; // déjà décoré (ou pas de match nécessaire)
   var ov=_CITY_CREST_OVERRIDES.find(function(o){return o.match.test(b.name||'');});
-  if(ov){ b.image=ov.image; b.image_x=15; b.image_y=18; b.image_w=70; b.image_h=74; b.medal=!!ov.medal; b.ribbonColors=ov.ribbonColors; b.ribbonRise=ov.ribbonRise||0; b.ribbonLen=ov.ribbonLen; b.ribbonFlat=!!ov.ribbonFlat; b.medalImgY=ov.medalImgY; b.medalImgW=ov.medalImgW; b.medalImgH=ov.medalImgH; b.hexBadge=!!ov.hexBadge; b.glowAlpha=ov.glowAlpha; b.medalBackdrop=!!ov.medalBackdrop; b.yearColor=ov.yearColor; }
+  if(ov){ b.image=ov.image; b.image_x=15; b.image_y=18; b.image_w=70; b.image_h=74; b.medal=!!ov.medal; b.ribbonColors=ov.ribbonColors; b.ribbonRise=ov.ribbonRise||0; b.ribbonLen=ov.ribbonLen; b.ribbonFlat=!!ov.ribbonFlat; b.medalImgY=ov.medalImgY; b.medalImgW=ov.medalImgW; b.medalImgH=ov.medalImgH; b.hexBadge=!!ov.hexBadge; b.glowAlpha=ov.glowAlpha; b.medalBackdrop=!!ov.medalBackdrop; }
   return b;
 }
 
@@ -23394,11 +23394,9 @@ function _renderBadgeHex(b,isUnlocked){
   var yearRect='';
   if(b.threshold_type==='event_run' && b.event_date){
     var year=b.event_date.slice(0,4);
-    // b.yearColor (2026-09-29) : couleur fixe du rectangle année, même avant d'avoir
-    // gagné la médaille (Wittelsheim : jaune clair voulu dès l'inscription).
-    var rectFill=b.yearColor||(isUnlocked?color:'#2a303c');
-    var rectStroke=b.yearColor?_mixHex(b.yearColor,0.25):(isUnlocked?_mixHex(color,0.25):'#4a5062');
-    var rectTextCol=(isUnlocked||b.yearColor)?'#000':'#9098a8';
+    var rectFill=isUnlocked?color:'#2a303c';
+    var rectStroke=isUnlocked?_mixHex(color,0.25):'#4a5062';
+    var rectTextCol=isUnlocked?'#000':'#9098a8';
     yearRect=''
       +'  <rect x="35" y="100" width="30" height="12" rx="2" fill="'+rectFill+'" stroke="'+rectStroke+'" stroke-width="0.6"/>'
       +'  <text x="50" y="109" text-anchor="middle" font-family="Bebas Neue,sans-serif" font-size="8.5" font-weight="900" letter-spacing="1.5" fill="'+rectTextCol+'">'+year+'</text>';
