@@ -21392,6 +21392,18 @@ function toggleTeamChallengeRankingDropdown(teamId){
 // Format court "sam. 26 - dim. 27 sept." à partir des dates réelles de
 // l'édition (2026-09-26, plus de texte codé en dur -- une édition future
 // peut tomber sur d'autres dates/mois).
+// Unité d'une édition (2026-09-29) : metric 'km' (défaut) ou 'time' -- pour 'time',
+// goal_km/cap_km/min_km_for_reward sont en MINUTES (cf COMMENT COLUMN en base) et
+// cap_km NULL = pas de plafond par RP. Affichage seulement : le calcul officiel
+// reste dans resolve_team_challenges() (MIROIR -- garder synchro).
+function _tcIsTime(ed){ return !!ed && ed.metric==='time'; }
+function _tcFmt(ed,v){
+  v=Number(v)||0;
+  if(!_tcIsTime(ed)) return (Number.isInteger(v)?v:v.toFixed(1))+' km';
+  var m=Math.round(v), h=Math.floor(m/60), mm=m%60;
+  return h+'h'+(mm<10?'0':'')+mm;
+}
+function _tcCap(ed){ return (ed && ed.cap_km!=null) ? Number(ed.cap_km) : Infinity; }
 function _formatTeamChallengeDates(startIso,endIso){
   var s=new Date(startIso), e=new Date(endIso.slice ? endIso : endIso);
   // endIso est le lendemain minuit (exclusif) -- le dernier jour affiché est la veille.
@@ -21433,7 +21445,7 @@ async function openTeamWeekendChallenge(){
   // explicite 2026-09-26 : "on les a déjà de toute façon, autant les
   // mettre" -- réutilisé au clic sur les tuiles sans requête supplémentaire.
   var {data:historyRows}=await supabaseClient.from('team_challenge_results')
-    .select('status,total_km,participants_count,resolved_at,team_challenge_editions(label,start_at,end_at,goal_km)')
+    .select('status,total_km,participants_count,resolved_at,team_challenge_editions(label,start_at,end_at,goal_km,metric)')
     .eq('team_id',teamId).order('resolved_at',{ascending:false});
   historyRows=historyRows||[];
   var successCount=historyRows.filter(function(r){return r.status==='success';}).length;
@@ -21441,7 +21453,7 @@ async function openTeamWeekendChallenge(){
 
   var allTeamsStats=[], capKm=0;
   if(edition){
-    capKm=edition.cap_km;
+    capKm=_tcCap(edition);
 
     // Inscrits À CETTE ÉDITION, toutes teams confondues (2026-09-25, demande
     // explicite : voir la progression des autres teams dans la même fenêtre)
@@ -21463,12 +21475,12 @@ async function openTeamWeekendChallenge(){
     var kmByPlayer={};
     if(allPlayerIds.length){
       var {data:runs}=await supabaseClient.from('runs')
-        .select('player_id,distance')
+        .select('player_id,distance,time')
         .in('player_id',allPlayerIds)
         .gte('run_date',edition.start_at)
         .lt('run_date',edition.end_at);
       (runs||[]).forEach(function(r){
-        kmByPlayer[r.player_id]=(kmByPlayer[r.player_id]||0)+(r.distance||0);
+        kmByPlayer[r.player_id]=(kmByPlayer[r.player_id]||0)+((_tcIsTime(edition)?r.time:r.distance)||0);
       });
     }
 
@@ -21641,7 +21653,7 @@ function _renderTeamChallengeModal(){
           +'<span style="color:var(--text);font-weight:700">'+(ed?ed.label:'Défi collectif')+'</span>'
           +'<span style="color:'+col+';font-weight:700">'+(ok?'✓ Réussi':'✗ Échec')+'</span>'
         +'</div>'
-        +'<div style="color:var(--muted2);font-family:Space Mono,monospace">'+dates+' · '+Number(r.total_km).toFixed(1)+'/'+(ed?ed.goal_km:'?')+' km · '+r.participants_count+' RP inscrits</div>'
+        +'<div style="color:var(--muted2);font-family:Space Mono,monospace">'+dates+' · '+(ed?_tcFmt(ed,r.total_km)+' / '+_tcFmt(ed,ed.goal_km):Number(r.total_km).toFixed(1)+' km')+' · '+r.participants_count+' RP inscrits</div>'
       +'</div>';
     }).join('');
   }
@@ -21700,16 +21712,18 @@ function _renderTeamChallengeModal(){
     +'</div>'
     +'<div style="padding:.6rem .75rem;border-radius:7px;background:rgba(144,96,240,.08);border:1px solid rgba(144,96,240,.25);font-size:.76rem;color:var(--muted2);line-height:1.75;margin-bottom:.7rem">'
       +'• Chaque RP de la Team peut participer.<br>'
-      +'• <b style="color:var(--text)">20% max</b> du total du défi / RP ('+capKm+' km).<br>'
+      +(edition.cap_km!=null
+        ? '• <b style="color:var(--text)">20% max</b> du total du défi / RP ('+_tcFmt(edition,capKm)+').<br>'
+        : '• <b style="color:var(--text)">Aucun plafond</b> par RP : tout ton temps compte, même 3 h à toi tout seul !<br>')
       +'• Récompense (<b style="color:var(--gold)">'+edition.reward_rpc+' RPC</b> + <b style="color:var(--green)">'+edition.reward_nyx+' NYX</b>).<br>'
-      +'• Faire au moins <b style="color:var(--text)">'+edition.min_km_for_reward+' km</b> individuels pour gagner la récompense si le défi est validé.<br>'
+      +'• Faire au moins <b style="color:var(--text)">'+(_tcIsTime(edition)?edition.min_km_for_reward+' min':edition.min_km_for_reward+' km')+'</b> individuels pour gagner la récompense si le défi est validé.<br>'
       +'• Minimum <b style="color:var(--text)">'+edition.min_participants+' RP</b> inscrits pour déclencher le défi.'
       // MIROIR de resolve_team_challenges() -- garder synchro, NE PAS diverger.
       // Bonus "meilleure équipe" (2026-09-26, demande explicite) : motive à
       // continuer de courir après avoir atteint goal_km plutôt que de s'arrêter
       // pile à l'objectif. Montant lu depuis l'édition, jamais codé en dur ici.
       +(edition.bonus_top_team_rpc>0
-        ? '<br>• Bonus : la team qui cumule le <b style="color:var(--text)">plus de km</b> du week-end gagne <b style="color:var(--gold)">+'+edition.bonus_top_team_rpc+' RPC</b> par RP en plus !'
+        ? '<br>• Bonus : la team qui cumule le <b style="color:var(--text)">plus '+(_tcIsTime(edition)?'de temps':'de km')+'</b> du week-end gagne <b style="color:var(--gold)">+'+edition.bonus_top_team_rpc+' RPC</b> par RP en plus !'
         : '')
     +'</div>');
 
@@ -21744,13 +21758,13 @@ function _renderTeamChallengeModal(){
       var dropdownHtml=!isOpen?'':(
         '<div style="position:absolute;top:100%;left:0;right:0;z-index:50;background:#080e1e;border:1px solid rgba(144,96,240,.4);border-radius:10px;box-shadow:0 8px 30px rgba(0,0,0,.5);overflow:hidden;margin-top:6px">'
         +(o.rows.length?o.rows.map(function(r){
-            var atCap=r.raw>=capKm;
+            var atCap=isFinite(capKm)&&r.raw>=capKm;
             var avHtml=r.avatar
               ?'<img src="'+escapeHtml(r.avatar)+'" style="width:24px;height:24px;border-radius:6px;object-fit:cover;flex-shrink:0">'
               :'<div style="width:24px;height:24px;border-radius:6px;background:rgba(144,96,240,.15);display:flex;align-items:center;justify-content:center;font-size:.6rem;font-weight:700;color:var(--muted2);flex-shrink:0">'+escapeHtml(r.name.charAt(0).toUpperCase())+'</div>';
             return '<div style="padding:.5rem 1rem;font-size:.78rem;display:flex;justify-content:space-between;align-items:center;gap:.5rem;border-bottom:1px solid rgba(255,255,255,.06)">'
               +'<span style="display:flex;align-items:center;gap:.45rem;min-width:0">'+avHtml+_teamChallengeNameHtml(r)+'</span>'
-              +'<span style="color:var(--muted2);font-family:Space Mono,monospace;flex-shrink:0">'+r.raw.toFixed(1)+' km<b style="color:'+(atCap?'var(--green)':'var(--text)')+';margin-left:.4rem">'+r.pct+'%</b></span>'
+              +'<span style="color:var(--muted2);font-family:Space Mono,monospace;flex-shrink:0">'+_tcFmt(edition,r.raw)+'<b style="color:'+(atCap?'var(--green)':'var(--text)')+';margin-left:.4rem">'+r.pct+'%</b></span>'
             +'</div>';
           }).join(''):'<div style="padding:.6rem 1rem;font-size:.75rem;color:var(--muted2);text-align:center">Personne inscrit pour l\'instant.</div>')
         +'</div>'
@@ -21768,7 +21782,7 @@ function _renderTeamChallengeModal(){
           +'<div style="width:100%;height:9px;border-radius:5px;background:rgba(255,255,255,.06);overflow:hidden">'
             +'<div style="height:100%;width:'+o.progressPct+'%;background:'+col+';opacity:.6"></div>'
           +'</div>'
-          +'<div style="text-align:right;margin-top:.25rem;font-size:.68rem;color:var(--muted2);font-family:Space Mono,monospace">'+o.totalCapped.toFixed(1)+' / '+edition.goal_km+' km</div>'
+          +'<div style="text-align:right;margin-top:.25rem;font-size:.68rem;color:var(--muted2);font-family:Space Mono,monospace">'+_tcFmt(edition,o.totalCapped)+' / '+_tcFmt(edition,edition.goal_km)+'</div>'
         +'</div>'
         +dropdownHtml
       +'</div>';
@@ -21781,18 +21795,18 @@ function _renderTeamChallengeModal(){
     // et couper le cadre biseauté violet.
     var rowsHtml='<div style="max-height:50vh;overflow-y:auto">'+(mine&&mine.rows.length?mine.rows.map(function(r){
       var isMe=r.pid===currentUser.id;
-      var atCap=r.raw>=capKm;
+      var atCap=isFinite(capKm)&&r.raw>=capKm;
       var borderColor=atCap?'var(--green)':(isMe?'var(--gold)':'var(--border)');
       var bg=atCap?'rgba(45,219,128,.08)':'rgba(255,255,255,.03)';
       return '<div style="display:flex;align-items:center;justify-content:space-between;gap:.5rem;padding:.4rem .55rem;border-radius:6px;border:1px solid '+borderColor+';background:'+bg+';margin-bottom:.3rem;font-size:.75rem">'
         +_teamChallengeNameHtml(r,isMe?'var(--gold)':'var(--text)')
-        +'<span style="color:var(--muted2);font-family:Space Mono,monospace;flex-shrink:0">'+r.raw.toFixed(1)+' km<b style="color:'+(atCap?'var(--green)':'var(--text)')+';margin-left:.4rem">'+r.pct+'%</b></span>'
+        +'<span style="color:var(--muted2);font-family:Space Mono,monospace;flex-shrink:0">'+_tcFmt(edition,r.raw)+'<b style="color:'+(atCap?'var(--green)':'var(--text)')+';margin-left:.4rem">'+r.pct+'%</b></span>'
         +'</div>';
     }).join(''):'<div style="text-align:center;color:var(--muted2);font-size:.78rem;padding:.5rem">Personne inscrit pour l\'instant.</div>')+'</div>';
 
     bodyHtml=(!edition?'':(''
       +'<div style="text-align:center;margin-bottom:.7rem">'
-        +'<div style="font-family:Space Mono,monospace;font-size:.8rem;color:var(--muted2);margin-bottom:.3rem">'+(mine?mine.totalCapped.toFixed(1):'0.0')+' / '+edition.goal_km+' km</div>'
+        +'<div style="font-family:Space Mono,monospace;font-size:.8rem;color:var(--muted2);margin-bottom:.3rem">'+_tcFmt(edition,mine?mine.totalCapped:0)+' / '+_tcFmt(edition,edition.goal_km)+'</div>'
         +'<div style="width:100%;height:14px;border-radius:7px;background:rgba(255,255,255,.06);overflow:hidden;border:1px solid var(--border)">'
           +'<div style="height:100%;width:'+(mine?mine.progressPct:0)+'%;background:'+((mine&&mine.team&&mine.team.color)||'var(--gold)')+';opacity:.6;transition:width .3s"></div>'
         +'</div>'
