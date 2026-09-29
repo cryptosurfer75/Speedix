@@ -21714,7 +21714,7 @@ function _renderTeamChallengeModal(){
       +'• Chaque RP de la Team peut participer.<br>'
       +(edition.cap_km!=null
         ? '• <b style="color:var(--text)">20% max</b> du total du défi / RP ('+_tcFmt(edition,capKm)+').<br>'
-        : '• <b style="color:var(--text)">Aucun plafond</b> par RP : tout ton temps compte, même 3 h à toi tout seul !<br>')
+        : '• <b style="color:var(--text)">Aucun plafond</b> par RP.<br>')
       +'• Récompense (<b style="color:var(--gold)">'+edition.reward_rpc+' RPC</b> + <b style="color:var(--green)">'+edition.reward_nyx+' NYX</b>).<br>'
       +'• Faire au moins <b style="color:var(--text)">'+(_tcIsTime(edition)?edition.min_km_for_reward+' min':edition.min_km_for_reward+' km')+'</b> individuels pour gagner la récompense si le défi est validé.<br>'
       +'• Minimum <b style="color:var(--text)">'+edition.min_participants+' RP</b> inscrits pour déclencher le défi.'
