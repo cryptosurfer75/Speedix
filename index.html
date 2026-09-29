@@ -3015,6 +3015,7 @@ select option{background:#040c1c}
           <div class="pc-tile-hint tl"><svg viewBox="0 0 22 22"><path d="M0,22 L0,9 L9,0 L22,0" fill="none" stroke="#ff9d1f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
           <div class="pc-tile-hint br"><svg viewBox="0 0 22 22"><path d="M0,22 L0,9 L9,0 L22,0" fill="none" stroke="#ff9d1f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
         </div>
+        <span id="team-challenge-blason-badge" style="display:none;position:absolute;top:-4px;left:-4px;width:14px;height:14px;border-radius:50%;background:#2ddb80;box-shadow:0 0 8px rgba(45,219,128,.7);border:2px solid #0a1432;animation:onlinePulse 1.6s infinite;pointer-events:none"></span>
         <span id="team-chat-badge" style="display:none;position:absolute;top:-4px;right:-4px;width:14px;height:14px;border-radius:50%;background:#2ddb80;box-shadow:0 0 8px rgba(45,219,128,.7);border:2px solid #0a1432;pointer-events:none"></span>
         </div>
         <!-- Réseau social — accès au feed de courses -->
@@ -4231,7 +4232,7 @@ select option{background:#040c1c}
            par défaut, allumée uniquement si édition active + jamais ouverte.
            SŒUR du div biseauté ci-dessus (pas enfant) pour ne pas être coupée
            par son clip-path. -->
-      <div id="team-challenge-tile-badge" style="display:none;position:absolute;top:-4px;right:-4px;width:14px;height:14px;border-radius:50%;background:#9060f0;box-shadow:0 0 8px rgba(144,96,240,.7);border:2px solid #0a1432;animation:onlinePulse 1.6s infinite;pointer-events:none"></div>
+      <div id="team-challenge-tile-badge" style="display:none;position:absolute;top:-4px;right:-4px;width:14px;height:14px;border-radius:50%;background:#2ddb80;box-shadow:0 0 8px rgba(45,219,128,.7);border:2px solid #0a1432;animation:onlinePulse 1.6s infinite;pointer-events:none"></div>
     </div>
   </div>
 
@@ -21331,9 +21332,16 @@ function _getTeamChallengeSeenIds(){
   try { var raw=localStorage.getItem(_teamChallengeSeenKey()); return raw?JSON.parse(raw):[]; }
   catch(e){ return []; }
 }
+// Deux pastilles vertes pour un même signal « nouvelle édition non vue » :
+// sur le blason de la team (Player Card) ET sur la tuile Défi collectif (page Teams).
+function _setTeamChallengePastilles(on){
+  _setBadgeBlink('team-challenge-tile-badge', on, '#2ddb80');
+  var b=document.getElementById('team-challenge-blason-badge');
+  if(b) b.style.display=on?'block':'none';
+}
 function _markTeamChallengeSeen(editionId){
   if(!editionId) return;
-  _setBadgeBlink('team-challenge-tile-badge', false);
+  _setTeamChallengePastilles(false);
   try {
     var set={}; _getTeamChallengeSeenIds().forEach(function(id){set[id]=true;});
     set[editionId]=true;
@@ -21349,9 +21357,12 @@ async function refreshTeamChallengeBadge(){
   try {
     var {data:edition}=await supabaseClient.from('team_challenge_editions')
       .select('id').gt('end_at',new Date().toISOString()).order('end_at',{ascending:true}).limit(1).maybeSingle();
-    if(!edition){ _setBadgeBlink('team-challenge-tile-badge', false); return; }
+    if(!edition){ _setTeamChallengePastilles(false); return; }
+    // Sans team on ne peut pas ouvrir le défi (donc jamais éteindre la pastille) -> pas de pastille.
+    var {data:mem}=await supabaseClient.from('team_members').select('team_id').eq('player_id',currentUser.id).maybeSingle();
+    if(!mem||!mem.team_id){ _setTeamChallengePastilles(false); return; }
     var seen={}; _getTeamChallengeSeenIds().forEach(function(id){seen[id]=true;});
-    _setBadgeBlink('team-challenge-tile-badge', !seen[edition.id], '#9060f0');
+    _setTeamChallengePastilles(!seen[edition.id]);
   } catch(e){}
 }
 
