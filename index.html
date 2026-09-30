@@ -2180,6 +2180,10 @@ body::after{
     fr:'📲 Télécharge SPEEDIX sur le store si tu ne l\'as pas encore fait pour continuer à profiter de l\'application. Fermeture prochaine de la version TestFlight et APK Google',
     en:'📲 Download SPEEDIX from the store if you haven\'t yet, to keep enjoying the app. The TestFlight and Google APK versions will close soon'
   };
+  var TEAM_MSGS={
+    fr:'🏆 Nouveau défi collectif → ce WE, cours 24h et + avec ta Team pour remporter le trophée',
+    en:'🏆 New team challenge → this weekend, run 24h and more with your Team to win the trophy'
+  };
   var URLS={
     ios:'https://apps.apple.com/app/speedix/id6763503175',
     android:'https://play.google.com/store/apps/details?id=com.speedixleague.runner'
@@ -2195,7 +2199,16 @@ body::after{
       var lang='fr'; try{ lang=localStorage.getItem('speedix_lang')||'fr'; }catch(e){}
       var msg=MSGS[lang]||MSGS.fr;
       var track=document.getElementById('store-ticker-track');
-      track.textContent=msg;
+      // 2 news séparées par un ✦ doré (2026-09-30) : store + défi collectif du week-end
+      // (la 2e disparaît d'elle-même à la fin de l'édition, dim 4 oct. 22:00 UTC).
+      var items=[{t:msg,act:'store'}];
+      if(Date.now()<Date.UTC(2026,9,4,22,0)) items.push({t:(TEAM_MSGS[lang]||TEAM_MSGS.fr),act:'team'});
+      track.textContent='';
+      items.forEach(function(it,i){
+        if(i>0){ var sep=document.createElement('span'); sep.textContent='✦'; sep.style.cssText='color:#f5c842;margin:0 2.2em'; track.appendChild(sep); }
+        var sp=document.createElement('span'); sp.textContent=it.t; sp.setAttribute('data-act',it.act); track.appendChild(sp);
+      });
+      msg=items.map(function(it){return it.t;}).join('  ✦  ');
       // Durée proportionnelle à la longueur (≈ 100 px/s) pour une lecture confortable.
       var dur=Math.max(8,Math.round((msg.length*8+window.innerWidth)/100));
       track.style.animation='storeTickerScroll '+dur+'s linear infinite';
@@ -2203,6 +2216,9 @@ body::after{
       el.style.display='block';
       el.addEventListener('click',function(e){
         if(e.target && e.target.id==='store-ticker-close') return;
+        // Un clic sur la news du défi collectif ouvre le défi ; sinon le store.
+        var teamNews=e.target && e.target.getAttribute && e.target.getAttribute('data-act')==='team';
+        if(teamNews && typeof openTeamWeekendChallenge==='function'){ openTeamWeekendChallenge(); return; }
         window.open(URLS[plat==='ios'?'ios':'android'],'_blank');
       });
       document.getElementById('store-ticker-close').addEventListener('click',function(e){
