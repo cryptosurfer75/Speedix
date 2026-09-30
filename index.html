@@ -2863,7 +2863,7 @@ select option{background:#040c1c}
         </div>
         <div class="pc-tile-hint tr"><svg viewBox="0 0 22 22"><path d="M0,22 L0,9 L9,0 L22,0" fill="none" stroke="#ff9d1f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
         <div class="pc-tile-hint bl"><svg viewBox="0 0 22 22"><path d="M0,22 L0,9 L9,0 L22,0" fill="none" stroke="#ff9d1f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-        <div id="pc-medal-or-count" style="position:absolute;bottom:-6px;right:-6px;min-width:22px;height:18px;padding:0 5px;border-radius:9px;background:#12141c;border:1.5px solid #ffd700;box-sizing:border-box;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:.68rem;color:#ffd700;display:flex;align-items:center;justify-content:center;line-height:1;pointer-events:none">× 0</div>
+        <div id="pc-medal-or-count" style="position:absolute;bottom:-8px;right:-15px;min-width:30px;height:23px;padding:0 7px;border-radius:12px;background:#12141c;border:2px solid #ffd700;box-shadow:0 0 8px #ffd70088;box-sizing:border-box;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:.9rem;color:#ffd700;display:flex;align-items:center;justify-content:center;line-height:1;pointer-events:none">× 0</div>
         </div>
 
         <div style="position:relative;width:100%">
@@ -2880,7 +2880,7 @@ select option{background:#040c1c}
         </div>
         <div class="pc-tile-hint tr"><svg viewBox="0 0 22 22"><path d="M0,22 L0,9 L9,0 L22,0" fill="none" stroke="#ff9d1f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
         <div class="pc-tile-hint bl"><svg viewBox="0 0 22 22"><path d="M0,22 L0,9 L9,0 L22,0" fill="none" stroke="#ff9d1f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-        <div id="pc-medal-ar-count" style="position:absolute;bottom:-6px;right:-6px;min-width:22px;height:18px;padding:0 5px;border-radius:9px;background:#12141c;border:1.5px solid #c0c0c0;box-sizing:border-box;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:.68rem;color:#c0c0c0;display:flex;align-items:center;justify-content:center;line-height:1;pointer-events:none">× 0</div>
+        <div id="pc-medal-ar-count" style="position:absolute;bottom:-8px;right:-15px;min-width:30px;height:23px;padding:0 7px;border-radius:12px;background:#12141c;border:2px solid #c0c0c0;box-shadow:0 0 8px #c0c0c088;box-sizing:border-box;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:.9rem;color:#c0c0c0;display:flex;align-items:center;justify-content:center;line-height:1;pointer-events:none">× 0</div>
         </div>
 
         <div style="position:relative;width:100%">
@@ -2897,7 +2897,7 @@ select option{background:#040c1c}
         </div>
         <div class="pc-tile-hint tr"><svg viewBox="0 0 22 22"><path d="M0,22 L0,9 L9,0 L22,0" fill="none" stroke="#ff9d1f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
         <div class="pc-tile-hint bl"><svg viewBox="0 0 22 22"><path d="M0,22 L0,9 L9,0 L22,0" fill="none" stroke="#ff9d1f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-        <div id="pc-medal-br-count" style="position:absolute;bottom:-6px;right:-6px;min-width:22px;height:18px;padding:0 5px;border-radius:9px;background:#12141c;border:1.5px solid #cd7f32;box-sizing:border-box;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:.68rem;color:#cd7f32;display:flex;align-items:center;justify-content:center;line-height:1;pointer-events:none">× 0</div>
+        <div id="pc-medal-br-count" style="position:absolute;bottom:-8px;right:-15px;min-width:30px;height:23px;padding:0 7px;border-radius:12px;background:#12141c;border:2px solid #cd7f32;box-shadow:0 0 8px #cd7f3288;box-sizing:border-box;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:.9rem;color:#cd7f32;display:flex;align-items:center;justify-content:center;line-height:1;pointer-events:none">× 0</div>
         </div>
 
       </div>
@@ -13511,7 +13511,8 @@ async function _processEndOfPeriodInner(){
         period:_periodData.period,
         rank:li+1,
         league_key:lk,
-        pts:lg[li].pts
+        pts:lg[li].pts,
+        nb_players:paidCompetitorsByLeague[lk]||null // nb de compétiteurs de la ligue à cette période (affiché « #3 / 46 » dans la fenêtre palmarès)
       });
     }
   }
@@ -23026,7 +23027,7 @@ async function loadPlayerMedals(){
   // Si on consulte un autre RP, charger SES médailles
   var _pmUid=(window.__viewedPlayer&&window.__viewedPlayer._uuid)||currentUser.id;
   var {data,error}=await supabaseClient
-    .from('palmares').select('rank,period,league_key,pts')
+    .from('palmares').select('rank,period,league_key,pts,nb_players')
     .eq('player_id',_pmUid)
     .is('team_id',null)
     .order('period',{ascending:false});
@@ -23049,7 +23050,7 @@ async function loadPlayerMedals(){
 // Charger les médailles d'une team
 async function loadTeamMedals(teamId){
   var {data,error}=await supabaseClient
-    .from('palmares').select('rank,period,league_key,pts')
+    .from('palmares').select('rank,period,league_key,pts,nb_players')
     .eq('team_id',teamId)
     .is('player_id',null)
     .order('period',{ascending:false});
@@ -26611,7 +26612,7 @@ function showPalmares(rank, type){
   type=type||'player';
   var data=(type==='team'?_cachedTeamPalmares:_cachedPlayerPalmares)||[];
   var filtered=data.filter(function(p){return p.rank===rank;});
-  var colors={1:['#ffd700','rgba(255,215,0,','<img src="ai-icons/medal-1-gold.png" style="width:20px;height:20px;object-fit:contain;vertical-align:middle"> 1ères places'],2:['#c0c0c0','rgba(192,192,192,','<img src="ai-icons/medal-2-silver.png" style="width:20px;height:20px;object-fit:contain;vertical-align:middle"> 2èmes places'],3:['#cd7f32','rgba(205,127,50,','<img src="ai-icons/medal-3-bronze.png" style="width:20px;height:20px;object-fit:contain;vertical-align:middle"> 3èmes places']};
+  var colors={1:['#ffd700','rgba(255,215,0,','<img src="ai-icons/medal-1-gold.png" style="width:46px;height:46px;object-fit:contain;vertical-align:middle;margin-right:.3rem;filter:drop-shadow(0 0 6px rgba(255,255,255,.25))"> 1ères places'],2:['#c0c0c0','rgba(192,192,192,','<img src="ai-icons/medal-2-silver.png" style="width:46px;height:46px;object-fit:contain;vertical-align:middle;margin-right:.3rem;filter:drop-shadow(0 0 6px rgba(255,255,255,.25))"> 2èmes places'],3:['#cd7f32','rgba(205,127,50,','<img src="ai-icons/medal-3-bronze.png" style="width:46px;height:46px;object-fit:contain;vertical-align:middle;margin-right:.3rem;filter:drop-shadow(0 0 6px rgba(255,255,255,.25))"> 3èmes places']};
   var c=colors[rank]||colors[1];
   var titleEl=document.getElementById('pal-title');
   var subEl=document.getElementById('pal-sub');
@@ -26624,9 +26625,10 @@ function showPalmares(rank, type){
   } else {
     listEl.innerHTML=filtered.map(function(p){
       var leagueName=LEAGUE_DISPLAY[p.league_key]||p.league_key||'—';
-      return '<div style="display:flex;align-items:center;gap:.65rem;padding:.45rem .7rem;background:'+c[1]+'.06);border:1px solid '+c[1]+'.18);border-radius:7px">'
-        +'<div style="font-family:Bebas Neue,sans-serif;font-size:1.1rem;color:'+c[0]+';width:28px;text-align:center;flex-shrink:0">'+rank+'</div>'
-        +'<div style="flex:1"><span style="font-size:.75rem;color:var(--muted2)">P'+p.period+' · </span><span style="font-family:Bebas Neue,sans-serif;font-size:.88rem;letter-spacing:1px;color:'+c[0]+'">'+leagueName+'</span></div>'
+      var _palLg=LEAGUES.find(function(l){return l.key===p.league_key;});
+      var _palLgColor=_palLg?_palLg.color:c[0];
+      return '<div style="display:flex;align-items:center;gap:.65rem;padding:.6rem .8rem;background:'+c[1]+'.06);border:1px solid '+c[1]+'.18);border-radius:7px">'
+        +'<div style="flex:1;font-family:Bebas Neue,sans-serif;font-size:1.1rem;letter-spacing:1px;display:flex;align-items:center;gap:1.1rem"><span style="color:'+c[0]+'">#'+rank+(p.nb_players?' / '+p.nb_players+' RP':'')+'</span><span style="color:var(--muted2)">—</span><span style="color:var(--muted2)">P'+p.period+'</span><span style="color:var(--muted2)">—</span><span style="color:'+_palLgColor+'">'+leagueName+'</span></div>'
         +'<span style="font-family:\'Rajdhani\',sans-serif;font-size:.88rem;font-weight:700;color:'+c[0]+'">'+(p.pts||0).toLocaleString(SPEEDIX_LANG)+' pts</span>'
       +'</div>';
     }).join('');
