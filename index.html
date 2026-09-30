@@ -730,6 +730,8 @@ body::after{
    CONNECTION STREAK
 ============================================================ */
 .streak-dots{display:flex;gap:.3rem;flex-wrap:wrap}
+@keyframes streakHeartbeat{0%,100%{transform:scale(1)}14%{transform:scale(1.25)}28%{transform:scale(1)}42%{transform:scale(1.18)}70%{transform:scale(1)}}
+.streak-heart-beat{display:inline-block;animation:streakHeartbeat 1.3s ease-in-out infinite}
 .streak-dot{
   width:24px;height:24px;border-radius:4px;
   display:flex;align-items:center;justify-content:center;
@@ -3346,8 +3348,8 @@ select option{background:#040c1c}
   </style>
   <div id="streak-banner" style="max-width:480px;margin:0 auto .85rem">
     <div id="streak-ring" style="background:linear-gradient(135deg,rgba(255,230,150,.85) 0%,rgba(245,200,66,.55) 50%,rgba(200,140,20,.85) 100%);box-shadow:0 0 12px rgba(245,200,66,.4);clip-path:polygon(10px 0,calc(100% - 10px) 0,100% 10px,100% calc(100% - 10px),calc(100% - 10px) 100%,10px 100%,0 calc(100% - 10px),0 10px);padding:1.5px">
-    <div id="streak-banner-inner" onclick="openModal('streak-info-modal')" data-i18n-title="dash.streak.title" title="Comment marche la chaîne ?" style="background:#0c0f1a;clip-path:polygon(9px 0,calc(100% - 9px) 0,100% 9px,100% calc(100% - 9px),calc(100% - 9px) 100%,9px 100%,0 calc(100% - 9px),0 9px);padding:.7rem .9rem;display:flex;align-items:center;gap:.7rem;cursor:pointer;transition:background .15s" onmouseover="this.style.background='#12161f'" onmouseout="this.style.background='#0c0f1a'">
-      <span id="streak-emoji" style="font-size:1.25rem;line-height:1">🔥</span>
+    <div id="streak-banner-inner" onclick="openStreakInfoOrPause()" data-i18n-title="dash.streak.title" title="Comment marche la chaîne ?" style="background:#0c0f1a;clip-path:polygon(9px 0,calc(100% - 9px) 0,100% 9px,100% calc(100% - 9px),calc(100% - 9px) 100%,9px 100%,0 calc(100% - 9px),0 9px);padding:.7rem .9rem;display:flex;align-items:center;gap:.7rem;cursor:pointer;transition:background .15s" onmouseover="this.style.background='#12161f'" onmouseout="this.style.background='#0c0f1a'">
+      <span id="streak-emoji" style="font-size:1.25rem;line-height:1">❤️</span>
       <div style="flex:1">
         <div style="display:flex;align-items:baseline;gap:.45rem;margin-bottom:.25rem">
           <span id="stat-streak" style="font-family:'Bebas Neue',sans-serif;font-size:.95rem;letter-spacing:1px;font-weight:700;color:#fff;text-transform:uppercase">—</span>
@@ -4777,10 +4779,24 @@ select option{background:#040c1c}
   </div>
 </div>
 
+<!-- Chaîne d'endurance EN PAUSE (2026-09-30) : explication + bouton pour inviter un ami.
+     Ouverte auto à la 1re réouverture après la casse, puis via le bandeau de la Player Card. -->
+<div class="modal" id="streak-pause-modal">
+  <div class="modal-box" style="max-width:440px;border-color:rgba(255,176,96,.6)">
+    <button class="modal-close" onclick="closeModal('streak-pause-modal')">✕</button>
+    <div style="text-align:center;font-size:2.4rem;margin-bottom:.3rem">💔</div>
+    <div data-i18n-html="streakpause.title.html" style="font-family:'Bebas Neue',sans-serif;font-size:1.4rem;letter-spacing:3px;text-align:center;margin-bottom:.4rem"></div>
+    <div style="text-align:center;font-size:.85rem;color:var(--text);margin-bottom:.9rem"><span id="streak-pause-count" style="font-family:'Space Mono',monospace;color:var(--gold)"></span> · <span id="streak-pause-days" style="font-family:'Space Mono',monospace;color:#ffb060"></span></div>
+    <div data-i18n-html="streakpause.what" style="font-size:.78rem;color:var(--muted2);line-height:1.7;background:rgba(255,176,96,.06);border:1px solid rgba(255,176,96,.25);border-radius:8px;padding:.7rem .85rem;margin-bottom:.85rem"></div>
+    <div data-i18n-html="streakpause.how" style="font-size:.78rem;color:var(--muted2);line-height:1.7;background:rgba(45,219,128,.05);border:1px solid rgba(45,219,128,.25);border-radius:8px;padding:.7rem .85rem;margin-bottom:1rem"></div>
+    <button data-i18n="streakpause.btn" onclick="closeModal('streak-pause-modal');showParrainageInfo()" style="width:100%;padding:.55rem;border-radius:8px;border:1.5px solid var(--green);background:rgba(45,219,128,.12);color:var(--green);font-family:'Bebas Neue',sans-serif;font-size:1.05rem;letter-spacing:2px;cursor:pointer"></button>
+  </div>
+</div>
+
 <div class="modal" id="streak-info-modal">
   <div class="modal-box" style="max-width:440px;border-color:rgba(144,96,240,.6)">
     <button class="modal-close" onclick="closeModal('streak-info-modal')">✕</button>
-    <div style="text-align:center;font-size:2.2rem;margin-bottom:.3rem">🔥</div>
+    <div style="text-align:center;font-size:2.2rem;margin-bottom:.3rem">❤️</div>
     <div data-i18n-html="streak.title.html" style="font-family:'Bebas Neue',sans-serif;font-size:1.4rem;letter-spacing:3px;text-align:center;margin-bottom:.85rem"><span style="color:#ffffff">CHAÎNE</span> <span style="color:var(--gold)">DE CONNEXION</span></div>
     <div data-i18n-html="streak.intro" style="font-size:.85rem;color:var(--text);line-height:1.7;margin-bottom:1rem;text-align:center">
       <strong style="color:var(--gold)">Connecte-toi chaque jour</strong> à SPEEDIX pour faire grimper ta chaîne et empocher tes récompenses RPC.
@@ -4795,9 +4811,6 @@ select option{background:#040c1c}
       Ta chaîne se casse et redémarre avec une récompense réduite :<br>
       <span style="color:var(--text)">80 → 60 → 40 → 20 → 0 RPC</span> après chaque nouvel arrêt.<br>
       Au 5ᵉ raté, la chaîne est définitivement terminée 💔
-    </div>
-    <div data-i18n="streak.tip" style="font-size:.72rem;color:var(--muted2);line-height:1.6;text-align:center;font-style:italic">
-      Astuce : termine une course dans la journée, ça compte aussi 🏃
     </div>
   </div>
 </div>
@@ -5348,8 +5361,7 @@ function askConfirm(message, opts){
 <!-- Modal Streak Bonus -->
 <div class="modal" id="streak-modal">
   <div class="modal-box" style="max-width:380px;text-align:center;padding:2rem 1.5rem">
-    <button class="modal-close" onclick="closeModal('streak-modal')">✕</button>
-    <div id="streak-modal-emoji" style="font-size:3.5rem;margin-bottom:.5rem;animation:blasonPop .5s cubic-bezier(.22,.68,0,1.2) both">🔥</div>
+    <div id="streak-modal-emoji" style="font-size:3.5rem;margin-bottom:.5rem;animation:blasonPop .5s cubic-bezier(.22,.68,0,1.2) both">❤️</div>
     <div id="streak-modal-title" style="font-family:'Bebas Neue',sans-serif;font-size:1.8rem;letter-spacing:3px;color:var(--gold);margin-bottom:.25rem">Félicitations !</div>
     <div id="streak-modal-sub" style="font-size:.85rem;color:var(--text);margin-bottom:.75rem">1 jour de connexion</div>
     <div id="streak-modal-reward" style="font-family:'Space Mono',monospace;font-size:1.4rem;color:var(--gold);font-weight:700;margin-bottom:.5rem;text-shadow:0 0 12px rgba(245,200,66,.4)">+300 RPC</div>
@@ -6512,7 +6524,7 @@ const I18N = {
     'dash.stat.rank'            : 'Ranking actuel',
     'dash.stat.wallet.rpc'      : 'Cagnotte RPC',
     'dash.stat.wallet.nyx'      : 'Cagnotte NYX',
-    'dash.streak.title'         : 'Comment marche la chaîne ?',
+    'dash.streak.title'         : 'Comment marche la chaîne d\'endurance ?',
     'dash.boost.status'         : '+10% · 24h',
     'dash.gel.status'           : '-5% · 24h',
     'dash.btn.buy'              : '+ Acheter',
@@ -6520,10 +6532,10 @@ const I18N = {
     'dash.streak.singular'      : '{n} jour consécutif',
     'dash.streak.plural'        : '{n} jours consécutifs',
     // — Carte joueur / dashboard (bas) : série, boost, gel, challenges
-    'pcard.streak.dead'         : 'Chaîne définitivement terminée 💔',
-    'pcard.streak.info.early'   : 'Jours 1-7 : <strong style="color:var(--gold)">300 RPC/jour</strong> · Ensuite : 100 RPC/jour',
+    'pcard.streak.paused'         : 'Ta chaîne d\'endurance est en pause',
+    'pcard.streak.info.early'   : '<strong style="color:var(--gold)">300 RPC/jour</strong> · Tes 7 premiers jours, puis 100 RPC/jour',
     'pcard.streak.info.active'  : '<strong style="color:var(--gold)">100 RPC/jour</strong> · Chaîne active depuis {n} jours',
-    'pcard.streak.info.warn'    : '<span style="color:var(--orange)">⚠️ {n} arrêt{s}</span> · <strong style="color:var(--gold)">{r} RPC/jour</strong>',
+    'pcard.streak.paused.info'    : '<span style="color:var(--orange)">{d} jour{s} restant{s}</span> · Invite un ami pour la réactiver',
     'pcard.boost.active'        : 'Boost actif : <strong style="color:var(--green)">+10%</strong> · {t} restant · {n} en réserve',
     'pcard.boost.avail'         : '{n} boost{s} disponible{s} · Clique pour activer',
     'pcard.boost.none'          : 'Aucun boost en réserve · <span style="cursor:pointer;color:var(--green);text-decoration:underline" onclick="openModal(\'boost-shop-modal\')">Acheter</span>',
@@ -6925,11 +6937,14 @@ const I18N = {
     'wallet.balance'            : 'Solde actuel (après dépenses)',
     'wallet.error'              : 'Erreur chargement',
     // — Modal Streak info
-    'streak.title.html'         : '<span style="color:#ffffff">CHAÎNE</span> <span style="color:var(--gold)">DE CONNEXION</span>',
-    'streak.intro'              : '<strong style="color:var(--gold)">Connecte-toi chaque jour</strong> à SPEEDIX pour faire grimper ta chaîne et empocher tes récompenses RPC.',
-    'streak.rewards'            : '<strong style="color:var(--gold)">📈 Récompenses</strong><br>• Jours 1 à 7 : <strong style="color:var(--gold)">+300 RPC / jour</strong><br>• Jour 8 et + : <strong style="color:var(--gold)">+100 RPC / jour</strong>',
-    'streak.miss'               : '<strong style="color:#ff8080">⚠️ Si tu rates un jour</strong><br>Ta chaîne se casse et redémarre avec une récompense réduite :<br><span style="color:var(--text)">80 → 60 → 40 → 20 → 0 RPC</span> après chaque nouvel arrêt.<br>Au 5ᵉ raté, la chaîne est définitivement terminée 💔',
-    'streak.tip'                : 'Astuce : termine une course dans la journée, ça compte aussi 🏃',
+    'streak.title.html'         : '<span style="color:#ffffff">CHAÎNE</span> <span style="color:var(--gold)">D\'ENDURANCE</span>',
+    'streak.intro'              : '<strong style="color:var(--gold)">Connecte-toi chaque jour</strong> à SPEEDIX pour faire grimper ta chaîne d\'endurance ❤️ et empocher tes récompenses RPC.',
+    'streak.rewards'            : '<strong style="color:var(--gold)">📈 Récompenses</strong><br>• Tes 7 premiers jours après l\'inscription : <strong style="color:var(--gold)">+300 RPC / jour</strong><br>• Ensuite : <strong style="color:var(--gold)">+100 RPC / jour</strong>',
+    'streak.miss'               : '<strong style="color:#ffb060">⏸️ Si tu rates un jour</strong><br>Ta chaîne se met <strong>en pause</strong> pendant 12 jours : ton compteur est figé et tu ne gagnes rien.<br>Invite un ami à rejoindre SPEEDIX : dès sa première course, ta chaîne est <strong>réactivée</strong> et reprend là où elle s\'était arrêtée.<br>Sans aide au bout de 12 jours, elle repart de zéro.',
+    'streakpause.title.html'                : '<span style="color:#ffffff">CHAÎNE</span> <span style="color:#ffb060">EN PAUSE</span>',
+    'streakpause.what'                : '<strong style="color:#ffb060">⏸️ Que se passe-t-il ?</strong><br>Tu as raté un jour de connexion : ton compteur est figé et tu ne gagnes plus de RPC. Sans aide, ta chaîne repart de zéro à la fin du décompte.',
+    'streakpause.how'                : '<strong style="color:var(--green)">🤝 Comment la réactiver ?</strong><br>Invite un ami avec ton code de parrainage. Dès qu\'il s\'inscrit <strong>et</strong> fait sa première course, ta chaîne reprend là où elle s\'était arrêtée.',
+    'streakpause.btn'                : 'INVITER UN AMI',
     // — Modal Rent validation
     'rent.title'                : '🏠 Loyer mensuel',
     'rent.sub'                  : 'Prélèvement entre le 5 et le 10 — valide pour continuer à louer tes Lands',
@@ -7275,7 +7290,7 @@ const I18N = {
     'dash.stat.rank'            : 'Current ranking',
     'dash.stat.wallet.rpc'      : 'RPC wallet',
     'dash.stat.wallet.nyx'      : 'NYX wallet',
-    'dash.streak.title'         : 'How does the streak work?',
+    'dash.streak.title'         : 'How does the endurance chain work?',
     'dash.boost.status'         : '+10% · 24h',
     'dash.gel.status'           : '-5% · 24h',
     'dash.btn.buy'              : '+ Buy',
@@ -7283,10 +7298,10 @@ const I18N = {
     'dash.streak.singular'      : '{n} day in a row',
     'dash.streak.plural'        : '{n} days in a row',
     // — Player card / dashboard (bottom): streak, boost, freeze, challenges
-    'pcard.streak.dead'         : 'Streak permanently over 💔',
-    'pcard.streak.info.early'   : 'Days 1-7: <strong style="color:var(--gold)">300 RPC/day</strong> · Then: 100 RPC/day',
-    'pcard.streak.info.active'  : '<strong style="color:var(--gold)">100 RPC/day</strong> · Streak active for {n} days',
-    'pcard.streak.info.warn'    : '<span style="color:var(--orange)">⚠️ {n} stop{s}</span> · <strong style="color:var(--gold)">{r} RPC/day</strong>',
+    'pcard.streak.paused'         : 'Your endurance chain is paused',
+    'pcard.streak.info.early'   : '<strong style="color:var(--gold)">300 RPC/day</strong> · Your first 7 days, then 100 RPC/day',
+    'pcard.streak.info.active'  : '<strong style="color:var(--gold)">100 RPC/day</strong> · Chain active for {n} days',
+    'pcard.streak.paused.info'    : '<span style="color:var(--orange)">{d} day{s} left</span> · Invite a friend to reactivate it',
     'pcard.boost.active'        : 'Boost active: <strong style="color:var(--green)">+10%</strong> · {t} left · {n} in stock',
     'pcard.boost.avail'         : '{n} boost{s} available · Tap to activate',
     'pcard.boost.none'          : 'No boost in stock · <span style="cursor:pointer;color:var(--green);text-decoration:underline" onclick="openModal(\'boost-shop-modal\')">Buy</span>',
@@ -7688,11 +7703,14 @@ const I18N = {
     'wallet.balance'            : 'Current balance (after spending)',
     'wallet.error'              : 'Loading error',
     // — Streak info modal
-    'streak.title.html'         : '<span style="color:#ffffff">LOGIN</span> <span style="color:var(--gold)">STREAK</span>',
-    'streak.intro'              : '<strong style="color:var(--gold)">Log in every day</strong> on SPEEDIX to grow your streak and collect your RPC rewards.',
-    'streak.rewards'            : '<strong style="color:var(--gold)">📈 Rewards</strong><br>• Days 1 to 7: <strong style="color:var(--gold)">+300 RPC / day</strong><br>• Day 8 and beyond: <strong style="color:var(--gold)">+100 RPC / day</strong>',
-    'streak.miss'               : '<strong style="color:#ff8080">⚠️ If you miss a day</strong><br>Your streak breaks and restarts with a reduced reward:<br><span style="color:var(--text)">80 → 60 → 40 → 20 → 0 RPC</span> after each new miss.<br>On the 5th miss, the streak is permanently lost 💔',
-    'streak.tip'                : 'Tip: finishing a run during the day also counts 🏃',
+    'streak.title.html'         : '<span style="color:#ffffff">ENDURANCE</span> <span style="color:var(--gold)">CHAIN</span>',
+    'streak.intro'              : '<strong style="color:var(--gold)">Log in every day</strong> on SPEEDIX to grow your endurance chain ❤️ and collect your RPC rewards.',
+    'streak.rewards'            : '<strong style="color:var(--gold)">📈 Rewards</strong><br>• Your first 7 days after signing up: <strong style="color:var(--gold)">+300 RPC / day</strong><br>• Then: <strong style="color:var(--gold)">+100 RPC / day</strong>',
+    'streak.miss'               : '<strong style="color:#ffb060">⏸️ If you miss a day</strong><br>Your chain is <strong>paused</strong> for 12 days: your counter is frozen and you earn nothing.<br>Invite a friend to join SPEEDIX: as soon as they complete their first run, your chain is <strong>reactivated</strong> and picks up where it left off.<br>With no help after 12 days, it restarts from zero.',
+    'streakpause.title.html'                : '<span style="color:#ffffff">CHAIN</span> <span style="color:#ffb060">PAUSED</span>',
+    'streakpause.what'                : '<strong style="color:#ffb060">⏸️ What happened?</strong><br>You missed a login day: your counter is frozen and you earn no RPC. With no help, your chain restarts from zero when the countdown ends.',
+    'streakpause.how'                : '<strong style="color:var(--green)">🤝 How to reactivate it?</strong><br>Invite a friend with your referral code. As soon as they sign up <strong>and</strong> complete their first run, your chain picks up where it left off.',
+    'streakpause.btn'                : 'INVITE A FRIEND',
     // — Rent validation modal
     'rent.title'                : '🏠 Monthly rent',
     'rent.sub'                  : 'Charged between the 5th and 10th — confirm to keep renting your Lands',
@@ -10788,11 +10806,11 @@ function renderDashboard(){
     if(isOwn && currentUser){
       // Charger mon streak
       (async function(){
-        var {data:sp}=await supabaseClient.from('players').select('streak_count,streak_phase').eq('id',currentUser.id).single();
+        var {data:sp}=await supabaseClient.from('players').select('streak_count,streak_paused_at').eq('id',currentUser.id).single();
         if(sp){
           var sc=sp.streak_count||0;
           set('stat-streak', (sc>1?t('dash.streak.plural'):t('dash.streak.singular')).replace('{n}',sc));
-          updateStreakDisplay(sc, sp.streak_phase!=null?sp.streak_phase:0);
+          updateStreakDisplay(sc, _streakDaysLeft(sp.streak_paused_at));
         }
       })();
     } else if(!isOwn) {
@@ -10800,11 +10818,11 @@ function renderDashboard(){
       (async function(){
         var uuid=p._uuid||null;
         if(!uuid) return;
-        var {data:sp}=await supabaseClient.from('players').select('streak_count,streak_phase').eq('id',uuid).single();
+        var {data:sp}=await supabaseClient.from('players').select('streak_count,streak_paused_at').eq('id',uuid).single();
         if(sp){
           var sc=sp.streak_count||0;
           set('stat-streak', (sc>1?t('dash.streak.plural'):t('dash.streak.singular')).replace('{n}',sc));
-          updateStreakDisplay(sc, sp.streak_phase!=null?sp.streak_phase:0);
+          updateStreakDisplay(sc, _streakDaysLeft(sp.streak_paused_at));
         }
       })();
     }
@@ -19504,29 +19522,19 @@ async function checkReferralSameTeam(){
 // ══════════════════════════════════════════════════════════════════════
 //  STREAK — Bonus de connexion continu
 // ══════════════════════════════════════════════════════════════════════
-// phase = nombre d'arrêts accumulés (0 = jamais cassé, 5 = chaîne morte).
-// Barème :
-//   phase 0 → 300 RPC (j1-7) puis 100 RPC (jour 8+)
-//   phase 1 → 80 RPC
-//   phase 2 → 60 RPC
-//   phase 3 → 40 RPC
-//   phase 4 → 20 RPC
-//   phase 5 → 0 (chaîne définitivement morte)
-function getStreakReward(phase, count){
-  if(phase>=5) return 0;
-  if(phase===0) return count<=7 ? 300 : 100;
-  // phases 1..4 → 80, 60, 40, 20 (décroissance régulière de 20)
-  return 100 - phase*20;
-}
+// Chaîne d'endurance (refonte 2026-09-30, ex "chaîne de connexion").
+// SOURCE UNIQUE = RPC base claim_daily_streak() (+ cron process_streak_pauses, réactivation
+// reactivate_streak appelée par apply_referral_milestones) -- l'app n'y calcule plus rien :
+// elle affiche le résultat. Règles :
+//   • +1 par jour de connexion ; 300 RPC/jour les 7 premiers jours après l'INSCRIPTION, 100 ensuite.
+//   • Jour raté -> chaîne EN PAUSE 12 jours (compteur figé, aucun gain). Un filleul qui s'inscrit
+//     et fait 1 course pendant la pause la RÉACTIVE (le compteur reprend). Sinon, après 12 jours,
+//     la chaîne repart de zéro automatiquement.
+// Vocabulaire : « chaîne d'endurance », symbole ❤️, « réactiver » (jamais « réanimer »).
+var STREAK_PAUSE_DAYS=12;
 
-function getStreakMessage(phase, count, reward){
+function getStreakMessage(count, reward){
   var _en=(SPEEDIX_LANG==='en');
-  if(phase>=5) return {emoji:'💔',
-    title:_en?'Streak over':'Chaîne terminée',
-    sub:_en?'You\'ve run out of chances':'Tu as épuisé tes chances',
-    reward:'',
-    info:_en?'You\'ve accumulated 5 misses — your login streak is permanently over.':'Tu as accumulé 5 arrêts — la chaîne de connexion est définitivement terminée.'};
-  var emoji=count<=3?'🔥':count<=7?'🔥🔥':count<=14?'🔥🔥🔥':'⚡';
   var milestones=_en
     ?{7:'🎯 1 full week!',14:'💪 2 weeks!',30:'🏆 1 month straight!',50:'👑 50 days!',100:'🌟 100 legendary days!'}
     :{7:'🎯 1 semaine complète !',14:'💪 2 semaines !',30:'🏆 1 mois de suite !',50:'👑 50 jours !',100:'🌟 100 jours légendaire !'};
@@ -19534,27 +19542,14 @@ function getStreakMessage(phase, count, reward){
   var title=_en
     ?(count===1?'First login!':'Day '+count+'!')
     :(count===1?'Première connexion !':'Jour '+count+' !');
-  var sub;
-  if(_en){
-    sub=phase===0
-      ? count+' consecutive day'+(count>1?'s':'')
-      : 'After '+phase+' miss'+(phase>1?'es':'')+' · '+count+' consecutive day'+(count>1?'s':'');
-  } else {
-    sub=phase===0
-      ? count+' jour'+(count>1?'s':'')+' consécutif'+(count>1?'s':'')
-      : 'Après '+phase+' arrêt'+(phase>1?'s':'')+' · '+count+' jour'+(count>1?'s':'')+' consécutif'+(count>1?'s':'');
-  }
-  var info;
-  if(phase===0){
-    if(_en) info=count<=7?'Days 1-7: 300 RPC/day · Then: 100 RPC/day':'100 RPC/day · Keep the streak going!';
-    else    info=count<=7?'Jours 1-7 : 300 RPC/jour · Ensuite : 100 RPC/jour':'100 RPC/jour · Continue la série !';
-  } else {
-    var next=Math.max(0,getStreakReward(phase+1,1));
-    if(_en) info='⚠️ '+reward+' RPC/day · Another miss will drop you to '+next+' RPC/day'+(phase>=4?' (end of streak)':'');
-    else    info='⚠️ '+reward+' RPC/jour · Un nouvel arrêt te fera passer à '+next+' RPC/jour'+(phase>=4?' (fin de série)':'');
-  }
+  var sub=_en
+    ? count+' consecutive day'+(count>1?'s':'')
+    : count+' jour'+(count>1?'s':'')+' consécutif'+(count>1?'s':'');
+  var info=reward>=300
+    ? (_en?'Your first 7 days: 300 RPC/day · Then: 100 RPC/day':'Tes 7 premiers jours : 300 RPC/jour · Ensuite : 100 RPC/jour')
+    : (_en?'100 RPC/day · Keep your endurance chain going!':'100 RPC/jour · Continue ta chaîne d\'endurance !');
   if(bonus) info=bonus+'<br>'+info;
-  return {emoji:emoji,title:title,sub:sub,reward:'+'+reward+' RPC',info:info};
+  return {emoji:'❤️',title:title,sub:sub,reward:'+'+reward+' RPC',info:info};
 }
 
 // Distance en jours entre 2 dates ISO "YYYY-MM-DD"
@@ -19563,108 +19558,72 @@ function _daysBetweenISO(d1,d2){
   return Math.round((b-a)/86400000);
 }
 
+// Jours restants de pause à partir de players.streak_paused_at (1er jour raté), ou null si active.
+// MIROIR de claim_daily_streak() (v_pause_days = 12) -- affichage seulement.
+function _streakDaysLeft(pausedAt){
+  if(!pausedAt) return null;
+  var left=STREAK_PAUSE_DAYS-_daysBetweenISO(pausedAt,getParisTodayStr());
+  return left>0?left:0;
+}
+
+// Bandeau de la Player Card : en pause -> fenêtre « pause » (avec le compte à rebours), sinon l'info générale.
+var _streakState={count:0,daysLeft:null};
+function openStreakInfoOrPause(){
+  if(_streakState.daysLeft!=null) openStreakPauseModal(_streakState.count,_streakState.daysLeft);
+  else openModal('streak-info-modal');
+}
+// Fenêtre d'explication « chaîne en pause » (ouverte automatiquement à la 1re réouverture
+// après la casse -- avec ou sans notification --, puis via le bandeau de la Player Card).
+function openStreakPauseModal(count,daysLeft){
+  var _en=(SPEEDIX_LANG==='en');
+  var set=function(id,v){var e=document.getElementById(id); if(e) e.innerHTML=v;};
+  set('streak-pause-count', count+(_en?(count>1?' days':' day'):(count>1?' jours':' jour')));
+  set('streak-pause-days', daysLeft+(_en?(daysLeft>1?' days left':' day left'):(daysLeft>1?' jours restants':' jour restant')));
+  openModal('streak-pause-modal');
+}
+
 async function checkAndClaimStreak(){
   if(!currentUser) return;
-  // Charger les données streak du joueur
-  var {data:player,error}=await supabaseClient
-    .from('players').select('streak_count,streak_last_date,streak_phase,streak_misses')
-    .eq('id',currentUser.id).single();
-  if(error||!player) return;
+  var {data:res,error}=await supabaseClient.rpc('claim_daily_streak');
+  if(error||!res) return; // on retentera à la prochaine ouverture de l'app
+  var count=res.count||0;
 
-  var today=getParisTodayStr();
-  var lastDate=player.streak_last_date;
-  var count=player.streak_count||0;
-  // phase = nombre d'arrêts accumulés (0 = jamais cassé, 5 = chaîne morte)
-  var phase=player.streak_phase!=null?player.streak_phase:0;
-  var misses=Array.isArray(player.streak_misses)?player.streak_misses:[];
-
-  // Déjà réclamé aujourd'hui ?
-  if(lastDate===today){
-    updateStreakDisplay(count,phase,misses);
-    return;
-  }
-
-  // Chaîne morte (5 arrêts ou plus)
-  if(phase>=5){
-    updateStreakDisplay(0,phase,misses);
-    return;
-  }
-
-  // Vérifier si hier
-  var yesterdayStr=getParisYesterdayStr();
-
-  var newCount, newPhase, newMisses;
-  if(lastDate===yesterdayStr || !lastDate){
-    // Continuation de la série (ou première connexion)
-    newCount=count+1;
-    newPhase=phase;
-    newMisses=misses;
-  } else {
-    // Série brisée : compteur "jours consécutifs" repart à 1 (aujourd'hui = J1 de la nouvelle série)
-    newCount=1;
-    newPhase=phase+1;
-    newMisses=[]; // historique effacé à chaque reset
-    if(newPhase>=5){
-      newCount=0;
+  if(res.status==='paused'){
+    var left=res.days_left!=null?res.days_left:_streakDaysLeft(res.paused_at);
+    updateStreakDisplay(count,left);
+    // Fenêtre d'explication une seule fois par pause (clé = date du 1er jour raté)
+    var _k='streak_pause_seen_'+currentUser.id;
+    var _seen=null; try{ _seen=localStorage.getItem(_k); }catch(e){}
+    if(_seen!==String(res.paused_at)){
+      try{ localStorage.setItem(_k,String(res.paused_at)); }catch(e){}
+      _enqueueCelebration(function(){ openStreakPauseModal(count,left); });
     }
+    return;
+  }
+  if(res.status==='already'){
+    updateStreakDisplay(count,null);
+    return;
   }
 
-  var reward=getStreakReward(newPhase, newCount);
+  var reward=res.reward||0;
+  updateStreakDisplay(count,null,reward);
+  if(reward>0 && typeof walletLoad==='function') walletLoad(); // resynchronise l'affichage du solde (le crédit est fait en base)
 
-  // Mettre à jour en DB (XHR direct pour RLS). Un simple aléa réseau au lancement
-  // de l'app (PWA en 4G/5G instable) faisait échouer ce PATCH en silence : la
-  // récompense du jour était quand même affichée/créditée, mais streak_last_date
-  // ne bougeait pas → le lendemain, l'appli croyait que ce jour n'avait jamais eu
-  // lieu et cassait la chaîne à tort. On vérifie donc la réussite du PATCH (avec
-  // une 2e tentative) et on ne crédite/affiche rien tant qu'il n'a pas abouti.
-  var patchOk=false;
-  for(var _try=0;_try<2 && !patchOk;_try++){
-    try{
-      var _patchResp=await window.fetch(supabaseUrl+'/rest/v1/players?id=eq.'+encodeURIComponent(currentUser.id),{
-        method:'PATCH',
-        headers:{'apikey':supabaseKey,'Authorization':'Bearer '+(window.__sessionToken||supabaseKey),'Content-Type':'application/json'},
-        body:JSON.stringify({streak_count:newCount,streak_last_date:today,streak_phase:newPhase,streak_misses:newMisses})
-      });
-      patchOk=_patchResp&&_patchResp.ok;
-    }catch(e){patchOk=false;}
-    if(!patchOk && _try===0) await new Promise(function(r){setTimeout(r,1200);});
-  }
-  if(!patchOk) return; // on retentera à la prochaine ouverture de l'app
-
-  // Créditer les RPC via wallet
-  if(reward>0){
-    await walletCredit(reward, 0, 'Chaîne jour '+newCount);
-  }
-
-  // Mettre à jour l'affichage inline (bandeau streak sur la Player Card) tout
-  // de suite, indépendamment de la popup — c'est l'affichage du modal qui est
-  // mis en file (cf _enqueueCelebration), pas le crédit ni ce compteur.
-  updateStreakDisplay(newCount, newPhase, newMisses);
-
-  // Afficher le modal — mis en file d'attente partagée avec les autres popups
-  // automatiques du login (badge, grade, défis, Tour...) pour ne jamais
-  // s'empiler/s'écraser entre elles (cf _enqueueCelebration).
   _enqueueCelebration(function(){
-    var msg=getStreakMessage(newPhase, newCount, reward);
+    var msg=getStreakMessage(count, reward);
     document.getElementById('streak-modal-emoji').textContent=msg.emoji;
     document.getElementById('streak-modal-title').textContent=msg.title;
     document.getElementById('streak-modal-sub').textContent=msg.sub;
     document.getElementById('streak-modal-reward').textContent=msg.reward;
     document.getElementById('streak-modal-reward').style.color=reward>0?'var(--gold)':'var(--red)';
     document.getElementById('streak-modal-info').innerHTML=msg.info;
-    // Relancer l'animation
     var emojiEl=document.getElementById('streak-modal-emoji');
     emojiEl.style.animation='none';emojiEl.offsetHeight;
     emojiEl.style.animation='blasonPop .5s cubic-bezier(.22,.68,0,1.2) both';
 
-    // Première connexion (newCount=1 ET newPhase=0 = jamais cassé) → streak
-    // directement, puis bascule sur la Player Card et tuto contextuel des 6 boutons.
-    // [2026-05-23] Onboarding 2 slides + welcome-bonus modale retirés du parcours :
-    // trop de fenêtres en cascade. La condition originale newPhase===1 était fausse :
-    // un compte tout neuf a phase=0 (jamais cassé), donc l'onboarding ne se lançait
-    // jamais. Corrigé pour viser vraiment la 1ère connexion d'un nouveau RP.
+    // Toute première connexion du compte -> Player Card + tuto contextuel des 6 boutons.
     var streakBtn=document.getElementById('streak-modal-btn');
-    if(newCount===1 && newPhase===0){
+    if(res.first){
       streakBtn.onclick=function(){
         closeModal('streak-modal');
         setTimeout(function(){
@@ -19677,11 +19636,10 @@ async function checkAndClaimStreak(){
           }, 600);
         }, 250);
       };
-      openModal('streak-modal');
     } else {
       streakBtn.onclick=function(){closeModal('streak-modal');};
-      openModal('streak-modal');
     }
+    openModal('streak-modal');
   });
 }
 
@@ -19700,90 +19658,65 @@ document.addEventListener('visibilitychange', function(){
   }
 });
 
-function updateStreakDisplay(count, phase, misses){
-  misses=Array.isArray(misses)?misses:[];
-  var missesSet={};
-  misses.forEach(function(m){missesSet[m]=true;});
-
+// daysLeft : null = chaîne active ; nombre = chaîne EN PAUSE (jours restants avant remise à zéro).
+// reward (optionnel) : 300 = 7 premiers jours après l'inscription (texte dédié).
+function updateStreakDisplay(count, daysLeft, reward){
+  _streakState={count:count,daysLeft:daysLeft};
   var statEl=document.getElementById('stat-streak');
   var emojiEl=document.getElementById('streak-emoji');
   var dotsEl=document.getElementById('streak-dots');
   var infoEl=document.getElementById('streak-inline-info');
+  var ringEl=document.getElementById('streak-ring');
+  var paused=(daysLeft!=null);
 
-  // ── Cas spécial : chaîne définitivement morte (5 arrêts atteints) ──
-  // Le bandeau bascule en mode "deuil" : emoji 💔, texte rouge, plus de dots.
-  if(phase>=5){
-    if(emojiEl) emojiEl.textContent='💔';
-    if(statEl){
-      statEl.textContent=t('pcard.streak.dead');
-      statEl.style.color='#ff6060';
-      statEl.style.fontFamily="'Bebas Neue',sans-serif";
-      statEl.style.fontSize='.95rem';
-      statEl.style.letterSpacing='1px';
-    }
-    if(dotsEl){dotsEl.innerHTML='';dotsEl.style.display='none';}
-    if(infoEl){infoEl.innerHTML='';infoEl.style.display='none';}
-    var ringEl0=document.getElementById('streak-ring');
-    if(ringEl0){
-      ringEl0.style.background='rgba(255,96,96,.55)';
-      ringEl0.style.boxShadow='0 0 12px rgba(255,96,96,.3)';
-    }
-    return;
+  if(emojiEl){
+    emojiEl.textContent=paused?'💔':'❤️';
+    emojiEl.classList.toggle('streak-heart-beat',!paused); // le cœur bat tant que la chaîne est active
   }
-
-  // ── Cas normal : on restore les styles si on revenait du mode "morte" ──
-  if(emojiEl) emojiEl.textContent='🔥';
   if(statEl){
-    statEl.textContent=(count>1?t('dash.streak.plural'):t('dash.streak.singular')).replace('{n}',count);
+    statEl.textContent=paused
+      ? t('pcard.streak.paused')
+      : (count>1?t('dash.streak.plural'):t('dash.streak.singular')).replace('{n}',count);
     statEl.style.color='#fff';
     statEl.style.fontFamily="'Bebas Neue',sans-serif";
     statEl.style.fontSize='.95rem';
     statEl.style.letterSpacing='1px';
     statEl.style.textTransform='uppercase';
   }
-  if(dotsEl) dotsEl.style.display='';
-  if(infoEl) infoEl.style.display='';
-  var ringEl1=document.getElementById('streak-ring');
-  if(ringEl1){
-    ringEl1.style.background='rgba(200,210,225,.55)';
-    ringEl1.style.boxShadow='0 0 12px rgba(200,210,225,.3)';
+  if(ringEl){
+    ringEl.style.background='rgba(200,210,225,.55)';
+    ringEl.style.boxShadow='0 0 12px rgba(200,210,225,.3)';
   }
 
-  // Dots — défilement en packs (max 9 dots pour tenir sur 1 ligne mobile)
-  // J1-9 : grandit de 1 à 9 · J10+ : reset en packs de 7 jours (3→9 dots)
-  // Jours loupés affichés en croix rouge
-  if(dotsEl){
-    var html='';
-    var start;
-    if(count<=9){
-      start=1;
-    } else {
-      start=10+Math.floor((count-10)/7)*7-2;
+  // Pause : pas de pastilles de jours, juste le message et le compte à rebours
+  if(paused){
+    if(dotsEl){dotsEl.innerHTML='';dotsEl.style.display='none';}
+    if(infoEl){
+      infoEl.style.display='';
+      infoEl.innerHTML=t('pcard.streak.paused.info').replace('{d}',daysLeft).replace(/\{s\}/g,daysLeft>1?'s':'');
     }
+    return;
+  }
+
+  // Pastilles — défilement en packs (max 9 pour tenir sur 1 ligne mobile)
+  // J1-9 : grandit de 1 à 9 · J10+ : reset en packs de 7 jours (3→9 pastilles)
+  if(dotsEl){
+    dotsEl.style.display='';
+    var html='';
+    var start=(count<=9)?1:10+Math.floor((count-10)/7)*7-2;
     for(var i=start;i<=count;i++){
-      if(missesSet[i]){
-        html+='<div class="streak-dot" style="background:rgba(255,68,68,.15);border:1px solid rgba(255,68,68,.55);color:#ff6060;font-weight:900" title="Jour '+i+' loupé">✕</div>';
-      } else {
-        html+='<div class="streak-dot streak-done" title="Jour '+i+'">'+i+'</div>';
-      }
+      html+='<div class="streak-dot streak-done" title="Jour '+i+'">'+i+'</div>';
     }
     if(count>9) html='<div style="font-size:.55rem;color:var(--muted2);align-self:center;margin-right:.15rem">…</div>'+html;
     if(count===0) html='<div class="streak-dot streak-todo" title="Jour 1">1</div>';
     dotsEl.innerHTML=html;
   }
 
-  // Info inline dans le bandeau streak (phase>=5 traité plus haut en early-return)
   if(infoEl){
-    if(phase===0){
-      if(count<=7){
-        infoEl.innerHTML=t('pcard.streak.info.early');
-      } else {
-        infoEl.innerHTML=t('pcard.streak.info.active').replace('{n}',count);
-      }
-    } else {
-      var curReward=(typeof getStreakReward==='function')?getStreakReward(phase,count):0;
-      infoEl.innerHTML=t('pcard.streak.info.warn').replace('{n}',phase).replace(/\{s\}/g,phase>1?'s':'').replace('{r}',curReward);
-    }
+    infoEl.style.display='';
+    infoEl.innerHTML=(reward>=300)
+      ? t('pcard.streak.info.early')
+      : t('pcard.streak.info.active').replace('{n}',count);
   }
 }
 // ══════════════════════════════════════════════════════════════════════
