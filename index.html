@@ -4793,6 +4793,51 @@ select option{background:#040c1c}
   </div>
 </div>
 
+<!-- Demande d'avis NATIVE (2026-09-30) : fenêtre du système (étoiles + message, publiée
+     directement sur Google Play / App Store) via @capacitor-community/in-app-review.
+     Règles : AUCUNE récompense, pas de tri selon la note (interdits par Google/Apple), jamais
+     par-dessus une autre fenêtre. App native avec le plugin uniquement (sinon on ne fait rien).
+     Conditions : compte >= 7 jours et >= 3 courses ; 1 demande max / 90 jours ; 3 demandes max
+     au total (Apple plafonne de toute façon à 3 affichages / an ; Google limite aussi).
+     Test : ?reviewprompt=1 force l'appel (ignore les conditions) ; sans plugin, ne fait que loguer. -->
+<script>
+var SpeedixReview=(function(){
+  function get(k,d){try{var v=localStorage.getItem(k);return v==null?d:v}catch(e){return d}}
+  function set(k,v){try{localStorage.setItem(k,String(v))}catch(e){}}
+  function plugin(){
+    var c=window.Capacitor;
+    return (c&&typeof c.isNativePlatform==='function'&&c.isNativePlatform()&&c.Plugins&&c.Plugins.InAppReview)||null;
+  }
+  async function ask(){
+    var P=plugin();
+    if(!P){ console.log('[review] plugin natif absent : rien à afficher'); return; }
+    set('speedix_review_last',Date.now());
+    set('speedix_review_count',parseInt(get('speedix_review_count','0'),10)+1);
+    try{ await P.requestReview(); }catch(e){ console.warn('[review]',e); }
+  }
+  return {
+    // Appelée au login (onLoginSuccess). Ne fait rien si les conditions ne sont pas réunies.
+    maybeShow:async function(user){
+      try{
+        var force=/[?&]reviewprompt=1/.test(location.search);
+        if(!force){
+          if(!plugin()) return;
+          if(parseInt(get('speedix_review_count','0'),10)>=3) return;
+          if(Date.now()-parseInt(get('speedix_review_last','0'),10)<90*86400000) return;
+          if(!user||!user.created_at||Date.now()-new Date(user.created_at).getTime()<7*86400000) return;
+          var r=await supabaseClient.from('runs').select('id',{count:'exact',head:true}).eq('player_id',user.id);
+          if(!r||r.error||(r.count||0)<3) return;
+        }
+        setTimeout(function(){
+          if(document.querySelector('.modal.open')) return; // ne jamais couper une action en cours
+          ask();
+        },force?1500:10000);
+      }catch(e){console.warn('[review]',e);}
+    }
+  };
+})();
+</script>
+
 <div class="modal" id="streak-info-modal">
   <div class="modal-box" style="max-width:440px;border-color:rgba(144,96,240,.6)">
     <button class="modal-close" onclick="closeModal('streak-info-modal')">✕</button>
@@ -8893,6 +8938,8 @@ async function onLoginSuccess(user, isNew){
   if(window.Capacitor && typeof window.Capacitor.isNativePlatform==='function' && window.Capacitor.isNativePlatform() && window.Capacitor.Plugins && window.Capacitor.Plugins.PushNotifications){
     supabaseClient.from('players').update({new_build_seen_at:new Date().toISOString()}).eq('id',user.id).then(function(){},function(){});
   }
+  // Fenêtre « Tu aimes SPEEDIX ? » (avis store) : décide elle-même si elle s'affiche.
+  if(window.SpeedixReview) SpeedixReview.maybeShow(user);
 }
 
 async function checkExistingSession(){
@@ -12722,6 +12769,16 @@ function openStravaDeepLink(ev, nativeUrl, webUrl){
     var isMobile=/android|iphone|ipad|ipod/i.test(navigator.userAgent);
     if(isMobile){
       if(ev && ev.preventDefault) ev.preventDefault();
+      // Build stores (>= 2026-10) : plugin natif @capacitor/app-launcher = ouverture 100 % fiable
+      // de l'app Strava ; `completed:false` (app absente) ou erreur -> lien web. Sur les vieux
+      // builds / PWA le plugin n'existe pas : on garde la méthode iframe ci-dessous.
+      var _AL=window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.AppLauncher;
+      if(_AL&&typeof _AL.openUrl==='function'){
+        var _web=function(){ try{ window.open(webUrl,'_blank','noopener'); }catch(e){} };
+        try{ _AL.openUrl({url:nativeUrl}).then(function(r){ if(!r||r.completed===false) _web(); },_web); }
+        catch(e){ _web(); }
+        return false;
+      }
       var opened=false;
       var onHide=function(){ if(document.hidden) opened=true; };
       document.addEventListener('visibilitychange',onHide);
