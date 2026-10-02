@@ -12906,12 +12906,48 @@ function _fmtDur(sec){
   var pad=function(n){return n<10?'0'+n:''+n;};
   return h>0?(h+':'+pad(m)+':'+pad(x)):(m+':'+pad(x));
 }
+// Données de découpage : Strava = 1 ligne par km ; COROS / Intervals = 1 ligne par échantillon
+// (~1 s). Dans les deux cas distance (m) et moving_time (s) sont cumulables → on normalise
+// toujours via les cumuls (corrigé 2026-10-02 : les courses COROS/Intervals affichaient
+// « 0,00 km » × des centaines de lignes).
+function _runCum(r){
+  if(r._cum!==undefined) return r._cum;
+  var sp=r&&r.splits_metric, cd=[0], ct=[0];
+  if(Array.isArray(sp)){
+    sp.forEach(function(x){
+      if(x && isFinite(x.distance) && isFinite(x.moving_time) && x.moving_time>=0 && x.distance>=0){
+        cd.push(cd[cd.length-1]+x.distance/1000); ct.push(ct[ct.length-1]+x.moving_time);
+      }
+    });
+  }
+  r._cum=(cd.length>2 && cd[cd.length-1]>0.3 && ct[ct.length-1]>0)?{cd:cd,ct:ct}:null;
+  return r._cum;
+}
+function _cumTimeAt(c,d){
+  var cd=c.cd, ct=c.ct, n=cd.length-1;
+  if(d<=0) return 0; if(d>=cd[n]) return ct[n];
+  var lo=1, hi=n;
+  while(lo<hi){ var mid=(lo+hi)>>1; if(cd[mid]>=d) hi=mid; else lo=mid+1; }
+  var span=cd[lo]-cd[lo-1];
+  return span>0?ct[lo-1]+(d-cd[lo-1])/span*(ct[lo]-ct[lo-1]):ct[lo];
+}
+// Temps par km (le dernier peut être partiel) à partir des cumuls
+function _kmSplitsOf(r){
+  var c=_runCum(r); if(!c) return null;
+  var total=c.cd[c.cd.length-1], out=[], prevT=0, k=1;
+  while(k<=Math.floor(total+1e-9)){
+    var t=_cumTimeAt(c,k); out.push({km:1,time:t-prevT,full:true}); prevT=t; k++;
+  }
+  var rest=total-Math.floor(total+1e-9);
+  if(rest>=0.05){ var tt=c.ct[c.ct.length-1]; out.push({km:rest,time:tt-prevT,full:false}); }
+  return out.length>=2?out:null;
+}
 // Allures km par km (barres : plus la barre est longue, plus le km est rapide)
 function _runSplitsHtml(r){
-  var sp=r&&r.splits_metric;
-  if(!Array.isArray(sp)||sp.length<2) return '';
-  var rows=sp.filter(function(x){return x&&x.distance>0&&x.moving_time>0;}).map(function(x,i){
-    return {i:i+1, km:x.distance/1000, pace:x.moving_time/(x.distance/1000), full:x.distance>=900};
+  var ks=_kmSplitsOf(r);
+  if(!ks) return '';
+  var rows=ks.filter(function(x){return x.time>0;}).map(function(x,i){
+    return {i:i+1, km:x.km, pace:x.time/x.km, full:x.full};
   });
   if(rows.length<2) return '';
   var full=rows.filter(function(x){return x.full;});
@@ -12933,21 +12969,16 @@ function _runSplitsHtml(r){
   html+='<div style="font-size:.62rem;color:var(--muted);margin-top:.35rem">Meilleur km en vert · le plus lent en orange (min/km)</div></div>';
   return html;
 }
-// Meilleur temps sur une distance D (en km) à partir des splits km (fenêtre glissante, interpolation linéaire)
+// Meilleur temps sur une distance D (en km) : fenêtre glissante sur les cumuls (toutes sources)
 function _bestFromSplits(r,D){
-  var sp=r&&r.splits_metric;
-  if(!Array.isArray(sp)||!sp.length) return null;
-  var cd=[0], ct=[0];
-  sp.forEach(function(x){ if(x&&x.distance>0&&x.moving_time>0){ cd.push(cd[cd.length-1]+x.distance/1000); ct.push(ct[ct.length-1]+x.moving_time); } });
-  var total=cd[cd.length-1];
+  var c=_runCum(r); if(!c) return null;
+  var total=c.cd[c.cd.length-1];
   if(total<D-0.02) return null;
-  function at(d){
-    if(d<=0) return 0; if(d>=total) return ct[ct.length-1];
-    for(var i=1;i<cd.length;i++){ if(d<=cd[i]){ var f=(d-cd[i-1])/(cd[i]-cd[i-1]); return ct[i-1]+f*(ct[i]-ct[i-1]); } }
-    return ct[ct.length-1];
-  }
   var best=Infinity;
-  for(var st=0; st<=total-D+0.0001; st+=0.05){ var t=at(Math.min(st+D,total))-at(st); if(t>0&&t<best) best=t; }
+  for(var st=0; st<=total-D+0.0001; st+=0.02){
+    var t=_cumTimeAt(c,Math.min(st+D,total))-_cumTimeAt(c,st);
+    if(t>0&&t<best) best=t;
+  }
   return isFinite(best)?best:null;
 }
 var _RUN_RECORDS=[
