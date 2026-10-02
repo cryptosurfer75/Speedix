@@ -13004,6 +13004,16 @@ function _runRecords(runs){
     return {k:rec.k,d:rec.d,t:best,approx:approx,date:date};
   });
 }
+function _toggleRunStatsMenu(){
+  var m=document.getElementById('rs-month-menu'); if(!m) return;
+  var open=m.style.display!=='none';
+  m.style.display=open?'none':'block';
+  if(!open){
+    setTimeout(function(){
+      document.addEventListener('click',function _c(){ var mm=document.getElementById('rs-month-menu'); if(mm) mm.style.display='none'; document.removeEventListener('click',_c); });
+    },0);
+  }
+}
 function showRunStats(periodKey){
   if(window.__viewedPlayer) return;
   var runs=(typeof _allHistRuns!=='undefined'&&_allHistRuns)||[];
@@ -13034,12 +13044,29 @@ function showRunStats(periodKey){
   });
   var wk=Object.keys(weeks).map(function(k){return weeks[k];}).sort(function(a,b){return a.date-b.date;});
   var maxKm=Math.max.apply(null,wk.map(function(w){return w.km;}).concat([1]));
-  var chips=keys.map(function(k){
-    var on=k===periodKey;
-    return '<button onclick="showRunStats('+k+')" style="flex-shrink:0;padding:.3rem .65rem;border-radius:14px;background:#0c0f1a;border:1.5px solid '+(on?'#f5c842':'rgba(144,96,240,.5)')+';color:'+(on?'#f5c842':'#9a95ab')+';font-size:.68rem;font-weight:700;cursor:pointer;font-family:inherit">'+(function(n){return n.charAt(0).toUpperCase()+n.slice(1);})(monthName(k))+'</button>';
-  }).join('');
+  // Sélecteur de période : bouton « En cours » + menu déroulant (même composant visuel que le
+  // menu principal #rtw-menu / .rtw-item) listant les mois du plus récent au plus ancien.
+  var _cap=function(n){return n.charAt(0).toUpperCase()+n.slice(1);};
+  var _brd=function(on){return on?'#2ddb80':'rgba(144,96,240,.5)';};
+  var _txt=function(on){return on?'#2ddb80':'#9a95ab';};
+  var chips='';
+  if(keys.indexOf(0)>=0){
+    var _onCur=periodKey===0;
+    chips+='<button onclick="showRunStats(0)" style="flex:1;padding:.4rem .5rem;border-radius:14px;background:#0c0f1a;border:1.5px solid '+_brd(_onCur)+';color:'+_txt(_onCur)+';font-size:.7rem;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap">En cours</button>';
+  }
+  var pastKeys=keys.filter(function(k){return k!==0;});
+  if(pastKeys.length){
+    var _onPast=periodKey!==0;
+    chips+='<div style="position:relative;flex:1.6">'
+      +'<button onclick="event.stopPropagation();_toggleRunStatsMenu()" style="width:100%;display:flex;align-items:center;justify-content:space-between;gap:.4rem;padding:.4rem .75rem;border-radius:14px;background:#0c0f1a;border:1.5px solid '+_brd(_onPast)+';color:'+_txt(_onPast)+';font-size:.7rem;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap"><span>'+(_onPast?_cap(monthName(periodKey)):'Mois précédents')+'</span><span style="font-size:.6rem">▾</span></button>'
+      +'<div id="rs-month-menu" style="display:none;position:absolute;top:100%;left:0;right:0;margin-top:6px;background:#080e1e;border:1px solid rgba(144,96,240,.4);border-radius:10px;box-shadow:0 8px 30px rgba(0,0,0,.5);z-index:50;overflow-x:hidden;overflow-y:auto;max-height:230px">'
+      +pastKeys.map(function(k){
+          return '<div class="rtw-item" onclick="showRunStats('+k+')" style="'+(k===periodKey?'color:#2ddb80;font-weight:700':'')+'">'+_cap(monthName(k))+'</div>';
+        }).join('')
+      +'</div></div>';
+  }
   var tile=function(v,l,c){ return '<div style="flex:1;min-width:30%;background:#0c0f1a;border:1px solid rgba(144,96,240,.35);border-radius:8px;padding:.5rem .3rem;text-align:center"><div style="font-family:Space Mono,monospace;font-size:.95rem;font-weight:700;color:'+c+'">'+v+'</div><div style="font-size:.58rem;color:var(--muted2);letter-spacing:.5px;text-transform:uppercase;margin-top:.15rem">'+l+'</div></div>'; };
-  var html='<div style="display:flex;gap:.4rem;overflow-x:auto;padding-bottom:.4rem">'+chips+'</div>'
+  var html='<div style="display:flex;gap:.4rem;align-items:stretch">'+chips+'</div>'
     +'<div style="display:flex;flex-wrap:wrap;gap:.4rem;margin-top:.5rem">'
     +tile(pr.length,'Courses','#20d0e0')
     +tile(km.toFixed(1).replace('.',',')+' km','Distance','#2080e0')
