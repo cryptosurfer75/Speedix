@@ -12664,7 +12664,7 @@ async function renderHistory(page){
   // archivés en period >= 1).
   var {data:allRuns,error}=await supabaseClient
     .from('runs')
-    .select('id,distance,time,elevation,points,run_date,name,avg_hr,max_hr,calories,avg_cadence,strava_activity_id,had_boost,had_gel')
+    .select('id,distance,time,elevation,points,run_date,name,avg_hr,max_hr,calories,avg_cadence,strava_activity_id,had_boost,had_gel,period,splits_metric')
     .eq('player_id',_targetUuid)
     .order('run_date',{ascending:false});
   _allHistRuns=allRuns||[];
@@ -12806,6 +12806,7 @@ function openStravaClub(ev, clubId){
 function showRunDetails(runId){
   var r=window._historyRuns&&window._historyRuns[runId];
   if(!r) return;
+  window._lastRunDetailsId=runId;
   var km=r.distance||0;
   var timeMin=r.time||0;
   var spd=timeMin>0?Math.round(km/(timeMin/60)*10)/10:0;
@@ -12866,6 +12867,8 @@ function showRunDetails(runId){
     +row('🥶','Gel',hadGel?'-5% appliqué':'—',hadGel?'#4ac8ff':'var(--muted2)')
     +row('🏆','Points',pts.toLocaleString(SPEEDIX_LANG),'#f5c842')
     +'</div>'
+    +(window.__viewedPlayer?'':_runSplitsHtml(r))
+    +(window.__viewedPlayer?'':'<button onclick="showRunStats()" style="display:flex;align-items:center;justify-content:center;gap:.45rem;width:100%;margin-top:.9rem;padding:.55rem;border-radius:8px;background:#0c0f1a;border:1.5px solid #9060f0;color:#c8a8ff;font-size:.78rem;font-weight:700;letter-spacing:.5px;cursor:pointer;font-family:inherit">📊 Mes statistiques par période</button>')
     +(r.strava_activity_id
       // onclick : sur mobile, tente l'app Strava native (session connectée) ; le href https
       // reste le repli universel (desktop/PWA, ou app non installée). Voir openStravaActivity.
@@ -12878,6 +12881,173 @@ function showRunDetails(runId){
   // Coins biseautés (2026-08-05, demande explicite) : même technique que le
   // détail d'un badge (_applyBadgeModalFrame). Contour blanc (pas doré,
   // corrigé 2026-08-05) — c'était la couleur du contour avant ce chantier.
+  _applyBadgeModalFrame('#fff');
+  openModal('land-modal');
+}
+
+
+// ══════════════════════════════════════════════════════════════════════
+//  STATISTIQUES DE COURSE (2026-10-02) — allures km par km (fenêtre « Détails de la
+//  course ») + bouton « Mes statistiques par période » (volume/semaine, allure et FC
+//  moyennes, records). Affichage UNIQUEMENT : tout vient des colonnes déjà importées
+//  (runs.splits_metric, avg_hr, time, distance, period) — aucune règle métier ici.
+//  Réservé à SES propres courses (pas sur la fiche d'un autre RP).
+// ══════════════════════════════════════════════════════════════════════
+function _fmtPace(secPerKm){
+  if(!(secPerKm>0)||!isFinite(secPerKm)) return '—';
+  var m=Math.floor(secPerKm/60), s=Math.round(secPerKm-m*60);
+  if(s===60){m++;s=0;}
+  return m+':'+(s<10?'0':'')+s;
+}
+function _fmtDur(sec){
+  if(!(sec>0)||!isFinite(sec)) return '—';
+  sec=Math.round(sec);
+  var h=Math.floor(sec/3600), m=Math.floor((sec-h*3600)/60), x=sec-h*3600-m*60;
+  var pad=function(n){return n<10?'0'+n:''+n;};
+  return h>0?(h+':'+pad(m)+':'+pad(x)):(m+':'+pad(x));
+}
+// Allures km par km (barres : plus la barre est longue, plus le km est rapide)
+function _runSplitsHtml(r){
+  var sp=r&&r.splits_metric;
+  if(!Array.isArray(sp)||sp.length<2) return '';
+  var rows=sp.filter(function(x){return x&&x.distance>0&&x.moving_time>0;}).map(function(x,i){
+    return {i:i+1, km:x.distance/1000, pace:x.moving_time/(x.distance/1000), full:x.distance>=900};
+  });
+  if(rows.length<2) return '';
+  var full=rows.filter(function(x){return x.full;});
+  var base=full.length?full:rows;
+  var fast=Math.min.apply(null,base.map(function(x){return x.pace;}));
+  var slow=Math.max.apply(null,base.map(function(x){return x.pace;}));
+  var span=Math.max(slow-fast,1);
+  var html='<div style="margin-top:1rem;padding-top:.7rem;border-top:1px solid rgba(144,96,240,.35)">'
+    +'<div style="font-family:Bebas Neue,sans-serif;font-size:1rem;letter-spacing:2px;color:#c8a8ff;margin-bottom:.45rem">⚡ Allures km par km</div>';
+  rows.forEach(function(x){
+    var w=x.full?(35+65*(1-(x.pace-fast)/span)):30;
+    var isBest=x.full&&x.pace===fast, isWorst=x.full&&x.pace===slow&&full.length>2;
+    var col=isBest?'#2ddb80':(isWorst?'#ff8040':'#20d0e0');
+    html+='<div style="display:flex;align-items:center;gap:.5rem;padding:.18rem 0">'
+      +'<span style="width:44px;font-size:.68rem;color:var(--muted2);flex-shrink:0">'+(x.full?'km '+x.i:(x.km.toFixed(2)+' km').replace('.',','))+'</span>'
+      +'<div style="flex:1;height:10px;background:rgba(255,255,255,.05);border-radius:5px;overflow:hidden"><div style="width:'+w.toFixed(0)+'%;height:100%;background:'+col+';border-radius:5px"></div></div>'
+      +'<span style="width:44px;text-align:right;font-family:Space Mono,monospace;font-size:.74rem;font-weight:700;color:'+col+';flex-shrink:0">'+_fmtPace(x.pace)+'</span></div>';
+  });
+  html+='<div style="font-size:.62rem;color:var(--muted);margin-top:.35rem">Meilleur km en vert · le plus lent en orange (min/km)</div></div>';
+  return html;
+}
+// Meilleur temps sur une distance D (en km) à partir des splits km (fenêtre glissante, interpolation linéaire)
+function _bestFromSplits(r,D){
+  var sp=r&&r.splits_metric;
+  if(!Array.isArray(sp)||!sp.length) return null;
+  var cd=[0], ct=[0];
+  sp.forEach(function(x){ if(x&&x.distance>0&&x.moving_time>0){ cd.push(cd[cd.length-1]+x.distance/1000); ct.push(ct[ct.length-1]+x.moving_time); } });
+  var total=cd[cd.length-1];
+  if(total<D-0.02) return null;
+  function at(d){
+    if(d<=0) return 0; if(d>=total) return ct[ct.length-1];
+    for(var i=1;i<cd.length;i++){ if(d<=cd[i]){ var f=(d-cd[i-1])/(cd[i]-cd[i-1]); return ct[i-1]+f*(ct[i]-ct[i-1]); } }
+    return ct[ct.length-1];
+  }
+  var best=Infinity;
+  for(var st=0; st<=total-D+0.0001; st+=0.05){ var t=at(Math.min(st+D,total))-at(st); if(t>0&&t<best) best=t; }
+  return isFinite(best)?best:null;
+}
+var _RUN_RECORDS=[
+  {k:'1 km',d:1,est:false},{k:'1 mile',d:1.609,est:false},{k:'5 km',d:5,est:true},
+  {k:'10 km',d:10,est:true},{k:'Semi-marathon',d:21.0975,est:true},{k:'Marathon',d:42.195,est:true}
+];
+function _runRecords(runs){
+  return _RUN_RECORDS.map(function(rec){
+    var best=null, approx=false, date=null;
+    runs.forEach(function(r){
+      var t=_bestFromSplits(r,rec.d);
+      if(t!=null && (best==null||t<best)){ best=t; approx=false; date=r.run_date; }
+    });
+    if(rec.est){
+      runs.forEach(function(r){
+        var km=r.distance||0, min=r.time||0;
+        if(km>=rec.d && km<=rec.d*2.2 && min>0){
+          var t=min*60*rec.d/km;
+          if(best==null||t<best){ best=t; approx=true; date=r.run_date; }
+        }
+      });
+    }
+    return {k:rec.k,d:rec.d,t:best,approx:approx,date:date};
+  });
+}
+function showRunStats(periodKey){
+  if(window.__viewedPlayer) return;
+  var runs=(typeof _allHistRuns!=='undefined'&&_allHistRuns)||[];
+  if(!runs.length) return;
+  // périodes présentes (0 = en cours)
+  var keys=[]; runs.forEach(function(r){ var k=r.period||0; if(keys.indexOf(k)<0) keys.push(k); });
+  keys.sort(function(a,b){ if(a===0) return -1; if(b===0) return 1; return b-a; });
+  if(periodKey==null||keys.indexOf(periodKey)<0) periodKey=keys[0];
+  var monthName=function(k){
+    var rs=runs.filter(function(r){return (r.period||0)===k;});
+    if(k===0) return t_stat_inprogress();
+    var d=rs.length?new Date(rs[0].run_date):null;
+    return d?d.toLocaleDateString(SPEEDIX_LANG,{month:'long',year:'numeric'}):('Période '+k);
+  };
+  function t_stat_inprogress(){ return 'En cours'; }
+  var pr=runs.filter(function(r){return (r.period||0)===periodKey;});
+  var km=0,min=0,elv=0,hrW=0,hrT=0;
+  pr.forEach(function(r){ km+=r.distance||0; min+=r.time||0; elv+=r.elevation||0; if(r.avg_hr&&r.time){ hrW+=r.avg_hr*r.time; hrT+=r.time; } });
+  var pace=km>0?(min*60)/km:0;
+  var hr=hrT>0?Math.round(hrW/hrT):null;
+  // volume par semaine (lundi → dimanche)
+  var weeks={};
+  pr.forEach(function(r){
+    var d=new Date(r.run_date); var dow=(d.getDay()+6)%7; var mon=new Date(d.getFullYear(),d.getMonth(),d.getDate()-dow);
+    var key=mon.getFullYear()+'-'+(mon.getMonth()+1)+'-'+mon.getDate();
+    if(!weeks[key]) weeks[key]={date:mon,km:0,n:0};
+    weeks[key].km+=r.distance||0; weeks[key].n++;
+  });
+  var wk=Object.keys(weeks).map(function(k){return weeks[k];}).sort(function(a,b){return a.date-b.date;});
+  var maxKm=Math.max.apply(null,wk.map(function(w){return w.km;}).concat([1]));
+  var chips=keys.map(function(k){
+    var on=k===periodKey;
+    return '<button onclick="showRunStats('+k+')" style="flex-shrink:0;padding:.3rem .65rem;border-radius:14px;background:#0c0f1a;border:1.5px solid '+(on?'#f5c842':'rgba(144,96,240,.5)')+';color:'+(on?'#f5c842':'#9a95ab')+';font-size:.68rem;font-weight:700;cursor:pointer;font-family:inherit">'+(function(n){return n.charAt(0).toUpperCase()+n.slice(1);})(monthName(k))+'</button>';
+  }).join('');
+  var tile=function(v,l,c){ return '<div style="flex:1;min-width:30%;background:#0c0f1a;border:1px solid rgba(144,96,240,.35);border-radius:8px;padding:.5rem .3rem;text-align:center"><div style="font-family:Space Mono,monospace;font-size:.95rem;font-weight:700;color:'+c+'">'+v+'</div><div style="font-size:.58rem;color:var(--muted2);letter-spacing:.5px;text-transform:uppercase;margin-top:.15rem">'+l+'</div></div>'; };
+  var html='<div style="display:flex;gap:.4rem;overflow-x:auto;padding-bottom:.4rem">'+chips+'</div>'
+    +'<div style="display:flex;flex-wrap:wrap;gap:.4rem;margin-top:.5rem">'
+    +tile(pr.length,'Courses','#20d0e0')
+    +tile(km.toFixed(1).replace('.',',')+' km','Distance','#2080e0')
+    +tile(_fmtPace(pace)+' /km','Allure moy.','var(--text)')
+    +tile(hr?hr+' bpm':'—','FC moyenne','#ff6060')
+    +tile(elv>0?Math.round(elv).toLocaleString(SPEEDIX_LANG)+' m':'—','Dénivelé','#ff8040')
+    +tile(_fmtDur(min*60),'Temps','#2ddb80')
+    +'</div>'
+    +'<div style="margin-top:.9rem"><div style="font-family:Bebas Neue,sans-serif;font-size:1rem;letter-spacing:2px;color:#c8a8ff;margin-bottom:.4rem">📈 Volume par semaine</div>'
+    +(wk.length?wk.map(function(w){
+        var lbl=w.date.toLocaleDateString(SPEEDIX_LANG,{day:'numeric',month:'short'});
+        return '<div style="display:flex;align-items:center;gap:.5rem;padding:.16rem 0"><span style="width:52px;font-size:.66rem;color:var(--muted2);flex-shrink:0">'+lbl+'</span>'
+          +'<div style="flex:1;height:10px;background:rgba(255,255,255,.05);border-radius:5px;overflow:hidden"><div style="width:'+Math.max(4,Math.round(w.km/maxKm*100))+'%;height:100%;background:#2080e0;border-radius:5px"></div></div>'
+          +'<span style="width:62px;text-align:right;font-family:Space Mono,monospace;font-size:.72rem;font-weight:700;color:#20d0e0;flex-shrink:0">'+w.km.toFixed(1).replace('.',',')+' km</span></div>';
+      }).join(''):'<div style="font-size:.74rem;color:var(--muted2)">Aucune course sur cette période.</div>')
+    +'</div>';
+  // records (toutes périodes confondues)
+  var recs=_runRecords(runs);
+  html+='<div style="margin-top:1rem;padding-top:.7rem;border-top:1px solid rgba(144,96,240,.35)"><div style="font-family:Bebas Neue,sans-serif;font-size:1rem;letter-spacing:2px;color:#c8a8ff;margin-bottom:.4rem">🏅 Mes records</div>';
+  // Tableau en colonnes alignées : Distance | Chrono | Allure | Date
+  var _recGrid='display:grid;grid-template-columns:1.25fr 1.15fr .85fr .7fr;align-items:center;column-gap:.4rem';
+  html+='<div style="'+_recGrid+';padding:.25rem 0;border-bottom:1px solid rgba(144,96,240,.35);font-size:.58rem;letter-spacing:1px;text-transform:uppercase;color:var(--muted2)">'
+    +'<span>Distance</span><span style="text-align:right">Chrono</span><span style="text-align:right">Allure</span><span style="text-align:right">Date</span></div>';
+  recs.forEach(function(x){
+    var has=x.t!=null;
+    var tm=has?_fmtDur(x.t):'—';
+    var pc=has?_fmtPace(x.t/x.d)+'/km':'—';
+    var dt=x.date?new Date(x.date).toLocaleDateString(SPEEDIX_LANG,{day:'numeric',month:'short'}):'—';
+    var col=has?(x.approx?'#ff8040':'#2ddb80'):'var(--muted2)';
+    html+='<div style="'+_recGrid+';padding:.38rem 0;border-bottom:1px solid rgba(30,37,53,.5)">'
+      +'<span style="font-size:.78rem;color:var(--text);font-weight:600">'+x.k+'</span>'
+      +'<span style="text-align:right;font-family:Space Mono,monospace;font-size:.84rem;font-weight:700;color:'+col+'">'+tm+'</span>'
+      +'<span style="text-align:right;font-family:Space Mono,monospace;font-size:.7rem;color:var(--muted2)">'+pc+'</span>'
+      +'<span style="text-align:right;font-size:.68rem;color:var(--muted2)">'+dt+'</span></div>';
+  });
+  html+='<div style="font-size:.62rem;color:var(--muted);margin-top:.4rem"><b style="color:#2ddb80">Vert</b> = record net : chrono exact (tes allures km par km) · <b style="color:#ff8040">Orange</b> = record brut : estimé à partir d\'une fraction d\'une sortie plus longue.</div></div>';
+  document.getElementById('lm-title').textContent='📊 Mes statistiques';
+  document.getElementById('lm-sub').textContent='';
+  document.getElementById('lm-body').innerHTML=html;
   _applyBadgeModalFrame('#fff');
   openModal('land-modal');
 }
@@ -26330,6 +26500,18 @@ function _applyBadgeModalFrame(color){
      '<span id="lm-bevel-outer" style="position:absolute;inset:0;z-index:-2;pointer-events:none;clip-path:polygon(16px 0,calc(100% - 16px) 0,100% 16px,100% calc(100% - 16px),calc(100% - 16px) 100%,16px 100%,0 calc(100% - 16px),0 16px);background:'+color+'"></span>'
     +'<span id="lm-bevel-inner" style="position:absolute;inset:1.5px;z-index:-1;pointer-events:none;clip-path:polygon(15px 0,calc(100% - 15px) 0,100% 15px,100% calc(100% - 15px),calc(100% - 15px) 100%,15px 100%,0 calc(100% - 15px),0 15px);background:var(--bg3)"></span>'
   );
+  // Le cadre doit suivre la hauteur RÉELLE du contenu (2026-10-02) : la fenêtre défile
+  // (overflow) dès que le contenu dépasse l'écran, or inset:0 ne couvre que la partie
+  // visible → le biseau s'arrêtait en plein milieu (détails de course avec allures km/km).
+  var _fitBevel=function(){
+    var o=document.getElementById('lm-bevel-outer'), n=document.getElementById('lm-bevel-inner');
+    if(!o||!n||!box.scrollHeight) return;
+    var h=box.scrollHeight;
+    o.style.bottom='auto'; o.style.height=h+'px';
+    n.style.bottom='auto'; n.style.height=(h-3)+'px';
+  };
+  _fitBevel(); setTimeout(_fitBevel,60); setTimeout(_fitBevel,300);
+  box.scrollTop=0;
 }
 function _resetBadgeModalFrame(){
   var box=document.querySelector('#land-modal .modal-box');
