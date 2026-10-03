@@ -17094,7 +17094,7 @@ async function loadAdminStats(){
     var startYesterday=startYestDate;
 
     // Players des 7 derniers jours (avec strava/coros/intervals + premium pour breakdown période)
-    var {data:p7}=await supabaseClient.from('players').select('created_at,strava_access_token,coros_access_token,intervals_access_token,intervals_athlete_id,premium').gte('created_at',startWeekDate+'T00:00:00.000Z');
+    var {data:p7}=await supabaseClient.from('players').select('created_at,strava_access_token,coros_access_token,intervals_access_token,intervals_athlete_id,premium').eq('is_bot',false).gte('created_at',startWeekDate+'T00:00:00.000Z');
     // Connexions (ouvertures réelles de l'appli) -- via wallet_tx 'Chaîne
     // jour N' (créé par checkAndClaimStreak() à CHAQUE vrai lancement en
     // session authentifiée, au plus 1/jour/RP). Jamais last_sign_in_at
@@ -17116,8 +17116,8 @@ async function loadAdminStats(){
     // clé API manuelle) -- plus un total Strava-only, ça mélangeait les 3
     // sources de synchro depuis l'ouverture de COROS/Intervals au public.
     var [{count:totalPlayers},{count:totalConnectedAcc},{count:totalPremium},{data:totalConnectedRpc}]=await Promise.all([
-      supabaseClient.from('players').select('*',{count:'exact',head:true}),
-      supabaseClient.from('players').select('*',{count:'exact',head:true}).or('strava_access_token.not.is.null,coros_access_token.not.is.null,intervals_access_token.not.is.null,intervals_athlete_id.not.is.null'),
+      supabaseClient.from('players').select('*',{count:'exact',head:true}).eq('is_bot',false),
+      supabaseClient.from('players').select('*',{count:'exact',head:true}).eq('is_bot',false).or('strava_access_token.not.is.null,coros_access_token.not.is.null,intervals_access_token.not.is.null,intervals_athlete_id.not.is.null'),
       supabaseClient.from('players').select('*',{count:'exact',head:true}).eq('premium',true).eq('is_bot',false),
       // TOTAL "RP connectés" = RP UNIQUES (pas la somme des connexions/jour des
       // colonnes AUJ/HIER/7J juste au-dessus) -- RPC dédiée (2026-09-25, demande
