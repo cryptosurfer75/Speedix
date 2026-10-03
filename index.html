@@ -2210,8 +2210,13 @@ body::after{
       el.style.display='block';
       el.addEventListener('click',function(e){
         if(e.target && e.target.id==='store-ticker-close') return;
-        // Un clic sur l'annonce Monza ouvre la page Défis.
-        if(typeof nav==='function') nav('defis');
+        // Un clic sur l'annonce Monza ouvre la page Défis directement sur l'onglet
+        // « Challenges » ('events'), là où se trouve l'inscription à Monza
+        // (même mécanisme que la notif push {screen:'defis',tab:...}).
+        if(typeof nav==='function'){
+          nav('defis');
+          setTimeout(function(){ if(typeof switchChallengesTab==='function') switchChallengesTab('events'); },300);
+        }
       });
       document.getElementById('store-ticker-close').addEventListener('click',function(e){
         e.stopPropagation();
