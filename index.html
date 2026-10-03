@@ -8210,6 +8210,24 @@ const supabaseClient = window.supabase.createClient(
 var hcur=1;
 var currentUser=null;
 
+// 2026-10-03 — NOUVEAU VISITEUR avec un téléphone en anglais → l'app s'ouvre directement en EN.
+// Condition stricte : AUCUN choix de langue enregistré ET AUCUNE session (donc jamais un RP
+// existant : on garde la décision d'origine de ne pas basculer les comptes en place selon la
+// langue du téléphone). La langue est ensuite enregistrée par setLang() (pas de boucle).
+// Navigateur/WebView non anglais → rien ne change (FR par défaut).
+(function(){
+  try{
+    if(localStorage.getItem('speedix_lang')) return;
+    var nl=String((navigator.languages&&navigator.languages[0])||navigator.language||'').toLowerCase();
+    if(nl.indexOf('en')!==0) return;
+    supabaseClient.auth.getSession().then(function(r){
+      if(r && r.data && r.data.session) return;            // déjà connecté : on ne touche à rien
+      try{ if(localStorage.getItem('speedix_lang')) return; }catch(e){}
+      setLang('en');
+    }).catch(function(){});
+  }catch(e){}
+})();
+
 // Jeton de session courant, tenu à jour automatiquement (connexion, refresh
 // silencieux, déconnexion) — sert à authentifier les appels window.fetch()
 // directs vers l'API REST avec la VRAIE identité du RP plutôt que la clé
@@ -20546,6 +20564,31 @@ function connectStrava(){
   window.location.href=authUrl;
 }
 
+// Révoque chez Strava une autorisation qu'on n'a PAS pu rattacher à un RP
+// (évite les autorisations "fantômes" qui gonflent le compteur d'athlètes
+// connectés du tableau de bord Strava sans qu'aucun joueur n'ait de token).
+async function _stravaRevokeOrphan(accessToken,refreshToken){
+  if(!accessToken&&!refreshToken) return;
+  try{
+    await window.fetch(STRAVA_OAUTH_ENDPOINT,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({action:'deauthorize',access_token:accessToken,refresh_token:refreshToken})
+    });
+  }catch(e){}
+}
+
+// handleStravaCallback() tourne au chargement de la page, AVANT que la session
+// soit restaurée (checkExistingSession) : currentUser est alors vide. On attend
+// donc la session (max 20s) au lieu d'abandonner le token en mémoire.
+async function _waitCurrentUser(maxMs){
+  var t0=Date.now();
+  while(!currentUser&&Date.now()-t0<maxMs){
+    await new Promise(function(r){setTimeout(r,200);});
+  }
+  return !!currentUser;
+}
+
 // Gérer le retour OAuth (code dans l'URL)
 async function handleStravaCallback(){
   var params=new URLSearchParams(window.location.search);
@@ -20564,11 +20607,9 @@ async function handleStravaCallback(){
   if(state&&state.indexOf('coros_')===0) return;
   // Nettoyer l'URL
   window.history.replaceState({},'',window.location.pathname);
-  if(grantedScope.indexOf('activity:read')<0){
-    showToast('⚠️ Autorisation incomplète — accepte l\'accès à tes activités pour connecter Strava');
-    return;
-  }
-  showToast('🔴 Connexion Strava en cours…');
+  var scopeIncomplet=(grantedScope.indexOf('activity:read')<0);
+  if(!scopeIncomplet) showToast('🔴 Connexion Strava en cours…');
+  var _orphanAccess=null,_orphanRefresh=null; // autorisation créée mais pas encore rattachée à un RP
   // Échanger le code contre un token via l'Edge Function (secret côté serveur)
   try{
     var resp=await window.fetch(STRAVA_OAUTH_ENDPOINT,{
@@ -20578,6 +20619,26 @@ async function handleStravaCallback(){
     });
     var data=await resp.json();
     if(data.access_token){
+      _orphanAccess=data.access_token; _orphanRefresh=data.refresh_token;
+      // Autorisation incomplète : l'autorisation existe déjà chez Strava (elle
+      // compte dans le quota) mais ne sert à rien -> on la révoque aussitôt.
+      if(scopeIncomplet){
+        await _stravaRevokeOrphan(_orphanAccess,_orphanRefresh);
+        showToast('⚠️ Autorisation incomplète — accepte l\'accès à tes activités pour connecter Strava');
+        return;
+      }
+      // Session pas encore restaurée au retour OAuth : on l'attend.
+      if(!await _waitCurrentUser(20000)){
+        await _stravaRevokeOrphan(_orphanAccess,_orphanRefresh);
+        showToast('⚠️ Connexion Strava annulée — connecte-toi à SPEEDIX puis réessaie');
+        return;
+      }
+      // Le compte connecté doit être celui qui a lancé l'autorisation (state).
+      if(state&&state!==currentUser.id){
+        await _stravaRevokeOrphan(_orphanAccess,_orphanRefresh);
+        showToast('⚠️ Connexion Strava annulée — tu es connecté sur un autre compte, réessaie');
+        return;
+      }
       window.__stravaToken=data.access_token;
       window.__stravaRefresh=data.refresh_token;
       window.__stravaExpires=data.expires_at;
@@ -20591,13 +20652,8 @@ async function handleStravaCallback(){
         if(checkDup&&checkDup.length>0){
           // On refuse le lien → on révoque aussi l'autorisation qu'on vient de
           // créer côté Strava (sinon elle reste "fantôme" et gonfle le quota).
-          try{
-            await window.fetch(STRAVA_OAUTH_ENDPOINT,{
-              method:'POST',
-              headers:{'Content-Type':'application/json'},
-              body:JSON.stringify({action:'deauthorize',access_token:data.access_token,refresh_token:data.refresh_token})
-            });
-          }catch(e){}
+          await _stravaRevokeOrphan(data.access_token,data.refresh_token);
+          window.__stravaToken=null; window.__stravaRefresh=null; window.__stravaExpires=null;
           showToast('🚫 Ce compte Strava est déjà lié à un autre joueur ('+checkDup[0].username+'). Multi-compte interdit.');
           return;
         }
@@ -20648,13 +20704,28 @@ async function handleStravaCallback(){
         strava_refresh_token:data.refresh_token,
         strava_token_expires:data.expires_at
       };
-      if(currentUser){
-        await window.fetch(supabaseUrl+'/rest/v1/players?id=eq.'+encodeURIComponent(currentUser.id),{
+      // Écriture vérifiée : si le token n'est pas réellement enregistré (réseau,
+      // RLS, 0 ligne modifiée), on révoque l'autorisation plutôt que de la laisser
+      // active chez Strava sans aucun joueur derrière.
+      var saved=false;
+      try{
+        var saveResp=await window.fetch(supabaseUrl+'/rest/v1/players?id=eq.'+encodeURIComponent(currentUser.id),{
           method:'PATCH',
-          headers:{'apikey':supabaseKey,'Authorization':'Bearer '+(window.__sessionToken||supabaseKey),'Content-Type':'application/json'},
+          headers:{'apikey':supabaseKey,'Authorization':'Bearer '+(window.__sessionToken||supabaseKey),'Content-Type':'application/json','Prefer':'return=representation'},
           body:JSON.stringify(patchData)
         });
+        if(saveResp.ok){
+          var savedRows=await saveResp.json();
+          saved=Array.isArray(savedRows)&&savedRows.length>0;
+        }
+      }catch(e){}
+      if(!saved){
+        await _stravaRevokeOrphan(data.access_token,data.refresh_token);
+        window.__stravaToken=null; window.__stravaRefresh=null; window.__stravaExpires=null;
+        showToast('⚠️ Connexion Strava non enregistrée — réessaie');
+        return;
       }
+      _orphanAccess=null; _orphanRefresh=null;
       showToast('✓ Strava connecté !');
       updateStravaUI(true);
       // Lancer la sync auto
@@ -20663,6 +20734,8 @@ async function handleStravaCallback(){
       showToast('⚠️ Erreur Strava : '+(data.message||'token invalide'));
     }
   }catch(e){
+    // Erreur après création de l'autorisation : on ne la laisse pas orpheline.
+    await _stravaRevokeOrphan(_orphanAccess,_orphanRefresh);
     showToast('⚠️ Erreur connexion Strava');
   }
 }

@@ -21,7 +21,7 @@
   <div class="box">
     <img src="../logo-mark-white.png" alt="SPEEDIX">
     <h1>SPEEDIX</h1>
-    <p>Redirection en cours…</p>
+    <p id="msg">Redirection en cours…</p>
     <a id="manual" href="https://speedixleague.com/">Continuer</a>
   </div>
 
@@ -50,6 +50,14 @@ var WEB_URL     = "https://speedixleague.com/";
   // On transmet le code parrain (?ref=SL-XXXXX) UNIQUEMENT vers l'app web.
   // Les liens stores ne savent pas porter ce paramètre, on ne l'ajoute pas là.
   if (dest === WEB_URL && location.search) dest = dest + location.search;
+
+  // Téléphone en anglais → texte anglais (la destination, elle, reste la même).
+  var nl = String((navigator.languages && navigator.languages[0]) || navigator.language || "").toLowerCase();
+  if (nl.indexOf("en") === 0) {
+    document.documentElement.lang = "en";
+    document.getElementById("msg").textContent = "Redirecting…";
+    document.getElementById("manual").textContent = "Continue";
+  }
 
   document.getElementById("manual").href = dest;
   location.replace(dest);
