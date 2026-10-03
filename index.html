@@ -17118,7 +17118,7 @@ async function loadAdminStats(){
     var [{count:totalPlayers},{count:totalConnectedAcc},{count:totalPremium},{data:totalConnectedRpc}]=await Promise.all([
       supabaseClient.from('players').select('*',{count:'exact',head:true}),
       supabaseClient.from('players').select('*',{count:'exact',head:true}).or('strava_access_token.not.is.null,coros_access_token.not.is.null,intervals_access_token.not.is.null,intervals_athlete_id.not.is.null'),
-      supabaseClient.from('players').select('*',{count:'exact',head:true}).eq('premium',true),
+      supabaseClient.from('players').select('*',{count:'exact',head:true}).eq('premium',true).eq('is_bot',false),
       // TOTAL "RP connectés" = RP UNIQUES (pas la somme des connexions/jour des
       // colonnes AUJ/HIER/7J juste au-dessus) -- RPC dédiée (2026-09-25, demande
       // explicite) car un COUNT(DISTINCT player_id) sur wallet_tx (7000+ lignes
@@ -17135,8 +17135,15 @@ async function loadAdminStats(){
     // aujourd'hui" alors que l'import Strava tournait normalement (vécu 2026-08-08).
     // Avec le tri décroissant, ce sont les jours les plus anciens de la fenêtre 7j
     // qui sont sous-comptés en cas de dépassement, jamais AUJ./HIER.
-    var {data:r7}=await supabaseClient.from('runs').select('run_date').gte('run_date',startWeekDate).order('run_date',{ascending:false});
-    var {count:totalRuns}=await supabaseClient.from('runs').select('*',{count:'exact',head:true});
+    // 2026-10-03 (demande user) : stats = RÉALITÉ des RP → courses des bots exclues
+    // (uniquement ici, dans ce panel ; les bots restent des RP normaux partout ailleurs).
+    var {data:botRows}=await supabaseClient.from('players').select('id').eq('is_bot',true);
+    var botIdsList='('+((botRows||[]).map(function(b){return b.id;}).join(','))+')';
+    var qR7=supabaseClient.from('runs').select('run_date').gte('run_date',startWeekDate).order('run_date',{ascending:false});
+    var qRT=supabaseClient.from('runs').select('*',{count:'exact',head:true});
+    if(botRows&&botRows.length){ qR7=qR7.not('player_id','in',botIdsList); qRT=qRT.not('player_id','in',botIdsList); }
+    var {data:r7}=await qR7;
+    var {count:totalRuns}=await qRT;
 
     // Helpers période — comparaison via date Paris (jour calendaire) pour éviter
     // les drifts de timezone entre UTC et Europe/Paris.
@@ -17234,7 +17241,7 @@ async function loadAdminStats(){
       '<tr><td style="padding:.4rem .25rem;color:#bb66dd">📱 RP connectés</td>'+
         '<td style="text-align:right;color:var(--green);font-weight:700">'+connToday+'</td>'+
         '<td style="text-align:right">'+connYest+'</td>'+
-        '<td style="text-align:right">'+conn7+'</td>'+
+        '<td style="text-align:right;color:var(--muted2)">—</td>'+
         '<td style="text-align:right;color:#bb66dd;font-weight:700">'+(totalConnected||0)+'</td></tr>'+
       '<tr><td colspan="5" style="padding:0 .25rem">'+sparkBar(connSpark,'#bb66dd')+'</td></tr>'+
       '<tr><td style="padding:.4rem .25rem;color:var(--gold)">💎 Premium actifs</td>'+
