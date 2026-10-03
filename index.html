@@ -12982,7 +12982,7 @@ function _runSplitsHtml(r){
   rows.forEach(function(x){
     var w=x.full?(35+65*(1-(x.pace-fast)/span)):30;
     var isBest=x.full&&x.pace===fast, isWorst=x.full&&x.pace===slow&&full.length>2;
-    var col=isBest?'#2ddb80':(isWorst?'#ff8040':'#20d0e0');
+    var col=isBest?'#2ddb80':(isWorst?'#ff8040':'#fff');
     html+='<div style="display:flex;align-items:center;gap:.5rem;padding:.18rem 0">'
       +'<span style="width:44px;font-size:.68rem;color:var(--muted2);flex-shrink:0">'+(x.full?'km '+x.i:(x.km.toFixed(2)+' km').replace('.',','))+'</span>'
       +'<div style="flex:1;height:10px;background:rgba(255,255,255,.05);border-radius:5px;overflow:hidden"><div style="width:'+w.toFixed(0)+'%;height:100%;background:'+col+';border-radius:5px"></div></div>'
