@@ -5465,7 +5465,7 @@ function askConfirm(message, opts){
     <div style="font-size:2.5rem;margin-bottom:.5rem">🔔</div>
     <div style="font-family:'Bebas Neue',sans-serif;font-size:1.5rem;letter-spacing:2px;color:var(--gold);margin-bottom:.75rem">Ça bouge sur tes courses !</div>
     <div id="social-notif-modal-body" style="text-align:left"></div>
-    <button onclick="closeModal('social-notif-modal');nav('social')" style="margin-top:.75rem;padding:.5rem 2rem;border-radius:8px;border:1.5px solid var(--green);background:linear-gradient(135deg,rgba(45,219,128,.15),rgba(32,180,100,.08));color:var(--green);font-weight:700;font-size:.85rem;cursor:pointer;letter-spacing:.5px">Voir le Feed 🏃</button>
+    <button onclick="closeModal('social-notif-modal');openCommentedRun()" style="margin-top:.75rem;padding:.5rem 2rem;border-radius:8px;border:1.5px solid var(--green);background:linear-gradient(135deg,rgba(45,219,128,.15),rgba(32,180,100,.08));color:var(--green);font-weight:700;font-size:.85rem;cursor:pointer;letter-spacing:.5px">Voir le Feed 🏃</button>
   </div>
 </div>
 
@@ -15419,7 +15419,7 @@ async function renderSocialFeed(){
     // plus petit) pour garder une bordure continue sur la diagonale.
     var _feedCardColor='#9060f0';
     var _feedCardGlow=isFeatured?'0 0 16px rgba(144,96,240,.4),0 2px 10px rgba(0,0,0,.45)':'0 2px 10px rgba(0,0,0,.45)';
-    return '<div style="position:relative;background:'+_feedCardColor+';clip-path:polygon(11px 0,calc(100% - 11px) 0,100% 11px,100% calc(100% - 11px),calc(100% - 11px) 100%,11px 100%,0 calc(100% - 11px),0 11px);padding:1.5px;box-shadow:'+_feedCardGlow+'">'
+    return '<div id="feed-run-'+r.id+'" style="position:relative;background:'+_feedCardColor+';clip-path:polygon(11px 0,calc(100% - 11px) 0,100% 11px,100% calc(100% - 11px),calc(100% - 11px) 100%,11px 100%,0 calc(100% - 11px),0 11px);padding:1.5px;box-shadow:'+_feedCardGlow+'">'
       +'<div style="background:#0c0f1a;clip-path:polygon(10px 0,calc(100% - 10px) 0,100% 10px,100% calc(100% - 10px),calc(100% - 10px) 100%,10px 100%,0 calc(100% - 10px),0 10px)">'
       +'<div style="padding:.75rem .85rem">'
       +featuredRibbon
@@ -16417,12 +16417,12 @@ async function checkSocialNotifs(){
   if(!myRuns||!myRuns.length){return;}
   var ids=myRuns.map(function(r){return r.id;});
   // Réactions récentes sur mes courses (pas les miennes)
-  var reactResp=await window.fetch(supabaseUrl+'/rest/v1/run_reactions?run_id=in.('+ids.join(',')+')'+'&player_id=neq.'+encodeURIComponent(currentUser.id)+'&created_at=gt.'+encodeURIComponent(lastSeen)+'&select=id,player_id,created_at&order=created_at.desc',{
+  var reactResp=await window.fetch(supabaseUrl+'/rest/v1/run_reactions?run_id=in.('+ids.join(',')+')'+'&player_id=neq.'+encodeURIComponent(currentUser.id)+'&created_at=gt.'+encodeURIComponent(lastSeen)+'&select=id,run_id,player_id,created_at&order=created_at.desc',{
     headers:{'apikey':supabaseKey,'Authorization':'Bearer '+(window.__sessionToken||supabaseKey),'Accept':'application/json'}
   });
   var reacts=await reactResp.json();
   // Commentaires récents sur mes courses (pas les miens)
-  var commResp=await window.fetch(supabaseUrl+'/rest/v1/run_comments?run_id=in.('+ids.join(',')+')'+'&player_id=neq.'+encodeURIComponent(currentUser.id)+'&created_at=gt.'+encodeURIComponent(lastSeen)+'&select=id,player_id,content,created_at&order=created_at.desc',{
+  var commResp=await window.fetch(supabaseUrl+'/rest/v1/run_comments?run_id=in.('+ids.join(',')+')'+'&player_id=neq.'+encodeURIComponent(currentUser.id)+'&created_at=gt.'+encodeURIComponent(lastSeen)+'&select=id,run_id,player_id,content,created_at&order=created_at.desc',{
     headers:{'apikey':supabaseKey,'Authorization':'Bearer '+(window.__sessionToken||supabaseKey),'Accept':'application/json'}
   });
   var comms=await commResp.json();
@@ -16459,6 +16459,28 @@ async function checkSocialNotifs(){
   }
 }
 
+
+// Ouvre le Feed (onglet « Moi ») directement sur la course qui vient d'être commentée/aimée,
+// la centre à l'écran et la fait clignoter. Si la carte est introuvable (course trop ancienne
+// pour le Feed), on reste simplement sur le Feed.
+async function openCommentedRun(){
+  var runId=window._socialNotifTargetRun;
+  nav('social');
+  if(!runId) return;
+  try{ if(typeof switchFeedTab==='function' && _feedMode!=='me') switchFeedTab('me'); }catch(e){}
+  for(var i=0;i<30;i++){
+    await new Promise(function(r){setTimeout(r,250);});
+    var el=document.getElementById('feed-run-'+runId);
+    if(el){
+      el.scrollIntoView({behavior:'smooth',block:'center'});
+      var old=el.style.filter;
+      el.style.transition='filter .3s';
+      var n=0, iv=setInterval(function(){ el.style.filter=(n%2===0)?'drop-shadow(0 0 10px #f5c842) brightness(1.25)':old; if(++n>5){clearInterval(iv); el.style.filter=old;} },350);
+      return;
+    }
+  }
+}
+
 async function showSocialNotifPopup(reacts,comms){
   var uids=[...new Set(reacts.map(function(r){return r.player_id;}).concat(comms.map(function(c){return c.player_id;})))];
   var {data:players}=await supabaseClient.from('players').select('id,username').in('id',uids);
@@ -16474,6 +16496,13 @@ async function showSocialNotifPopup(reacts,comms){
     lines.push('💬 <strong>'+escapeHtml(nameOf(c.player_id))+'</strong> : « '+escapeHtml((c.content||'').slice(0,80))+' »');
   });
   if(comms.length>3) lines.push('+ '+(comms.length-3)+' autre'+(comms.length-3>1?'s':'')+' commentaire'+(comms.length-3>1?'s':''));
+  // Course vers laquelle le bouton de la fenêtre doit mener : celle du commentaire le plus
+  // récent (sinon de la réaction la plus récente) — 2026-10-03, évite de chercher dans le Feed.
+  (function(){
+    var all=[].concat(comms.map(function(c){return {t:c.created_at,run:c.run_id};}),reacts.map(function(r){return {t:r.created_at,run:r.run_id};})).filter(function(x){return x.run;});
+    all.sort(function(a,b){return a.t<b.t?1:-1;});
+    window._socialNotifTargetRun=all.length?all[0].run:null;
+  })();
   document.getElementById('social-notif-modal-body').innerHTML=lines.map(function(l){return '<div style="margin-bottom:.5rem;font-size:.82rem;line-height:1.5;color:var(--text)">'+l+'</div>';}).join('');
   openModal('social-notif-modal');
 }
