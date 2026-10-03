@@ -2185,6 +2185,11 @@ body::after{
     fr:'🏁 Dimanche, viens courir sur le circuit de Monza la distance de ton choix !! Inscription dans la page DÉFIS',
     en:'🏁 Sunday, come run the Monza circuit, any distance you like!! Sign up on the CHALLENGES page'
   };
+  // 2026-10-04 (demande user) : 2ème info = Toucans en tête du défi collectif (reste après Monza).
+  var MSGS2={
+    fr:'La team des Toucans en tête du défi collectif à mi parcours 🔥',
+    en:'Team Toucans leading the collective challenge at the halfway point 🔥'
+  };
   function init(){
     try{
       var el=document.getElementById('store-ticker'); if(!el) return;
@@ -2196,8 +2201,10 @@ body::after{
       var msg=MSGS[lang]||MSGS.fr;
       var track=document.getElementById('store-ticker-track');
       // Fin de l'annonce : après Monza (dim 4 oct. 22:00 UTC) le bandeau ne s'affiche plus.
-      if(!force && Date.now()>=Date.UTC(2026,9,4,22,0)) return;
-      var items=[{t:msg,act:'monza'}];
+      var monzaOver=(!force && Date.now()>=Date.UTC(2026,9,4,22,0));
+      var items=[];
+      if(!monzaOver) items.push({t:msg,act:'monza'});
+      items.push({t:(MSGS2[lang]||MSGS2.fr),act:'collab'});
       track.textContent='';
       items.forEach(function(it,i){
         if(i>0){ var sep=document.createElement('span'); sep.textContent='✦'; sep.style.cssText='color:#f5c842;margin:0 2.2em'; track.appendChild(sep); }
@@ -2213,9 +2220,11 @@ body::after{
         // Un clic sur l'annonce Monza ouvre la page Défis directement sur l'onglet
         // « Challenges » ('events'), là où se trouve l'inscription à Monza
         // (même mécanisme que la notif push {screen:'defis',tab:...}).
+        var a=e.target&&e.target.getAttribute&&e.target.getAttribute('data-act');
+        var tabName=(a==='collab')?'collab':'events';
         if(typeof nav==='function'){
           nav('defis');
-          setTimeout(function(){ if(typeof switchChallengesTab==='function') switchChallengesTab('events'); },300);
+          setTimeout(function(){ if(typeof switchChallengesTab==='function') switchChallengesTab(tabName); },300);
         }
       });
       document.getElementById('store-ticker-close').addEventListener('click',function(e){
