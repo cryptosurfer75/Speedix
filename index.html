@@ -2204,8 +2204,8 @@ body::after{
         var sp=document.createElement('span'); sp.textContent=it.t; sp.setAttribute('data-act',it.act); track.appendChild(sp);
       });
       msg=items.map(function(it){return it.t;}).join('  ✦  ');
-      // Durée proportionnelle à la longueur (≈ 100 px/s) pour une lecture confortable.
-      var dur=Math.max(8,Math.round((msg.length*8+window.innerWidth)/100));
+      // Durée proportionnelle à la longueur (≈ 130 px/s ; accéléré de 30 % le 2026-10-03, demande user).
+      var dur=Math.max(6,Math.round((msg.length*8+window.innerWidth)/130));
       track.style.animation='storeTickerScroll '+dur+'s linear infinite';
       el.style.display='block';
       el.addEventListener('click',function(e){
