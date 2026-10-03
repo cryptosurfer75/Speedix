@@ -2178,33 +2178,26 @@ body::after{
 </style>
 <script>
 (function(){
+  // 2026-10-03 (demande user) : plus de message store ni défi collectif → uniquement
+  // l'annonce du challenge Monza de dimanche. Le bandeau disparaît après Monza
+  // (dim 4 oct. 22:00 UTC) ; le clic ouvre la page Défis.
   var MSGS={
-    fr:'📲 Télécharge SPEEDIX sur le store si tu ne l\'as pas encore fait pour continuer à profiter de l\'application. Fermeture prochaine de la version TestFlight et APK Google',
-    en:'📲 Download SPEEDIX from the store if you haven\'t yet, to keep enjoying the app. The TestFlight and Google APK versions will close soon'
-  };
-  var TEAM_MSGS={
-    fr:'🏆 Nouveau défi collectif → ce WE, cours 24h et + avec ta Team pour remporter le trophée',
-    en:'🏆 New team challenge → this weekend, run 24h and more with your Team to win the trophy'
-  };
-  var URLS={
-    ios:'https://apps.apple.com/app/speedix/id6763503175',
-    android:'https://play.google.com/store/apps/details?id=com.speedixleague.runner'
+    fr:'🏁 Dimanche, viens courir sur le circuit de Monza la distance de ton choix !! Inscription dans la page DÉFIS',
+    en:'🏁 Sunday, come run the Monza circuit, any distance you like!! Sign up on the CHALLENGES page'
   };
   function init(){
     try{
       var el=document.getElementById('store-ticker'); if(!el) return;
       var force=/[?&]storebanner=1/.test(location.search);
-      var cap=window.Capacitor;
-      var native=!!(cap && typeof cap.isNativePlatform==='function' && cap.isNativePlatform());
-      // Affiché à TOUT LE MONDE (décision user 2026-09-29) : qui a déjà migré ferme avec le ✕ (masqué 24 h).
-      try{ var until=parseInt(localStorage.getItem('speedix_store_ticker_hidden_until')||'0',10); if(!force && until>Date.now()) return; }catch(e){}
+      // Affiché à TOUT LE MONDE ; ✕ = masqué 24 h. Clé NEUVE (2026-10-03) pour que ceux qui
+      // avaient fermé l'ancien bandeau « store » voient quand même l'annonce Monza.
+      try{ var until=parseInt(localStorage.getItem('speedix_ticker_monza_hidden_until')||'0',10); if(!force && until>Date.now()) return; }catch(e){}
       var lang='fr'; try{ lang=localStorage.getItem('speedix_lang')||'fr'; }catch(e){}
       var msg=MSGS[lang]||MSGS.fr;
       var track=document.getElementById('store-ticker-track');
-      // 2 news séparées par un ✦ doré (2026-09-30) : store + défi collectif du week-end
-      // (la 2e disparaît d'elle-même à la fin de l'édition, dim 4 oct. 22:00 UTC).
-      var items=[{t:msg,act:'store'}];
-      if(Date.now()<Date.UTC(2026,9,4,22,0)) items.push({t:(TEAM_MSGS[lang]||TEAM_MSGS.fr),act:'team'});
+      // Fin de l'annonce : après Monza (dim 4 oct. 22:00 UTC) le bandeau ne s'affiche plus.
+      if(!force && Date.now()>=Date.UTC(2026,9,4,22,0)) return;
+      var items=[{t:msg,act:'monza'}];
       track.textContent='';
       items.forEach(function(it,i){
         if(i>0){ var sep=document.createElement('span'); sep.textContent='✦'; sep.style.cssText='color:#f5c842;margin:0 2.2em'; track.appendChild(sep); }
@@ -2214,19 +2207,16 @@ body::after{
       // Durée proportionnelle à la longueur (≈ 100 px/s) pour une lecture confortable.
       var dur=Math.max(8,Math.round((msg.length*8+window.innerWidth)/100));
       track.style.animation='storeTickerScroll '+dur+'s linear infinite';
-      var plat=(native && cap.getPlatform)?cap.getPlatform():(/iPhone|iPad|iPod|Macintosh/i.test(navigator.userAgent)?'ios':'android');
       el.style.display='block';
       el.addEventListener('click',function(e){
         if(e.target && e.target.id==='store-ticker-close') return;
-        // Un clic sur la news du défi collectif ouvre le défi ; sinon le store.
-        var teamNews=e.target && e.target.getAttribute && e.target.getAttribute('data-act')==='team';
-        if(teamNews && typeof openTeamWeekendChallenge==='function'){ openTeamWeekendChallenge(); return; }
-        window.open(URLS[plat==='ios'?'ios':'android'],'_blank');
+        // Un clic sur l'annonce Monza ouvre la page Défis.
+        if(typeof nav==='function') nav('defis');
       });
       document.getElementById('store-ticker-close').addEventListener('click',function(e){
         e.stopPropagation();
         el.style.display='none';
-        try{ localStorage.setItem('speedix_store_ticker_hidden_until',String(Date.now()+86400000)); }catch(e2){}
+        try{ localStorage.setItem('speedix_ticker_monza_hidden_until',String(Date.now()+86400000)); }catch(e2){}
       });
     }catch(e){ console.warn('[store-ticker]',e); }
   }
@@ -5117,7 +5107,7 @@ var SpeedixReview=(function(){
 
 <div class="modal" id="land-modal">
   <div class="modal-box">
-    <button class="modal-close" onclick="closeModal('land-modal')">✕</button>
+    <button class="modal-close" onclick="landModalCross()">✕</button>
     <div class="modal-title" id="lm-title">Land</div>
     <div class="modal-sub" id="lm-sub"></div>
     <div id="lm-body"></div>
@@ -18589,6 +18579,14 @@ document.addEventListener('click',function(e){
   }
 });
 function openModal(id){document.getElementById(id).classList.add('open')}
+// Croix ✕ de land-modal. Défi collectif : depuis l'onglet « Classement », la croix
+// ramène à « Ma team » (demande 2026-10-03) au lieu de fermer. Limité au BOUTON ✕
+// (les closeModal('land-modal') programmatiques des autres flux restent inchangés).
+// #tc-ranking-scroll n'existe que dans l'onglet Classement du défi collectif.
+function landModalCross(){
+  if(document.getElementById('tc-ranking-scroll') && typeof switchTeamChallengeTab==='function'){ switchTeamChallengeTab('mine'); return; }
+  closeModal('land-modal');
+}
 function closeModal(id){document.getElementById(id).classList.remove('open');if(id==='land-modal'&&typeof _resetBadgeModalFrame==='function')_resetBadgeModalFrame();}
 
 // Affiche la liste des RPs qui ont réagi à une course donnée. Données lues depuis
@@ -26576,9 +26574,21 @@ function _applyBadgeModalFrame(color){
     n.style.bottom='auto'; n.style.height=(h-3)+'px';
   };
   _fitBevel(); setTimeout(_fitBevel,60); setTimeout(_fitBevel,300);
+  // 2026-10-03 : le contenu change APRÈS l'ouverture (onglet Ma team/Classement, « voir
+  // le détail », liste déroulante…) → le cadre restait à sa hauteur initiale et le
+  // contenu dépassait en bas sur téléphone. On le recale à chaque variation de taille.
+  try{
+    if(window._lmBevelRO){ window._lmBevelRO.disconnect(); window._lmBevelRO=null; }
+    if(window.ResizeObserver){
+      window._lmBevelRO=new ResizeObserver(function(){ _fitBevel(); });
+      var _lb=document.getElementById('lm-body'); if(_lb) window._lmBevelRO.observe(_lb);
+      var _lt=document.getElementById('lm-title'); if(_lt) window._lmBevelRO.observe(_lt);
+    }
+  }catch(e){}
   box.scrollTop=0;
 }
 function _resetBadgeModalFrame(){
+  if(window._lmBevelRO){ try{window._lmBevelRO.disconnect();}catch(e){} window._lmBevelRO=null; }
   var box=document.querySelector('#land-modal .modal-box');
   if(!box) return;
   var outer=document.getElementById('lm-bevel-outer'); if(outer) outer.remove();
