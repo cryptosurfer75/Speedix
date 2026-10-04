@@ -29773,7 +29773,12 @@ window.Tour.init = async function(){
           l.earned = row.earned||0;
           return;
         }
-        if(['bonus','event','extra','gift'].includes(l.status)) return; // cases Chance, jamais dans tour_lands
+        // Case « Land offerte » (extra) DÉJÀ PRISE par un autre RP (2026-10-04, signalé
+        // par Dedel : atterri sur la 362, prise par Carotrail depuis le 07/09 -- l'appli
+        // affichait « Land offerte » mais tour_claim_extra_land refusait, rien en base).
+        // Chaque case extra n'est offerte qu'UNE fois : une fois réclamée, elle redevient
+        // une Land classique (louée), donc on la charge depuis tour_lands comme les autres.
+        if(['bonus','event','extra','gift'].includes(l.status) && !(l.status==='extra' && row.holder_id)) return; // cases Chance, jamais dans tour_lands
         l.status = row.status || 'free';
         l.stars = row.stars||0;
         l.leaseMonths = row.lease_months||0;
