@@ -2188,7 +2188,7 @@ body::after{
       var force=/[?&]storebanner=1/.test(location.search);
       fetch(SUPA_URL+'/rest/v1/game_settings?key=eq.ticker_messages&select=value',{headers:{apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY}})
         .then(function(r){return r.json();}).then(function(rows){
-          var items=[]; try{ items=JSON.parse(rows[0].value)||[]; }catch(e){}
+          var items=[]; try{ var v=JSON.parse(rows[0].value)||[]; if(Array.isArray(v)) items=v; else { var lg='fr'; try{ lg=localStorage.getItem('speedix_lang')||'fr'; }catch(e){} items=(v[lg]&&v[lg].length)?v[lg]:(v.fr||[]); } }catch(e){}
           items=items.filter(function(t){return t&&String(t).trim();});
           if(!items.length){ el.style.display='none'; return; }
           var sig=items.join('|');
@@ -5646,10 +5646,11 @@ function askConfirm(message, opts){
         <div class="block-title">📰 <span class="hl">Breaking news</span></div>
       </div>
       <div class="block-body-sm">
-        <div style="font-size:.72rem;color:var(--muted2);margin-bottom:.4rem">Une phrase par ligne (elles défilent à la suite). Vide = bandeau masqué pour tout le monde.</div>
+        <div style="font-size:.72rem;color:var(--muted2);margin-bottom:.4rem">Écris en français, une phrase par ligne : la version anglaise est traduite automatiquement. Vide = bandeau masqué pour tout le monde.</div>
         <textarea id="admin-ticker-text" rows="4" placeholder="Ex : Les Toucans toujours en tête 🔥" style="width:100%;padding:.5rem .6rem;border-radius:6px;border:1px solid var(--border2);background:var(--bg3);color:var(--text);font-size:.85rem;outline:none;box-sizing:border-box;resize:vertical"></textarea>
         <button onclick="adminSaveTicker()" style="margin-top:.5rem;padding:.5rem 1rem;border-radius:6px;border:1px solid rgba(106,63,208,.6);background:#0c0f1a;color:#fff;font-weight:700;cursor:pointer">Publier</button>
         <div id="admin-ticker-msg" style="font-size:.72rem;min-height:1rem;margin-top:.3rem"></div>
+        <div id="admin-ticker-en" style="font-size:.72rem;color:var(--muted2);margin-top:.2rem"></div>
       </div>
     </div>
 
@@ -14484,15 +14485,25 @@ async function adminSimulateEndPeriod(){
 async function adminLoadTicker(){
   var ta=document.getElementById('admin-ticker-text'); if(!ta) return;
   var {data}=await supabaseClient.from('game_settings').select('value').eq('key','ticker_messages').maybeSingle();
-  try{ ta.value=(JSON.parse(data.value)||[]).join('\n'); }catch(e){ ta.value=''; }
+  try{ var v=JSON.parse(data.value)||[]; var fr=Array.isArray(v)?v:(v.fr||[]); ta.value=fr.join('\n'); var en=Array.isArray(v)?[]:(v.en||[]); var p=document.getElementById('admin-ticker-en'); if(p) p.textContent=en.length?('🇬🇧 '+en.join(' ✦ ')):''; }catch(e){ ta.value=''; }
 }
 async function adminSaveTicker(){
   if(!isAdmin()){showToast('⚠️ Accès refusé');return;}
   var lines=document.getElementById('admin-ticker-text').value.split('\n').map(function(l){return l.trim();}).filter(Boolean);
-  var {data,error}=await supabaseClient.from('game_settings').update({value:JSON.stringify(lines)}).eq('key','ticker_messages').select();
-  var msg=document.getElementById('admin-ticker-msg');
+  var msg=document.getElementById('admin-ticker-msg'), prev=document.getElementById('admin-ticker-en');
+  if(msg) msg.innerHTML='<span style="color:var(--muted2)">Traduction en cours…</span>';
+  // Traduction auto FR→EN (MyMemory, gratuit sans clé). Si elle échoue, on garde le FR pour l'EN.
+  var en=await Promise.all(lines.map(async function(l){
+    try{
+      var r=await fetch('https://api.mymemory.translated.net/get?langpair=fr|en&q='+encodeURIComponent(l));
+      var j=await r.json(), t=j&&j.responseData&&j.responseData.translatedText;
+      return (t&&j.responseStatus==200)?t:l;
+    }catch(e){ return l; }
+  }));
+  var {data,error}=await supabaseClient.from('game_settings').update({value:JSON.stringify({fr:lines,en:en})}).eq('key','ticker_messages').select();
   if(error||!data||!data.length){ if(msg) msg.innerHTML='<span style="color:var(--red)">❌ Échec de l\'enregistrement</span>'; return; }
-  if(msg) msg.innerHTML='<span style="color:var(--green)">✅ Publié ('+lines.length+' message'+(lines.length>1?'s':'')+') — visible au prochain chargement de l\'app</span>';
+  if(prev) prev.textContent=en.length?('🇬🇧 '+en.join(' ✦ ')):'';
+  if(msg) msg.innerHTML='<span style="color:var(--green)">✅ Publié en FR + EN ('+lines.length+' message'+(lines.length>1?'s':'')+') — visible au prochain chargement de l\'app</span>';
 }
 
 async function adminSetPeriodEnd(minutes){
