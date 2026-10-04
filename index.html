@@ -2182,13 +2182,13 @@ body::after{
   // l'annonce du challenge Monza (texte « vient de commencer » depuis le 2026-10-04). Le bandeau disparaît après Monza
   // (dim 4 oct. 22:00 UTC) ; le clic ouvre la page Défis.
   var MSGS={
-    fr:'🏁 Le challenge de Monza vient de commencer, rejoins vite une distance pour obtenir la médaille collector',
-    en:'🏁 The Monza challenge has just started, join a distance quickly to get the collector medal'
+    fr:'52 médailles Monza distribuées 🥇',
+    en:'52 Monza medals awarded 🥇'
   };
   // 2026-10-04 (demande user) : 2ème info = Toucans en tête du défi collectif (reste après Monza).
   var MSGS2={
-    fr:'La team des Toucans en tête du défi collectif à mi parcours 🔥',
-    en:'Team Toucans leading the collective challenge at the halfway point 🔥'
+    fr:'À 13h, les Toucans toujours en tête du défi collectif avec 35h d\'activité cumulée 🔥',
+    en:'At 1pm, the Toucans are still leading the collective challenge with 35h of cumulated activity 🔥'
   };
   function init(){
     try{
@@ -2203,8 +2203,8 @@ body::after{
       // Fin de l'annonce : après Monza (dim 4 oct. 22:00 UTC) le bandeau ne s'affiche plus.
       var monzaOver=(!force && Date.now()>=Date.UTC(2026,9,4,22,0));
       var items=[];
-      if(!monzaOver) items.push({t:msg,act:'monza'});
       items.push({t:(MSGS2[lang]||MSGS2.fr),act:'collab'});
+      if(!monzaOver) items.push({t:msg,act:'monza'});
       track.textContent='';
       items.forEach(function(it,i){
         if(i>0){ var sep=document.createElement('span'); sep.textContent='✦'; sep.style.cssText='color:#f5c842;margin:0 2.2em'; track.appendChild(sep); }
