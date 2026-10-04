@@ -2178,60 +2178,37 @@ body::after{
 </style>
 <script>
 (function(){
-  // 2026-10-03 (demande user) : plus de message store ni défi collectif → uniquement
-  // l'annonce du challenge Monza (texte « vient de commencer » depuis le 2026-10-04). Le bandeau disparaît après Monza
-  // (dim 4 oct. 22:00 UTC) ; le clic ouvre la page Défis.
-  var MSGS={
-    fr:'52 médailles Monza distribuées 🥇',
-    en:'52 Monza medals awarded 🥇'
-  };
-  // 2026-10-04 (demande user) : 2ème info = Toucans en tête du défi collectif (reste après Monza).
-  var MSGS2={
-    fr:'À 13h, les Toucans toujours en tête du défi collectif avec 35h d\'activité cumulée 🔥',
-    en:'At 1pm, the Toucans are still leading the collective challenge with 35h of cumulated activity 🔥'
-  };
+  // 2026-10-04 (demande user) : le texte du bandeau est piloté depuis le panel Admin
+  // (bloc « Breaking news ») → game_settings.ticker_messages = tableau JSON de phrases.
+  // Vide = bandeau masqué. ✕ = masqué 24 h, mais réapparaît dès que le texte change.
+  var SUPA_URL='https://eqzvptszeaumsbljwift.supabase.co', SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVxenZwdHN6ZWF1bXNibGp3aWZ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU0MjM3MTcsImV4cCI6MjA5MDk5OTcxN30.wn2iJ3grAlLHTUZYiwlSBaCHvwCW86kTQ8eWNH484Lk';
   function init(){
     try{
       var el=document.getElementById('store-ticker'); if(!el) return;
       var force=/[?&]storebanner=1/.test(location.search);
-      // Affiché à TOUT LE MONDE ; ✕ = masqué 24 h. Clé NEUVE (2026-10-03) pour que ceux qui
-      // avaient fermé l'ancien bandeau « store » voient quand même l'annonce Monza.
-      try{ var until=parseInt(localStorage.getItem('speedix_ticker_monza_hidden_until')||'0',10); if(!force && until>Date.now()) return; }catch(e){}
-      var lang='fr'; try{ lang=localStorage.getItem('speedix_lang')||'fr'; }catch(e){}
-      var msg=MSGS[lang]||MSGS.fr;
-      var track=document.getElementById('store-ticker-track');
-      // Fin de l'annonce : après Monza (dim 4 oct. 22:00 UTC) le bandeau ne s'affiche plus.
-      var monzaOver=(!force && Date.now()>=Date.UTC(2026,9,4,22,0));
-      var items=[];
-      items.push({t:(MSGS2[lang]||MSGS2.fr),act:'collab'});
-      if(!monzaOver) items.push({t:msg,act:'monza'});
-      track.textContent='';
-      items.forEach(function(it,i){
-        if(i>0){ var sep=document.createElement('span'); sep.textContent='✦'; sep.style.cssText='color:#f5c842;margin:0 2.2em'; track.appendChild(sep); }
-        var sp=document.createElement('span'); sp.textContent=it.t; sp.setAttribute('data-act',it.act); track.appendChild(sp);
-      });
-      msg=items.map(function(it){return it.t;}).join('  ✦  ');
-      // Durée proportionnelle à la longueur (≈ 130 px/s ; accéléré de 30 % le 2026-10-03, demande user).
-      var dur=Math.max(6,Math.round((msg.length*8+window.innerWidth)/130));
-      track.style.animation='storeTickerScroll '+dur+'s linear infinite';
-      el.style.display='block';
-      el.addEventListener('click',function(e){
-        if(e.target && e.target.id==='store-ticker-close') return;
-        // Un clic sur l'annonce Monza ouvre la page Défis directement sur l'onglet
-        // « Challenges » ('events'), là où se trouve l'inscription à Monza
-        // (même mécanisme que la notif push {screen:'defis',tab:...}).
-        var a=e.target&&e.target.getAttribute&&e.target.getAttribute('data-act');
-        var tabName=(a==='collab')?'collab':'events';
-        if(typeof nav==='function'){
-          nav('defis');
-          setTimeout(function(){ if(typeof switchChallengesTab==='function') switchChallengesTab(tabName); },300);
-        }
-      });
-      document.getElementById('store-ticker-close').addEventListener('click',function(e){
-        e.stopPropagation();
-        el.style.display='none';
-        try{ localStorage.setItem('speedix_ticker_monza_hidden_until',String(Date.now()+86400000)); }catch(e2){}
-      });
+      fetch(SUPA_URL+'/rest/v1/game_settings?key=eq.ticker_messages&select=value',{headers:{apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY}})
+        .then(function(r){return r.json();}).then(function(rows){
+          var items=[]; try{ items=JSON.parse(rows[0].value)||[]; }catch(e){}
+          items=items.filter(function(t){return t&&String(t).trim();});
+          if(!items.length){ el.style.display='none'; return; }
+          var sig=items.join('|');
+          try{ var h=(localStorage.getItem('speedix_ticker_hidden')||'').split('@@'); if(!force && h[1]===sig && parseInt(h[0],10)>Date.now()) return; }catch(e){}
+          var track=document.getElementById('store-ticker-track');
+          track.textContent='';
+          items.forEach(function(t,i){
+            if(i>0){ var sep=document.createElement('span'); sep.textContent='✦'; sep.style.cssText='color:#f5c842;margin:0 2.2em'; track.appendChild(sep); }
+            var sp=document.createElement('span'); sp.textContent=t; track.appendChild(sp);
+          });
+          // Durée proportionnelle à la longueur (≈ 130 px/s).
+          var dur=Math.max(6,Math.round((items.join('  ✦  ').length*8+window.innerWidth)/130));
+          track.style.animation='storeTickerScroll '+dur+'s linear infinite';
+          el.style.display='block';
+          document.getElementById('store-ticker-close').onclick=function(e){
+            e.stopPropagation();
+            el.style.display='none';
+            try{ localStorage.setItem('speedix_ticker_hidden',(Date.now()+86400000)+'@@'+sig); }catch(e2){}
+          };
+        }).catch(function(e){ console.warn('[store-ticker]',e); });
     }catch(e){ console.warn('[store-ticker]',e); }
   }
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',init); else init();
@@ -5660,6 +5637,19 @@ function askConfirm(message, opts){
           <button onclick="adminAddRun()" style="padding:.5rem;border-radius:7px;border:1.5px solid var(--cyan,#20d0e0);background:rgba(32,208,224,.1);color:var(--cyan,#20d0e0);font-weight:700;font-size:.85rem;cursor:pointer">Ajouter la course</button>
           <div id="admin-run-msg" style="font-size:.72rem;min-height:1rem"></div>
         </div>
+      </div>
+    </div>
+
+    <!-- Breaking news : texte du bandeau défilant du haut (game_settings.ticker_messages) -->
+    <div class="block" style="margin-top:1rem;border-color:rgba(106,63,208,.4)">
+      <div class="block-header" style="border-color:rgba(106,63,208,.2)">
+        <div class="block-title">📰 <span class="hl">Breaking news</span></div>
+      </div>
+      <div class="block-body-sm">
+        <div style="font-size:.72rem;color:var(--muted2);margin-bottom:.4rem">Une phrase par ligne (elles défilent à la suite). Vide = bandeau masqué pour tout le monde.</div>
+        <textarea id="admin-ticker-text" rows="4" placeholder="Ex : Les Toucans toujours en tête 🔥" style="width:100%;padding:.5rem .6rem;border-radius:6px;border:1px solid var(--border2);background:var(--bg3);color:var(--text);font-size:.85rem;outline:none;box-sizing:border-box;resize:vertical"></textarea>
+        <button onclick="adminSaveTicker()" style="margin-top:.5rem;padding:.5rem 1rem;border-radius:6px;border:1px solid rgba(106,63,208,.6);background:#0c0f1a;color:#fff;font-weight:700;cursor:pointer">Publier</button>
+        <div id="admin-ticker-msg" style="font-size:.72rem;min-height:1rem;margin-top:.3rem"></div>
       </div>
     </div>
 
@@ -14490,6 +14480,21 @@ async function adminSimulateEndPeriod(){
   await processEndOfPeriod();
 }
 
+// ── Admin : texte du bandeau « Breaking news » ────────────────────────
+async function adminLoadTicker(){
+  var ta=document.getElementById('admin-ticker-text'); if(!ta) return;
+  var {data}=await supabaseClient.from('game_settings').select('value').eq('key','ticker_messages').maybeSingle();
+  try{ ta.value=(JSON.parse(data.value)||[]).join('\n'); }catch(e){ ta.value=''; }
+}
+async function adminSaveTicker(){
+  if(!isAdmin()){showToast('⚠️ Accès refusé');return;}
+  var lines=document.getElementById('admin-ticker-text').value.split('\n').map(function(l){return l.trim();}).filter(Boolean);
+  var {data,error}=await supabaseClient.from('game_settings').update({value:JSON.stringify(lines)}).eq('key','ticker_messages').select();
+  var msg=document.getElementById('admin-ticker-msg');
+  if(error||!data||!data.length){ if(msg) msg.innerHTML='<span style="color:var(--red)">❌ Échec de l\'enregistrement</span>'; return; }
+  if(msg) msg.innerHTML='<span style="color:var(--green)">✅ Publié ('+lines.length+' message'+(lines.length>1?'s':'')+') — visible au prochain chargement de l\'app</span>';
+}
+
 async function adminSetPeriodEnd(minutes){
   if(!isAdmin()){showToast('⚠️ Accès refusé');return;}
   var newEnd=new Date(Date.now()+minutes*60000).toISOString();
@@ -16777,6 +16782,7 @@ async function initAdminPanel(){
   if(!isAdmin()) return;
   updateAdminOnlineCounter();
   adminSetupCollapsibleBlocks();
+  adminLoadTicker();
   // Charger la liste des joueurs dans le select
   var sel=document.getElementById('admin-player');
   if(!sel) return;
