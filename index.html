@@ -17044,6 +17044,18 @@ async function adminAddRun(){
   var sel=document.getElementById('admin-player');
   var playerName=sel.options[sel.selectedIndex].text;
   msg.style.color='var(--green)';msg.textContent='✓ '+pts.toLocaleString(SPEEDIX_LANG)+' pts ajoutés à '+playerName;
+  // Badges (2026-10-04, Monza) : une course ajoutée par le panel admin ne passe
+  // ni par le webhook Strava ni par le check-badges joueur (JWT du compte
+  // lui-même) -> aucun badge event_run/skin tant que le RP ne se reconnecte pas.
+  // admin-check-badges (JWT admin) relance la même recette checkBadges.
+  try{
+    var {data:{session:_admSess}}=await supabaseClient.auth.getSession();
+    window.fetch(supabaseUrl+'/functions/v1/admin-check-badges',{
+      method:'POST',
+      headers:{'apikey':supabaseKey,'Authorization':'Bearer '+(_admSess?_admSess.access_token:supabaseKey),'Content-Type':'application/json'},
+      body:JSON.stringify({player_ids:[playerId]})
+    }).catch(function(e){ console.warn('admin-check-badges',e); });
+  }catch(e){ console.warn('admin-check-badges',e); }
   // Vérifier montée libre Starter → League
   await adminCheckStarterPromotion(playerId, playerName);
   // Vérifier les récompenses parrainage pour ce joueur
