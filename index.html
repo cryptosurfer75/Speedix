@@ -29987,7 +29987,11 @@ window.Tour.init = async function(){
   // +50 RPC/passage (1★→300, 2★→350, 3★→400). Marche pour les 2 cas (louée ET
   // possédée) sans branchement : une Land louée n'a jamais de champ `stars`,
   // donc (l.stars||0) vaut 0 et retombe sur 250.
+  // Villes étapes (prestige, 2026-10-04) : 400 sans étoile puis 500/600/800.
+  // DOIT rester identique à tour_pay_toll côté serveur.
+  const ETAPE_REDEVANCE_RPC = [400,500,600,800];
   function landRedevance(l){
+    if(l.type==='etape') return ETAPE_REDEVANCE_RPC[Math.min(l.stars||0,3)];
     return BASE_REDEVANCE_RPC + STAR_REDEVANCE_BONUS_RPC * (l.stars||0);
   }
   // Grade CONFIRMÉ ou plus (seule condition Free pour pouvoir acheter des Lands,
@@ -32570,7 +32574,7 @@ window.Tour.init = async function(){
     // de base → 300 → 350 → 400), prix d'achat progressif, cf STAR_PRICES_RPC/
     // BASE_REDEVANCE_RPC/STAR_REDEVANCE_BONUS_RPC (SOURCE UNIQUE, jamais réécrit).
     const tiersHtml = STAR_PRICES_RPC.map(function(price, i){
-      const red = BASE_REDEVANCE_RPC + STAR_REDEVANCE_BONUS_RPC*(i+1);
+      const red = landRedevance({type:land.type, stars:i+1});
       return `<div class="rm-star-tier"><span class="stars">${'⭐'.repeat(i+1)}</span><span class="price">${price} RPC</span><span class="arrow">→</span><span class="result">${red} RPC</span><span class="suffix">/passage</span></div>`;
     }).join('');
     return {
