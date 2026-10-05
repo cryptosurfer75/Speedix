@@ -12026,7 +12026,7 @@ function renderLeaguePanel(){
     // Clamp à ±15 lignes pour éviter un débord extrême sur une grosse remontée/chute.
     var _cascadeStyle='';
     if(_cascadeArmed){
-      var _dyRows=isCalib?0:Math.max(-15,Math.min(15,trend));   // calibrage : pas de glissement lié à la tendance (cf flèches masquées)
+      var _dyRows=Math.max(-15,Math.min(15,trend));   // animation de glissement conservée aussi en calibrage (seules les flèches sont masquées, 2026-10-05)
       _rowClassList.push('league-row-cascade');
       // Ralenti (2026-08-04 : 60→90ms/plafond 1800→2400ms ; 2026-08-06, nouvelle
       // demande explicite "ralentis de manière significative" : 90→160ms/plafond
