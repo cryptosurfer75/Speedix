@@ -20560,6 +20560,7 @@ async function activateGelOnTarget(){
     if(_gelRes&&_gelRes.reason==='already_gelled') _gelMsg='⚠️ Ce RP est déjà gelé';
     else if(_gelRes&&_gelRes.reason==='target_in_infirmerie') _gelMsg='🏥 Ce RP est en infirmerie, impossible de le geler';
     else if(_gelRes&&_gelRes.reason==='target_boosted') _gelMsg='🚀 Ce RP est protégé par son Boost, impossible de le geler';
+    else if(_gelRes&&_gelRes.reason==='target_in_calibration') _gelMsg='🛡️ Ce RP est en calibrage, impossible de le geler';
     else if(_gelRes&&_gelRes.reason==='no_stock') _gelMsg='⚠️ Aucun Gel en réserve';
     // Plafond mensuel (6 Gels reçus max par RP, demande explicite 2026-08-12) :
     // source unique = apply_gel_to_target (gel_received_month/_count), le
