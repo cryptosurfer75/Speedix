@@ -10211,20 +10211,12 @@ async function _updatePlayerGradeInner(playerId){
   });
   if(!applied) return newGrade;
 
-  // 9. Audit log (1 ligne par palier franchi)
-  for(var k=oldIdx+1;k<=newIdx;k++){
-    var g=GRADES_DATA[k];
-    if((g.rpcReward||0)>0 || (g.nyxReward||0)>0){
-      try{
-        await supabaseClient.from('wallet_tx').insert({
-          player_id:playerId,
-          rpc_delta:g.rpcReward||0,
-          nyx_delta:g.nyxReward||0,
-          reason:'Passage grade '+g.name
-        });
-      }catch(e){console.warn('wallet_tx grade fail',e);}
-    }
-  }
+  // 9. Audit log (« Passage grade X ») : ÉCRIT PAR set_player_grade côté base depuis le 2026-10-05
+  // (SECURITY DEFINER, même transaction que le crédit). Avant, ce bloc insérait la ligne wallet_tx
+  // depuis le client : quand la promotion était déclenchée depuis la session D'UN AUTRE joueur
+  // (consultation de sa Player Card), la RLS wallet_tx_insert (player_id = auth.uid()) refusait
+  // l'insertion en silence => cadeau crédité mais invisible dans « Ma cagnotte » (cas Mitsouko).
+  // NE PAS réinsérer ici (doublon).
 
   // 10. Popup célébration (uniquement pour l'user courant) — 1 tâche par
   // palier franchi dans la file d'attente partagée (cf _enqueueCelebration),
