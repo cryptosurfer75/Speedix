@@ -12017,14 +12017,16 @@ function renderLeaguePanel(){
     var totalInLeague=_blockPlayers.length;
     if(rankNum===1 && trend<0) trend=0;
     if(rankNum===totalInLeague && trend>0) trend=0;
-    var trendHtml=trendBadgeHtml(trend);
+    // Flèches de tendance MASQUÉES en CALIBRAGE (2026-10-05, demande user : « elles ne servent pas à grand-chose »)
+    // dans toutes les ligues -- la case garde sa largeur (alignement des points). Compétitifs : inchangé.
+    var trendHtml=isCalib?'<span style="display:inline-block;width:1.35rem"></span>':trendBadgeHtml(trend);
     // Cascade d'entrée (1ère visite session uniquement) : la ligne part de sa position
     // de référence (trend = ancien rang − rang actuel) et glisse jusqu'à sa place, avec
     // un délai croissant par rang pour l'effet "tableau d'aéroport" en cascade.
     // Clamp à ±15 lignes pour éviter un débord extrême sur une grosse remontée/chute.
     var _cascadeStyle='';
     if(_cascadeArmed){
-      var _dyRows=Math.max(-15,Math.min(15,trend));
+      var _dyRows=isCalib?0:Math.max(-15,Math.min(15,trend));   // calibrage : pas de glissement lié à la tendance (cf flèches masquées)
       _rowClassList.push('league-row-cascade');
       // Ralenti (2026-08-04 : 60→90ms/plafond 1800→2400ms ; 2026-08-06, nouvelle
       // demande explicite "ralentis de manière significative" : 90→160ms/plafond
@@ -12297,7 +12299,8 @@ function renderLeaguePanel(){
     var myGc=GRADE_COLORS[myPlayer.grade]||'#8090b0';
     var myInitials=myPlayer.name.split(' ').map(function(w){return w[0];}).join('');
     var myTrend=myPlayer.trend||0;
-    var myTrendHtml=trendBadgeHtml(myTrend);
+    // Calibrage : pas de flèche non plus sur ma barre « position » (même règle que les lignes du tableau).
+    var myTrendHtml=(myPlayer.competitive===false&&!isStarter)?'<span style="display:inline-block;width:1.35rem"></span>':trendBadgeHtml(myTrend);
     var myRankArr=['<img src="ai-icons/medal-1-gold.png" style="width:22px;height:22px;object-fit:contain">','<img src="ai-icons/medal-2-silver.png" style="width:22px;height:22px;object-fit:contain">','<img src="ai-icons/medal-3-bronze.png" style="width:22px;height:22px;object-fit:contain">'];
     // Une médaille dans la barre sticky uniquement si je suis dans le bloc
     // compétitifs (même règle que les lignes du tableau) — jamais pour du calibrage.
