@@ -21821,6 +21821,186 @@ function _formatTeamChallengeDates(startIso,endIso){
   return sStr+' - '+eStr+' '+mStr+'.';
 }
 
+// ──────────────────────────────────────────────────────────────────────────
+// Défi « TOUS AU DÉPART » (2026-10-07, metric 'participation'). Règle (MIROIR de
+// _resolve_participation_edition() en base -- garder synchro, NE PAS diverger) : la
+// team réussit si TOUS ses RP présents au départ (team_members.joined_at < start_at)
+// sont inscrits ET ont couru >= min_km_for_reward sur [start_at, end_at[ (samedi OU
+// dimanche). Un arrivant APRÈS start_at ne compte pas. Pas de classement.
+// ──────────────────────────────────────────────────────────────────────────
+async function _buildTeamParticipationData(edition,teamId){
+  // Inscrits de TOUTES les teams (une requête) -> teams « en jeu » = au moins 1 inscrit + la mienne.
+  var {data:parts}=await supabaseClient.from('team_challenge_participants').select('player_id,team_id').eq('edition_id',edition.id);
+  parts=parts||[];
+  var joinedKey={}, involved={};
+  parts.forEach(function(j){ joinedKey[j.team_id+'|'+j.player_id]=true; involved[j.team_id]=true; });
+  involved[teamId]=true;
+  var teamIds=Object.keys(involved);
+  var {data:mem}=await supabaseClient.from('team_members').select('team_id,player_id,joined_at').in('team_id',teamIds);
+  mem=mem||[];
+  var ids=Array.from(new Set(mem.map(function(m){return m.player_id;})));
+  var info={};
+  for(var i=0;i<ids.length;i+=150){
+    var {data:pl}=await supabaseClient.from('players').select('id,username,nat').in('id',ids.slice(i,i+150));
+    (pl||[]).forEach(function(p){info[p.id]=p;});
+  }
+  // Km : seulement pour les inscrits (un RP non inscrit ne peut pas valider).
+  var regIds=Array.from(new Set(parts.map(function(j){return j.player_id;})));
+  var kmBy={};
+  for(var k=0;k<regIds.length;k+=150){
+    var {data:runs}=await supabaseClient.from('runs').select('player_id,distance')
+      .in('player_id',regIds.slice(k,k+150)).gte('run_date',edition.start_at).lt('run_date',edition.end_at);
+    (runs||[]).forEach(function(r){kmBy[r.player_id]=(kmBy[r.player_id]||0)+(r.distance||0);});
+  }
+  var {data:tinfo}=await supabaseClient.from('teams').select('id,name,color,blason_index,invite_code').in('id',teamIds);
+  var teamById={}; (tinfo||[]).forEach(function(t){teamById[t.id]=t;});
+  var start=new Date(edition.start_at).getTime(), minKm=Number(edition.min_km_for_reward)||0;
+
+  var teams=teamIds.map(function(tid){
+    var rows=mem.filter(function(m){return m.team_id===tid;}).map(function(m){
+      var pi=info[m.player_id]||{};
+      var km=kmBy[m.player_id]||0;
+      var eligible=new Date(m.joined_at).getTime()<start;
+      var registered=!!joinedKey[tid+'|'+m.player_id];
+      return {pid:m.player_id, name:pi.username||'RP', nat:pi.nat||null, km:km, eligible:eligible, registered:registered,
+              validated:eligible&&registered&&km>=minKm};
+    }).sort(function(a,b){
+      function rk(r){return !r.eligible?3:(r.validated?0:(r.registered?1:2));}
+      return rk(a)-rk(b) || b.km-a.km || a.name.localeCompare(b.name);
+    });
+    var elig=rows.filter(function(r){return r.eligible;});
+    return {team:teamById[tid], tid:tid, rows:rows, nElig:elig.length,
+      nReg:elig.filter(function(r){return r.registered;}).length,
+      nVal:elig.filter(function(r){return r.validated;}).length};
+  });
+  var mine=teams.find(function(t){return t.tid===teamId;})||{team:teamById[teamId],rows:[],nElig:0,nReg:0,nVal:0};
+  return {
+    minKm:minKm, rows:mine.rows, nElig:mine.nElig, nReg:mine.nReg, nVal:mine.nVal, teams:teams,
+    allTeamsStats:[{team:mine.team, teamSize:mine.rows.length, joinedIds:[], rows:[], totalCapped:0, progressPct:0, minOk:true}]
+  };
+}
+
+// Statut lisible d'un RP pour ce défi (réutilisé par « Ma team » et le menu Premium des autres teams).
+function _tcPartStatus(r,minKm){
+  var kmTxt=(Number.isInteger(r.km)?r.km:r.km.toFixed(1)).toString().replace('.',',')+' km';
+  if(!r.eligible) return {txt:'Arrivé après le départ', col:'var(--muted2)'};
+  if(r.validated) return {txt:kmTxt, col:'var(--green)'};
+  if(r.registered){ var left=Math.max(0,minKm-r.km); var lt=(Number.isInteger(left)?left:left.toFixed(1)).toString().replace('.',','); return {txt:(r.km>0?('Encore '+lt+' km'):'Inscrit'), col:'var(--text)'}; }
+  return {txt:'Pas encore inscrit', col:'var(--muted2)'};
+}
+
+// Onglet « Progression » (remplace le Classement pour ce défi) : mêmes lignes/menu que le
+// classement des défis km (même design, demande explicite 2026-10-07), SANS numéros de rang.
+// Détail des RP d'une autre team au clic = avantage Premium (toggleTeamChallengeRankingDropdown).
+function _teamChallengeProgressList(c){
+  var ed=c.edition, p=c.part;
+  var started=Date.now()>=new Date(ed.start_at).getTime();
+  var list=p.teams.filter(function(o){return o.nElig>0 && (o.nReg>0 || o.tid===c.myTeamId);}).sort(function(a,b){
+    var pa=(started?a.nVal:a.nReg)/a.nElig, pb=(started?b.nVal:b.nReg)/b.nElig, ra=a.nReg/a.nElig, rb=b.nReg/b.nElig;
+    return (pb-pa) || (rb-ra) || b.nElig-a.nElig;
+  });
+  if(!list.length) return '<div style="text-align:center;color:var(--muted2);font-size:.8rem;padding:1rem">Aucune team inscrite pour l\'instant.</div>';
+  return '<div id="tc-ranking-scroll" style="max-height:50vh;overflow-y:auto">'+list.map(function(o){
+    var nm=o.team?o.team.name:'Team';
+    var col=o.team&&o.team.color?o.team.color:'var(--muted2)';
+    var isMine=o.tid===c.myTeamId;
+    var ok=started && o.nElig>0 && o.nVal===o.nElig;
+    var isOpen=o.tid===_teamChallengeOpenTeamId;
+    var pctVal=Math.round(100*(started?o.nVal:o.nReg)/o.nElig), pctReg=started?Math.round(100*(o.nReg-o.nVal)/o.nElig):0;
+    var dd=!isOpen?'':(
+      '<div id="tc-open-dd" style="background:#080e1e;border:1px solid rgba(255,255,255,.3);border-radius:10px;box-shadow:0 8px 30px rgba(0,0,0,.5);overflow:hidden;margin-top:6px">'
+      +o.rows.map(function(r){
+        var st=_tcPartStatus(r,p.minKm);
+        return '<div style="padding:.5rem 1rem;font-size:.78rem;display:flex;justify-content:space-between;align-items:center;gap:.5rem;border-bottom:1px solid rgba(255,255,255,.06)">'
+          +'<span style="display:flex;align-items:center;gap:.45rem;min-width:0">'+_teamChallengeNameHtml(r)+'</span>'
+          +'<span style="color:'+st.col+';font-weight:700;font-size:.7rem;flex-shrink:0">'+st.txt+'</span>'
+        +'</div>';
+      }).join('')
+      +'</div>');
+    return '<div style="position:relative;margin-bottom:.35rem">'
+      +'<div onclick="toggleTeamChallengeRankingDropdown(\''+o.tid+'\')" style="padding:.5rem .6rem;border-radius:6px;border:1.5px solid '+(isMine?'rgba(255,255,255,.65)':'rgba(255,255,255,.28)')+';background:var(--bg2);cursor:pointer">'
+        +'<div style="display:flex;justify-content:space-between;align-items:center;font-size:.78rem;margin-bottom:.35rem;gap:.4rem">'
+          +'<span style="display:flex;align-items:center;gap:.35rem;min-width:0;flex:1">'
+            +(o.team?_teamChallengeBlasonHtml(o.team,20):'')
+            +'<span style="color:'+_teamNameColor(col)+';font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+nm.toUpperCase()+'</span>'
+          +'</span>'
+          +'<span style="color:var(--muted2);font-family:Space Mono,monospace;font-size:.7rem;flex-shrink:0">'+(started?o.nVal:o.nReg)+'/'+o.nElig+' '+(started?'RP':'inscrits')+'</span>'
+        +'</div>'
+        +'<div style="width:100%;height:9px;border-radius:5px;background:rgba(255,255,255,.06);overflow:hidden;display:flex">'
+          +'<div style="height:100%;width:'+pctVal+'%;background:'+col+';opacity:.6"></div>'
+          +'<div style="height:100%;width:'+pctReg+'%;background:var(--gold);opacity:.3"></div>'
+        +'</div>'
+      +'</div>'
+      +dd
+    +'</div>';
+  }).join('')+'</div>';
+}
+
+function _teamChallengePartBody(c){
+  var ed=c.edition, p=c.part;
+  if(!ed||!p) return '<div style="text-align:center;color:var(--muted2);font-size:.85rem;padding:1.5rem 0">Aucun défi collectif en cours.</div>';
+  if(_teamChallengeTab==='ranking') return _teamChallengeProgressList(c);
+  var now=Date.now(), end=new Date(ed.end_at).getTime();
+  var ended=now>=end, started=now>=new Date(ed.start_at).getTime();
+  var me=p.rows.find(function(r){return r.pid===currentUser.id;})||null;
+  var meEligible=!!(me&&me.eligible), meJoined=!!(me&&me.registered);
+  var minTxt=p.minKm+' km';
+  var head='<div style="text-align:center;margin-bottom:.6rem">'
+      +'<div style="font-family:\'Bebas Neue\',sans-serif;font-size:1.5rem;letter-spacing:3px;text-transform:uppercase;color:var(--text)">'+escapeHtml(ed.label||'Tous au départ')+'</div>'
+      +'<span style="color:var(--muted2);font-size:.7rem">('+_formatTeamChallengeDates(ed.start_at,ed.end_at)+')</span>'
+    +'</div>';
+
+  if(_teamChallengeTab!=='mine'){
+    // Vue « Règles » (par défaut) : explication + bouton d'inscription.
+    var rules='<div style="padding:.6rem .75rem;border-radius:7px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.3);font-size:.76rem;color:var(--muted2);line-height:1.75;margin-bottom:.7rem">'
+      +'• <b style="color:var(--text)">Tous les RP de ta team</b> s\'inscrivent et courent <b style="color:var(--text)">au moins '+minTxt+'</b> pendant le week-end (samedi <b style="color:var(--text)">ou</b> dimanche).<br>'
+      +'• Un seul absent et le défi est perdu !<br>'
+      +'• Récompense pour chaque RP : <b style="color:var(--gold)">'+ed.reward_rpc+' RPC</b> + <b style="color:var(--green)">'+ed.reward_nyx+' NYX</b>.<br>'
+            +'• Un RP qui entre dans une team après le départ du défi ne peut pas participer.'
+    +'</div>';
+    var cta='';
+    if(me && !meEligible){
+      cta='<div style="text-align:center;font-size:.76rem;color:var(--muted2);line-height:1.5;padding:.4rem .2rem">Tu as rejoint la team après le départ du défi : tu ne comptes pas cette fois, mais tes coéquipiers comptent sur ton soutien !</div>';
+    } else if(me && !meJoined && !ended){
+      cta='<button onclick="joinTeamWeekendChallenge(\''+c.myTeamId+'\')" style="width:100%;margin-top:.4rem;padding:.5rem;border-radius:8px;border:1.5px solid var(--green);background:linear-gradient(175deg,rgba(45,219,128,.22),rgba(20,160,80,.12));color:var(--green);font-family:\'Bebas Neue\',sans-serif;font-size:1rem;letter-spacing:3px;cursor:pointer">JE M\'INSCRIS</button>';
+    } else if(meJoined){
+      cta='<div style="text-align:center;font-size:.8rem;color:var(--green);font-weight:700;padding:.3rem">✓ Inscrit</div>';
+    }
+    return head+rules+cta;
+  }
+
+  // Vue « Ma team » : progression + statut de chaque RP.
+  var missingReg=p.nElig-p.nReg, toRun=p.nElig-p.nVal;
+  // Avant le départ : seules les inscriptions comptent (personne n'a pu courir pour le défi).
+  var pctVal=p.nElig?Math.round(100*(started?p.nVal:p.nReg)/p.nElig):0;
+  var pctReg=started&&p.nElig?Math.round(100*(p.nReg-p.nVal)/p.nElig):0;
+  var msg;
+  if(p.nElig>0 && p.nVal===p.nElig) msg='<b style="color:var(--green)">🏁 Défi réussi !</b> Récompense créditée à la fin du week-end.';
+  else if(ended) msg='Défi terminé : il s\'en est fallu de <b style="color:var(--gold)">'+toRun+' RP</b>. Bravo à tous ceux qui ont joué le jeu, rendez-vous au prochain défi !';
+  else if(missingReg>0) msg='Il manque encore <b style="color:var(--gold)">'+missingReg+' RP</b> à l\'appel. Préviens tes coéquipiers : sans eux, rien ne se valide.';
+  else if(!started) msg='Tous inscrits ! Rendez-vous ce week-end : <b style="color:var(--gold)">'+minTxt+'</b> minimum à courir (samedi ou dimanche).';
+  else msg='Tous inscrits ! Plus que <b style="color:var(--gold)">'+toRun+' RP</b> à faire courir ('+minTxt+' minimum).';
+  var barHtml='<div style="width:100%;height:14px;border-radius:7px;background:rgba(255,255,255,.06);overflow:hidden;border:1px solid var(--border);display:flex">'
+      +'<div style="height:100%;width:'+pctVal+'%;background:var(--green);opacity:.85"></div>'
+      +'<div style="height:100%;width:'+pctReg+'%;background:var(--gold);opacity:.5"></div>'
+    +'</div>';
+  var rowsHtml='<div style="max-height:50vh;overflow-y:auto">'+p.rows.map(function(r){
+    var isMe=r.pid===currentUser.id;
+    var st=_tcPartStatus(r,p.minKm);
+    return '<div style="display:flex;align-items:center;justify-content:space-between;gap:.5rem;padding:.4rem .55rem;border-radius:6px;border:1px solid '+(isMe?'rgba(255,255,255,.65)':'rgba(255,255,255,.28)')+';background:rgba(255,255,255,.03);margin-bottom:.3rem;font-size:.75rem">'
+      +_teamChallengeNameHtml(r,isMe?'var(--gold)':'var(--text)')
+      +'<span style="color:'+st.col+';font-weight:700;flex-shrink:0;font-size:.72rem">'+st.txt+'</span>'
+    +'</div>';
+  }).join('')+'</div>';
+  return head
+    +'<div style="text-align:center;margin-bottom:.7rem">'
+      +'<div style="font-family:Space Mono,monospace;font-size:.8rem;color:var(--muted2);margin-bottom:.3rem">'+(started?(p.nVal+' / '+p.nElig+' RP ont couru '+minTxt+' · '+p.nReg+' / '+p.nElig+' inscrits'):(p.nReg+' / '+p.nElig+' RP inscrits'))+'</div>'
+      +barHtml
+    +'</div>'
+    +'<div style="padding:.55rem .7rem;border-radius:9px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.3);font-size:.76rem;line-height:1.45;color:var(--text);margin-bottom:.7rem">'+msg+'</div>'
+    +rowsHtml;
+}
+
 async function openTeamWeekendChallenge(){
   if(!currentUser){ showToast('Connecte-toi pour participer.'); return; }
   var {data:myMembership}=await supabaseClient.from('team_members')
@@ -21856,8 +22036,12 @@ async function openTeamWeekendChallenge(){
   var successCount=historyRows.filter(function(r){return r.status==='success';}).length;
   var failedCount=historyRows.filter(function(r){return r.status==='failed';}).length;
 
-  var allTeamsStats=[], capKm=0;
-  if(edition){
+  var allTeamsStats=[], capKm=0, partData=null;
+  if(edition && edition.metric==='participation'){
+    partData=await _buildTeamParticipationData(edition,teamId);
+    allTeamsStats=partData.allTeamsStats; capKm=Infinity;
+  }
+  if(edition && !partData){
     capKm=_tcCap(edition);
 
     // Inscrits À CETTE ÉDITION, toutes teams confondues (2026-09-25, demande
@@ -21925,7 +22109,7 @@ async function openTeamWeekendChallenge(){
     allTeamsStats=teamIdsInvolved.map(buildTeamStats).sort(function(a,b){return b.totalCapped-a.totalCapped;});
   }
 
-  _teamChallengeCache={myTeamId:teamId, edition:edition, capKm:capKm, allTeamsStats:allTeamsStats,
+  _teamChallengeCache={myTeamId:teamId, edition:edition, capKm:capKm, allTeamsStats:allTeamsStats, part:partData,
     successCount:successCount||0, failedCount:failedCount||0, history:historyRows};
   _teamChallengeTab='intro';
   _teamChallengeHistoryOpen=false;
@@ -21945,7 +22129,7 @@ async function openTeamWeekendChallenge(){
 // onglet actuel et voit juste le message d'incitation standard du jeu.
 function switchTeamChallengeTab(tab){
   if(tab==='ranking' && !isPremium()){
-    showPremiumGate('Le classement de toutes les teams est réservé au Premium.');
+    showPremiumGate((_teamChallengeCache&&_teamChallengeCache.edition&&_teamChallengeCache.edition.metric==='participation')?'La progression de toutes les teams est réservée au Premium.':'Le classement de toutes les teams est réservé au Premium.');
     return;
   }
   _teamChallengeTab=tab;
@@ -22058,7 +22242,7 @@ function _renderTeamChallengeModal(){
           +'<span style="color:var(--text);font-weight:700">'+(ed?ed.label:'Défi collectif')+'</span>'
           +'<span style="color:'+col+';font-weight:700">'+(ok?'✓ Réussi':'✗ Échec')+'</span>'
         +'</div>'
-        +'<div style="color:var(--muted2);font-family:Space Mono,monospace">'+dates+' · '+(ed?_tcFmt(ed,r.total_km)+' / '+_tcFmt(ed,ed.goal_km):Number(r.total_km).toFixed(1)+' km')+' · '+r.participants_count+' RP inscrits</div>'
+        +'<div style="color:var(--muted2);font-family:Space Mono,monospace">'+dates+' · '+(ed&&ed.metric==='participation'?(r.total_km+' / '+r.participants_count+' RP au départ'):((ed?_tcFmt(ed,r.total_km)+' / '+_tcFmt(ed,ed.goal_km):Number(r.total_km).toFixed(1)+' km')+' · '+r.participants_count+' RP inscrits'))+'</div>'
       +'</div>';
     }).join('');
   }
@@ -22093,9 +22277,11 @@ function _renderTeamChallengeModal(){
       +'<button onclick="switchTeamChallengeTab(\''+tab+'\')" style="width:100%;display:block;padding:.5rem .3rem;border:none;clip-path:polygon(9px 0,calc(100% - 9px) 0,100% 9px,100% calc(100% - 9px),calc(100% - 9px) 100%,9px 100%,0 calc(100% - 9px),0 9px);background:'+innerBg+';cursor:pointer;font-family:\'Bebas Neue\',sans-serif;font-size:.92rem;letter-spacing:1.5px;color:'+textColor+';text-transform:uppercase">'+label+(lockIcon?' 🔒':'')+'</button>'
     +'</div>';
   }
+  var _isPart=!!(edition && edition.metric==='participation');
   var tabsHtml='<div style="display:flex;gap:.5rem;margin-top:.8rem">'
+    +(_isPart?_teamChallengeTabBtn('intro','Règles',false):'')
     +_teamChallengeTabBtn('mine','Ma team',false)
-    +_teamChallengeTabBtn('ranking','Classement',!isPremium())
+    +(_isPart?_teamChallengeTabBtn('ranking','Progression',!isPremium()):_teamChallengeTabBtn('ranking','Classement',!isPremium()))
     +'</div>';
 
   // Bloc règles du défi -- réutilisé à l'identique sur "intro" (2026-09-25 :
@@ -22134,7 +22320,9 @@ function _renderTeamChallengeModal(){
 
   var bodyHtml='';
 
-  if(_teamChallengeTab==='ranking'){
+  if(_isPart){
+    bodyHtml=_teamChallengePartBody(c);
+  } else if(_teamChallengeTab==='ranking'){
     // Liste enveloppée dans son propre scroll (max-height, cf. _renderEventRanking)
     // -- 2026-09-25, bug signalé : avec beaucoup de teams, laisser .modal-box
     // seul gérer le scroll (overflow-y:auto + max-height:85vh) coupait le cadre
