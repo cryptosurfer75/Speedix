@@ -9,7 +9,7 @@
 //   SKIP_WAITING, et recharge automatiquement dès que le nouveau prend le
 //   contrôle — les utilisateurs ont ainsi la nouvelle version sans refresh manuel.
 
-const CACHE_VERSION = 'speedix-V2-373';
+const CACHE_VERSION = 'speedix-V2-374';
 // Cache d'ASSETS (images, icônes, polices, scripts CDN) SÉPARÉ et NON versionné (2026-10-07, audit
 // vitesse) : avant, tout vivait dans le cache versionné et chaque release (bump de CACHE_VERSION)
 // le supprimait → tous les téléphones retéléchargeaient toutes les images (jusqu'à 14 Mo en 1re
@@ -27,14 +27,20 @@ const STATIC_ASSETS = [
   '/logo-speedix.png',
   '/logo-speedix-hd.png',
   '/logo-speedix-sm.png',
-  '/hero-cover-new.webp'
+  '/hero-cover-new.webp',
+  '/vendor/supabase-js-2.117.2.js',
+  '/fonts/bebas-neue-400-latin.woff2',
+  '/fonts/rajdhani-500-latin.woff2',
+  '/fonts/rajdhani-600-latin.woff2',
+  '/fonts/rajdhani-700-latin.woff2',
+  '/fonts/space-mono-400-latin.woff2'
 ];
 
 // ── Install : pré-cache les assets essentiels ────────────────────────────
 self.addEventListener('install', event => {
   event.waitUntil(
     Promise.all([
-      caches.open(CACHE_VERSION).then(cache => cache.addAll(HTML_ASSETS).catch(err => {
+      caches.open(CACHE_VERSION).then(cache => cache.addAll(HTML_ASSETS.map(u => new Request(u, { cache: 'reload' }))).catch(err => {
         console.warn('[SW] pre-cache HTML partial fail', err);
       })),
       caches.open(ASSET_CACHE).then(cache => cache.addAll(STATIC_ASSETS).catch(err => {
@@ -87,8 +93,31 @@ self.addEventListener('fetch', event => {
     return; // laisse passer au réseau sans toucher
   }
 
-  // Network-first pour le HTML (pour voir les mises à jour immédiatement)
-  if (request.mode === 'navigate' || url.pathname.endsWith('.html') || url.pathname === '/') {
+  // Page de l'appli (/ et /index.html, quelle que soit la query) : STALE-WHILE-REVALIDATE (2026-10-07, audit
+  // vitesse) -- l'appli s'ouvre INSTANTANÉMENT depuis le cache (plus d'attente du réseau, ~2,5 Mo de HTML), et la
+  // version la plus récente est téléchargée en arrière-plan pour la prochaine ouverture. Les vraies mises à jour
+  // continuent d'arriver par le mécanisme existant : nouveau service-worker.js (CACHE_VERSION bumpé) -> install
+  // (HTML re-téléchargé « reload ») -> SKIP_WAITING -> controllerchange -> rechargement automatique côté page.
+  const isAppPage = request.mode === 'navigate' && (url.pathname === '/' || url.pathname === '/index.html');
+  if (isAppPage) {
+    event.respondWith(
+      caches.open(CACHE_VERSION).then(cache => cache.match('/index.html').then(cached => {
+        const refresh = () => fetch('/index.html', { cache: 'no-cache' }).then(resp => {
+          if (resp && resp.ok && !resp.redirected) cache.put('/index.html', resp.clone());
+          return resp;
+        });
+        if (cached) {
+          event.waitUntil(refresh().catch(() => {}));
+          return cached;
+        }
+        return refresh().catch(() => caches.match('/index.html'));
+      }))
+    );
+    return;
+  }
+
+  // Autres pages HTML (ex. /go, pages légales) : réseau d'abord (comportement historique).
+  if (request.mode === 'navigate' || url.pathname.endsWith('.html')) {
     event.respondWith(
       fetch(request)
         .then(resp => {
