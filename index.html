@@ -1208,6 +1208,37 @@ body::after{
     #cr-app .ans{padding:11px 12px}
     #cr-app .bankbtn{flex-basis:92px;padding:12px 0;font-size:22px}
   }
+  /* Écran de jeu : le bouton BANK doit TOUJOURS être visible sans scroller (2026-10-07, demande
+     explicite : sur certains téléphones il tombait sous le bas de l'écran). La zone de jeu
+     (.app.ingame, classe posée par show('s-game')) prend la hauteur RÉELLEMENT disponible sous la
+     barre du haut de l'appli (~112 px + marge) au lieu de 96vh (qui débordait), et on compacte
+     question / réponses / échelle sur les écrans courts. Sans effet sur les autres écrans. */
+  #cr-app .app.ingame{height:min(calc(100vh - 124px),860px);height:min(calc(100dvh - 124px),860px)}
+  @media (max-height:820px){
+    #cr-app .app.ingame .qcard{min-height:84px;padding:12px 16px;margin-bottom:10px}
+    #cr-app .app.ingame .answers{padding-top:6px;gap:7px}
+    #cr-app .app.ingame .ans{padding:9px 12px}
+    #cr-app .app.ingame .ladder{gap:4px}
+    #cr-app .app.ingame .chip{height:24px;font-size:12px}
+    #cr-app .app.ingame .chip.jackpot{height:36px}
+    #cr-app .app.ingame .chip.bank{height:32px;margin-top:4px}
+    #cr-app .app.ingame .pbar{margin-bottom:8px}
+    #cr-app .app.ingame header{margin-bottom:6px}
+    #cr-app .app.ingame .foot{margin-top:8px}
+    #cr-app .app.ingame .bankbtn{padding:10px 0}
+  }
+  @media (max-height:700px){
+    #cr-app .app.ingame .qcard{min-height:70px;padding:10px 14px;margin-bottom:8px}
+    #cr-app .app.ingame .ans{padding:7px 12px}
+    #cr-app .app.ingame .ladder{gap:3px}
+    #cr-app .app.ingame .chip{height:21px;font-size:11px}
+    #cr-app .app.ingame .chip.jackpot{height:30px;font-size:14px}
+    #cr-app .app.ingame .chip.bank{height:28px}
+    #cr-app .app.ingame .pbar{margin-bottom:6px}
+    #cr-app .app.ingame header{margin-bottom:4px}
+    #cr-app .app.ingame .foot{margin-top:6px}
+    #cr-app .app.ingame .bankbtn{padding:8px 0;font-size:20px}
+  }
 
 </style>
 <style id="tour-style">
@@ -28968,7 +28999,7 @@ function refreshAvail(){
 
 // ====================== UTILITAIRES ======================
 function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
-function show(id){document.querySelectorAll('#cr-app .screen').forEach(s=>s.classList.remove('on'));$(id).classList.add('on');}
+function show(id){document.querySelectorAll('#cr-app .screen').forEach(s=>s.classList.remove('on'));$(id).classList.add('on');var _a=document.querySelector('#cr-app .app'); if(_a) _a.classList.toggle('ingame', id==='s-game');}
 
 function buildLadder(){
   const lad=$('g-ladder');lad.innerHTML='';
