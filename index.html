@@ -251,7 +251,35 @@
 
   // Retry : 3 tentatives au total (1 initiale + 2 retries), délais 1s puis 2s
   // Uniquement sur vraies erreurs réseau (pas sur 4xx/5xx, qui arrivent via resolve)
+  // Regroupement des lectures IDENTIQUES envoyées en même temps (2026-10-07, audit vitesse) : au démarrage, plusieurs
+  // vérifications demandent exactement la même chose à la base au même moment (ex. players?select=referred_by x4, tour_lands x4,
+  // player_badges x4). Tant qu'une lecture (GET/HEAD /rest/v1/) identique (même URL + mêmes en-têtes, donc même utilisateur) est
+  // EN COURS, les appels suivants reçoivent la même réponse au lieu de relancer une requête. Aucune mise en cache après la fin
+  // de la requête : une lecture faite après une écriture repart toujours au réseau (jamais de donnée périmée).
+  var _inflightReads = {};
+  function _dedupKey(url, opts){
+    opts = opts || {};
+    var m = (opts.method || 'GET').toUpperCase();
+    if(m !== 'GET' && m !== 'HEAD') return null;
+    if(String(url).indexOf('/rest/v1/') < 0) return null;
+    var h = opts.headers || {}, parts = [];
+    if(h && typeof h.forEach === 'function'){ h.forEach(function(v, k){ parts.push(String(k).toLowerCase() + ':' + v); }); }
+    else { Object.keys(h).forEach(function(k){ parts.push(k.toLowerCase() + ':' + h[k]); }); }
+    parts.sort();
+    return m + ' ' + url + ' ' + parts.join('|');
+  }
   function xhrFetch(url, opts){
+    var key = _dedupKey(url, opts);
+    if(key && _inflightReads[key]) return _inflightReads[key];
+    var p = xhrFetchRetry(url, opts);
+    if(key){
+      _inflightReads[key] = p;
+      var clear = function(){ delete _inflightReads[key]; };
+      p.then(clear, clear);
+    }
+    return p;
+  }
+  function xhrFetchRetry(url, opts){
     var attempt = 0;
     var MAX = 3;
     function go(){
