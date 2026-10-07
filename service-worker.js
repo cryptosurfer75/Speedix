@@ -9,28 +9,38 @@
 //   SKIP_WAITING, et recharge automatiquement dès que le nouveau prend le
 //   contrôle — les utilisateurs ont ainsi la nouvelle version sans refresh manuel.
 
-const CACHE_VERSION = 'speedix-V2-372';
+const CACHE_VERSION = 'speedix-V2-373';
+// Cache d'ASSETS (images, icônes, polices, scripts CDN) SÉPARÉ et NON versionné (2026-10-07, audit
+// vitesse) : avant, tout vivait dans le cache versionné et chaque release (bump de CACHE_VERSION)
+// le supprimait → tous les téléphones retéléchargeaient toutes les images (jusqu'à 14 Mo en 1re
+// vue, ~65 Mo de PNG au total). Désormais seul le cache HTML ci-dessus est vidé à chaque release ;
+// les assets sont servis depuis ASSET_CACHE et revalidés en arrière-plan au plus 1x/24 h.
+// Si un fichier est remplacé EN PLACE (même nom) il se met à jour sous 24 h ; pour forcer, changer
+// son nom (convention du projet : suffixe -vN) ou incrémenter ASSET_CACHE.
+const ASSET_CACHE = 'speedix-assets-v1';
+const ASSET_MAX_AGE_MS = 24 * 3600 * 1000;
+const HTML_ASSETS = ['/', '/index.html', '/manifest.json'];
 const STATIC_ASSETS = [
-  '/',
-  '/index.html',
-  '/manifest.json',
   '/icon-192.png',
   '/icon-512.png',
   '/icon-180.png',
   '/logo-speedix.png',
   '/logo-speedix-hd.png',
   '/logo-speedix-sm.png',
-  '/hero-cover-new.png'
+  '/hero-cover-new.webp'
 ];
 
 // ── Install : pré-cache les assets essentiels ────────────────────────────
 self.addEventListener('install', event => {
   event.waitUntil(
-    caches.open(CACHE_VERSION).then(cache => {
-      return cache.addAll(STATIC_ASSETS).catch(err => {
-        console.warn('[SW] pre-cache partial fail', err);
-      });
-    })
+    Promise.all([
+      caches.open(CACHE_VERSION).then(cache => cache.addAll(HTML_ASSETS).catch(err => {
+        console.warn('[SW] pre-cache HTML partial fail', err);
+      })),
+      caches.open(ASSET_CACHE).then(cache => cache.addAll(STATIC_ASSETS).catch(err => {
+        console.warn('[SW] pre-cache assets partial fail', err);
+      }))
+    ])
   );
   // On ne skipWaiting QUE sur demande du client (message SKIP_WAITING), pour
   // éviter d'interrompre l'utilisateur au milieu d'une action. Le client envoie
@@ -53,7 +63,7 @@ self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys().then(names => {
       return Promise.all(
-        names.filter(n => n !== CACHE_VERSION).map(n => caches.delete(n))
+        names.filter(n => n !== CACHE_VERSION && n !== ASSET_CACHE).map(n => caches.delete(n))
       );
     }).then(() => self.clients.claim())
   );
@@ -91,19 +101,24 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // Cache-first pour les assets statiques (icônes, logos, CDN)
+  // Requêtes partielles (vidéo/audio) : jamais interceptées (le cache ne gère pas les Range).
+  if (request.headers.has('range')) return;
+
+  // Assets statiques (images, icônes, logos, CDN) : cache-first dans ASSET_CACHE (non versionné),
+  // revalidé en arrière-plan seulement si l'entrée a plus de 24 h.
   event.respondWith(
-    caches.match(request).then(cached => {
-      if (cached) return cached;
-      return fetch(request).then(resp => {
-        // On met en cache uniquement les réponses OK
-        if (resp.ok) {
-          const copy = resp.clone();
-          caches.open(CACHE_VERSION).then(c => c.put(request, copy));
-        }
+    caches.open(ASSET_CACHE).then(cache => cache.match(request).then(cached => {
+      const refresh = () => fetch(request).then(resp => {
+        if (resp && resp.ok) cache.put(request, resp.clone());
         return resp;
-      }).catch(() => cached);
-    })
+      });
+      if (cached) {
+        const d = Date.parse(cached.headers.get('date') || '') || 0;
+        if (!d || (Date.now() - d) > ASSET_MAX_AGE_MS) event.waitUntil(refresh().catch(() => {}));
+        return cached;
+      }
+      return refresh().catch(() => cached);
+    }))
   );
 });
 

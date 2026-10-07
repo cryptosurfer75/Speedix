@@ -158,7 +158,7 @@ body::before{
    mix-blend-mode:screen : le noir de l'image devient transparent, seule la lueur ressort. */
 body::after{
   content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
-  background-image:url('bg-app-neon.png');
+  background-image:url('bg-app-neon.webp');
   background-size:cover;
   background-position:center;
   background-repeat:no-repeat;
@@ -750,7 +750,7 @@ body::after{
 .modal-box{background:var(--card-grad);border:1px solid var(--border2);border-radius:10px;padding:1.5rem;max-width:480px;width:92%;max-height:85vh;max-height:85dvh;overflow-y:auto;-webkit-overflow-scrolling:touch;position:relative}
 .modal-title{font-family:'Bebas Neue',sans-serif;font-size:1.2rem;letter-spacing:2px;color:var(--gold);margin-bottom:.25rem}
 .modal-sub{font-size:.78rem;color:var(--muted2);margin-bottom:1.1rem}
-.modal-close{position:absolute;top:.55rem;right:.7rem;width:32px;height:32px;border:none;background:url('icon-close-x.png') center/contain no-repeat;color:transparent;cursor:pointer;transition:transform .2s;z-index:5}
+.modal-close{position:absolute;top:.55rem;right:.7rem;width:32px;height:32px;border:none;background:url('icon-close-x.webp') center/contain no-repeat;color:transparent;cursor:pointer;transition:transform .2s;z-index:5}
 .modal-close:hover{transform:scale(1.08)}
 /* ============================================================
    TOAST
@@ -1527,11 +1527,11 @@ body::after{
   background:var(--bg2); position:relative; padding:24px 20px 20px;
   clip-path:polygon(15px 0,calc(100% - 15px) 0,100% 15px,100% calc(100% - 15px),calc(100% - 15px) 100%,15px 100%,0 calc(100% - 15px),0 15px);
 }
-/* Croix de la vraie appli (icon-close-x.png, cf .modal-close dans
+/* Croix de la vraie appli (icon-close-x.webp, cf .modal-close dans
    SPEEDIX-prod-DESIGN/index.html) — remplace le "✕" texte générique. */
 .rent-modal-close{
   position:absolute; top:10px; right:14px; width:26px; height:26px;
-  background:url('icon-close-x.png') center/contain no-repeat; border:none;
+  background:url('icon-close-x.webp') center/contain no-repeat; border:none;
   color:transparent; cursor:pointer;
 }
 .rent-modal-inner h2{
@@ -1841,7 +1841,7 @@ body::after{
    Island qui intercepte les touchs, la croix devenait inatteignable). */
 .mylands-close{
   position:fixed; top:calc(env(safe-area-inset-top) + 24px); right:24px; width:30px; height:30px; z-index:1901;
-  background:url('icon-close-x.png') center/contain no-repeat; border:none;
+  background:url('icon-close-x.webp') center/contain no-repeat; border:none;
   color:transparent; cursor:pointer;
 }
 .mylands-grid{
@@ -1881,7 +1881,7 @@ body::after{
    (2026-08-11) -- même bug, même cause (encoche/Dynamic Island). */
 .rules-close{
   position:fixed; top:calc(env(safe-area-inset-top) + 24px); right:24px; width:30px; height:30px; z-index:1901;
-  background:url('icon-close-x.png') center/contain no-repeat; border:none;
+  background:url('icon-close-x.webp') center/contain no-repeat; border:none;
   color:transparent; cursor:pointer;
 }
 .rules-body{ max-width:640px; margin:0 auto 40px; }
@@ -2199,7 +2199,7 @@ body::after{
     <div style="flex:1;overflow:hidden;position:relative;height:32px">
       <div id="store-ticker-track" style="display:inline-block;position:absolute;left:0;top:0;line-height:32px;color:#fff;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:.95rem;letter-spacing:.4px;will-change:transform"></div>
     </div>
-    <button id="store-ticker-close" aria-label="Fermer" style="flex:0 0 32px;height:32px;border:none;background:#0c0f1a url('icon-close-x.png') center/62% no-repeat;color:transparent;font-size:0;cursor:pointer;position:relative;z-index:2"></button>
+    <button id="store-ticker-close" aria-label="Fermer" style="flex:0 0 32px;height:32px;border:none;background:#0c0f1a url('icon-close-x.webp') center/62% no-repeat;color:transparent;font-size:0;cursor:pointer;position:relative;z-index:2"></button>
   </div>
 </div>
 <style>
@@ -2414,7 +2414,7 @@ select option{background:#040c1c}
 <!-- Image de couverture plein écran à l'étape 1 (logo + leagues + route),
      réduite à un bandeau logo une fois qu'on quitte l'étape 1 (cf. toggle
      classe .hero-fs dans hgo()/showLoginScreen()). -->
-<img id="hero-logo" src="hero-cover-new.png" alt="SPEEDIX LEAGUE" style="width:100%;display:block;object-fit:cover">
+<img id="hero-logo" src="hero-cover-new.webp" alt="SPEEDIX LEAGUE" style="width:100%;display:block;object-fit:cover">
 <!-- Tagline — superposée sous le logo, visible seulement en plein écran (étape 1). -->
 <div id="hero-tagline" data-i18n-html="hero.tagline" style="position:absolute;left:0;right:0;top:31.5%;text-align:center;font-family:'Bebas Neue',sans-serif;font-size:1.15rem;letter-spacing:2.5px;color:#f5c842;text-shadow:0 0 18px rgba(245,200,66,.5),0 2px 10px rgba(0,0,0,.85);pointer-events:none;z-index:1">1<sup style="font-size:.55em;letter-spacing:0">er</sup> CHAMPIONNAT DE RUNNING E.SPORT</div>
 <!-- Boutons — superposés en bas de l'image à l'étape 1, redeviennent un bloc
@@ -2626,8 +2626,8 @@ select option{background:#040c1c}
 <!-- ======= NAVBAR ======= -->
 <nav class="nav">
   <div class="nav-logo" style="position:relative;z-index:0;cursor:pointer;display:flex;align-items:center;gap:.4rem;padding:.3rem .5rem;height:48px;border:none;background:transparent;box-sizing:border-box" onclick="toggleRtwMenu()" id="rtw-logo-btn">
-    <img src="nav-menu-frame-v3.png" alt="" style="position:absolute;inset:0;width:100%;height:100%;z-index:-2;pointer-events:none;user-select:none">
-    <img src="logo-speedix-new.png" alt="SPEEDIX League" style="position:relative;height:38px;width:auto;display:block;filter:drop-shadow(0 0 8px rgba(245,200,66,.3))"><span style="position:relative;font-size:.75rem;color:rgba(144,96,240,.9);line-height:1">☰</span>
+    <img src="nav-menu-frame-v3.webp" alt="" style="position:absolute;inset:0;width:100%;height:100%;z-index:-2;pointer-events:none;user-select:none">
+    <img src="logo-speedix-new.webp" alt="SPEEDIX League" style="position:relative;height:38px;width:auto;display:block;filter:drop-shadow(0 0 8px rgba(245,200,66,.3))"><span style="position:relative;font-size:.75rem;color:rgba(144,96,240,.9);line-height:1">☰</span>
     <!-- Menu déroulant -->
     <div id="rtw-menu" style="
       display:none;position:absolute;top:100%;left:0;min-width:200px;
@@ -2771,7 +2771,7 @@ select option{background:#040c1c}
              (42px) — d'où un cadre proportionné en tablette mais qui s'aplatissait en
              téléphone (viewport plus étroit = largeur dispo plus petite = hauteur réduite).
              Hauteur fixe = même rapport avec les flèches sur tous les formats. -->
-        <img src="pc-title-frame.png" alt="" style="position:relative;width:100%;height:60px;object-fit:fill;display:block;pointer-events:none;user-select:none">
+        <img src="pc-title-frame.webp" alt="" style="position:relative;width:100%;height:60px;object-fit:fill;display:block;pointer-events:none;user-select:none">
         <!-- font-size responsive (2026-08-04) : en fixe, sur un écran très étroit le texte
              devient plus large que le cadre (qui lui suit la largeur du conteneur) et
              déborde par-dessus/sous les ailes du cadre. clamp() avec un plancher assez
@@ -2814,7 +2814,7 @@ select option{background:#040c1c}
         position:relative;width:100%;height:57px;display:flex;align-items:center;justify-content:center;
         padding:0;border:none;clip-path:polygon(9px 0,calc(100% - 9px) 0,100% 9px,100% calc(100% - 9px),calc(100% - 9px) 100%,9px 100%,0 calc(100% - 9px),0 9px);
         background:linear-gradient(135deg,rgba(144,96,240,.16),rgba(144,96,240,.04)),#0c0f1a;cursor:pointer;transition:all .18s;
-      " onmouseover="this.style.background='rgba(144,96,240,.22)';document.getElementById('tab-races-outer').style.boxShadow='0 0 12px rgba(144,96,240,.85)'" onmouseout="this.style.background='linear-gradient(135deg,rgba(144,96,240,.16),rgba(144,96,240,.04)),#0c0f1a';document.getElementById('tab-races-outer').style.boxShadow='0 0 8px rgba(144,96,240,.65)'"><img src="ai-icons/icon-race-flat-v1.png" alt="Races" style="width:86%;height:86%;object-fit:contain;pointer-events:none;user-select:none"><div class="pc-tile-frame-fx"><svg viewBox="0 0 200 100" preserveAspectRatio="none"><polyline class="pc-tile-frame-line-violet" points="30,4 16,4 4,16 4,84 16,96 30,96"/><polyline class="pc-tile-frame-line-violet" points="170,4 184,4 196,16 196,84 184,96 170,96"/><polyline class="pc-tile-frame-line-in-violet" points="30,9 20,9 9,20 9,80 20,91 30,91"/><polyline class="pc-tile-frame-line-in-violet" points="170,9 180,9 191,20 191,80 180,91 170,91"/></svg></div></button>
+      " onmouseover="this.style.background='rgba(144,96,240,.22)';document.getElementById('tab-races-outer').style.boxShadow='0 0 12px rgba(144,96,240,.85)'" onmouseout="this.style.background='linear-gradient(135deg,rgba(144,96,240,.16),rgba(144,96,240,.04)),#0c0f1a';document.getElementById('tab-races-outer').style.boxShadow='0 0 8px rgba(144,96,240,.65)'"><img src="ai-icons/icon-race-flat-v1.webp" alt="Races" style="width:86%;height:86%;object-fit:contain;pointer-events:none;user-select:none"><div class="pc-tile-frame-fx"><svg viewBox="0 0 200 100" preserveAspectRatio="none"><polyline class="pc-tile-frame-line-violet" points="30,4 16,4 4,16 4,84 16,96 30,96"/><polyline class="pc-tile-frame-line-violet" points="170,4 184,4 196,16 196,84 184,96 170,96"/><polyline class="pc-tile-frame-line-in-violet" points="30,9 20,9 9,20 9,80 20,91 30,91"/><polyline class="pc-tile-frame-line-in-violet" points="170,9 180,9 191,20 191,80 180,91 170,91"/></svg></div></button>
       </div>
       <div style="position:absolute;left:10px;right:10px;bottom:-4px;height:2px;border-radius:1px;background:rgba(255,157,31,.85);box-shadow:0 0 3px rgba(255,157,31,.5);pointer-events:none"></div>
       </div>
@@ -2827,7 +2827,7 @@ select option{background:#040c1c}
         position:relative;width:100%;height:57px;display:flex;align-items:center;justify-content:center;
         padding:0;border:none;clip-path:polygon(9px 0,calc(100% - 9px) 0,100% 9px,100% calc(100% - 9px),calc(100% - 9px) 100%,9px 100%,0 calc(100% - 9px),0 9px);
         background:linear-gradient(135deg,rgba(144,96,240,.16),rgba(144,96,240,.04)),#0c0f1a;cursor:pointer;transition:all .18s;
-      " onmouseover="this.style.background='rgba(144,96,240,.22)';document.getElementById('tab-league-outer').style.boxShadow='0 0 12px rgba(144,96,240,.85)'" onmouseout="this.style.background='linear-gradient(135deg,rgba(144,96,240,.16),rgba(144,96,240,.04)),#0c0f1a';document.getElementById('tab-league-outer').style.boxShadow='0 0 8px rgba(144,96,240,.65)'"><img src="ai-icons/icon-league-flat-v1.png" alt="League" style="width:86%;height:86%;object-fit:contain;pointer-events:none;user-select:none"><div class="pc-tile-frame-fx"><svg viewBox="0 0 200 100" preserveAspectRatio="none"><polyline class="pc-tile-frame-line-violet" points="30,4 16,4 4,16 4,84 16,96 30,96"/><polyline class="pc-tile-frame-line-violet" points="170,4 184,4 196,16 196,84 184,96 170,96"/><polyline class="pc-tile-frame-line-in-violet" points="30,9 20,9 9,20 9,80 20,91 30,91"/><polyline class="pc-tile-frame-line-in-violet" points="170,9 180,9 191,20 191,80 180,91 170,91"/></svg></div></button>
+      " onmouseover="this.style.background='rgba(144,96,240,.22)';document.getElementById('tab-league-outer').style.boxShadow='0 0 12px rgba(144,96,240,.85)'" onmouseout="this.style.background='linear-gradient(135deg,rgba(144,96,240,.16),rgba(144,96,240,.04)),#0c0f1a';document.getElementById('tab-league-outer').style.boxShadow='0 0 8px rgba(144,96,240,.65)'"><img src="ai-icons/icon-league-flat-v1.webp" alt="League" style="width:86%;height:86%;object-fit:contain;pointer-events:none;user-select:none"><div class="pc-tile-frame-fx"><svg viewBox="0 0 200 100" preserveAspectRatio="none"><polyline class="pc-tile-frame-line-violet" points="30,4 16,4 4,16 4,84 16,96 30,96"/><polyline class="pc-tile-frame-line-violet" points="170,4 184,4 196,16 196,84 184,96 170,96"/><polyline class="pc-tile-frame-line-in-violet" points="30,9 20,9 9,20 9,80 20,91 30,91"/><polyline class="pc-tile-frame-line-in-violet" points="170,9 180,9 191,20 191,80 180,91 170,91"/></svg></div></button>
       </div>
       <div style="position:absolute;left:10px;right:10px;bottom:-4px;height:2px;border-radius:1px;background:rgba(255,157,31,.85);box-shadow:0 0 3px rgba(255,157,31,.5);pointer-events:none"></div>
       </div>
@@ -2842,7 +2842,7 @@ select option{background:#040c1c}
         position:relative;width:100%;height:57px;display:flex;align-items:center;justify-content:center;
         padding:0;border:none;clip-path:polygon(9px 0,calc(100% - 9px) 0,100% 9px,100% calc(100% - 9px),calc(100% - 9px) 100%,9px 100%,0 calc(100% - 9px),0 9px);
         background:linear-gradient(135deg,rgba(144,96,240,.16),rgba(144,96,240,.04)),#0c0f1a;cursor:pointer;transition:all .18s;
-      " onmouseover="this.style.background='rgba(144,96,240,.22)';document.getElementById('tab-lands-outer').style.boxShadow='0 0 12px rgba(144,96,240,.85)'" onmouseout="this.style.background='linear-gradient(135deg,rgba(144,96,240,.16),rgba(144,96,240,.04)),#0c0f1a';document.getElementById('tab-lands-outer').style.boxShadow='0 0 8px rgba(144,96,240,.65)'"><img src="ai-icons/icon-tour-flat-v1.png" alt="Speedix Tour" style="width:86%;height:86%;object-fit:contain;pointer-events:none;user-select:none"><div class="pc-tile-frame-fx"><svg viewBox="0 0 200 100" preserveAspectRatio="none"><polyline class="pc-tile-frame-line-violet" points="30,4 16,4 4,16 4,84 16,96 30,96"/><polyline class="pc-tile-frame-line-violet" points="170,4 184,4 196,16 196,84 184,96 170,96"/><polyline class="pc-tile-frame-line-in-violet" points="30,9 20,9 9,20 9,80 20,91 30,91"/><polyline class="pc-tile-frame-line-in-violet" points="170,9 180,9 191,20 191,80 180,91 170,91"/></svg></div></button>
+      " onmouseover="this.style.background='rgba(144,96,240,.22)';document.getElementById('tab-lands-outer').style.boxShadow='0 0 12px rgba(144,96,240,.85)'" onmouseout="this.style.background='linear-gradient(135deg,rgba(144,96,240,.16),rgba(144,96,240,.04)),#0c0f1a';document.getElementById('tab-lands-outer').style.boxShadow='0 0 8px rgba(144,96,240,.65)'"><img src="ai-icons/icon-tour-flat-v1.webp" alt="Speedix Tour" style="width:86%;height:86%;object-fit:contain;pointer-events:none;user-select:none"><div class="pc-tile-frame-fx"><svg viewBox="0 0 200 100" preserveAspectRatio="none"><polyline class="pc-tile-frame-line-violet" points="30,4 16,4 4,16 4,84 16,96 30,96"/><polyline class="pc-tile-frame-line-violet" points="170,4 184,4 196,16 196,84 184,96 170,96"/><polyline class="pc-tile-frame-line-in-violet" points="30,9 20,9 9,20 9,80 20,91 30,91"/><polyline class="pc-tile-frame-line-in-violet" points="170,9 180,9 191,20 191,80 180,91 170,91"/></svg></div></button>
       </div>
       <div style="position:absolute;left:10px;right:10px;bottom:-4px;height:2px;border-radius:1px;background:rgba(255,157,31,.85);box-shadow:0 0 3px rgba(255,157,31,.5);pointer-events:none"></div>
       </div>
@@ -2870,7 +2870,7 @@ select option{background:#040c1c}
           cursor:pointer;transition:all .18s;
         " onmouseover="this.style.background='rgba(144,96,240,.22)'"
            onmouseout="this.style.background='linear-gradient(135deg,rgba(144,96,240,.16),rgba(144,96,240,.04)),#0c0f1a'">
-          <img src="ai-icons/medal-1-gold.png" alt="1" style="width:78%;height:78%;object-fit:contain;pointer-events:none">
+          <img src="ai-icons/medal-1-gold.webp" alt="1" style="width:78%;height:78%;object-fit:contain;pointer-events:none">
         </div>
         </div>
         <div class="pc-tile-hint tr"><svg viewBox="0 0 22 22"><path d="M0,22 L0,9 L9,0 L22,0" fill="none" stroke="#ff9d1f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
@@ -2887,7 +2887,7 @@ select option{background:#040c1c}
           cursor:pointer;transition:all .18s;
         " onmouseover="this.style.background='rgba(144,96,240,.22)'"
            onmouseout="this.style.background='linear-gradient(135deg,rgba(144,96,240,.16),rgba(144,96,240,.04)),#0c0f1a'">
-          <img src="ai-icons/medal-2-silver.png" alt="2" style="width:78%;height:78%;object-fit:contain;pointer-events:none">
+          <img src="ai-icons/medal-2-silver.webp" alt="2" style="width:78%;height:78%;object-fit:contain;pointer-events:none">
         </div>
         </div>
         <div class="pc-tile-hint tr"><svg viewBox="0 0 22 22"><path d="M0,22 L0,9 L9,0 L22,0" fill="none" stroke="#ff9d1f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
@@ -2904,7 +2904,7 @@ select option{background:#040c1c}
           cursor:pointer;transition:all .18s;
         " onmouseover="this.style.background='rgba(144,96,240,.22)'"
            onmouseout="this.style.background='linear-gradient(135deg,rgba(144,96,240,.16),rgba(144,96,240,.04)),#0c0f1a'">
-          <img src="ai-icons/medal-3-bronze.png" alt="3" style="width:78%;height:78%;object-fit:contain;pointer-events:none">
+          <img src="ai-icons/medal-3-bronze.webp" alt="3" style="width:78%;height:78%;object-fit:contain;pointer-events:none">
         </div>
         </div>
         <div class="pc-tile-hint tr"><svg viewBox="0 0 22 22"><path d="M0,22 L0,9 L9,0 L22,0" fill="none" stroke="#ff9d1f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
@@ -2939,7 +2939,7 @@ select option{background:#040c1c}
                ⚠️ Boîte élargie en même temps (width:81.9% = pleine largeur de la fenêtre) ; hauteur mise à 71.2%
                (toujours plus haute que large, anti-rognage-chapeau). Toujours collée en bas de la fenêtre (93.6%,
                sous le vrai bord à 97.84%) ; plaque pseudo recompensée en conséquence (margin-top ajusté). -->
-          <img src="pc-avatar-frame-v8.png" alt="" style="position:absolute;inset:-6%;width:112%;height:112%;pointer-events:none;user-select:none">
+          <img src="pc-avatar-frame-v8.webp" alt="" style="position:absolute;inset:-6%;width:112%;height:112%;pointer-events:none;user-select:none">
           <!-- TEST 2026-08-08 (fond avatar "gagnant de Challenge", 3e passe) : abandon du
                calque-dégradé qui prolongeait le fond (jonction toujours visible, cf user).
                Nouvelle piste : un vrai BANDEAU (nom du Challenge), qui occupe SEULEMENT le
@@ -3039,7 +3039,7 @@ select option{background:#040c1c}
           width:100%;height:57px;clip-path:polygon(8px 0,calc(100% - 8px) 0,100% 8px,100% calc(100% - 8px),calc(100% - 8px) 100%,8px 100%,0 calc(100% - 8px),0 8px);
           background:linear-gradient(135deg,rgba(144,96,240,.16),rgba(144,96,240,.04)),#0c0f1a;border:none;overflow:hidden;
           cursor:pointer;transition:all .18s;display:flex;align-items:center;justify-content:center;
-        " title="Ma Team" onmouseover="this.style.background='rgba(144,96,240,.22)'" onmouseout="this.style.background='linear-gradient(135deg,rgba(144,96,240,.16),rgba(144,96,240,.04)),#0c0f1a'"><img id="pc-team-blason" src="ai-icons/icon-team-flat-v1.png" style="width:65%;height:65%;object-fit:contain;display:block"></div>
+        " title="Ma Team" onmouseover="this.style.background='rgba(144,96,240,.22)'" onmouseout="this.style.background='linear-gradient(135deg,rgba(144,96,240,.16),rgba(144,96,240,.04)),#0c0f1a'"><img id="pc-team-blason" src="ai-icons/icon-team-flat-v1.webp" style="width:65%;height:65%;object-fit:contain;display:block"></div>
       </div>
         <div id="pc-team-hint">
           <div class="pc-tile-hint tl"><svg viewBox="0 0 22 22"><path d="M0,22 L0,9 L9,0 L22,0" fill="none" stroke="#ff9d1f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
@@ -3058,7 +3058,7 @@ select option{background:#040c1c}
           cursor:pointer;transition:all .18s;
         " onmouseover="this.style.background='rgba(144,96,240,.22)'"
            onmouseout="this.style.background='linear-gradient(135deg,rgba(144,96,240,.16),rgba(144,96,240,.04)),#0c0f1a'">
-          <img src="ai-icons/icon-feed-flat-v1.png" alt="Feed" style="width:86%;height:86%;object-fit:contain">
+          <img src="ai-icons/icon-feed-flat-v1.webp" alt="Feed" style="width:86%;height:86%;object-fit:contain">
         </div>
         </div>
         <div id="social-notif-badge" style="display:none;position:absolute;top:-4px;right:-4px;width:16px;height:16px;border-radius:50%;background:#ff4444;border:2px solid #020408;box-sizing:border-box;font-size:.55rem;font-weight:700;color:#fff;font-family:'Space Mono',monospace;align-items:center;justify-content:center;pointer-events:none"></div>
@@ -3076,7 +3076,7 @@ select option{background:#040c1c}
           cursor:pointer;transition:all .18s;flex-shrink:0;position:relative;
         " onmouseover="this.style.background='rgba(144,96,240,.22)'"
            onmouseout="this.style.background='linear-gradient(135deg,rgba(144,96,240,.16),rgba(144,96,240,.04)),#0c0f1a'">
-          <img src="ai-icons/icon-defis-flat-v1.png" alt="Défis" style="width:86%;height:86%;object-fit:contain;display:block">
+          <img src="ai-icons/icon-defis-flat-v1.webp" alt="Défis" style="width:86%;height:86%;object-fit:contain;display:block">
         </div>
         </div>
         <!-- Pastille tuile Défis (2026-08-08, demande explicite — la pastille ne doit
@@ -3149,10 +3149,10 @@ select option{background:#040c1c}
             " id="pc-badge-league">—</div>
           </div>
           </div>
-    <!-- ═══ ANCIEN cadre 3 fenêtres (pc-row-frame-v2-crop.png) — gardé en mémoire pour
+    <!-- ═══ ANCIEN cadre 3 fenêtres (pc-row-frame-v2-crop.webp) — gardé en mémoire pour
          revenir en arrière facilement si le test ci-dessous ne convient pas. ═══
     <div style="position:relative;width:100%;aspect-ratio:1446/282;margin-bottom:.3rem">
-      <img src="pc-row-frame-v2-crop.png" alt="" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none;user-select:none">
+      <img src="pc-row-frame-v2-crop.webp" alt="" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none;user-select:none">
       <div style="position:absolute;left:3.87%;top:17%;width:28.42%;height:68%">
         <button onclick="nav('defis')" title="Défis & Challenges" style="
           width:100%;height:100%;background:transparent;border:none;
@@ -3160,7 +3160,7 @@ select option{background:#040c1c}
           cursor:pointer;transition:all .18s;margin:0;padding:0;
         " onmouseover="this.style.background='rgba(144,96,240,.22)'"
            onmouseout="this.style.background='transparent'">
-          <img src="ai-icons/icon-defis-flat-v1.png" alt="Défis" style="height:50px;width:auto;max-width:none;object-fit:contain">
+          <img src="ai-icons/icon-defis-flat-v1.webp" alt="Défis" style="height:50px;width:auto;max-width:none;object-fit:contain">
         </button>
       </div>
       <div id="pc-flag-OLD" style="position:absolute;left:35.13%;top:19%;width:29.46%;height:64%;background:transparent;display:flex;align-items:center;justify-content:center;overflow:visible"></div>
@@ -3171,7 +3171,7 @@ select option{background:#040c1c}
           cursor:pointer;transition:all .18s;margin:0;padding:0;
         " onmouseover="this.style.background='rgba(144,96,240,.22)'"
            onmouseout="this.style.background='transparent'">
-          <img src="ai-icons/icon-cashrun-flat-v1.png" alt="Cash Run" style="height:50px;width:auto;max-width:none;object-fit:contain">
+          <img src="ai-icons/icon-cashrun-flat-v1.webp" alt="Cash Run" style="height:50px;width:auto;max-width:none;object-fit:contain">
         </button>
         <span id="cashrun-badge-OLD" style="display:none;position:absolute;top:6px;right:8%;width:14px;height:14px;border-radius:50%;background:#2ddb80;box-shadow:0 0 8px rgba(45,219,128,.7);border:2px solid #0a1432;pointer-events:none"></span>
       </div>
@@ -3188,7 +3188,7 @@ select option{background:#040c1c}
           position:relative;width:100%;height:57px;display:flex;align-items:center;justify-content:center;
           padding:0;border:none;clip-path:polygon(9px 0,calc(100% - 9px) 0,100% 9px,100% calc(100% - 9px),calc(100% - 9px) 100%,9px 100%,0 calc(100% - 9px),0 9px);
           background:linear-gradient(135deg,rgba(144,96,240,.16),rgba(144,96,240,.04)),#0c0f1a;cursor:pointer;transition:all .18s;
-        " onmouseover="this.style.background='rgba(144,96,240,.22)'" onmouseout="this.style.background='linear-gradient(135deg,rgba(144,96,240,.16),rgba(144,96,240,.04)),#0c0f1a'"><div id="parrainage-emoji" style="width:84%;height:84%;background-image:url('ai-icons/icon-parrainage-flat-v1.png');background-size:contain;background-position:center;background-repeat:no-repeat;pointer-events:none;user-select:none"></div><div class="pc-tile-frame-fx"><svg viewBox="0 0 200 100" preserveAspectRatio="none"><polyline class="pc-tile-frame-line-violet" points="30,4 16,4 4,16 4,84 16,96 30,96"/><polyline class="pc-tile-frame-line-violet" points="170,4 184,4 196,16 196,84 184,96 170,96"/><polyline class="pc-tile-frame-line-in-violet" points="30,9 20,9 9,20 9,80 20,91 30,91"/><polyline class="pc-tile-frame-line-in-violet" points="170,9 180,9 191,20 191,80 180,91 170,91"/></svg></div></button>
+        " onmouseover="this.style.background='rgba(144,96,240,.22)'" onmouseout="this.style.background='linear-gradient(135deg,rgba(144,96,240,.16),rgba(144,96,240,.04)),#0c0f1a'"><div id="parrainage-emoji" style="width:84%;height:84%;background-image:url('ai-icons/icon-parrainage-flat-v1.webp');background-size:contain;background-position:center;background-repeat:no-repeat;pointer-events:none;user-select:none"></div><div class="pc-tile-frame-fx"><svg viewBox="0 0 200 100" preserveAspectRatio="none"><polyline class="pc-tile-frame-line-violet" points="30,4 16,4 4,16 4,84 16,96 30,96"/><polyline class="pc-tile-frame-line-violet" points="170,4 184,4 196,16 196,84 184,96 170,96"/><polyline class="pc-tile-frame-line-in-violet" points="30,9 20,9 9,20 9,80 20,91 30,91"/><polyline class="pc-tile-frame-line-in-violet" points="170,9 180,9 191,20 191,80 180,91 170,91"/></svg></div></button>
       </div>
       <div style="background:linear-gradient(135deg,rgba(200,150,255,.9) 0%,rgba(144,96,240,.75) 60%,rgba(94,50,190,.9) 100%);box-shadow:0 0 8px rgba(144,96,240,.65);clip-path:polygon(10px 0,calc(100% - 10px) 0,100% 10px,100% calc(100% - 10px),calc(100% - 10px) 100%,10px 100%,0 calc(100% - 10px),0 10px);padding:1.5px;height:60px;box-sizing:border-box">
         <div id="pc-flag" style="position:relative;width:100%;height:57px;clip-path:polygon(9px 0,calc(100% - 9px) 0,100% 9px,100% calc(100% - 9px),calc(100% - 9px) 100%,9px 100%,0 calc(100% - 9px),0 9px);background:linear-gradient(135deg,rgba(144,96,240,.16),rgba(144,96,240,.04)),#0c0f1a;display:flex;align-items:center;justify-content:center;overflow:visible"><div class="pc-tile-frame-fx"><svg viewBox="0 0 200 100" preserveAspectRatio="none"><polyline class="pc-tile-frame-line-violet" points="30,4 16,4 4,16 4,84 16,96 30,96"/><polyline class="pc-tile-frame-line-violet" points="170,4 184,4 196,16 196,84 184,96 170,96"/><polyline class="pc-tile-frame-line-in-violet" points="30,9 20,9 9,20 9,80 20,91 30,91"/><polyline class="pc-tile-frame-line-in-violet" points="170,9 180,9 191,20 191,80 180,91 170,91"/></svg></div></div>
@@ -3199,7 +3199,7 @@ select option{background:#040c1c}
           position:relative;width:100%;height:57px;display:flex;align-items:center;justify-content:center;
           padding:0;border:none;clip-path:polygon(9px 0,calc(100% - 9px) 0,100% 9px,100% calc(100% - 9px),calc(100% - 9px) 100%,9px 100%,0 calc(100% - 9px),0 9px);
           background:linear-gradient(135deg,rgba(144,96,240,.16),rgba(144,96,240,.04)),#0c0f1a;cursor:pointer;transition:all .18s;
-        " onmouseover="this.style.background='rgba(144,96,240,.22)'" onmouseout="this.style.background='linear-gradient(135deg,rgba(144,96,240,.16),rgba(144,96,240,.04)),#0c0f1a'"><img src="ai-icons/icon-cashrun-flat-v1.png" alt="Cash Run" style="width:86%;height:86%;object-fit:contain;pointer-events:none;user-select:none"><div class="pc-tile-frame-fx"><svg viewBox="0 0 200 100" preserveAspectRatio="none"><polyline class="pc-tile-frame-line-violet" points="30,4 16,4 4,16 4,84 16,96 30,96"/><polyline class="pc-tile-frame-line-violet" points="170,4 184,4 196,16 196,84 184,96 170,96"/><polyline class="pc-tile-frame-line-in-violet" points="30,9 20,9 9,20 9,80 20,91 30,91"/><polyline class="pc-tile-frame-line-in-violet" points="170,9 180,9 191,20 191,80 180,91 170,91"/></svg></div></button>
+        " onmouseover="this.style.background='rgba(144,96,240,.22)'" onmouseout="this.style.background='linear-gradient(135deg,rgba(144,96,240,.16),rgba(144,96,240,.04)),#0c0f1a'"><img src="ai-icons/icon-cashrun-flat-v1.webp" alt="Cash Run" style="width:86%;height:86%;object-fit:contain;pointer-events:none;user-select:none"><div class="pc-tile-frame-fx"><svg viewBox="0 0 200 100" preserveAspectRatio="none"><polyline class="pc-tile-frame-line-violet" points="30,4 16,4 4,16 4,84 16,96 30,96"/><polyline class="pc-tile-frame-line-violet" points="170,4 184,4 196,16 196,84 184,96 170,96"/><polyline class="pc-tile-frame-line-in-violet" points="30,9 20,9 9,20 9,80 20,91 30,91"/><polyline class="pc-tile-frame-line-in-violet" points="170,9 180,9 191,20 191,80 180,91 170,91"/></svg></div></button>
       </div>
       <span id="cashrun-badge" style="display:none;position:absolute;top:-4px;right:-4px;width:14px;height:14px;border-radius:50%;background:#2ddb80;box-shadow:0 0 8px rgba(45,219,128,.7);border:2px solid #0a1432;pointer-events:none"></span>
       </div>
@@ -3237,47 +3237,47 @@ select option{background:#040c1c}
 
       <!-- 1 & 2 -->
       <div style="background:linear-gradient(135deg,rgba(200,150,255,.85) 0%,rgba(144,96,240,.55) 50%,rgba(94,50,190,.85) 100%);box-shadow:0 0 6px rgba(144,96,240,.5);clip-path:polygon(10px 0,calc(100% - 10px) 0,100% 10px,100% calc(100% - 10px),calc(100% - 10px) 100%,10px 100%,0 calc(100% - 10px),0 10px);padding:1.5px;height:100%;box-sizing:border-box;transition:background .15s;cursor:pointer" id="stat-tile-1" onclick="openStatRanking('pts')" title="Voir le classement points de tous les RP" onmouseover="document.getElementById('stat-tile-1').style.background='rgba(144,96,240,.95)'" onmouseout="document.getElementById('stat-tile-1').style.background='rgba(144,96,240,.5)'"><div style="background:#0c0f1a;clip-path:polygon(9px 0,calc(100% - 9px) 0,100% 9px,100% calc(100% - 9px),calc(100% - 9px) 100%,9px 100%,0 calc(100% - 9px),0 9px);padding:.2rem .55rem;display:flex;align-items:center;gap:.8rem;height:100%;box-sizing:border-box">
-        <div style="width:1.5rem;flex-shrink:0;display:flex;align-items:center;justify-content:flex-end;overflow:visible"><img src="ai-icons/sim/buildings.png" alt="" style="height:1.5rem;width:auto;display:block"></div>
+        <div style="width:1.5rem;flex-shrink:0;display:flex;align-items:center;justify-content:flex-end;overflow:visible"><img src="ai-icons/sim/buildings.webp" alt="" style="height:1.5rem;width:auto;display:block"></div>
         <div><div id="stat-pts-cum" style="font-family:'Rajdhani',sans-serif;font-size:1.02rem;font-weight:700;color:var(--gold)">42 180</div><div data-i18n="dash.stat.pts" style="font-size:.6rem;color:var(--muted2);text-transform:uppercase;letter-spacing:.3px;margin-top:0;white-space:nowrap">Pts cumulés</div></div>
       </div>
       </div>
       <div style="background:linear-gradient(135deg,rgba(200,150,255,.85) 0%,rgba(144,96,240,.55) 50%,rgba(94,50,190,.85) 100%);box-shadow:0 0 6px rgba(144,96,240,.5);clip-path:polygon(10px 0,calc(100% - 10px) 0,100% 10px,100% calc(100% - 10px),calc(100% - 10px) 100%,10px 100%,0 calc(100% - 10px),0 10px);padding:1.5px;height:100%;box-sizing:border-box;transition:background .15s;cursor:pointer" id="stat-tile-2" onclick="openStatRanking('km')" title="Voir le classement distance de tous les RP" onmouseover="document.getElementById('stat-tile-2').style.background='rgba(144,96,240,.95)'" onmouseout="document.getElementById('stat-tile-2').style.background='rgba(144,96,240,.5)'"><div style="background:#0c0f1a;clip-path:polygon(9px 0,calc(100% - 9px) 0,100% 9px,100% calc(100% - 9px),calc(100% - 9px) 100%,9px 100%,0 calc(100% - 9px),0 9px);padding:.2rem .55rem;display:flex;align-items:center;gap:.8rem;height:100%;box-sizing:border-box">
-        <img src="ai-icons/sim/pin.png" alt="" style="width:1.5rem;height:1.5rem;object-fit:contain;flex-shrink:0">
+        <img src="ai-icons/sim/pin.webp" alt="" style="width:1.5rem;height:1.5rem;object-fit:contain;flex-shrink:0">
         <div><div id="stat-km" style="font-family:'Rajdhani',sans-serif;font-size:1.02rem;font-weight:700;color:#4a90ff">4 230 km</div><div data-i18n="dash.stat.km" style="font-size:.6rem;color:var(--muted2);text-transform:uppercase;letter-spacing:.3px;margin-top:0;white-space:nowrap">Distance totale</div></div>
       </div>
       </div>
 
       <!-- 3 & 4 -->
       <div style="background:linear-gradient(135deg,rgba(200,150,255,.85) 0%,rgba(144,96,240,.55) 50%,rgba(94,50,190,.85) 100%);box-shadow:0 0 6px rgba(144,96,240,.5);clip-path:polygon(10px 0,calc(100% - 10px) 0,100% 10px,100% calc(100% - 10px),calc(100% - 10px) 100%,10px 100%,0 calc(100% - 10px),0 10px);padding:1.5px;height:100%;box-sizing:border-box;transition:background .15s;cursor:pointer" id="stat-tile-3" onclick="openStatRanking('elv')" title="Voir le classement dénivelé de tous les RP" onmouseover="document.getElementById('stat-tile-3').style.background='rgba(144,96,240,.95)'" onmouseout="document.getElementById('stat-tile-3').style.background='rgba(144,96,240,.5)'"><div style="background:#0c0f1a;clip-path:polygon(9px 0,calc(100% - 9px) 0,100% 9px,100% calc(100% - 9px),calc(100% - 9px) 100%,9px 100%,0 calc(100% - 9px),0 9px);padding:.2rem .55rem;display:flex;align-items:center;gap:.8rem;height:100%;box-sizing:border-box">
-        <div style="width:1.5rem;flex-shrink:0;display:flex;align-items:center;justify-content:flex-end;overflow:visible"><img src="ai-icons/sim/mountain.png" alt="" style="height:1.5rem;width:auto;display:block"></div>
+        <div style="width:1.5rem;flex-shrink:0;display:flex;align-items:center;justify-content:flex-end;overflow:visible"><img src="ai-icons/sim/mountain.webp" alt="" style="height:1.5rem;width:auto;display:block"></div>
         <div><div id="stat-elv" style="font-family:'Rajdhani',sans-serif;font-size:1.02rem;font-weight:700;color:var(--green)">38 600 m</div><div data-i18n="dash.stat.elv" style="font-size:.6rem;color:var(--muted2);text-transform:uppercase;letter-spacing:.3px;margin-top:0;white-space:nowrap">Dénivelé total</div></div>
       </div>
       </div>
       <div style="background:linear-gradient(135deg,rgba(200,150,255,.85) 0%,rgba(144,96,240,.55) 50%,rgba(94,50,190,.85) 100%);box-shadow:0 0 6px rgba(144,96,240,.5);clip-path:polygon(10px 0,calc(100% - 10px) 0,100% 10px,100% calc(100% - 10px),calc(100% - 10px) 100%,10px 100%,0 calc(100% - 10px),0 10px);padding:1.5px;height:100%;box-sizing:border-box;transition:background .15s;cursor:pointer" id="stat-tile-4" onclick="openStatRanking('sorties')" title="Voir le classement sorties de tous les RP" onmouseover="document.getElementById('stat-tile-4').style.background='rgba(144,96,240,.95)'" onmouseout="document.getElementById('stat-tile-4').style.background='rgba(144,96,240,.5)'"><div style="background:#0c0f1a;clip-path:polygon(9px 0,calc(100% - 9px) 0,100% 9px,100% calc(100% - 9px),calc(100% - 9px) 100%,9px 100%,0 calc(100% - 9px),0 9px);padding:.2rem .55rem;display:flex;align-items:center;gap:.8rem;height:100%;box-sizing:border-box">
-        <img src="ai-icons/sim/sneaker.png" alt="" style="width:1.5rem;height:1.5rem;object-fit:contain;flex-shrink:0">
+        <img src="ai-icons/sim/sneaker.webp" alt="" style="width:1.5rem;height:1.5rem;object-fit:contain;flex-shrink:0">
         <div><div id="stat-sorties" style="font-family:'Rajdhani',sans-serif;font-size:1.02rem;font-weight:700;color:var(--cyan)">312</div><div data-i18n="dash.stat.runs" style="font-size:.6rem;color:var(--muted2);text-transform:uppercase;letter-spacing:.3px;margin-top:0;white-space:nowrap">Sorties</div></div>
       </div>
       </div>
 
       <!-- 5 & 6 -->
       <div style="background:linear-gradient(135deg,rgba(200,150,255,.85) 0%,rgba(144,96,240,.55) 50%,rgba(94,50,190,.85) 100%);box-shadow:0 0 6px rgba(144,96,240,.5);clip-path:polygon(10px 0,calc(100% - 10px) 0,100% 10px,100% calc(100% - 10px),calc(100% - 10px) 100%,10px 100%,0 calc(100% - 10px),0 10px);padding:1.5px;height:100%;box-sizing:border-box;transition:background .15s;cursor:pointer" id="stat-tile-5" onclick="openStatRanking('heures')" title="Voir le classement temps d'activité de tous les RP" onmouseover="document.getElementById('stat-tile-5').style.background='rgba(144,96,240,.95)'" onmouseout="document.getElementById('stat-tile-5').style.background='rgba(144,96,240,.5)'"><div style="background:#0c0f1a;clip-path:polygon(9px 0,calc(100% - 9px) 0,100% 9px,100% calc(100% - 9px),calc(100% - 9px) 100%,9px 100%,0 calc(100% - 9px),0 9px);padding:.2rem .55rem;display:flex;align-items:center;gap:.8rem;height:100%;box-sizing:border-box">
-        <img src="ai-icons/sim/clock.png" alt="" style="width:1.5rem;height:1.5rem;object-fit:contain;flex-shrink:0">
+        <img src="ai-icons/sim/clock.webp" alt="" style="width:1.5rem;height:1.5rem;object-fit:contain;flex-shrink:0">
         <div><div id="stat-heures" style="font-family:'Rajdhani',sans-serif;font-size:1.02rem;font-weight:700;color:var(--muted2)">965 h</div><div data-i18n="dash.stat.hours" style="font-size:.6rem;color:var(--muted2);text-transform:uppercase;letter-spacing:.3px;margin-top:0;white-space:nowrap">Heures activité</div></div>
       </div>
       </div>
       <div style="background:linear-gradient(135deg,rgba(200,150,255,.85) 0%,rgba(144,96,240,.55) 50%,rgba(94,50,190,.85) 100%);box-shadow:0 0 6px rgba(144,96,240,.5);clip-path:polygon(10px 0,calc(100% - 10px) 0,100% 10px,100% calc(100% - 10px),calc(100% - 10px) 100%,10px 100%,0 calc(100% - 10px),0 10px);padding:1.5px;height:100%;box-sizing:border-box"><div style="background:#0c0f1a;clip-path:polygon(9px 0,calc(100% - 9px) 0,100% 9px,100% calc(100% - 9px),calc(100% - 9px) 100%,9px 100%,0 calc(100% - 9px),0 9px);padding:.2rem .55rem;display:flex;align-items:center;gap:.8rem;height:100%;box-sizing:border-box">
-        <img src="ai-icons/sim/calendar.png" alt="" style="width:1.5rem;height:1.5rem;object-fit:contain;flex-shrink:0">
+        <img src="ai-icons/sim/calendar.webp" alt="" style="width:1.5rem;height:1.5rem;object-fit:contain;flex-shrink:0">
         <div><div id="stat-periodes" style="font-family:'Rajdhani',sans-serif;font-size:1.02rem;font-weight:700;color:var(--blue)">—</div><div data-i18n="dash.stat.periods" style="font-size:.6rem;color:var(--muted2);text-transform:uppercase;letter-spacing:.3px;margin-top:0;white-space:nowrap">Périodes actives</div></div>
       </div>
       </div>
 
       <div style="background:linear-gradient(135deg,rgba(200,150,255,.85) 0%,rgba(144,96,240,.55) 50%,rgba(94,50,190,.85) 100%);box-shadow:0 0 6px rgba(144,96,240,.5);clip-path:polygon(10px 0,calc(100% - 10px) 0,100% 10px,100% calc(100% - 10px),calc(100% - 10px) 100%,10px 100%,0 calc(100% - 10px),0 10px);padding:1.5px;height:100%;box-sizing:border-box"><div style="background:#0c0f1a;clip-path:polygon(9px 0,calc(100% - 9px) 0,100% 9px,100% calc(100% - 9px),calc(100% - 9px) 100%,9px 100%,0 calc(100% - 9px),0 9px);padding:.2rem .55rem;display:flex;align-items:center;gap:.8rem;height:100%;box-sizing:border-box">
-        <img src="ai-icons/sim/key1.png" alt="" style="width:1.5rem;height:1.5rem;object-fit:contain;flex-shrink:0">
+        <img src="ai-icons/sim/key1.webp" alt="" style="width:1.5rem;height:1.5rem;object-fit:contain;flex-shrink:0">
         <div><div id="stat-lands-loc" style="font-family:'Rajdhani',sans-serif;font-size:1.02rem;font-weight:700;color:var(--blue)">14</div><div data-i18n="dash.stat.lands.rented" style="font-size:.6rem;color:var(--muted2);text-transform:uppercase;letter-spacing:.3px;margin-top:0;white-space:nowrap">Lands Locataire</div></div>
       </div>
       </div>
       <div style="background:linear-gradient(135deg,rgba(200,150,255,.85) 0%,rgba(144,96,240,.55) 50%,rgba(94,50,190,.85) 100%);box-shadow:0 0 6px rgba(144,96,240,.5);clip-path:polygon(10px 0,calc(100% - 10px) 0,100% 10px,100% calc(100% - 10px),calc(100% - 10px) 100%,10px 100%,0 calc(100% - 10px),0 10px);padding:1.5px;height:100%;box-sizing:border-box"><div style="background:#0c0f1a;clip-path:polygon(9px 0,calc(100% - 9px) 0,100% 9px,100% calc(100% - 9px),calc(100% - 9px) 100%,9px 100%,0 calc(100% - 9px),0 9px);padding:.2rem .55rem;display:flex;align-items:center;gap:.8rem;height:100%;box-sizing:border-box">
-        <div style="width:1.5rem;flex-shrink:0;display:flex;align-items:center;justify-content:flex-end;overflow:visible"><img src="ai-icons/sim/house.png" alt="" style="height:calc(1.5rem - 2px);width:auto;display:block;position:relative;left:2px"></div>
+        <div style="width:1.5rem;flex-shrink:0;display:flex;align-items:center;justify-content:flex-end;overflow:visible"><img src="ai-icons/sim/house.webp" alt="" style="height:calc(1.5rem - 2px);width:auto;display:block;position:relative;left:2px"></div>
         <div><div id="stat-lands-prop" style="font-family:'Rajdhani',sans-serif;font-size:1.02rem;font-weight:700;color:var(--green)">3</div><div data-i18n="dash.stat.lands.owned" style="font-size:.6rem;color:var(--muted2);text-transform:uppercase;letter-spacing:.3px;margin-top:0;white-space:nowrap">Lands Propriétaire</div></div>
       </div>
       </div>
@@ -3302,7 +3302,7 @@ select option{background:#040c1c}
            dessus ouvrirait à tort le détail de MON wallet à moi, pas le sien. -->
       <div id="cagnotte-rpc-tile" style="background:linear-gradient(135deg,rgba(255,230,150,.85) 0%,rgba(245,200,66,.55) 50%,rgba(200,140,20,.85) 100%);box-shadow:0 0 6px rgba(245,200,66,.5);clip-path:polygon(10px 0,calc(100% - 10px) 0,100% 10px,100% calc(100% - 10px),calc(100% - 10px) 100%,10px 100%,0 calc(100% - 10px),0 10px);padding:1.5px;height:100%;box-sizing:border-box;cursor:pointer" onclick="if(!window.__viewedPlayer && typeof showWalletBreakdown==='function') showWalletBreakdown();" onmouseover="if(!window.__viewedPlayer) document.getElementById('cagnotte-rpc-tile').style.background='rgba(245,200,66,.95)'" onmouseout="document.getElementById('cagnotte-rpc-tile').style.background='rgba(245,200,66,.5)'">
       <div style="background:#0c0f1a;clip-path:polygon(9px 0,calc(100% - 9px) 0,100% 9px,100% calc(100% - 9px),calc(100% - 9px) 100%,9px 100%,0 calc(100% - 9px),0 9px);padding:.2rem .55rem;display:flex;align-items:center;gap:.8rem;height:100%;box-sizing:border-box">
-        <img src="ai-icons/sim/moneybag.png" alt="" style="width:1.5rem;height:1.5rem;object-fit:contain;flex-shrink:0">
+        <img src="ai-icons/sim/moneybag.webp" alt="" style="width:1.5rem;height:1.5rem;object-fit:contain;flex-shrink:0">
         <div><div id="stat-cagnotte-rpc" style="font-family:'Rajdhani',sans-serif;font-size:1.02rem;font-weight:700;color:var(--gold)">—</div><div data-i18n="dash.stat.wallet.rpc" style="font-size:.6rem;color:var(--muted2);text-transform:uppercase;letter-spacing:.3px;margin-top:0;white-space:nowrap">Cagnotte RPC</div></div>
       </div>
       </div>
@@ -3464,15 +3464,15 @@ select option{background:#040c1c}
     <div style="display:flex;align-items:center">
       <div style="width:40px;flex-shrink:0"></div>
       <div style="flex:1;min-width:0;display:flex;align-items:center;justify-content:center;gap:.35rem">
-        <img src="league-title-chevron-left.png" alt="" style="height:30px;width:auto;max-width:25vw;object-fit:contain;flex-shrink:0;min-width:0;pointer-events:none;user-select:none">
+        <img src="league-title-chevron-left.webp" alt="" style="height:30px;width:auto;max-width:25vw;object-fit:contain;flex-shrink:0;min-width:0;pointer-events:none;user-select:none">
         <div data-i18n-html="league.page.title" style="font-family:'Big Shoulders Display',sans-serif;font-weight:900;font-style:italic;text-transform:uppercase;font-size:clamp(1.3rem,6.2vw,2.2rem);letter-spacing:0px;line-height:1;transform:scaleY(1.15);white-space:nowrap;flex-shrink:0">
           Classement <span style="color:var(--gold)">League</span>
         </div>
-        <img src="league-title-chevron-right.png" alt="" style="height:30px;width:auto;max-width:25vw;object-fit:contain;flex-shrink:0;min-width:0;pointer-events:none;user-select:none">
+        <img src="league-title-chevron-right.webp" alt="" style="height:30px;width:auto;max-width:25vw;object-fit:contain;flex-shrink:0;min-width:0;pointer-events:none;user-select:none">
       </div>
       <!-- navPlayerCard() (pas nav('dashboard')) : même logique que Courses/Tour/
            Parrainage (2026-09-15). -->
-      <button onclick="navPlayerCard()" title="Fermer" style="position:relative;width:40px;height:40px;border:none;background:transparent;padding:0;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;transform:translate(8px,-34px)"><span style="position:absolute;inset:5px;background:url('icon-close-x.png') center/contain no-repeat"></span></button>
+      <button onclick="navPlayerCard()" title="Fermer" style="position:relative;width:40px;height:40px;border:none;background:transparent;padding:0;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;transform:translate(8px,-34px)"><span style="position:absolute;inset:5px;background:url('icon-close-x.webp') center/contain no-repeat"></span></button>
     </div>
     <div style="height:1px;width:100%;margin:.15rem auto 0;background:linear-gradient(90deg,transparent,#fff 15%,var(--gold) 50%,#fff 85%,transparent)"></div>
   </div>
@@ -3616,18 +3616,18 @@ select option{background:#040c1c}
     <div style="display:flex;align-items:center">
       <div style="width:40px;flex-shrink:0"></div>
       <div style="flex:1;min-width:0;display:flex;align-items:center;justify-content:center;gap:.35rem">
-        <img src="league-title-chevron-left.png" alt="" style="height:30px;width:auto;max-width:25vw;object-fit:contain;flex-shrink:0;min-width:0;pointer-events:none;user-select:none">
+        <img src="league-title-chevron-left.webp" alt="" style="height:30px;width:auto;max-width:25vw;object-fit:contain;flex-shrink:0;min-width:0;pointer-events:none;user-select:none">
         <div id="runs-page-title" data-i18n-html="runs.page.title" style="font-family:'Big Shoulders Display',sans-serif;font-weight:900;font-style:italic;text-transform:uppercase;font-size:clamp(1.3rem,6.2vw,2.4rem);letter-spacing:0px;line-height:1;transform:scaleY(1.15);white-space:nowrap;flex-shrink:0">
           Mes <span style="color:var(--gold)">Courses</span>
         </div>
-        <img src="league-title-chevron-right.png" alt="" style="height:30px;width:auto;max-width:25vw;object-fit:contain;flex-shrink:0;min-width:0;pointer-events:none;user-select:none">
+        <img src="league-title-chevron-right.webp" alt="" style="height:30px;width:auto;max-width:25vw;object-fit:contain;flex-shrink:0;min-width:0;pointer-events:none;user-select:none">
       </div>
       <!-- navPlayerCard() (pas nav('dashboard')) : ferme sur la PC CONSULTÉE si on
            a ouvert cette page depuis la PC d'un autre RP (garde __viewedPlayer),
            pas systématiquement sur la sienne (2026-09-15, demande explicite —
            pénible en navigation). Le bouton "Player Card" du haut, lui, réinitialise
            toujours __viewedPlayer et reste donc le retour garanti vers SA PC. -->
-      <button onclick="navPlayerCard()" title="Fermer" style="position:relative;width:40px;height:40px;border:none;background:transparent;padding:0;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;transform:translate(8px,-34px)"><span style="position:absolute;inset:5px;background:url('icon-close-x.png') center/contain no-repeat"></span></button>
+      <button onclick="navPlayerCard()" title="Fermer" style="position:relative;width:40px;height:40px;border:none;background:transparent;padding:0;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;transform:translate(8px,-34px)"><span style="position:absolute;inset:5px;background:url('icon-close-x.webp') center/contain no-repeat"></span></button>
     </div>
     <div style="height:1px;width:100%;margin:.15rem auto 0;background:linear-gradient(90deg,transparent,#fff 15%,var(--gold) 50%,#fff 85%,transparent)"></div>
   </div>
@@ -3674,7 +3674,7 @@ select option{background:#040c1c}
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:.6rem;margin-bottom:.85rem">
           <div style="background:rgba(144,96,240,.5);clip-path:polygon(10px 0,calc(100% - 10px) 0,100% 10px,100% calc(100% - 10px),calc(100% - 10px) 100%,10px 100%,0 calc(100% - 10px),0 10px);padding:1.5px">
             <div style="background:#0c0f1a;clip-path:polygon(9px 0,calc(100% - 9px) 0,100% 9px,100% calc(100% - 9px),calc(100% - 9px) 100%,9px 100%,0 calc(100% - 9px),0 9px);padding:.2rem .55rem;height:100%;box-sizing:border-box;display:flex;align-items:center;gap:.6rem">
-              <img src="ai-icons/sim/pin.png" alt="" style="width:1.9rem;height:1.9rem;object-fit:contain;flex-shrink:0">
+              <img src="ai-icons/sim/pin.webp" alt="" style="width:1.9rem;height:1.9rem;object-fit:contain;flex-shrink:0">
               <div style="min-width:0;flex:1">
               <input type="number" id="c-km" value="" placeholder="0" min="0" step="0.1" oninput="simKmInput()" style="width:100%;background:transparent;border:none;outline:none;color:#fff;font-family:'Rajdhani',sans-serif;font-size:1.02rem;font-weight:700;padding:0">
               <div data-i18n="runs.sim.distance" style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:.62rem;letter-spacing:.5px;text-transform:uppercase;color:var(--muted2);margin-top:.2rem">Distance (km)</div>
@@ -3683,7 +3683,7 @@ select option{background:#040c1c}
           </div>
           <div style="background:rgba(144,96,240,.5);clip-path:polygon(10px 0,calc(100% - 10px) 0,100% 10px,100% calc(100% - 10px),calc(100% - 10px) 100%,10px 100%,0 calc(100% - 10px),0 10px);padding:1.5px">
             <div style="background:#0c0f1a;clip-path:polygon(9px 0,calc(100% - 9px) 0,100% 9px,100% calc(100% - 9px),calc(100% - 9px) 100%,9px 100%,0 calc(100% - 9px),0 9px);padding:.2rem .55rem;height:100%;box-sizing:border-box;display:flex;align-items:center;gap:.6rem">
-              <img src="ai-icons/sim/gauge.png" alt="" style="width:1.9rem;height:1.9rem;object-fit:contain;flex-shrink:0">
+              <img src="ai-icons/sim/gauge.webp" alt="" style="width:1.9rem;height:1.9rem;object-fit:contain;flex-shrink:0">
               <div style="min-width:0;flex:1">
               <input type="number" id="c-spd" value="" placeholder="0" min="0" step="0.1" oninput="simSpdInput()" style="width:100%;background:transparent;border:none;outline:none;color:#fff;font-family:'Rajdhani',sans-serif;font-size:1.02rem;font-weight:700;padding:0">
               <div data-i18n="runs.sim.speed" style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:.62rem;letter-spacing:.5px;text-transform:uppercase;color:var(--muted2);margin-top:.2rem">Vitesse (km/h)</div>
@@ -3692,7 +3692,7 @@ select option{background:#040c1c}
           </div>
           <div style="background:rgba(144,96,240,.5);clip-path:polygon(10px 0,calc(100% - 10px) 0,100% 10px,100% calc(100% - 10px),calc(100% - 10px) 100%,10px 100%,0 calc(100% - 10px),0 10px);padding:1.5px">
             <div style="background:#0c0f1a;clip-path:polygon(9px 0,calc(100% - 9px) 0,100% 9px,100% calc(100% - 9px),calc(100% - 9px) 100%,9px 100%,0 calc(100% - 9px),0 9px);padding:.2rem .55rem;height:100%;box-sizing:border-box;display:flex;align-items:center;gap:.6rem">
-              <img src="ai-icons/sim/mountain.png" alt="" style="width:1.9rem;height:1.9rem;object-fit:contain;flex-shrink:0">
+              <img src="ai-icons/sim/mountain.webp" alt="" style="width:1.9rem;height:1.9rem;object-fit:contain;flex-shrink:0">
               <div style="min-width:0;flex:1">
               <input type="number" id="c-elv" value="" placeholder="0" min="0" step="10" oninput="calcPts()" style="width:100%;background:transparent;border:none;outline:none;color:#fff;font-family:'Rajdhani',sans-serif;font-size:1.02rem;font-weight:700;padding:0">
               <div data-i18n="runs.sim.elv" style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:.62rem;letter-spacing:.5px;text-transform:uppercase;color:var(--muted2);margin-top:.2rem">Dénivelé (m)</div>
@@ -3701,7 +3701,7 @@ select option{background:#040c1c}
           </div>
           <div style="background:rgba(144,96,240,.5);clip-path:polygon(10px 0,calc(100% - 10px) 0,100% 10px,100% calc(100% - 10px),calc(100% - 10px) 100%,10px 100%,0 calc(100% - 10px),0 10px);padding:1.5px">
             <div style="background:#0c0f1a;clip-path:polygon(9px 0,calc(100% - 9px) 0,100% 9px,100% calc(100% - 9px),calc(100% - 9px) 100%,9px 100%,0 calc(100% - 9px),0 9px);padding:.2rem .55rem;height:100%;box-sizing:border-box;display:flex;align-items:center;gap:.6rem">
-              <img src="ai-icons/sim/clock-green.png" alt="" style="width:1.9rem;height:1.9rem;object-fit:contain;flex-shrink:0">
+              <img src="ai-icons/sim/clock-green.webp" alt="" style="width:1.9rem;height:1.9rem;object-fit:contain;flex-shrink:0">
               <div style="min-width:0;flex:1">
               <input type="text" id="c-pace" value="" placeholder="0:00" oninput="simPaceInput()" style="width:100%;background:transparent;border:none;outline:none;color:#fff;font-family:'Rajdhani',sans-serif;font-size:1.02rem;font-weight:700;padding:0">
               <div data-i18n="runs.sim.pace" style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:.62rem;letter-spacing:.5px;text-transform:uppercase;color:var(--muted2);margin-top:.2rem">Allure (min/km)</div>
@@ -3719,7 +3719,7 @@ select option{background:#040c1c}
           </div>
           <div id="c-boost-tile-outer" onclick="simToggleBoost()" style="cursor:pointer;background:rgba(144,96,240,.5);clip-path:polygon(10px 0,calc(100% - 10px) 0,100% 10px,100% calc(100% - 10px),calc(100% - 10px) 100%,10px 100%,0 calc(100% - 10px),0 10px);padding:1.5px">
             <div id="c-boost-tile-inner" style="background:#0c0f1a;clip-path:polygon(9px 0,calc(100% - 9px) 0,100% 9px,100% calc(100% - 9px),calc(100% - 9px) 100%,9px 100%,0 calc(100% - 9px),0 9px);padding:.2rem .55rem;display:flex;align-items:center;gap:.6rem;height:100%;box-sizing:border-box">
-              <img src="ai-icons/sim/lightning.png" alt="" style="width:1.9rem;height:1.9rem;object-fit:contain;flex-shrink:0">
+              <img src="ai-icons/sim/lightning.webp" alt="" style="width:1.9rem;height:1.9rem;object-fit:contain;flex-shrink:0">
               <div style="min-width:0;flex:1">
               <input type="checkbox" id="c-boost" onchange="calcPts()" style="display:none">
               <div id="c-boost-tile-label" style="font-family:'Rajdhani',sans-serif;font-size:1.05rem;font-weight:700;color:var(--muted2)">OFF</div>
@@ -3770,17 +3770,17 @@ select option{background:#040c1c}
     <div style="display:flex;align-items:center">
       <div style="width:40px;flex-shrink:0"></div>
       <div style="flex:1;min-width:0;display:flex;align-items:center;justify-content:center;gap:.35rem">
-        <img src="league-title-chevron-left.png" alt="" style="height:30px;width:auto;max-width:25vw;object-fit:contain;flex-shrink:0;min-width:0;pointer-events:none;user-select:none">
+        <img src="league-title-chevron-left.webp" alt="" style="height:30px;width:auto;max-width:25vw;object-fit:contain;flex-shrink:0;min-width:0;pointer-events:none;user-select:none">
         <div data-i18n-html="defis.page.title" style="font-family:'Big Shoulders Display',sans-serif;font-weight:900;font-style:italic;text-transform:uppercase;font-size:clamp(1.3rem,6.2vw,2.4rem);letter-spacing:0px;line-height:1;transform:scaleY(1.15);white-space:nowrap;flex-shrink:0">
           Mes <span style="color:var(--gold)">Défis</span>
         </div>
-        <img src="league-title-chevron-right.png" alt="" style="height:30px;width:auto;max-width:25vw;object-fit:contain;flex-shrink:0;min-width:0;pointer-events:none;user-select:none">
+        <img src="league-title-chevron-right.webp" alt="" style="height:30px;width:auto;max-width:25vw;object-fit:contain;flex-shrink:0;min-width:0;pointer-events:none;user-select:none">
       </div>
       <!-- navPlayerCard() (pas nav('dashboard')) : même logique que Courses/Tour
            (2026-09-15) — ferme sur la PC CONSULTÉE si ouvert depuis la PC d'un
            autre RP, garde __viewedPlayer. Oublié ici lors du passage sur Courses/
            Tour, corrigé le 2026-09-20 (signalé par l'user). -->
-      <button onclick="navPlayerCard()" title="Fermer" style="position:relative;width:40px;height:40px;border:none;background:transparent;padding:0;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;transform:translate(8px,-34px)"><span style="position:absolute;inset:5px;background:url('icon-close-x.png') center/contain no-repeat"></span></button>
+      <button onclick="navPlayerCard()" title="Fermer" style="position:relative;width:40px;height:40px;border:none;background:transparent;padding:0;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;transform:translate(8px,-34px)"><span style="position:absolute;inset:5px;background:url('icon-close-x.webp') center/contain no-repeat"></span></button>
     </div>
     <div style="height:1px;width:100%;margin:.15rem auto 0;background:linear-gradient(90deg,transparent,#fff 15%,var(--gold) 50%,#fff 85%,transparent)"></div>
   </div>
@@ -3880,13 +3880,13 @@ select option{background:#040c1c}
     <div style="display:flex;align-items:center">
       <div style="width:40px;flex-shrink:0"></div>
       <div style="flex:1;min-width:0;display:flex;align-items:center;justify-content:center;gap:.35rem">
-        <img src="league-title-chevron-left.png" alt="" style="height:30px;width:auto;max-width:25vw;object-fit:contain;flex-shrink:0;min-width:0;pointer-events:none;user-select:none">
+        <img src="league-title-chevron-left.webp" alt="" style="height:30px;width:auto;max-width:25vw;object-fit:contain;flex-shrink:0;min-width:0;pointer-events:none;user-select:none">
         <div style="font-family:'Bebas Neue',sans-serif;font-size:clamp(1.2rem,5.8vw,2rem);letter-spacing:2px;line-height:1;white-space:nowrap;flex-shrink:0">
           💬 Chat <span id="leaguechat-name" style="color:var(--gold)">Général</span>
         </div>
-        <img src="league-title-chevron-right.png" alt="" style="height:30px;width:auto;max-width:25vw;object-fit:contain;flex-shrink:0;min-width:0;pointer-events:none;user-select:none">
+        <img src="league-title-chevron-right.webp" alt="" style="height:30px;width:auto;max-width:25vw;object-fit:contain;flex-shrink:0;min-width:0;pointer-events:none;user-select:none">
       </div>
-      <button onclick="nav('league')" title="Fermer" style="position:relative;width:40px;height:40px;border:none;background:transparent;padding:0;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;transform:translate(8px,-34px)"><span style="position:absolute;inset:5px;background:url('icon-close-x.png') center/contain no-repeat"></span></button>
+      <button onclick="nav('league')" title="Fermer" style="position:relative;width:40px;height:40px;border:none;background:transparent;padding:0;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;transform:translate(8px,-34px)"><span style="position:absolute;inset:5px;background:url('icon-close-x.webp') center/contain no-repeat"></span></button>
     </div>
     <div style="height:1px;width:100%;margin:.15rem auto 0;background:linear-gradient(90deg,transparent,#fff 15%,var(--gold) 50%,#fff 85%,transparent)"></div>
   </div>
@@ -3916,15 +3916,15 @@ select option{background:#040c1c}
     <div style="display:flex;align-items:center">
       <div style="width:40px;flex-shrink:0"></div>
       <div style="flex:1;min-width:0;display:flex;align-items:center;justify-content:center;gap:.35rem">
-        <img src="league-title-chevron-left.png" alt="" style="height:30px;width:auto;max-width:25vw;object-fit:contain;flex-shrink:0;min-width:0;pointer-events:none;user-select:none">
+        <img src="league-title-chevron-left.webp" alt="" style="height:30px;width:auto;max-width:25vw;object-fit:contain;flex-shrink:0;min-width:0;pointer-events:none;user-select:none">
         <div style="font-family:'Big Shoulders Display',sans-serif;font-weight:900;font-style:italic;text-transform:uppercase;font-size:clamp(1.25rem,6vw,2.4rem);letter-spacing:0px;line-height:1;transform:scaleY(1.15);white-space:nowrap;flex-shrink:0">
           SPEEDIX <span style="color:var(--gold)">TOUR</span>
         </div>
-        <img src="league-title-chevron-right.png" alt="" style="height:30px;width:auto;max-width:25vw;object-fit:contain;flex-shrink:0;min-width:0;pointer-events:none;user-select:none">
+        <img src="league-title-chevron-right.webp" alt="" style="height:30px;width:auto;max-width:25vw;object-fit:contain;flex-shrink:0;min-width:0;pointer-events:none;user-select:none">
       </div>
       <!-- navPlayerCard() (pas nav('dashboard')) : même logique que la page Courses,
            cf. commentaire équivalent plus haut (2026-09-15). -->
-      <button onclick="navPlayerCard()" title="Fermer" style="position:relative;width:40px;height:40px;border:none;background:transparent;padding:0;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;transform:translate(8px,-34px)"><span style="position:absolute;inset:5px;background:url('icon-close-x.png') center/contain no-repeat"></span></button>
+      <button onclick="navPlayerCard()" title="Fermer" style="position:relative;width:40px;height:40px;border:none;background:transparent;padding:0;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;transform:translate(8px,-34px)"><span style="position:absolute;inset:5px;background:url('icon-close-x.webp') center/contain no-repeat"></span></button>
     </div>
     <div style="height:1px;width:100%;margin:.15rem auto 0;background:linear-gradient(90deg,transparent,#fff 15%,var(--gold) 50%,#fff 85%,transparent)"></div>
   </div>
@@ -4177,15 +4177,15 @@ select option{background:#040c1c}
     <div style="display:flex;align-items:center">
       <div style="width:40px;flex-shrink:0"></div>
       <div style="flex:1;min-width:0;display:flex;align-items:center;justify-content:center;gap:.35rem">
-        <img src="league-title-chevron-left.png" alt="" style="height:30px;width:auto;max-width:25vw;object-fit:contain;flex-shrink:0;min-width:0;pointer-events:none;user-select:none">
+        <img src="league-title-chevron-left.webp" alt="" style="height:30px;width:auto;max-width:25vw;object-fit:contain;flex-shrink:0;min-width:0;pointer-events:none;user-select:none">
         <div data-i18n-html="teams.page.title" style="font-family:'Big Shoulders Display',sans-serif;font-weight:900;font-style:italic;text-transform:uppercase;font-size:clamp(1.3rem,6.2vw,2.4rem);letter-spacing:0px;line-height:1;transform:scaleY(1.15);white-space:nowrap;flex-shrink:0">
           Mode <span style="color:var(--gold)">Team</span>
         </div>
-        <img src="league-title-chevron-right.png" alt="" style="height:30px;width:auto;max-width:25vw;object-fit:contain;flex-shrink:0;min-width:0;pointer-events:none;user-select:none">
+        <img src="league-title-chevron-right.webp" alt="" style="height:30px;width:auto;max-width:25vw;object-fit:contain;flex-shrink:0;min-width:0;pointer-events:none;user-select:none">
       </div>
       <!-- navPlayerCard() (pas nav('dashboard')) : même logique que Courses/Tour/
            Parrainage/League (2026-09-15). -->
-      <button onclick="navPlayerCard()" title="Fermer" style="position:relative;width:40px;height:40px;border:none;background:transparent;padding:0;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;transform:translate(8px,-34px)"><span style="position:absolute;inset:5px;background:url('icon-close-x.png') center/contain no-repeat"></span></button>
+      <button onclick="navPlayerCard()" title="Fermer" style="position:relative;width:40px;height:40px;border:none;background:transparent;padding:0;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;transform:translate(8px,-34px)"><span style="position:absolute;inset:5px;background:url('icon-close-x.webp') center/contain no-repeat"></span></button>
     </div>
     <div style="height:1px;width:100%;margin:.15rem auto 0;background:linear-gradient(90deg,transparent,#fff 15%,var(--gold) 50%,#fff 85%,transparent)"></div>
   </div>
@@ -4360,7 +4360,7 @@ select option{background:#040c1c}
           <!-- Podium -->
           <div style="display:flex;flex-direction:column;gap:.35rem;margin-bottom:.75rem">
             <div style="display:flex;align-items:center;gap:.6rem;padding:.45rem .6rem;background:rgba(255,215,0,.07);border-radius:6px;border:1px solid rgba(255,215,0,.2)">
-              <img src="ai-icons/medal-1-gold.png" style="width:28px;height:28px;object-fit:contain;flex-shrink:0">
+              <img src="ai-icons/medal-1-gold.webp" style="width:28px;height:28px;object-fit:contain;flex-shrink:0">
               <div style="flex:1"><div style="font-size:.75rem;color:var(--text);font-weight:600">Team #1</div></div>
               <div style="text-align:right">
                 <div style="font-family:'Space Mono',monospace;font-size:.72rem;color:var(--gold);font-weight:700">50 000 RPC</div>
@@ -4368,7 +4368,7 @@ select option{background:#040c1c}
               </div>
             </div>
             <div style="display:flex;align-items:center;gap:.6rem;padding:.45rem .6rem;background:rgba(192,192,192,.06);border-radius:6px;border:1px solid rgba(192,192,192,.15)">
-              <img src="ai-icons/medal-2-silver.png" style="width:28px;height:28px;object-fit:contain;flex-shrink:0">
+              <img src="ai-icons/medal-2-silver.webp" style="width:28px;height:28px;object-fit:contain;flex-shrink:0">
               <div style="flex:1"><div style="font-size:.75rem;color:var(--text);font-weight:600">Team #2</div></div>
               <div style="text-align:right">
                 <div style="font-family:'Space Mono',monospace;font-size:.72rem;color:#c0c0c0;font-weight:700">30 000 RPC</div>
@@ -4376,7 +4376,7 @@ select option{background:#040c1c}
               </div>
             </div>
             <div style="display:flex;align-items:center;gap:.6rem;padding:.45rem .6rem;background:rgba(205,127,50,.07);border-radius:6px;border:1px solid rgba(205,127,50,.2)">
-              <img src="ai-icons/medal-3-bronze.png" style="width:28px;height:28px;object-fit:contain;flex-shrink:0">
+              <img src="ai-icons/medal-3-bronze.webp" style="width:28px;height:28px;object-fit:contain;flex-shrink:0">
               <div style="flex:1"><div style="font-size:.75rem;color:var(--text);font-weight:600">Team #3</div></div>
               <div style="text-align:right">
                 <div style="font-family:'Space Mono',monospace;font-size:.72rem;color:#cd7f32;font-weight:700">15 000 RPC</div>
@@ -4417,13 +4417,13 @@ select option{background:#040c1c}
     <div style="display:flex;align-items:center">
       <div style="width:40px;flex-shrink:0"></div>
       <div style="flex:1;min-width:0;display:flex;align-items:center;justify-content:center;gap:.35rem">
-        <img src="league-title-chevron-left.png" alt="" style="height:30px;width:auto;max-width:25vw;object-fit:contain;flex-shrink:0;min-width:0;pointer-events:none;user-select:none">
+        <img src="league-title-chevron-left.webp" alt="" style="height:30px;width:auto;max-width:25vw;object-fit:contain;flex-shrink:0;min-width:0;pointer-events:none;user-select:none">
         <div data-i18n-html="grades.page.title" style="font-family:'Big Shoulders Display',sans-serif;font-weight:900;font-style:italic;text-transform:uppercase;font-size:clamp(1.25rem,6vw,2.4rem);letter-spacing:0px;line-height:1;transform:scaleY(1.15);white-space:nowrap;flex-shrink:0">
           Système de <span style="color:var(--gold)">Grades</span>
         </div>
-        <img src="league-title-chevron-right.png" alt="" style="height:30px;width:auto;max-width:25vw;object-fit:contain;flex-shrink:0;min-width:0;pointer-events:none;user-select:none">
+        <img src="league-title-chevron-right.webp" alt="" style="height:30px;width:auto;max-width:25vw;object-fit:contain;flex-shrink:0;min-width:0;pointer-events:none;user-select:none">
       </div>
-      <button onclick="nav('dashboard')" title="Fermer" style="position:relative;width:40px;height:40px;border:none;background:transparent;padding:0;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;transform:translate(8px,-34px)"><span style="position:absolute;inset:5px;background:url('icon-close-x.png') center/contain no-repeat"></span></button>
+      <button onclick="nav('dashboard')" title="Fermer" style="position:relative;width:40px;height:40px;border:none;background:transparent;padding:0;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;transform:translate(8px,-34px)"><span style="position:absolute;inset:5px;background:url('icon-close-x.webp') center/contain no-repeat"></span></button>
     </div>
     <div style="height:1px;width:100%;margin:.15rem auto 0;background:linear-gradient(90deg,transparent,#fff 15%,var(--gold) 50%,#fff 85%,transparent)"></div>
   </div>
@@ -4449,15 +4449,15 @@ select option{background:#040c1c}
       <div style="display:flex;align-items:center">
         <div style="width:40px;flex-shrink:0"></div>
         <div style="flex:1;min-width:0;display:flex;align-items:center;justify-content:center;gap:.35rem">
-          <img src="league-title-chevron-left.png" alt="" style="height:30px;width:auto;max-width:25vw;object-fit:contain;flex-shrink:0;min-width:0;pointer-events:none;user-select:none">
+          <img src="league-title-chevron-left.webp" alt="" style="height:30px;width:auto;max-width:25vw;object-fit:contain;flex-shrink:0;min-width:0;pointer-events:none;user-select:none">
           <div data-i18n-html="social.page.title" style="font-family:'Big Shoulders Display',sans-serif;font-weight:900;font-style:italic;text-transform:uppercase;font-size:clamp(1.3rem,6.2vw,2.4rem);letter-spacing:0px;line-height:1;transform:scaleY(1.15);white-space:nowrap;flex-shrink:0">
             <span style="color:var(--text)">FIL</span> <span style="color:var(--gold)">SOCIAL</span>
           </div>
-          <img src="league-title-chevron-right.png" alt="" style="height:30px;width:auto;max-width:25vw;object-fit:contain;flex-shrink:0;min-width:0;pointer-events:none;user-select:none">
+          <img src="league-title-chevron-right.webp" alt="" style="height:30px;width:auto;max-width:25vw;object-fit:contain;flex-shrink:0;min-width:0;pointer-events:none;user-select:none">
         </div>
         <!-- navPlayerCard() (pas nav('dashboard')) : même logique que Courses/Tour/
              Parrainage/League/Team (2026-09-15). -->
-        <button onclick="navPlayerCard()" title="Fermer" style="position:relative;width:40px;height:40px;border:none;background:transparent;padding:0;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;transform:translate(8px,-34px)"><span style="position:absolute;inset:5px;background:url('icon-close-x.png') center/contain no-repeat"></span></button>
+        <button onclick="navPlayerCard()" title="Fermer" style="position:relative;width:40px;height:40px;border:none;background:transparent;padding:0;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;transform:translate(8px,-34px)"><span style="position:absolute;inset:5px;background:url('icon-close-x.webp') center/contain no-repeat"></span></button>
       </div>
       <div style="height:1px;width:100%;margin:.15rem auto 0;background:linear-gradient(90deg,transparent,#fff 15%,var(--gold) 50%,#fff 85%,transparent)"></div>
     </div>
@@ -4516,13 +4516,13 @@ select option{background:#040c1c}
     <div style="display:flex;align-items:center">
       <div style="width:40px;flex-shrink:0"></div>
       <div style="flex:1;min-width:0;display:flex;align-items:center;justify-content:center;gap:.35rem">
-        <img src="league-title-chevron-left.png" alt="" style="height:30px;width:auto;max-width:25vw;object-fit:contain;flex-shrink:0;min-width:0;pointer-events:none;user-select:none">
+        <img src="league-title-chevron-left.webp" alt="" style="height:30px;width:auto;max-width:25vw;object-fit:contain;flex-shrink:0;min-width:0;pointer-events:none;user-select:none">
         <div data-i18n-html="eco.page.title" style="font-family:'Big Shoulders Display',sans-serif;font-weight:900;font-style:italic;text-transform:uppercase;font-size:clamp(1.2rem,5.8vw,2.4rem);letter-spacing:0px;line-height:1;transform:scaleY(1.15);white-space:nowrap;flex-shrink:0">
           Économie <span style="color:var(--gold)">SPEEDIX</span>
         </div>
-        <img src="league-title-chevron-right.png" alt="" style="height:30px;width:auto;max-width:25vw;object-fit:contain;flex-shrink:0;min-width:0;pointer-events:none;user-select:none">
+        <img src="league-title-chevron-right.webp" alt="" style="height:30px;width:auto;max-width:25vw;object-fit:contain;flex-shrink:0;min-width:0;pointer-events:none;user-select:none">
       </div>
-      <button onclick="nav('dashboard')" title="Fermer" style="position:relative;width:40px;height:40px;border:none;background:transparent;padding:0;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;transform:translate(8px,-34px)"><span style="position:absolute;inset:5px;background:url('icon-close-x.png') center/contain no-repeat"></span></button>
+      <button onclick="nav('dashboard')" title="Fermer" style="position:relative;width:40px;height:40px;border:none;background:transparent;padding:0;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;transform:translate(8px,-34px)"><span style="position:absolute;inset:5px;background:url('icon-close-x.webp') center/contain no-repeat"></span></button>
     </div>
     <div style="height:1px;width:100%;margin:.15rem auto 0;background:linear-gradient(90deg,transparent,#fff 15%,var(--gold) 50%,#fff 85%,transparent)"></div>
   </div>
@@ -4655,13 +4655,13 @@ select option{background:#040c1c}
     <div style="display:flex;align-items:center">
       <div style="width:40px;flex-shrink:0"></div>
       <div style="flex:1;min-width:0;display:flex;align-items:center;justify-content:center;gap:.35rem">
-        <img src="league-title-chevron-left.png" alt="" style="height:30px;width:auto;max-width:25vw;object-fit:contain;flex-shrink:0;min-width:0;pointer-events:none;user-select:none">
+        <img src="league-title-chevron-left.webp" alt="" style="height:30px;width:auto;max-width:25vw;object-fit:contain;flex-shrink:0;min-width:0;pointer-events:none;user-select:none">
         <div data-i18n-html="prem.page.title" style="font-family:'Big Shoulders Display',sans-serif;font-weight:900;font-style:italic;text-transform:uppercase;font-size:clamp(1.25rem,6vw,2.3rem);letter-spacing:0px;line-height:1;transform:scaleY(1.15);white-space:nowrap;flex-shrink:0">
           Free <span style="color:var(--gold)">vs</span> Premium
         </div>
-        <img src="league-title-chevron-right.png" alt="" style="height:30px;width:auto;max-width:25vw;object-fit:contain;flex-shrink:0;min-width:0;pointer-events:none;user-select:none">
+        <img src="league-title-chevron-right.webp" alt="" style="height:30px;width:auto;max-width:25vw;object-fit:contain;flex-shrink:0;min-width:0;pointer-events:none;user-select:none">
       </div>
-      <button onclick="nav('dashboard')" title="Fermer" style="position:relative;width:40px;height:40px;border:none;background:transparent;padding:0;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;transform:translate(8px,-34px)"><span style="position:absolute;inset:5px;background:url('icon-close-x.png') center/contain no-repeat"></span></button>
+      <button onclick="nav('dashboard')" title="Fermer" style="position:relative;width:40px;height:40px;border:none;background:transparent;padding:0;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;transform:translate(8px,-34px)"><span style="position:absolute;inset:5px;background:url('icon-close-x.webp') center/contain no-repeat"></span></button>
     </div>
     <div style="height:1px;width:100%;margin:.15rem auto 0;background:linear-gradient(90deg,transparent,#fff 15%,var(--gold) 50%,#fff 85%,transparent)"></div>
   </div>
@@ -4910,13 +4910,13 @@ var SpeedixReview=(function(){
     <div style="display:flex;align-items:center">
       <div style="width:40px;flex-shrink:0"></div>
       <div style="flex:1;min-width:0;display:flex;align-items:center;justify-content:center;gap:.35rem">
-        <img src="league-title-chevron-left.png" alt="" style="height:30px;width:auto;max-width:25vw;object-fit:contain;flex-shrink:0;min-width:0;pointer-events:none;user-select:none">
+        <img src="league-title-chevron-left.webp" alt="" style="height:30px;width:auto;max-width:25vw;object-fit:contain;flex-shrink:0;min-width:0;pointer-events:none;user-select:none">
         <div data-i18n-html="faq.header.title" style="font-family:'Big Shoulders Display',sans-serif;font-weight:900;font-style:italic;text-transform:uppercase;font-size:clamp(1.25rem,6vw,2.4rem);letter-spacing:0px;line-height:1;transform:scaleY(1.15);white-space:nowrap;flex-shrink:0">
           AIDE <span style="color:var(--gold)">&amp; FAQ</span>
         </div>
-        <img src="league-title-chevron-right.png" alt="" style="height:30px;width:auto;max-width:25vw;object-fit:contain;flex-shrink:0;min-width:0;pointer-events:none;user-select:none">
+        <img src="league-title-chevron-right.webp" alt="" style="height:30px;width:auto;max-width:25vw;object-fit:contain;flex-shrink:0;min-width:0;pointer-events:none;user-select:none">
       </div>
-      <button onclick="nav('dashboard')" title="Fermer" style="position:relative;width:40px;height:40px;border:none;background:transparent;padding:0;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;transform:translate(8px,-34px)"><span style="position:absolute;inset:5px;background:url('icon-close-x.png') center/contain no-repeat"></span></button>
+      <button onclick="nav('dashboard')" title="Fermer" style="position:relative;width:40px;height:40px;border:none;background:transparent;padding:0;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;transform:translate(8px,-34px)"><span style="position:absolute;inset:5px;background:url('icon-close-x.webp') center/contain no-repeat"></span></button>
     </div>
     <div style="height:1px;width:100%;margin:.15rem auto 0;background:linear-gradient(90deg,transparent,#fff 15%,var(--gold) 50%,#fff 85%,transparent)"></div>
   </div>
@@ -5045,16 +5045,16 @@ var SpeedixReview=(function(){
     <div style="display:flex;align-items:center">
       <div style="width:40px;flex-shrink:0"></div>
       <div style="flex:1;min-width:0;display:flex;align-items:center;justify-content:center;gap:.35rem">
-        <img src="league-title-chevron-left.png" alt="" style="height:30px;width:auto;max-width:25vw;object-fit:contain;flex-shrink:0;min-width:0;pointer-events:none;user-select:none">
+        <img src="league-title-chevron-left.webp" alt="" style="height:30px;width:auto;max-width:25vw;object-fit:contain;flex-shrink:0;min-width:0;pointer-events:none;user-select:none">
         <div data-i18n-html="sponsor.modal.title" style="font-family:'Big Shoulders Display',sans-serif;font-weight:900;font-style:italic;text-transform:uppercase;font-size:clamp(1.25rem,6vw,2.4rem);letter-spacing:0px;line-height:1;transform:scaleY(1.15);white-space:nowrap;flex-shrink:0">
           MES <span style="color:var(--gold)">FILLEULS</span>
         </div>
-        <img src="league-title-chevron-right.png" alt="" style="height:30px;width:auto;max-width:25vw;object-fit:contain;flex-shrink:0;min-width:0;pointer-events:none;user-select:none">
+        <img src="league-title-chevron-right.webp" alt="" style="height:30px;width:auto;max-width:25vw;object-fit:contain;flex-shrink:0;min-width:0;pointer-events:none;user-select:none">
       </div>
       <!-- navPlayerCard() (pas nav('dashboard')) : même logique que Courses/Tour
            (2026-09-15) — revient sur la PC CONSULTÉE si ouvert depuis la PC d'un
            autre RP, garde __viewedPlayer. -->
-      <button onclick="navPlayerCard()" title="Fermer" style="position:relative;width:40px;height:40px;border:none;background:transparent;padding:0;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;transform:translate(8px,-34px)"><span style="position:absolute;inset:5px;background:url('icon-close-x.png') center/contain no-repeat"></span></button>
+      <button onclick="navPlayerCard()" title="Fermer" style="position:relative;width:40px;height:40px;border:none;background:transparent;padding:0;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;transform:translate(8px,-34px)"><span style="position:absolute;inset:5px;background:url('icon-close-x.webp') center/contain no-repeat"></span></button>
     </div>
     <div style="height:1px;width:100%;margin:.15rem auto 0;background:linear-gradient(90deg,transparent,#fff 15%,var(--gold) 50%,#fff 85%,transparent)"></div>
   </div>
@@ -5602,13 +5602,13 @@ function askConfirm(message, opts){
       <div style="display:flex;align-items:center">
         <div style="width:40px;flex-shrink:0"></div>
         <div style="flex:1;min-width:0;display:flex;align-items:center;justify-content:center;gap:.35rem">
-          <img src="league-title-chevron-left.png" alt="" style="height:30px;width:auto;max-width:25vw;object-fit:contain;flex-shrink:0;min-width:0;pointer-events:none;user-select:none">
+          <img src="league-title-chevron-left.webp" alt="" style="height:30px;width:auto;max-width:25vw;object-fit:contain;flex-shrink:0;min-width:0;pointer-events:none;user-select:none">
           <div style="font-family:'Bebas Neue',sans-serif;font-size:clamp(1.2rem,5.8vw,2.4rem);letter-spacing:3px;color:var(--cyan,#20d0e0);white-space:nowrap;flex-shrink:0">
             ⚙ Admin <span style="color:var(--muted2);font-size:1rem">Panel</span> <span id="admin-sw-version" title="Version réellement active sur cet appareil (lue dans le service worker)" style="font-size:1rem;font-family:'Space Mono',monospace;color:var(--muted2)">…</span>
           </div>
-          <img src="league-title-chevron-right.png" alt="" style="height:30px;width:auto;max-width:25vw;object-fit:contain;flex-shrink:0;min-width:0;pointer-events:none;user-select:none">
+          <img src="league-title-chevron-right.webp" alt="" style="height:30px;width:auto;max-width:25vw;object-fit:contain;flex-shrink:0;min-width:0;pointer-events:none;user-select:none">
         </div>
-        <button onclick="nav('dashboard')" title="Fermer" style="position:relative;width:40px;height:40px;border:none;background:transparent;padding:0;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;transform:translate(8px,-34px)"><span style="position:absolute;inset:5px;background:url('icon-close-x.png') center/contain no-repeat"></span></button>
+        <button onclick="nav('dashboard')" title="Fermer" style="position:relative;width:40px;height:40px;border:none;background:transparent;padding:0;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;transform:translate(8px,-34px)"><span style="position:absolute;inset:5px;background:url('icon-close-x.webp') center/contain no-repeat"></span></button>
       </div>
       <div style="height:1px;width:100%;margin:.15rem auto 0;background:linear-gradient(90deg,transparent,#fff 15%,var(--gold) 50%,#fff 85%,transparent)"></div>
     </div>
@@ -5786,13 +5786,13 @@ function askConfirm(message, opts){
     <div style="display:flex;align-items:center">
       <div style="width:40px;flex-shrink:0"></div>
       <div style="flex:1;min-width:0;display:flex;align-items:center;justify-content:center;gap:.35rem">
-        <img src="league-title-chevron-left.png" alt="" style="height:30px;width:auto;max-width:25vw;object-fit:contain;flex-shrink:0;min-width:0;pointer-events:none;user-select:none">
+        <img src="league-title-chevron-left.webp" alt="" style="height:30px;width:auto;max-width:25vw;object-fit:contain;flex-shrink:0;min-width:0;pointer-events:none;user-select:none">
         <div data-i18n-html="rules.page.title" style="font-family:'Big Shoulders Display',sans-serif;font-weight:900;font-style:italic;text-transform:uppercase;font-size:clamp(1.3rem,6.2vw,2.4rem);letter-spacing:0px;line-height:1;transform:scaleY(1.15);white-space:nowrap;flex-shrink:0">
           Règles <span style="color:var(--gold)">SPEEDIX</span>
         </div>
-        <img src="league-title-chevron-right.png" alt="" style="height:30px;width:auto;max-width:25vw;object-fit:contain;flex-shrink:0;min-width:0;pointer-events:none;user-select:none">
+        <img src="league-title-chevron-right.webp" alt="" style="height:30px;width:auto;max-width:25vw;object-fit:contain;flex-shrink:0;min-width:0;pointer-events:none;user-select:none">
       </div>
-      <button onclick="nav('dashboard')" title="Fermer" style="position:relative;width:40px;height:40px;border:none;background:transparent;padding:0;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;transform:translate(8px,-34px)"><span style="position:absolute;inset:5px;background:url('icon-close-x.png') center/contain no-repeat"></span></button>
+      <button onclick="nav('dashboard')" title="Fermer" style="position:relative;width:40px;height:40px;border:none;background:transparent;padding:0;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;transform:translate(8px,-34px)"><span style="position:absolute;inset:5px;background:url('icon-close-x.webp') center/contain no-repeat"></span></button>
     </div>
     <div style="height:1px;width:100%;margin:.15rem auto 0;background:linear-gradient(90deg,transparent,#fff 15%,var(--gold) 50%,#fff 85%,transparent)"></div>
   </div>
@@ -5968,13 +5968,13 @@ function askConfirm(message, opts){
       <div style="display:flex;align-items:center">
         <div style="width:40px;flex-shrink:0"></div>
         <div style="flex:1;min-width:0;display:flex;align-items:center;justify-content:center;gap:.35rem">
-          <img src="league-title-chevron-left.png" alt="" style="height:30px;width:auto;max-width:25vw;object-fit:contain;flex-shrink:0;min-width:0;pointer-events:none;user-select:none">
+          <img src="league-title-chevron-left.webp" alt="" style="height:30px;width:auto;max-width:25vw;object-fit:contain;flex-shrink:0;min-width:0;pointer-events:none;user-select:none">
           <div data-i18n-html="legal.page.title" style="font-family:'Big Shoulders Display',sans-serif;font-weight:900;font-style:italic;text-transform:uppercase;font-size:clamp(1.2rem,5.8vw,2.4rem);letter-spacing:0px;line-height:1;transform:scaleY(1.15);white-space:nowrap;flex-shrink:0">
             <span style="color:var(--text)">Mentions</span> <span style="color:var(--gold)">Légales</span>
           </div>
-          <img src="league-title-chevron-right.png" alt="" style="height:30px;width:auto;max-width:25vw;object-fit:contain;flex-shrink:0;min-width:0;pointer-events:none;user-select:none">
+          <img src="league-title-chevron-right.webp" alt="" style="height:30px;width:auto;max-width:25vw;object-fit:contain;flex-shrink:0;min-width:0;pointer-events:none;user-select:none">
         </div>
-        <button onclick="nav('dashboard')" title="Fermer" style="position:relative;width:40px;height:40px;border:none;background:transparent;padding:0;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;transform:translate(8px,-34px)"><span style="position:absolute;inset:5px;background:url('icon-close-x.png') center/contain no-repeat"></span></button>
+        <button onclick="nav('dashboard')" title="Fermer" style="position:relative;width:40px;height:40px;border:none;background:transparent;padding:0;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;transform:translate(8px,-34px)"><span style="position:absolute;inset:5px;background:url('icon-close-x.webp') center/contain no-repeat"></span></button>
       </div>
       <div style="height:1px;width:100%;margin:.15rem auto 0;background:linear-gradient(90deg,transparent,#fff 15%,var(--gold) 50%,#fff 85%,transparent)"></div>
     </div>
@@ -6151,13 +6151,13 @@ function askConfirm(message, opts){
       <div style="display:flex;align-items:center">
         <div style="width:40px;flex-shrink:0"></div>
         <div style="flex:1;min-width:0;display:flex;align-items:center;justify-content:center;gap:.35rem">
-          <img src="league-title-chevron-left.png" alt="" style="height:30px;width:auto;max-width:25vw;object-fit:contain;flex-shrink:0;min-width:0;pointer-events:none;user-select:none">
+          <img src="league-title-chevron-left.webp" alt="" style="height:30px;width:auto;max-width:25vw;object-fit:contain;flex-shrink:0;min-width:0;pointer-events:none;user-select:none">
           <div data-i18n-html="settings.page.title" style="font-family:'Big Shoulders Display',sans-serif;font-weight:900;font-style:italic;text-transform:uppercase;font-size:clamp(1.3rem,6.2vw,2.4rem);letter-spacing:0px;line-height:1;transform:scaleY(1.15);white-space:nowrap;flex-shrink:0">
             <span style="color:var(--text)">Mon</span> <span style="color:var(--gold)">profil</span>
           </div>
-          <img src="league-title-chevron-right.png" alt="" style="height:30px;width:auto;max-width:25vw;object-fit:contain;flex-shrink:0;min-width:0;pointer-events:none;user-select:none">
+          <img src="league-title-chevron-right.webp" alt="" style="height:30px;width:auto;max-width:25vw;object-fit:contain;flex-shrink:0;min-width:0;pointer-events:none;user-select:none">
         </div>
-        <button onclick="nav('dashboard')" title="Fermer" style="position:relative;width:40px;height:40px;border:none;background:transparent;padding:0;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;transform:translate(8px,-34px)"><span style="position:absolute;inset:5px;background:url('icon-close-x.png') center/contain no-repeat"></span></button>
+        <button onclick="nav('dashboard')" title="Fermer" style="position:relative;width:40px;height:40px;border:none;background:transparent;padding:0;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;transform:translate(8px,-34px)"><span style="position:absolute;inset:5px;background:url('icon-close-x.webp') center/contain no-repeat"></span></button>
       </div>
       <div style="height:1px;width:100%;margin:.15rem auto 0;background:linear-gradient(90deg,transparent,#fff 15%,var(--gold) 50%,#fff 85%,transparent)"></div>
     </div>
@@ -6268,15 +6268,15 @@ function askConfirm(message, opts){
     <header style="position:relative">
       <div style="width:40px;flex-shrink:0"></div>
       <div style="flex:1;min-width:0;display:flex;align-items:center;justify-content:center;gap:.35rem">
-        <img src="league-title-chevron-left.png" alt="" style="height:30px;width:auto;max-width:25vw;object-fit:contain;flex-shrink:0;min-width:0;pointer-events:none;user-select:none">
+        <img src="league-title-chevron-left.webp" alt="" style="height:30px;width:auto;max-width:25vw;object-fit:contain;flex-shrink:0;min-width:0;pointer-events:none;user-select:none">
         <div class="round" id="t-title" style="font-size:clamp(1.3rem,6.2vw,2.2rem);color:var(--text);white-space:nowrap">CASH <span class="hl">RUN</span></div>
-        <img src="league-title-chevron-right.png" alt="" style="height:30px;width:auto;max-width:25vw;object-fit:contain;flex-shrink:0;min-width:0;pointer-events:none;user-select:none">
+        <img src="league-title-chevron-right.webp" alt="" style="height:30px;width:auto;max-width:25vw;object-fit:contain;flex-shrink:0;min-width:0;pointer-events:none;user-select:none">
       </div>
       <div style="width:40px;flex-shrink:0"></div>
       <!-- Croix ancrée en absolu par rapport au header (2026-08-04) : plus fiable qu'un
            transform depuis sa position dans le flux, elle flotte juste sous le bout de la
            ligne du titre, légèrement au-dessus du cadre "Règles du jeu". -->
-      <button onclick="nav('dashboard')" title="Quitter Cash Run" style="position:absolute;right:-3px;bottom:-33px;width:40px;height:40px;border:none;background:transparent;padding:0;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center"><span style="position:absolute;inset:5px;background:url('icon-close-x.png') center/contain no-repeat"></span></button>
+      <button onclick="nav('dashboard')" title="Quitter Cash Run" style="position:absolute;right:-3px;bottom:-33px;width:40px;height:40px;border:none;background:transparent;padding:0;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center"><span style="position:absolute;inset:5px;background:url('icon-close-x.webp') center/contain no-repeat"></span></button>
     </header>
     <div style="height:1px;width:100%;margin:.15rem auto 0;background:linear-gradient(90deg,transparent,#fff 15%,var(--gold) 50%,#fff 85%,transparent)"></div>
     <!-- Cadre biseauté (contour violet, cf. .rulescard) qui n'englobe QUE le contenu réel
@@ -6313,7 +6313,7 @@ function askConfirm(message, opts){
     <header>
       <div class="round">SPEEDIX<small id="g-round">CASH RUN</small></div>
       <div class="timer" id="g-timer">0:60</div>
-      <button onclick="CR.abandon()" title="Quitter la manche" style="position:relative;width:40px;height:40px;border:none;background:transparent;padding:0;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center"><span style="position:absolute;inset:5px;background:url('icon-close-x.png') center/contain no-repeat"></span></button>
+      <button onclick="CR.abandon()" title="Quitter la manche" style="position:relative;width:40px;height:40px;border:none;background:transparent;padding:0;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center"><span style="position:absolute;inset:5px;background:url('icon-close-x.webp') center/contain no-repeat"></span></button>
     </header>
     <div class="pbar"><i id="g-pbar"></i></div>
 
@@ -6333,7 +6333,7 @@ function askConfirm(message, opts){
   <!-- ÉCRAN FIN -->
   <section id="s-end" class="screen">
     <header>
-      <button onclick="nav('dashboard')" title="Quitter Cash Run" style="margin-left:auto;position:relative;width:40px;height:40px;border:none;background:transparent;padding:0;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center"><span style="position:absolute;inset:5px;background:url('icon-close-x.png') center/contain no-repeat"></span></button>
+      <button onclick="nav('dashboard')" title="Quitter Cash Run" style="margin-left:auto;position:relative;width:40px;height:40px;border:none;background:transparent;padding:0;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center"><span style="position:absolute;inset:5px;background:url('icon-close-x.webp') center/contain no-repeat"></span></button>
     </header>
     <div class="center">
       <div class="big" id="e-title">FIN DE PARTIE</div>
@@ -6350,12 +6350,12 @@ function askConfirm(message, opts){
     <header style="position:relative">
       <div style="width:40px;flex-shrink:0"></div>
       <div style="flex:1;min-width:0;display:flex;align-items:center;justify-content:center;gap:.35rem">
-        <img src="league-title-chevron-left.png" alt="" style="height:30px;width:auto;max-width:25vw;object-fit:contain;flex-shrink:0;min-width:0;pointer-events:none;user-select:none">
+        <img src="league-title-chevron-left.webp" alt="" style="height:30px;width:auto;max-width:25vw;object-fit:contain;flex-shrink:0;min-width:0;pointer-events:none;user-select:none">
         <div class="round" style="white-space:nowrap;font-size:clamp(1.3rem,6.2vw,2.2rem)"><span style="color:var(--text)">CASH</span> <span class="hl">RUN</span></div>
-        <img src="league-title-chevron-right.png" alt="" style="height:30px;width:auto;max-width:25vw;object-fit:contain;flex-shrink:0;min-width:0;pointer-events:none;user-select:none">
+        <img src="league-title-chevron-right.webp" alt="" style="height:30px;width:auto;max-width:25vw;object-fit:contain;flex-shrink:0;min-width:0;pointer-events:none;user-select:none">
       </div>
       <div style="width:40px;flex-shrink:0"></div>
-      <button onclick="CR.goHome()" title="Retour" style="position:absolute;right:-3px;bottom:-33px;width:40px;height:40px;border:none;background:transparent;padding:0;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center"><span style="position:absolute;inset:5px;background:url('icon-close-x.png') center/contain no-repeat"></span></button>
+      <button onclick="CR.goHome()" title="Retour" style="position:absolute;right:-3px;bottom:-33px;width:40px;height:40px;border:none;background:transparent;padding:0;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center"><span style="position:absolute;inset:5px;background:url('icon-close-x.webp') center/contain no-repeat"></span></button>
     </header>
     <div style="height:1px;width:100%;margin:.15rem auto 0;background:linear-gradient(90deg,transparent,#fff 15%,var(--gold) 50%,#fff 85%,transparent)"></div>
 
@@ -6378,19 +6378,19 @@ function askConfirm(message, opts){
         <div class="podmedals">
           <div class="podm" title="1res places (mois)">
             <div class="podoct">
-              <img src="ai-icons/medal-1-gold.png" style="width:28px;height:28px;object-fit:contain">
+              <img src="ai-icons/medal-1-gold.webp" style="width:28px;height:28px;object-fit:contain">
             </div>
             <span class="pmn" id="st-gold" style="color:#ffd700;text-shadow:0 0 5px rgba(255,215,0,.5)">×0</span>
           </div>
           <div class="podm" title="2es places (mois)">
             <div class="podoct">
-              <img src="ai-icons/medal-2-silver.png" style="width:28px;height:28px;object-fit:contain">
+              <img src="ai-icons/medal-2-silver.webp" style="width:28px;height:28px;object-fit:contain">
             </div>
             <span class="pmn" id="st-silver" style="color:#c0c0c0">×0</span>
           </div>
           <div class="podm" title="3es places (mois)">
             <div class="podoct">
-              <img src="ai-icons/medal-3-bronze.png" style="width:28px;height:28px;object-fit:contain">
+              <img src="ai-icons/medal-3-bronze.webp" style="width:28px;height:28px;object-fit:contain">
             </div>
             <span class="pmn" id="st-bronze" style="color:#cd7f32">×0</span>
           </div>
@@ -11511,7 +11511,7 @@ function renderDashboard(){
     frame.style.cursor='pointer';
     frame.onclick=function(){goToPcTeam();};
     // Icône neutre par défaut (pas d'équipe)
-    img.src='ai-icons/icon-team-flat-v1.png';
+    img.src='ai-icons/icon-team-flat-v1.webp';
     img.style.cssText='width:92%;height:92%;object-fit:contain;display:block;margin-top:2%;margin-left:2px';
     frame.title='Rejoindre une team';
     frame.style.opacity='1';
@@ -11942,7 +11942,7 @@ function renderLeaguePanel(){
     // TOUJOURS visible, indépendamment du seuil de palmarès. Le seuil ne concerne QUE
     // la distribution permanente au palmarès (médailles Player Card), pas l'indicateur
     // de rang en direct dans le classement.
-    var rankDisplay=(!isStarter&&medalRank===1)?'<img src="ai-icons/medal-1-gold.png" style="width:30px;height:30px;object-fit:contain">':(!isStarter&&medalRank===2)?'<img src="ai-icons/medal-2-silver.png" style="width:30px;height:30px;object-fit:contain">':(!isStarter&&medalRank===3)?'<img src="ai-icons/medal-3-bronze.png" style="width:30px;height:30px;object-fit:contain">':'<div class="rank-num '+rc+'">'+rankNum+'</div>';
+    var rankDisplay=(!isStarter&&medalRank===1)?'<img src="ai-icons/medal-1-gold.webp" style="width:30px;height:30px;object-fit:contain">':(!isStarter&&medalRank===2)?'<img src="ai-icons/medal-2-silver.webp" style="width:30px;height:30px;object-fit:contain">':(!isStarter&&medalRank===3)?'<img src="ai-icons/medal-3-bronze.webp" style="width:30px;height:30px;object-fit:contain">':'<div class="rank-num '+rc+'">'+rankNum+'</div>';
     // Un RP en calibrage n'a pas de médaille, mais il peut se glisser physiquement
     // dans la zone podium — au-dessus OU intercalé ENTRE les 3 médaillés compétitifs
     // (le classement est trié aux points, un « C » à gros score remonte). Son numéro
@@ -12332,7 +12332,7 @@ function renderLeaguePanel(){
     var myTrend=myPlayer.trend||0;
     // Calibrage : pas de flèche non plus sur ma barre « position » (même règle que les lignes du tableau).
     var myTrendHtml=(myPlayer.competitive===false&&!isStarter)?'<span style="display:inline-block;width:1.35rem"></span>':trendBadgeHtml(myTrend);
-    var myRankArr=['<img src="ai-icons/medal-1-gold.png" style="width:22px;height:22px;object-fit:contain">','<img src="ai-icons/medal-2-silver.png" style="width:22px;height:22px;object-fit:contain">','<img src="ai-icons/medal-3-bronze.png" style="width:22px;height:22px;object-fit:contain">'];
+    var myRankArr=['<img src="ai-icons/medal-1-gold.webp" style="width:22px;height:22px;object-fit:contain">','<img src="ai-icons/medal-2-silver.webp" style="width:22px;height:22px;object-fit:contain">','<img src="ai-icons/medal-3-bronze.webp" style="width:22px;height:22px;object-fit:contain">'];
     // Une médaille dans la barre sticky uniquement si je suis dans le bloc
     // compétitifs (même règle que les lignes du tableau) — jamais pour du calibrage.
     var myRankDisp=(myIsCompForRank&&myRankInPanel>=1&&myRankInPanel<=3&&myRankArr[myRankInPanel-1])
@@ -13174,10 +13174,10 @@ function getParrainageTitre(count){
 // l'ancienne image depuis son cache HTTP même une fois l'app elle-même à jour
 // (CACHE_VERSION du service worker ne concerne que index.html/JS, pas ces PNG).
 var _parrainageBadgeImg={
-  'Ambassadeur':'ai-icons/parrainage-badges/ambassadeur.png?v=4',
-  'Gouverneur':'ai-icons/parrainage-badges/gouverneur.png?v=4',
-  'Empereur':'ai-icons/parrainage-badges/empereur.png?v=4',
-  'Fondateur':'ai-icons/parrainage-badges/fondateur.png?v=4'
+  'Ambassadeur':'ai-icons/parrainage-badges/ambassadeur.webp?v=4',
+  'Gouverneur':'ai-icons/parrainage-badges/gouverneur.webp?v=4',
+  'Empereur':'ai-icons/parrainage-badges/empereur.webp?v=4',
+  'Fondateur':'ai-icons/parrainage-badges/fondateur.webp?v=4'
 };
 // Icône de la tuile Player Card (à gauche du drapeau, cf #parrainage-emoji) —
 // remplacée par le blason du grade dès que le RP en a un (2026-08-06, demande
@@ -13186,7 +13186,7 @@ var _parrainageBadgeImg={
 // loadParrainageData(user.id) tourne déjà à CHAQUE login (cf onLoginSuccess),
 // on branche juste la mise à jour de l'icône dessus plutôt que de dupliquer
 // une 2e requête de comptage.
-var _PARRAINAGE_DEFAULT_ICON = 'ai-icons/icon-parrainage-flat-v1.png';
+var _PARRAINAGE_DEFAULT_ICON = 'ai-icons/icon-parrainage-flat-v1.webp';
 
 // Partage le code parrainage via la feuille système (SMS/WhatsApp/Mail/etc.)
 // Fallback desktop : copie dans le presse-papier + toast.
@@ -16269,7 +16269,7 @@ async function _drawStatsOverlay(cx,W,H,metrics,leagueName,textColor,haloColor){
   var lx=margin;
   var logoImg=new Image(); var logoOk=true;
   try{
-    await new Promise(function(res,rej){ logoImg.onload=res; logoImg.onerror=function(){rej(new Error('logo'));}; logoImg.src='logo-mark-white.png'; });
+    await new Promise(function(res,rej){ logoImg.onload=res; logoImg.onerror=function(){rej(new Error('logo'));}; logoImg.src='logo-mark-white.webp'; });
   }catch(e){ logoOk=false; }
   halo(true);
   var wordX;
@@ -22207,7 +22207,7 @@ function _teamChallengeBlasonHtml(team,size){
   var bi=getBlasonIdx(team);
   return (bi>=0 && AVAIL_BLASON_SMALL[bi])
     ? '<img src="'+AVAIL_BLASON_SMALL[bi]+'" style="width:'+size+'px;height:'+size+'px;object-fit:cover;border-radius:6px;flex-shrink:0;display:block">'
-    : '<div style="width:'+size+'px;height:'+size+'px;border-radius:6px;background:rgba(255,255,255,.06);flex-shrink:0;overflow:hidden"><img src="team-open-logo.png" style="width:86%;height:86%;margin:7%;object-fit:contain;display:block"></div>';
+    : '<div style="width:'+size+'px;height:'+size+'px;border-radius:6px;background:rgba(255,255,255,.06);flex-shrink:0;overflow:hidden"><img src="team-open-logo.webp" style="width:86%;height:86%;margin:7%;object-fit:contain;display:block"></div>';
 }
 // Grand blason en cadre (en-tête "Ma team", 2026-09-26, demande explicite :
 // "un bon gros blason bien visible" dans un cadre) -- réutilise AVAIL_BLASON_ZOOM
@@ -22218,7 +22218,7 @@ function _teamChallengeBlasonFrameHtml(team,size){
   var imgSrc=(bi>=0)?(AVAIL_BLASON_ZOOM[bi]||AVAIL_BLASON_SMALL[bi]):null;
   var inner=imgSrc
     ? '<img src="'+imgSrc+'" style="width:100%;height:100%;object-fit:cover;border-radius:8px;display:block">'
-    : '<img src="team-open-logo.png" style="width:80%;height:80%;margin:10%;object-fit:contain;display:block">';
+    : '<img src="team-open-logo.webp" style="width:80%;height:80%;margin:10%;object-fit:contain;display:block">';
   return '<div style="flex-shrink:0;width:'+size+'px;height:'+size+'px;border-radius:12px;border:2px solid '+col+';background:#0c0f1a;padding:4px;box-shadow:0 0 14px '+col+'66">'+inner+'</div>';
 }
 // Nom d'un RP -- même typo que la composition d'équipe (team-members-modal,
@@ -22606,7 +22606,7 @@ async function loadOpenTeamsForJoin(){
     var pct=Math.round(nb/cap*100);
     var barColor=nb>=OPEN_TEAM_THRESHOLD?'var(--cyan)':'var(--muted2)';
     return '<div style="display:flex;align-items:center;gap:.75rem;padding:.6rem .75rem;border-radius:8px;border:1px solid rgba(32,208,224,.15);background:rgba(32,208,224,.03)">'
-      +'<div style="width:40px;height:40px;border-radius:7px;border:1.5px solid rgba(32,208,224,.35);flex-shrink:0;overflow:hidden"><img src="team-open-logo.png" style="width:86%;height:86%;margin:7%;object-fit:contain;display:block;pointer-events:none"></div>'
+      +'<div style="width:40px;height:40px;border-radius:7px;border:1.5px solid rgba(32,208,224,.35);flex-shrink:0;overflow:hidden"><img src="team-open-logo.webp" style="width:86%;height:86%;margin:7%;object-fit:contain;display:block;pointer-events:none"></div>'
       +'<div style="flex:1;min-width:0">'
         +'<div style="font-family:Bebas Neue,sans-serif;letter-spacing:1.5px;font-size:1rem;color:var(--cyan)">'+t.name+'</div>'
         +'<div style="display:flex;align-items:center;gap:.5rem;margin-top:.25rem">'
@@ -22907,9 +22907,9 @@ async function renderTeams(){
           _cascadeStyleAttr='--row-dy:'+(_dyRows*64)+'px;animation-delay:'+Math.min(rank*160,4200)+'ms;';
         }
         var rankEl=rank===1
-          ?'<img src="ai-icons/medal-1-gold.png" style="width:26px;height:26px;object-fit:contain">'
-          :rank===2?'<img src="ai-icons/medal-2-silver.png" style="width:26px;height:26px;object-fit:contain">'
-          :rank===3?'<img src="ai-icons/medal-3-bronze.png" style="width:26px;height:26px;object-fit:contain">'
+          ?'<img src="ai-icons/medal-1-gold.webp" style="width:26px;height:26px;object-fit:contain">'
+          :rank===2?'<img src="ai-icons/medal-2-silver.webp" style="width:26px;height:26px;object-fit:contain">'
+          :rank===3?'<img src="ai-icons/medal-3-bronze.webp" style="width:26px;height:26px;object-fit:contain">'
           :'<span style="font-family:\'Rajdhani\',sans-serif;font-size:.78rem;color:var(--muted2);font-weight:700">'+rank+'</span>';
         var teamEmoji=t.emoji||'🏃';
         var teamColor=t.color||'#4a90ff';
@@ -22932,12 +22932,12 @@ async function renderTeams(){
           ?nb+' RP'+bonusLabel
           :'📍 '+escapeHtml(t.city||'')+' · '+nb+' RP'+bonusLabel;
         var _bIdx=getBlasonIdx(t);
-        // Teams Open : logo dédié (team-open-logo.png) à la place du globe 🌐/emoji
+        // Teams Open : logo dédié (team-open-logo.webp) à la place du globe 🌐/emoji
         // générique, traité comme un vrai blason (2026-08-04).
         var emblemHtml=(_bIdx>=0&&AVAIL_BLASON_SMALL[_bIdx])
           ?'<div class="tmb-blason" data-bidx="'+_bIdx+'" data-name="'+encodeURIComponent(t.name)+'" data-city="'+encodeURIComponent(t.city||'')+'" data-nb="'+nb+'" data-emoji="'+encodeURIComponent(teamEmoji)+'" style="cursor:pointer;flex-shrink:0;transition:transform .15s" onmouseover="this.style.transform=\'scale(1.1)\'" onmouseout="this.style.transform=\'scale(1)\'"><img src="'+AVAIL_BLASON_SMALL[_bIdx]+'" style="width:38px;height:38px;object-fit:cover;border-radius:6px;border:1.5px solid '+teamColor+'55;display:block;pointer-events:none"></div>'
           :isOpen
-          ?'<div class="tmb-blason" data-bidx="-1" data-name="'+encodeURIComponent(t.name)+'" data-city="'+encodeURIComponent(t.city||'')+'" data-nb="'+nb+'" data-emoji="'+encodeURIComponent(teamEmoji)+'" style="width:38px;height:38px;border-radius:6px;border:1.5px solid '+teamColor+'55;flex-shrink:0;cursor:pointer;overflow:hidden"><img src="team-open-logo.png" style="width:86%;height:86%;margin:7%;object-fit:contain;display:block;pointer-events:none"></div>'
+          ?'<div class="tmb-blason" data-bidx="-1" data-name="'+encodeURIComponent(t.name)+'" data-city="'+encodeURIComponent(t.city||'')+'" data-nb="'+nb+'" data-emoji="'+encodeURIComponent(teamEmoji)+'" style="width:38px;height:38px;border-radius:6px;border:1.5px solid '+teamColor+'55;flex-shrink:0;cursor:pointer;overflow:hidden"><img src="team-open-logo.webp" style="width:86%;height:86%;margin:7%;object-fit:contain;display:block;pointer-events:none"></div>'
           :'<div class="tmb-blason" data-bidx="-1" data-name="'+encodeURIComponent(t.name)+'" data-city="'+encodeURIComponent(t.city||'')+'" data-nb="'+nb+'" data-emoji="'+encodeURIComponent(teamEmoji)+'" style="width:38px;height:38px;border-radius:6px;border:1.5px solid '+teamColor+'55;display:flex;align-items:center;justify-content:center;font-size:1.5rem;flex-shrink:0;cursor:pointer">'+teamEmoji+'</div>';
         return '<div class="team-row'+_cascadeClass+'" style="'+_cascadeStyleAttr+(rank<=3?'background:rgba(255,255,255,.015)':'')+'">'
           +'<div class="team-pos" style="display:flex;align-items:center;justify-content:center">'+rankEl+'</div>'
@@ -22979,7 +22979,7 @@ async function renderTeams(){
           if(bi>=0&&AVAIL_BLASON_ZOOM[bi]){
             showBlasonImg(AVAIL_BLASON_ZOOM[bi],nm,ct,nb2);
           } else if(em===OPEN_TEAM_EMOJI){
-            showBlasonImg('team-open-logo.png',nm,ct,nb2);
+            showBlasonImg('team-open-logo.webp',nm,ct,nb2);
           } else {
             showBlason(em,nm,ct,nb2);
           }
@@ -23016,7 +23016,7 @@ async function renderTeams(){
         if(_bi>=0 && AVAIL_BLASON_SMALL[_bi]){
           _lw.innerHTML='<img src="'+AVAIL_BLASON_SMALL[_bi]+'" style="width:100%;height:100%;object-fit:cover;display:block;border-radius:6px">';
         } else if(_myTeamData.invite_code===OPEN_TEAM_MARKER){
-          _lw.innerHTML='<img src="team-open-logo.png" style="width:86%;height:86%;margin:7%;object-fit:contain;display:block;border-radius:6px">';
+          _lw.innerHTML='<img src="team-open-logo.webp" style="width:86%;height:86%;margin:7%;object-fit:contain;display:block;border-radius:6px">';
         } else {
           var _col=_myTeamData.color||'#4a90ff';
           _lw.innerHTML='<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:1.5rem;background:'+_col+'22;">'+(_myTeamData.emoji||'🏃')+'</div>';
@@ -23066,7 +23066,7 @@ async function renderTeams(){
           // Logo Team Open : 86%+marge 7% comme les autres icônes de tuile (Race/Feed/
           // Parrainage), pas 100% — sinon il reste visuellement plus gros qu'elles même
           // en contain, faute de la même marge respirante (signalé 2026-08-04, 2e passe).
-          _pcImg.src='team-open-logo.png';
+          _pcImg.src='team-open-logo.webp';
           _pcImg.style.cssText='width:86%;height:86%;margin:7%;object-fit:contain;display:block';
         } else {
           // Pas de blason trouvé → emoji sur fond couleur
@@ -23086,7 +23086,7 @@ async function renderTeams(){
         _pcFrame.dataset.teamId=_pcTeamData.id;
       } else {
         // Pas de team → icône neutre
-        _pcImg.src='ai-icons/icon-team-flat-v1.png';
+        _pcImg.src='ai-icons/icon-team-flat-v1.webp';
         _pcImg.style.cssText='width:92%;height:92%;object-fit:contain;display:block;margin-top:2%;margin-left:2px';
         _pcFrame.title='Rejoindre une team';
         _pcFrame.style.opacity='1';
@@ -23141,7 +23141,7 @@ async function renderTeams(){
         _mthc.innerHTML=''
           +'<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem">'
             +'<div style="display:flex;align-items:center;gap:.75rem">'
-              +(function(){var _bi2=getBlasonIdx(_myTeamData);if(_bi2>=0&&AVAIL_BLASON_SMALL[_bi2])return '<img src="'+AVAIL_BLASON_SMALL[_bi2]+'" style="width:48px;height:48px;object-fit:cover;border-radius:8px;border:1.5px solid '+_tc+'55;flex-shrink:0">';if(_myTeamData.invite_code===OPEN_TEAM_MARKER)return '<div style="width:48px;height:48px;border-radius:8px;border:1.5px solid '+_tc+'55;flex-shrink:0;overflow:hidden"><img src="team-open-logo.png" style="width:86%;height:86%;margin:7%;object-fit:contain;display:block"></div>';return '<div style="width:48px;height:48px;border-radius:8px;border:1.5px solid '+_tc+'55;display:flex;align-items:center;justify-content:center;font-size:2rem;flex-shrink:0;background:'+_tc+'11">'+(_myTeamData.emoji||'🏃')+'</div>';})()
+              +(function(){var _bi2=getBlasonIdx(_myTeamData);if(_bi2>=0&&AVAIL_BLASON_SMALL[_bi2])return '<img src="'+AVAIL_BLASON_SMALL[_bi2]+'" style="width:48px;height:48px;object-fit:cover;border-radius:8px;border:1.5px solid '+_tc+'55;flex-shrink:0">';if(_myTeamData.invite_code===OPEN_TEAM_MARKER)return '<div style="width:48px;height:48px;border-radius:8px;border:1.5px solid '+_tc+'55;flex-shrink:0;overflow:hidden"><img src="team-open-logo.webp" style="width:86%;height:86%;margin:7%;object-fit:contain;display:block"></div>';return '<div style="width:48px;height:48px;border-radius:8px;border:1.5px solid '+_tc+'55;display:flex;align-items:center;justify-content:center;font-size:2rem;flex-shrink:0;background:'+_tc+'11">'+(_myTeamData.emoji||'🏃')+'</div>';})()
               +'<div>'
                 +'<div style="font-family:Bebas Neue,sans-serif;font-size:1.2rem;letter-spacing:2px;color:var(--text)">'+(_myTeamData.name||'—')+'</div>'
                 +'<div style="font-size:.68rem;color:var(--muted2)">📍 '+(_myTeamData.city||'—')+' · '+(_myTeamData._nb||0)+' RP / '+getTeamCapacity(_myTeamData)
@@ -23243,7 +23243,7 @@ async function renderTeams(){
       var kickBtn='';
       var clickPC='onclick="showPlayerCardByUuid(\''+m.player_id+'\')" style="cursor:pointer" title="Voir la Player Card"';
       return '<tr>'
-        +'<td style="padding-left:0;padding-right:.15rem">'+(i<3?'<div class="rank-num" style="line-height:1;display:flex;align-items:center;justify-content:center"><img src="ai-icons/medal-'+(i+1)+'-'+(i===0?'gold':i===1?'silver':'bronze')+'.png" style="width:22px;height:22px;object-fit:contain"></div>':'<div class="rank-num '+rc+'">'+(i+1)+'</div>')+'</td>'
+        +'<td style="padding-left:0;padding-right:.15rem">'+(i<3?'<div class="rank-num" style="line-height:1;display:flex;align-items:center;justify-content:center"><img src="ai-icons/medal-'+(i+1)+'-'+(i===0?'gold':i===1?'silver':'bronze')+'.webp" style="width:22px;height:22px;object-fit:contain"></div>':'<div class="rank-num '+rc+'">'+(i+1)+'</div>')+'</td>'
         +'<td style="padding-left:.2rem"><div style="display:flex;align-items:center;gap:.55rem">'
           +natFlagHtml(p.nat)
           +'<div '+clickPC+' style="cursor:pointer;width:28px;height:28px;border-radius:5px;border:2px solid '+gc+';overflow:hidden;flex-shrink:0;box-shadow:0 0 6px '+gc+'40;transition:transform .15s" onmouseover="this.style.transform=\'scale(1.15)\'" onmouseout="this.style.transform=\'scale(1)\'">'+(p.avatar?'<img src="'+escapeHtml(p.avatar)+'" style="width:28px;height:28px;object-fit:cover;display:block;pointer-events:none">':'<canvas id="'+avId+'" width="28" height="28" style="display:block;pointer-events:none"></canvas>')+'</div>'
@@ -23672,9 +23672,9 @@ async function loadTeamMedals(teamId){
         +'<span style="font-family:Bebas Neue,sans-serif;font-size:.7rem;color:'+stroke+';letter-spacing:.5px;text-shadow:0 0 8px '+glow+'">×'+count+'</span>'
       +'</div>';
     }
-    mtmEl.innerHTML=hexMedal(1,gold,'ai-icons/medal-1-gold.png','#ffd700',40,'rgba(255,215,0,.6)')
-      +hexMedal(2,silver,'ai-icons/medal-2-silver.png','#c0c0c0',40,'rgba(192,192,192,.5)')
-      +hexMedal(3,bronze,'ai-icons/medal-3-bronze.png','#cd7f32',40,'rgba(205,127,50,.5)');
+    mtmEl.innerHTML=hexMedal(1,gold,'ai-icons/medal-1-gold.webp','#ffd700',40,'rgba(255,215,0,.6)')
+      +hexMedal(2,silver,'ai-icons/medal-2-silver.webp','#c0c0c0',40,'rgba(192,192,192,.5)')
+      +hexMedal(3,bronze,'ai-icons/medal-3-bronze.webp','#cd7f32',40,'rgba(205,127,50,.5)');
   }
   return {gold:gold,silver:silver,bronze:bronze,data:data||[]};
 }
@@ -23708,63 +23708,63 @@ var _badgesCatalog=null; // Cache du catalogue
 // badge (checkBadges.ts), sans attendre que le RP rouvre l'appli. Oublier ce
 // remplissage = le skin ne se pose jamais pour ce challenge (silencieux).
 var _CITY_CREST_OVERRIDES=[
-  {match:/STOCKHOLM/i, image:'ai-icons/challenge-crests/stockholm-v2.png', medal:true, ribbonColors:['#fff0b0','#c88a12']},
-  {match:/BRUXELLES/i, image:'ai-icons/challenge-crests/bruxelles-v2.png', medal:true, ribbonColors:['#fff3b0','#c98f00']},
-  {match:/MONTREUX/i, image:'ai-icons/challenge-crests/montreux-v4.png', medal:true, ribbonColors:['#f0954a','#7a3410']},
-  {match:/FLEUR DU ROY|TRAIL DU ROY/i, image:'ai-icons/challenge-crests/fleur-du-roy-v4.png', medal:true, ribbonColors:['#b8a0f0','#3a1a7a']},
-  {match:/MURAILLE/i, image:'ai-icons/challenge-crests/muraille-chine-v2.png', medal:true, ribbonColors:['#a8f0c0','#1a6e3a']},
-  {match:/ODYSS[ÉE]A/i, image:'ai-icons/challenge-crests/odyssea-dijon-v3.png', medal:true, ribbonColors:['#f0a0d8','#a01870']},
-  {match:/OL[ÉE]RON/i, image:'ai-icons/challenge-crests/oleron-v2.png', medal:true, ribbonColors:['#f0a0c8','#a0104e']},
-  {match:/P[ÉE]ROU/i, image:'ai-icons/challenge-crests/perou-v3.png', medal:true, ribbonColors:['#f0b088','#8a3016']},
-  {match:/SULLY/i, image:'ai-icons/challenge-crests/sully-v4.png', medal:true, ribbonColors:['#b8e888','#3a7a1a']},
-  {match:/PLAGES/i, image:'ai-icons/challenge-crests/biarritz-v2.png', medal:true, ribbonColors:['#8fe8f0','#0e6b78']},
-  {match:/LONDRES/i, image:'ai-icons/challenge-crests/londres-v2.png', medal:true, ribbonColors:['#e6a0e0','#5a1f7a']},
-  {match:/CALI/i, image:'ai-icons/challenge-crests/cali-v2.png', medal:true, ribbonColors:['#2f6fff','#0c1c40']},
-  {match:/BESAN[ÇC]ON/i, image:'ai-icons/challenge-crests/besancon-v2.png', medal:true, ribbonColors:['#fdb38c','#702700']},
-  {match:/AMIENS|JULES VERNE/i, image:'ai-icons/challenge-crests/amiens-v5.png', medal:true, ribbonColors:['#ffe08a','#b8860b']},
-  {match:/TOUQUET/i, image:'ai-icons/challenge-crests/touquet-v3.png', medal:true, ribbonColors:['#f99f8d','#6c1201']},
-  {match:/EDMONTON/i, image:'ai-icons/challenge-crests/edmonton-v1.png', medal:true, ribbonColors:['#a35fd6','#5c1f96'], ribbonRise:8},
-  {match:/SANTA ROSA/i, image:'ai-icons/challenge-crests/santa-rosa-v1.png', medal:true, ribbonColors:['#e06fa8','#8a2a5a'], ribbonRise:8},
-  {match:/BUDAPEST/i, image:'ai-icons/challenge-crests/budapest-v1.png', medal:true, ribbonColors:['#e0935a','#a85a1f'], ribbonRise:9},
-  {match:/PORTO/i, image:'ai-icons/challenge-crests/porto-v1.png', medal:true, ribbonColors:['#f5a83c','#b8650f'], ribbonRise:7},
-  {match:/REZ[ÉE]/i, image:'ai-icons/challenge-crests/reze-v3.png', medal:true, ribbonColors:['#ffdb4d','#a86c00'], ribbonRise:0, ribbonLen:43, ribbonFlat:true, medalImgH:94},
-  {match:/LILLE/i, image:'ai-icons/challenge-crests/lille-v3.png', medal:true, ribbonColors:['#5eead4','#0f766e'], ribbonFlat:true, medalImgH:84},
-  {match:/KANAZAWA/i, image:'ai-icons/challenge-crests/kanazawa-v1.png', medal:true, ribbonColors:['#93a2ff','#091775'], ribbonFlat:true, medalImgH:84},
-  {match:/MONZA/i, image:'ai-icons/challenge-crests/monza-v1.png', medal:true, ribbonColors:['#ff6060','#7f0202'], ribbonFlat:true, medalImgH:84},
-  {match:/MELBOURNE/i, image:'ai-icons/challenge-crests/melbourne-v1.png', medal:true, ribbonColors:['#ffcf5c','#a15a00'], ribbonFlat:true, medalImgH:84},
-  {match:/AMSTERDAM/i, image:'ai-icons/challenge-crests/amsterdam-v1.png', medal:true, ribbonColors:['#c15aff','#3d0a52'], ribbonFlat:true, medalImgH:84},
-  {match:/WITTELSHEIM|SAINTE.BARBE/i, image:'ai-icons/challenge-crests/wittelsheim-v1.png', medal:true, ribbonColors:['#ffb02e','#a83200'], ribbonFlat:true, medalImgH:84},
-  {match:/PHILADELPHI[AE]/i, image:'ai-icons/challenge-crests/philadelphie-v5.png', medal:true, ribbonColors:['#a8e0ff','#2a86d1'], ribbonPts:'29,0 71,0 71.0,21.9 69.5,21.3 68.0,20.9 66.5,20.3 65.0,19.7 63.5,19.2 62.0,18.7 60.5,18.2 59.0,18.2 57.5,18.7 56.0,19.2 54.5,19.9 53.0,20.3 51.5,20.9 50.0,21.0 48.5,20.3 47.0,19.7 45.5,19.2 44.0,18.5 42.5,18.0 41.0,18.2 39.5,18.7 38.0,19.3 36.5,19.9 35.0,20.1 33.5,20.7 32.0,21.2 30.5,21.7 29.0,22.2', medalImgH:92},
-  {match:/ARRAS/i, image:'ai-icons/challenge-crests/arras-v1.png', medal:true, ribbonColors:['#fbb92f','#002c7c'], ribbonFlat:true, medalImgH:92},
-  {match:/PROSPECTEUR/i, image:'ai-icons/defi-icons/prospecteur-v1.png', hexBadge:true},
-  {match:/^5K$/i, image:'ai-icons/defi-icons/run5k-v1.png', hexBadge:true},
-  {match:/^10K$/i, image:'ai-icons/defi-icons/run10k-v1.png', hexBadge:true},
-  {match:/SEMI-MARATHON/i, image:'ai-icons/defi-icons/runsemi-v1.png', hexBadge:true},
-  {match:/^MARATHON$/i, image:'ai-icons/defi-icons/runmarathon-v1.png', hexBadge:true},
-  {match:/CENT BORNARDS/i, image:'ai-icons/defi-icons/run100-v1.png', hexBadge:true},
-  {match:/^20K$/i, image:'ai-icons/defi-icons/cum20-v1.png', hexBadge:true},
-  {match:/^50K$/i, image:'ai-icons/defi-icons/cum50-v1.png', hexBadge:true},
-  {match:/^100K$/i, image:'ai-icons/defi-icons/cum100-v1.png', hexBadge:true},
-  {match:/^250K$/i, image:'ai-icons/defi-icons/cum250-v1.png', hexBadge:true},
-  {match:/^500K$/i, image:'ai-icons/defi-icons/cum500-v1.png', hexBadge:true},
-  {match:/^1000K$/i, image:'ai-icons/defi-icons/cum1000-v1.png', hexBadge:true},
-  {match:/^PAYS$/i, image:'ai-icons/defi-icons/pays-v1.png', hexBadge:true},
-  {match:/^2000K$/i, image:'ai-icons/defi-icons/cum2000-v1.png', hexBadge:true},
-  {match:/CONTINENT/i, image:'ai-icons/defi-icons/continent-v1.png', hexBadge:true},
-  {match:/LUNAIRE/i, image:'ai-icons/defi-icons/lunaire-v1.png', hexBadge:true},
-  {match:/SOLAIRE/i, image:'ai-icons/defi-icons/solaire-v1.png', hexBadge:true},
-  {match:/GALACTIQUE/i, image:'ai-icons/defi-icons/galactique-v1.png', hexBadge:true},
-  {match:/ESPACE/i, image:'ai-icons/defi-icons/espace-v1.png', hexBadge:true},
-  {match:/BUZZ/i, image:'ai-icons/defi-icons/buzz-v1.png', hexBadge:true},
-  {match:/^S[ÉE]RIE 7$/i, image:'ai-icons/defi-icons/serie7-v1.png', hexBadge:true},
-  {match:/^S[ÉE]RIE 30$/i, image:'ai-icons/defi-icons/serie30-v1.png', hexBadge:true},
-  {match:/^S[ÉE]RIE 90$/i, image:'ai-icons/defi-icons/serie90-v1.png', hexBadge:true},
-  {match:/^S[ÉE]RIE 180$/i, image:'ai-icons/defi-icons/serie180-v1.png', hexBadge:true},
-  {match:/^S[ÉE]RIE 365$/i, image:'ai-icons/defi-icons/serie365-v1.png', hexBadge:true},
-  {match:/ALTIM[ÈE]TRE 1000/i, image:'ai-icons/defi-icons/elv1000-v1.png', hexBadge:true},
-  {match:/MONT-BLANC/i, image:'ai-icons/defi-icons/elvmb-v1.png', hexBadge:true},
-  {match:/EVEREST/i, image:'ai-icons/defi-icons/elveverest-v1.png', hexBadge:true},
-  {match:/KILIMANDJARO/i, image:'ai-icons/defi-icons/elvkilimandjaro-v1.png', hexBadge:true},
+  {match:/STOCKHOLM/i, image:'ai-icons/challenge-crests/stockholm-v2.webp', medal:true, ribbonColors:['#fff0b0','#c88a12']},
+  {match:/BRUXELLES/i, image:'ai-icons/challenge-crests/bruxelles-v2.webp', medal:true, ribbonColors:['#fff3b0','#c98f00']},
+  {match:/MONTREUX/i, image:'ai-icons/challenge-crests/montreux-v4.webp', medal:true, ribbonColors:['#f0954a','#7a3410']},
+  {match:/FLEUR DU ROY|TRAIL DU ROY/i, image:'ai-icons/challenge-crests/fleur-du-roy-v4.webp', medal:true, ribbonColors:['#b8a0f0','#3a1a7a']},
+  {match:/MURAILLE/i, image:'ai-icons/challenge-crests/muraille-chine-v2.webp', medal:true, ribbonColors:['#a8f0c0','#1a6e3a']},
+  {match:/ODYSS[ÉE]A/i, image:'ai-icons/challenge-crests/odyssea-dijon-v3.webp', medal:true, ribbonColors:['#f0a0d8','#a01870']},
+  {match:/OL[ÉE]RON/i, image:'ai-icons/challenge-crests/oleron-v2.webp', medal:true, ribbonColors:['#f0a0c8','#a0104e']},
+  {match:/P[ÉE]ROU/i, image:'ai-icons/challenge-crests/perou-v3.webp', medal:true, ribbonColors:['#f0b088','#8a3016']},
+  {match:/SULLY/i, image:'ai-icons/challenge-crests/sully-v4.webp', medal:true, ribbonColors:['#b8e888','#3a7a1a']},
+  {match:/PLAGES/i, image:'ai-icons/challenge-crests/biarritz-v2.webp', medal:true, ribbonColors:['#8fe8f0','#0e6b78']},
+  {match:/LONDRES/i, image:'ai-icons/challenge-crests/londres-v2.webp', medal:true, ribbonColors:['#e6a0e0','#5a1f7a']},
+  {match:/CALI/i, image:'ai-icons/challenge-crests/cali-v2.webp', medal:true, ribbonColors:['#2f6fff','#0c1c40']},
+  {match:/BESAN[ÇC]ON/i, image:'ai-icons/challenge-crests/besancon-v2.webp', medal:true, ribbonColors:['#fdb38c','#702700']},
+  {match:/AMIENS|JULES VERNE/i, image:'ai-icons/challenge-crests/amiens-v5.webp', medal:true, ribbonColors:['#ffe08a','#b8860b']},
+  {match:/TOUQUET/i, image:'ai-icons/challenge-crests/touquet-v3.webp', medal:true, ribbonColors:['#f99f8d','#6c1201']},
+  {match:/EDMONTON/i, image:'ai-icons/challenge-crests/edmonton-v1.webp', medal:true, ribbonColors:['#a35fd6','#5c1f96'], ribbonRise:8},
+  {match:/SANTA ROSA/i, image:'ai-icons/challenge-crests/santa-rosa-v1.webp', medal:true, ribbonColors:['#e06fa8','#8a2a5a'], ribbonRise:8},
+  {match:/BUDAPEST/i, image:'ai-icons/challenge-crests/budapest-v1.webp', medal:true, ribbonColors:['#e0935a','#a85a1f'], ribbonRise:9},
+  {match:/PORTO/i, image:'ai-icons/challenge-crests/porto-v1.webp', medal:true, ribbonColors:['#f5a83c','#b8650f'], ribbonRise:7},
+  {match:/REZ[ÉE]/i, image:'ai-icons/challenge-crests/reze-v3.webp', medal:true, ribbonColors:['#ffdb4d','#a86c00'], ribbonRise:0, ribbonLen:43, ribbonFlat:true, medalImgH:94},
+  {match:/LILLE/i, image:'ai-icons/challenge-crests/lille-v3.webp', medal:true, ribbonColors:['#5eead4','#0f766e'], ribbonFlat:true, medalImgH:84},
+  {match:/KANAZAWA/i, image:'ai-icons/challenge-crests/kanazawa-v1.webp', medal:true, ribbonColors:['#93a2ff','#091775'], ribbonFlat:true, medalImgH:84},
+  {match:/MONZA/i, image:'ai-icons/challenge-crests/monza-v1.webp', medal:true, ribbonColors:['#ff6060','#7f0202'], ribbonFlat:true, medalImgH:84},
+  {match:/MELBOURNE/i, image:'ai-icons/challenge-crests/melbourne-v1.webp', medal:true, ribbonColors:['#ffcf5c','#a15a00'], ribbonFlat:true, medalImgH:84},
+  {match:/AMSTERDAM/i, image:'ai-icons/challenge-crests/amsterdam-v1.webp', medal:true, ribbonColors:['#c15aff','#3d0a52'], ribbonFlat:true, medalImgH:84},
+  {match:/WITTELSHEIM|SAINTE.BARBE/i, image:'ai-icons/challenge-crests/wittelsheim-v1.webp', medal:true, ribbonColors:['#ffb02e','#a83200'], ribbonFlat:true, medalImgH:84},
+  {match:/PHILADELPHI[AE]/i, image:'ai-icons/challenge-crests/philadelphie-v5.webp', medal:true, ribbonColors:['#a8e0ff','#2a86d1'], ribbonPts:'29,0 71,0 71.0,21.9 69.5,21.3 68.0,20.9 66.5,20.3 65.0,19.7 63.5,19.2 62.0,18.7 60.5,18.2 59.0,18.2 57.5,18.7 56.0,19.2 54.5,19.9 53.0,20.3 51.5,20.9 50.0,21.0 48.5,20.3 47.0,19.7 45.5,19.2 44.0,18.5 42.5,18.0 41.0,18.2 39.5,18.7 38.0,19.3 36.5,19.9 35.0,20.1 33.5,20.7 32.0,21.2 30.5,21.7 29.0,22.2', medalImgH:92},
+  {match:/ARRAS/i, image:'ai-icons/challenge-crests/arras-v1.webp', medal:true, ribbonColors:['#fbb92f','#002c7c'], ribbonFlat:true, medalImgH:92},
+  {match:/PROSPECTEUR/i, image:'ai-icons/defi-icons/prospecteur-v1.webp', hexBadge:true},
+  {match:/^5K$/i, image:'ai-icons/defi-icons/run5k-v1.webp', hexBadge:true},
+  {match:/^10K$/i, image:'ai-icons/defi-icons/run10k-v1.webp', hexBadge:true},
+  {match:/SEMI-MARATHON/i, image:'ai-icons/defi-icons/runsemi-v1.webp', hexBadge:true},
+  {match:/^MARATHON$/i, image:'ai-icons/defi-icons/runmarathon-v1.webp', hexBadge:true},
+  {match:/CENT BORNARDS/i, image:'ai-icons/defi-icons/run100-v1.webp', hexBadge:true},
+  {match:/^20K$/i, image:'ai-icons/defi-icons/cum20-v1.webp', hexBadge:true},
+  {match:/^50K$/i, image:'ai-icons/defi-icons/cum50-v1.webp', hexBadge:true},
+  {match:/^100K$/i, image:'ai-icons/defi-icons/cum100-v1.webp', hexBadge:true},
+  {match:/^250K$/i, image:'ai-icons/defi-icons/cum250-v1.webp', hexBadge:true},
+  {match:/^500K$/i, image:'ai-icons/defi-icons/cum500-v1.webp', hexBadge:true},
+  {match:/^1000K$/i, image:'ai-icons/defi-icons/cum1000-v1.webp', hexBadge:true},
+  {match:/^PAYS$/i, image:'ai-icons/defi-icons/pays-v1.webp', hexBadge:true},
+  {match:/^2000K$/i, image:'ai-icons/defi-icons/cum2000-v1.webp', hexBadge:true},
+  {match:/CONTINENT/i, image:'ai-icons/defi-icons/continent-v1.webp', hexBadge:true},
+  {match:/LUNAIRE/i, image:'ai-icons/defi-icons/lunaire-v1.webp', hexBadge:true},
+  {match:/SOLAIRE/i, image:'ai-icons/defi-icons/solaire-v1.webp', hexBadge:true},
+  {match:/GALACTIQUE/i, image:'ai-icons/defi-icons/galactique-v1.webp', hexBadge:true},
+  {match:/ESPACE/i, image:'ai-icons/defi-icons/espace-v1.webp', hexBadge:true},
+  {match:/BUZZ/i, image:'ai-icons/defi-icons/buzz-v1.webp', hexBadge:true},
+  {match:/^S[ÉE]RIE 7$/i, image:'ai-icons/defi-icons/serie7-v1.webp', hexBadge:true},
+  {match:/^S[ÉE]RIE 30$/i, image:'ai-icons/defi-icons/serie30-v1.webp', hexBadge:true},
+  {match:/^S[ÉE]RIE 90$/i, image:'ai-icons/defi-icons/serie90-v1.webp', hexBadge:true},
+  {match:/^S[ÉE]RIE 180$/i, image:'ai-icons/defi-icons/serie180-v1.webp', hexBadge:true},
+  {match:/^S[ÉE]RIE 365$/i, image:'ai-icons/defi-icons/serie365-v1.webp', hexBadge:true},
+  {match:/ALTIM[ÈE]TRE 1000/i, image:'ai-icons/defi-icons/elv1000-v1.webp', hexBadge:true},
+  {match:/MONT-BLANC/i, image:'ai-icons/defi-icons/elvmb-v1.webp', hexBadge:true},
+  {match:/EVEREST/i, image:'ai-icons/defi-icons/elveverest-v1.webp', hexBadge:true},
+  {match:/KILIMANDJARO/i, image:'ai-icons/defi-icons/elvkilimandjaro-v1.webp', hexBadge:true},
   // glowAlpha (2026-08-09, demande explicite -- "le halo du badge Éclair est
   // plus intense que celui des autres") : l'illustration a un halo jaune déjà
   // peint DANS le PNG (contrairement aux autres badges plus sombres/plats),
@@ -23772,18 +23772,18 @@ var _CITY_CREST_OVERRIDES=[
   // déjà présent et ressort visuellement plus fort -- pas un bug de valeurs
   // différentes, une question d'artwork. glowAlpha règle juste l'alpha hex du
   // drop-shadow pour CE badge (défaut 'aa' ~67%, ici réduit à '55' ~33%).
-  {match:/^[ÉE]CLAIR$/i, image:'ai-icons/defi-icons/eclair-v1.png', hexBadge:true, glowAlpha:'33'},
-  {match:/NOCTAMBULE/i, image:'ai-icons/defi-icons/noctambule-v1.png', hexBadge:true},
-  {match:/AURORE/i, image:'ai-icons/defi-icons/aurore-v1.png', hexBadge:true},
-  {match:/^NOMADE$/i, image:'ai-icons/defi-icons/nomade-v1.png', hexBadge:true},
-  {match:/VOYAGEUR/i, image:'ai-icons/defi-icons/voyageur-v1.png', hexBadge:true},
-  {match:/^JACKPOT$/i, image:'ai-icons/defi-icons/jackpot-v1.png', hexBadge:true},
-  {match:/ESPRIT/i, image:'ai-icons/defi-icons/espritequipe-v1.png', hexBadge:true},
-  {match:/^FID[ÈE]LE$/i, image:'ai-icons/defi-icons/fidele-v1.png', hexBadge:true},
-  {match:/^2 HEURES$/i, image:'ai-icons/defi-icons/duree2h-v1.png', hexBadge:true},
-  {match:/^3 HEURES$/i, image:'ai-icons/defi-icons/duree3h-v1.png', hexBadge:true},
-  {match:/^(1H NITRO|2H FURIOUS|3H ENDURANCE)$/i, image:'ai-icons/challenge-crests/arnos-v1.png', medal:true, ribbonColors:['#fa2b9a','#8f0862'], ribbonFlat:true},
-  {match:/VERBANIA/i, image:'ai-icons/challenge-crests/verbania-v1.png', medal:true, ribbonColors:['#dd0f2d','#7a0a1a'], ribbonFlat:true}
+  {match:/^[ÉE]CLAIR$/i, image:'ai-icons/defi-icons/eclair-v1.webp', hexBadge:true, glowAlpha:'33'},
+  {match:/NOCTAMBULE/i, image:'ai-icons/defi-icons/noctambule-v1.webp', hexBadge:true},
+  {match:/AURORE/i, image:'ai-icons/defi-icons/aurore-v1.webp', hexBadge:true},
+  {match:/^NOMADE$/i, image:'ai-icons/defi-icons/nomade-v1.webp', hexBadge:true},
+  {match:/VOYAGEUR/i, image:'ai-icons/defi-icons/voyageur-v1.webp', hexBadge:true},
+  {match:/^JACKPOT$/i, image:'ai-icons/defi-icons/jackpot-v1.webp', hexBadge:true},
+  {match:/ESPRIT/i, image:'ai-icons/defi-icons/espritequipe-v1.webp', hexBadge:true},
+  {match:/^FID[ÈE]LE$/i, image:'ai-icons/defi-icons/fidele-v1.webp', hexBadge:true},
+  {match:/^2 HEURES$/i, image:'ai-icons/defi-icons/duree2h-v1.webp', hexBadge:true},
+  {match:/^3 HEURES$/i, image:'ai-icons/defi-icons/duree3h-v1.webp', hexBadge:true},
+  {match:/^(1H NITRO|2H FURIOUS|3H ENDURANCE)$/i, image:'ai-icons/challenge-crests/arnos-v1.webp', medal:true, ribbonColors:['#fa2b9a','#8f0862'], ribbonFlat:true},
+  {match:/VERBANIA/i, image:'ai-icons/challenge-crests/verbania-v1.webp', medal:true, ribbonColors:['#dd0f2d','#7a0a1a'], ribbonFlat:true}
 ];
 function _decorateBadgeWithCityCrest(b){
   if(!b || b.image) return b; // déjà décoré (ou pas de match nécessaire)
@@ -24803,7 +24803,7 @@ async function renderChallenges(){
           +'</div>';
           // Croix pour se désinscrire (seulement si inscrit + event non passé + non validé).
           // 2026-08-05 : remplace l'ancien rond blanc + caractère ✕ par la
-          // VRAIE croix standard de l'appli (icon-close-x.png, cf .modal-close
+          // VRAIE croix standard de l'appli (icon-close-x.webp, cf .modal-close
           // et .rent-modal-close) — c'était encore l'ancien modèle, signalé
           // par l'user. Taille alignée sur .modal-close (32px) — était 20px.
           // top:-4px;right:-4px (2026-08-05, corrigé une 2e fois — la croix
@@ -24812,7 +24812,7 @@ async function renderChallenges(){
           // div biseauté (cf _cardOpen/_cardClose), plus aucun risque de
           // rognage — posée légèrement en débord du coin, dans le coin pour
           // de vrai.
-          _unregBtn='<span onclick="event.stopPropagation();unregisterEvent('+b.id+',\''+(b.name||'').replace(/'/g,"\\'")+'\')" title="Se désinscrire" style="position:absolute;top:-4px;right:-4px;width:32px;height:32px;background:url(\'icon-close-x.png\') center/contain no-repeat;cursor:pointer;z-index:5"></span>';
+          _unregBtn='<span onclick="event.stopPropagation();unregisterEvent('+b.id+',\''+(b.name||'').replace(/'/g,"\\'")+'\')" title="Se désinscrire" style="position:absolute;top:-4px;right:-4px;width:32px;height:32px;background:url(\'icon-close-x.webp\') center/contain no-repeat;cursor:pointer;z-index:5"></span>';
         } else {
           // Groupe multi-distances jamais choisi : le clic ouvre le picker
           // (openEventDistancePicker) au lieu d'inscrire directement sur le
@@ -27242,7 +27242,7 @@ function showPalmares(rank, type){
   type=type||'player';
   var data=(type==='team'?_cachedTeamPalmares:_cachedPlayerPalmares)||[];
   var filtered=data.filter(function(p){return p.rank===rank;});
-  var colors={1:['#ffd700','rgba(255,215,0,','<img src="ai-icons/medal-1-gold.png" style="width:46px;height:46px;object-fit:contain;vertical-align:middle;margin-right:.3rem;filter:drop-shadow(0 0 6px rgba(255,255,255,.25))"> 1ères places'],2:['#c0c0c0','rgba(192,192,192,','<img src="ai-icons/medal-2-silver.png" style="width:46px;height:46px;object-fit:contain;vertical-align:middle;margin-right:.3rem;filter:drop-shadow(0 0 6px rgba(255,255,255,.25))"> 2èmes places'],3:['#cd7f32','rgba(205,127,50,','<img src="ai-icons/medal-3-bronze.png" style="width:46px;height:46px;object-fit:contain;vertical-align:middle;margin-right:.3rem;filter:drop-shadow(0 0 6px rgba(255,255,255,.25))"> 3èmes places']};
+  var colors={1:['#ffd700','rgba(255,215,0,','<img src="ai-icons/medal-1-gold.webp" style="width:46px;height:46px;object-fit:contain;vertical-align:middle;margin-right:.3rem;filter:drop-shadow(0 0 6px rgba(255,255,255,.25))"> 1ères places'],2:['#c0c0c0','rgba(192,192,192,','<img src="ai-icons/medal-2-silver.webp" style="width:46px;height:46px;object-fit:contain;vertical-align:middle;margin-right:.3rem;filter:drop-shadow(0 0 6px rgba(255,255,255,.25))"> 2èmes places'],3:['#cd7f32','rgba(205,127,50,','<img src="ai-icons/medal-3-bronze.webp" style="width:46px;height:46px;object-fit:contain;vertical-align:middle;margin-right:.3rem;filter:drop-shadow(0 0 6px rgba(255,255,255,.25))"> 3èmes places']};
   var c=colors[rank]||colors[1];
   var titleEl=document.getElementById('pal-title');
   var subEl=document.getElementById('pal-sub');
@@ -27359,9 +27359,9 @@ async function loadTeamMembers(teamId, teamName){
       +'<span style="font-family:Bebas Neue,sans-serif;font-size:.65rem;color:'+stroke+'">×'+count+'</span>'
     +'</div>';
   }
-  var medalHtml=miniMedal(1,tGold,'ai-icons/medal-1-gold.png','#ffd700',22)
-    +miniMedal(2,tSilver,'ai-icons/medal-2-silver.png','#c0c0c0',22)
-    +miniMedal(3,tBronze,'ai-icons/medal-3-bronze.png','#cd7f32',22);
+  var medalHtml=miniMedal(1,tGold,'ai-icons/medal-1-gold.webp','#ffd700',22)
+    +miniMedal(2,tSilver,'ai-icons/medal-2-silver.webp','#c0c0c0',22)
+    +miniMedal(3,tBronze,'ai-icons/medal-3-bronze.webp','#cd7f32',22);
   if(title) title.innerHTML=decodedName+(medalHtml?'<span style="margin-left:.75rem;display:inline-flex;gap:.3rem;vertical-align:middle">'+medalHtml+'</span>':'');
   if(membRes.error||!membRes.data){tbody.innerHTML='<tr><td colspan="4" style="color:#f66;font-size:.8rem;padding:.5rem">Erreur</td></tr>';return;}
   // Agréger points par joueur (total période courante)
@@ -27413,7 +27413,7 @@ async function loadTeamMembers(teamId, teamName){
     var p=m.players||{};
     var isCap=m.role==='capitaine';
     return '<tr>'
-      +'<td style="padding-left:0;padding-right:.15rem">'+(i<3?'<div class="rank-num" style="line-height:1;display:flex;align-items:center;justify-content:center"><img src="ai-icons/medal-'+(i+1)+'-'+(i===0?'gold':i===1?'silver':'bronze')+'.png" style="width:22px;height:22px;object-fit:contain"></div>':'<div class="rank-num">'+(i+1)+'</div>')+'</td>'
+      +'<td style="padding-left:0;padding-right:.15rem">'+(i<3?'<div class="rank-num" style="line-height:1;display:flex;align-items:center;justify-content:center"><img src="ai-icons/medal-'+(i+1)+'-'+(i===0?'gold':i===1?'silver':'bronze')+'.webp" style="width:22px;height:22px;object-fit:contain"></div>':'<div class="rank-num">'+(i+1)+'</div>')+'</td>'
       +'<td style="padding-left:.2rem"><div style="display:flex;align-items:center;gap:.35rem;min-width:0">'
         +natFlagHtml(p.nat,'.95rem')
         +(isPremium()
@@ -29242,7 +29242,7 @@ function crTrendHtml(prev,cur){ if(prev==null) return '<span class="eq">=</span>
 function crBuildRow(r,i,cascade){
   const row=document.createElement('div');
   row.className='lbrow'+(r.me?' me':'')+(i<3?' top'+(i+1):'')+(cascade?' league-row-cascade':'');
-  const rk = i<3 ? ['<img src="ai-icons/medal-1-gold.png" style="width:18px;height:18px;object-fit:contain">','<img src="ai-icons/medal-2-silver.png" style="width:18px;height:18px;object-fit:contain">','<img src="ai-icons/medal-3-bronze.png" style="width:18px;height:18px;object-fit:contain">'][i] : (i+1);
+  const rk = i<3 ? ['<img src="ai-icons/medal-1-gold.webp" style="width:18px;height:18px;object-fit:contain">','<img src="ai-icons/medal-2-silver.webp" style="width:18px;height:18px;object-fit:contain">','<img src="ai-icons/medal-3-bronze.webp" style="width:18px;height:18px;object-fit:contain">'][i] : (i+1);
   // Flèche = position de référence (photo de minuit, serveur) − position actuelle (i+1).
   const prev = (r.refRank!=null) ? r.refRank : null;
   // .pts en Rajdhani (contrairement à .gm/.tr qui sont en Space Mono, déjà
@@ -33033,7 +33033,7 @@ window.Tour.init = async function(){
   // Illustration = tuile isométrique fournie par l'user, une par statut (fond
   // retiré + bords fondus dans le PNG lui-même, cf ai-icons/land-tiles/).
   function mlcIllustHtml(isEtape, owned){
-    const src = isEtape ? 'ai-icons/land-tiles/fondu-etape.png' : (owned ? 'ai-icons/land-tiles/fondu-proprietaire.png' : 'ai-icons/land-tiles/fondu-locataire.png');
+    const src = isEtape ? 'ai-icons/land-tiles/fondu-etape.webp' : (owned ? 'ai-icons/land-tiles/fondu-proprietaire.webp' : 'ai-icons/land-tiles/fondu-locataire.webp');
     return `<div class="mlc-illust"><img src="${src}" alt=""></div>`;
   }
   // Cadre des étoiles (2026-08-06, bug corrigé — l'ancien menu déroulant ne
