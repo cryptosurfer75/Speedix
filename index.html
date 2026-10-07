@@ -8750,6 +8750,24 @@ function usernameCasingError(username){
   return null;
 }
 
+// Vérification de l'adresse e-mail à l'inscription (2026-10-07) : 3 RP s'étaient inscrits avec une faute de frappe dans le domaine
+// (hotmail.com**v**, gmail.com**l**, orange.**f**) → aucun mail de réinitialisation de mot de passe jamais reçu. On propose la correction
+// avant de créer le compte. Renvoie {suggest:'x@gmail.com'} (domaine proche d'un domaine connu), {invalid:true} (extension impossible)
+// ou null (rien à signaler : domaine connu, ou domaine inconnu mais plausible comme une adresse pro).
+var _EMAIL_KNOWN=['gmail.com','googlemail.com','hotmail.com','hotmail.fr','hotmail.be','hotmail.it','hotmail.es','hotmail.co.uk','outlook.com','outlook.fr','outlook.be','live.com','live.fr','live.be','msn.com','yahoo.com','yahoo.fr','yahoo.es','yahoo.it','yahoo.co.uk','ymail.com','orange.fr','wanadoo.fr','free.fr','sfr.fr','neuf.fr','bbox.fr','laposte.net','numericable.fr','club-internet.fr','icloud.com','me.com','mac.com','aol.com','gmx.com','gmx.fr','gmx.de','mail.com','proton.me','protonmail.com','pm.me','skynet.be','telenet.be','bluewin.ch','web.de','t-online.de','libero.it','virgilio.it','speedixleague.com'];
+var _EMAIL_TLDS=/\.(com|net|org|info|biz|eu|fr|be|ch|lu|de|it|es|pt|nl|uk|ie|at|se|no|dk|fi|pl|cz|gr|ro|hu|ca|us|mx|br|ar|au|nz|jp|kr|cn|in|za|ru|ua|tr|il|ae|ma|dz|tn|sn|ci|cm|mg|mu|re|gp|mq|pf|nc|yt|io|app|dev|me|co|tv|cc|xyz|online|site|tech|run|club|pro|fun)$/i;
+function _levenshtein(a,b){var m=[],i,j;for(i=0;i<=b.length;i++)m[i]=[i];for(j=0;j<=a.length;j++)m[0][j]=j;for(i=1;i<=b.length;i++)for(j=1;j<=a.length;j++)m[i][j]=b.charAt(i-1)===a.charAt(j-1)?m[i-1][j-1]:Math.min(m[i-1][j-1]+1,m[i][j-1]+1,m[i-1][j]+1);return m[b.length][a.length];}
+function _emailTypoCheck(email){
+  var at=email.lastIndexOf('@'); if(at<1) return {invalid:true};
+  var local=email.slice(0,at), dom=email.slice(at+1).toLowerCase().replace(/\.+$/,'');
+  if(_EMAIL_KNOWN.indexOf(dom)>=0) return null;
+  var best=null,bd=3;
+  _EMAIL_KNOWN.forEach(function(k){var d=_levenshtein(dom,k);if(d<bd){bd=d;best=k;}});
+  if(best && bd<=2) return {suggest:local+'@'+best};
+  if(!_EMAIL_TLDS.test(dom)) return {invalid:true};
+  return null;
+}
+
 async function doRegister(){
   // Kill switch : si l'admin a fermé les inscriptions
   if(window.__appSettings && window.__appSettings.registration_disabled){
@@ -9595,6 +9613,18 @@ async function hgo(s){
     var em=(document.getElementById('reg-email').value||'').trim();
     var pw=document.getElementById('reg-pwd').value||'';
     if(!em||!em.includes('@')){showHgoError('Email invalide');return;}
+    {
+      // Faute de frappe probable dans le domaine : on propose la correction (2e clic sur Continuer = l'utilisateur confirme son adresse).
+      var _typo=(window.__emailConfirmedValue===em||window.__emailTypoSeen===em)?null:_emailTypoCheck(em);
+      if(_typo && _typo.suggest){
+        window.__emailTypoSeen=em;            // son adresse d'origine : si il la retape telle quelle, on la respecte (cas d'un vrai domaine rare)
+        document.getElementById('reg-email').value=_typo.suggest;
+        window.__emailConfirmedValue=_typo.suggest;
+        showHgoError('Vouliez-vous dire '+_typo.suggest+' ? Adresse corrigée — vérifie-la puis continue (sinon retape la tienne).');
+        return;
+      }
+      if(_typo && _typo.invalid){showHgoError('Cette adresse e-mail semble incorrecte (extension inconnue). Vérifie-la : c\'est elle qui sert à réinitialiser ton mot de passe.');return;}
+    }
     if(!pw||pw.length<6){showHgoError('Mot de passe : 6 caractères min');return;}
   }
   if(s===5 && hcur===4){
