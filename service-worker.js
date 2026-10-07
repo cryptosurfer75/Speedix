@@ -9,7 +9,7 @@
 //   SKIP_WAITING, et recharge automatiquement dès que le nouveau prend le
 //   contrôle — les utilisateurs ont ainsi la nouvelle version sans refresh manuel.
 
-const CACHE_VERSION = 'speedix-V2-374';
+const CACHE_VERSION = 'speedix-V2-375';
 // Cache d'ASSETS (images, icônes, polices, scripts CDN) SÉPARÉ et NON versionné (2026-10-07, audit
 // vitesse) : avant, tout vivait dans le cache versionné et chaque release (bump de CACHE_VERSION)
 // le supprimait → tous les téléphones retéléchargeaient toutes les images (jusqu'à 14 Mo en 1re

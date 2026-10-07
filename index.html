@@ -17038,11 +17038,11 @@ async function initAdminPanel(){
   var sel=document.getElementById('admin-player');
   if(!sel) return;
   var {data:players}=await supabaseClient.from('players').select('id,username').order('username');
+  // Options construites UNE fois (innerHTML += en boucle re-analysait toute la liste à chaque joueur : coût quadratique).
+  var _adminOptsHtml='';
   if(players){
-    sel.innerHTML='<option value="">— Choisir un joueur —</option>';
-    players.forEach(function(p){
-      sel.innerHTML+='<option value="'+p.id+'">'+escapeHtml(p.username)+'</option>';
-    });
+    _adminOptsHtml=players.map(function(p){return '<option value="'+p.id+'">'+escapeHtml(p.username)+'</option>';}).join('');
+    sel.innerHTML='<option value="">— Choisir un joueur —</option>'+_adminOptsHtml;
   }
   // Preview des points en temps réel
   ['admin-km','admin-spd','admin-elv'].forEach(function(id){
@@ -17054,10 +17054,7 @@ async function initAdminPanel(){
   otherSelects.forEach(function(selId){
     var s=document.getElementById(selId);
     if(s&&players){
-      s.innerHTML='<option value="">— Choisir —</option>';
-      players.forEach(function(p){
-        s.innerHTML+='<option value="'+p.id+'">'+escapeHtml(p.username)+'</option>';
-      });
+      s.innerHTML='<option value="">— Choisir —</option>'+_adminOptsHtml;
     }
   });
   // Charger l'historique
@@ -17402,8 +17399,11 @@ async function loadAdminStats(){
     // FIX timezone : raisonner en jours Paris (et non UTC) sinon une course
     // importée à 11h Paris (= 9h UTC) ne match pas la date courante car
     // `new Date(y,m,d).toISOString()` convertit minuit Paris en 22h UTC la veille.
+    // Instance UNIQUE (2026-10-07, audit vitesse) : créer un Intl.DateTimeFormat à chaque appel coûtait ~0,9 s (CPU x4) à
+    // l'ouverture de l'appli pour un compte admin (appelée pour chaque course des 7 derniers jours).
+    var _parisFmt=new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Paris',year:'numeric',month:'2-digit',day:'2-digit'});
     function _parisDateStr(d){
-      return new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Paris',year:'numeric',month:'2-digit',day:'2-digit'}).format(d);
+      return _parisFmt.format(d);
     }
     var startTodayDate=_parisDateStr(now);
     var startYestDate=_parisDateStr(new Date(now.getTime()-86400000));
