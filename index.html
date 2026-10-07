@@ -17060,6 +17060,18 @@ async function initAdminPanel(){
   if(tourTestTools) tourTestTools.style.display=canUseTourSimulator()?'':'none';
   if(!isAdmin()) return;
   updateAdminOnlineCounter();
+  // Le reste (listes de joueurs/teams, stats, historique, courses > 1000 pts, ticker, blocs repliables) n'est chargé qu'à
+  // l'OUVERTURE de la page Admin (cf ensureAdminPanelLoaded, appelée par nav('admin')). 2026-10-07, audit vitesse : tout
+  // partait à CHAQUE démarrage de l'appli pour le compte admin (≈15 requêtes dont 3 de 2-4 s, ~3,5 s de CPU sur téléphone).
+}
+var _adminHeavyLoaded=false;
+async function ensureAdminPanelLoaded(){
+  if(_adminHeavyLoaded || !isAdmin()) return;
+  _adminHeavyLoaded=true;
+  try{ await _initAdminPanelHeavy(); }
+  catch(e){ _adminHeavyLoaded=false; console.warn('[admin] chargement du panel',e); }
+}
+async function _initAdminPanelHeavy(){
   adminSetupCollapsibleBlocks();
   adminLoadTicker();
   // Charger la liste des joueurs dans le select
@@ -18668,6 +18680,7 @@ function nav(page){
     if(typeof renderSettingsPage==='function') renderSettingsPage();
   }
   if(page==='admin'){
+    if(typeof ensureAdminPanelLoaded==='function') ensureAdminPanelLoaded();
     if(typeof showAdminVersion==='function') showAdminVersion();
   }
   if(page==='cashrun'){
