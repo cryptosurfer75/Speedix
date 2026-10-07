@@ -26937,9 +26937,14 @@ function _applyBadgeModalFrame(color){
   var _fitBevel=function(){
     var o=document.getElementById('lm-bevel-outer'), n=document.getElementById('lm-bevel-inner');
     if(!o||!n||!box.scrollHeight) return;
+    // 2026-10-07 : on retire d'abord la contribution du cadre LUI-MÊME au scrollHeight. Sinon, en
+    // passant d'un onglet haut (Règles/Ma team) à un onglet plus court (Progression), le cadre gardait
+    // l'ancienne hauteur, dépassait la fenêtre et son bas (trait + coins) était coupé (bug signalé).
+    o.style.bottom='auto'; o.style.height='0px';
+    n.style.bottom='auto'; n.style.height='0px';
     var h=box.scrollHeight;
-    o.style.bottom='auto'; o.style.height=h+'px';
-    n.style.bottom='auto'; n.style.height=(h-3)+'px';
+    o.style.height=h+'px';
+    n.style.height=(h-3)+'px';
   };
   _fitBevel(); setTimeout(_fitBevel,60); setTimeout(_fitBevel,300);
   // 2026-10-03 : le contenu change APRÈS l'ouverture (onglet Ma team/Classement, « voir
