@@ -21984,7 +21984,7 @@ function _teamChallengePartBody(c){
       +'<div style="height:100%;width:'+pctVal+'%;background:var(--green);opacity:.85"></div>'
       +'<div style="height:100%;width:'+pctReg+'%;background:var(--gold);opacity:.5"></div>'
     +'</div>';
-  var rowsHtml='<div style="max-height:50vh;overflow-y:auto">'+p.rows.map(function(r){
+  var rowsHtml='<div style="max-height:max(120px,calc(85vh - 410px));overflow-y:auto">'+p.rows.map(function(r){
     var isMe=r.pid===currentUser.id;
     var st=_tcPartStatus(r,p.minKm);
     return '<div style="display:flex;align-items:center;justify-content:space-between;gap:.5rem;padding:.4rem .55rem;border-radius:6px;border:1px solid '+(isMe?'rgba(255,255,255,.65)':'rgba(255,255,255,.28)')+';background:rgba(255,255,255,.03);margin-bottom:.3rem;font-size:.75rem">'
