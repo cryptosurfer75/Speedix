@@ -32339,6 +32339,10 @@ window.Tour.init = async function(){
   // encore ouverte. Donc la croix ✕ (seul moyen de fermer) applique ce
   // déplacement en attente AVANT de masquer la modale.
   function closeRentModal(){
+    try{
+      var _t = document.getElementById('tour-rm-title');
+      if(_t && /LOYER\s*À\s*PAYER/i.test(_t.textContent||'')) localStorage.setItem(_tourRentSeenKey(), '1');
+    }catch(e){}
     const land = window._rentModalLand;
     if(land && land.status==='event' && land.eventCard && !land._eventMoveApplied){
       const ev = land.eventCard;
@@ -34084,9 +34088,19 @@ window.Tour.init = async function(){
     return LANDS.filter(l => l.type!=='etape' && l.owner===ME && l.status==='rented' && !(l.freeMonthsLeft>0));
   }
   function _tourRentSeenKey(){ return 'tour-rent-seen-'+(currentUser?currentUser.id:'')+'-'+new Date().toISOString().slice(0,10); }
+  // Rappel loyer FIABLE (2026-10-07, signalé par l'user : « la fenêtre se ferme toute seule, on n'a
+  // pas le temps de valider ») : avant, le marqueur « vu aujourd'hui » était posé dès l'affichage --
+  // si la fenêtre était écrasée/fermée par autre chose (autre popup, rechargement de l'appli après une
+  // mise à jour...) elle ne revenait PLUS avant le lendemain. Maintenant « vu » n'est posé que quand le
+  // RP la FERME LUI-MÊME (croix / PASSER, cf closeRentModal), et le rappel se représente à chaque retour
+  // sur la page Tour (onShow) tant qu'il n'a pas été fermé volontairement.
+  let _rentNoticeBusy = false;
   async function checkRentNotice(){
     if(!currentUser || !currentUser.id) return;
+    if(_rentNoticeBusy) return;
     try{ if(localStorage.getItem(_tourRentSeenKey())) return; }catch(e){}
+    _rentNoticeBusy = true;
+    try{
     const res = await _tourCall('tour_rent_status', {});
     if(!res || !res.pending) return;
     // Jamais pendant que le point se déplace ni par-dessus une fenêtre déjà
@@ -34095,8 +34109,8 @@ window.Tour.init = async function(){
     // forceMove. "Vu" n'est marqué qu'une fois la voie libre : si l'appli ferme
     // pendant l'attente, ce rappel se représente à la prochaine ouverture.
     await _tourWaitClear();
-    try{ localStorage.setItem(_tourRentSeenKey(), '1'); }catch(e){}
     showRentDueModal(res.amount, res.lands_count, res.days_left, res.per_land);
+    } finally { _rentNoticeBusy = false; }
   }
   function showRentDueModal(amount, landsCount, daysLeft, perLand){
     const bevel = document.getElementById('tour-rm-bevel');
@@ -34163,6 +34177,7 @@ window.Tour.init = async function(){
       }
       showLegend();
       if(typeof _refreshTourSyncDot==='function') _refreshTourSyncDot();
+      if(ME.startCity) checkRentNotice();
       // Reprise d'un achat de Land en attente (2026-09-03, bug corrigé -- signalé
       // par l'user) : simulateGoPremium()/goToNyxMarket() posent
       // window._pendingBuyRetry puis envoient le RP passer Premium ou acheter des
