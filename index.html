@@ -28579,6 +28579,15 @@ async function _enableNativePush(silent){
     PN.addListener('pushNotificationActionPerformed', function(action){
       try{
         var data=(action&&action.notification&&action.notification.data)||{};
+        // Texte COMPLET de la notification (2026-10-07, signalé par l'user : « on clique dessus, ça ouvre l'appli et on ne peut plus la
+        // lire — 99 % des gens cliquent par réflexe ») : on l'affiche dans une fenêtre dès l'ouverture, au lieu de le perdre.
+        // Sources : titre/corps fournis par le système, sinon `data.message` ajouté par send-push (cas appli tuée sur Android).
+        try{
+          var _n=(action&&action.notification)||{};
+          var _pTitle=_n.title||data.title||'SPEEDIX League';
+          var _pBody=_n.body||data.message||'';
+          if(_pBody) setTimeout(function(){ showPushMessageModal(_pTitle,_pBody); },700);
+        }catch(_e){}
         if(data.screen && typeof nav==='function'){
           nav(data.screen);
           if(data.screen==='defis' && data.tab && typeof switchChallengesTab==='function'){
@@ -28598,6 +28607,27 @@ async function _enableNativePush(silent){
     console.warn('[push-native-enable]',e);
     if(!silent) showToast('⚠️ Erreur : '+(e.message||e));
   }
+}
+
+// Fenêtre « message reçu » : affiche le texte complet d'une notification push touchée. Réutilise le cadre biseauté des fenêtres du Tour.
+function showPushMessageModal(title,body){
+  try{
+    var old=document.getElementById('push-msg-overlay'); if(old) old.remove();
+    var esc=function(x){ return String(x==null?'':x).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); };
+    var el=document.createElement('div');
+    el.id='push-msg-overlay'; el.className='rent-modal-overlay open'; el.style.zIndex='3000';
+    el.innerHTML='<div class="rent-modal-bevel"><div class="rent-modal-inner">'
+      +'<button class="rent-modal-close" aria-label="Fermer"></button>'
+      +'<h2 style="font-family:Bebas Neue,sans-serif;letter-spacing:1px">🔔 '+esc(title)+'</h2>'
+      +'<div style="font-size:.9rem;line-height:1.55;color:var(--text);margin:.5rem 0 1rem;white-space:pre-line">'+esc(body)+'</div>'
+      +'<button class="tour-btn" style="width:100%">OK</button>'
+      +'</div></div>';
+    var close=function(){ el.remove(); };
+    el.querySelector('.rent-modal-close').onclick=close;
+    el.querySelector('.tour-btn').onclick=close;
+    el.addEventListener('click',function(e){ if(e.target===el) close(); });
+    document.body.appendChild(el);
+  }catch(e){ console.warn('[push-msg-modal]',e); }
 }
 
 async function _disableNativePush(){
