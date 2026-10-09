@@ -14836,8 +14836,20 @@ function startChatPoll(teamId){
     },3000);
   }
 }
+// 09/10/2026 (demande user) : le compte admin n'a AUCUNE limite de longueur dans les chats
+// (league + team) ; les autres RP gardent maxlength=300. Aucune limite côté serveur (colonne text).
+function _unlockAdminChatLength(){
+  try{
+    if(typeof isAdmin==='function' && isAdmin()){
+      ['leaguechat-input','team-chat-input'].forEach(function(id){
+        var el=document.getElementById(id); if(el && el.hasAttribute('maxlength')) el.removeAttribute('maxlength');
+      });
+    }
+  }catch(e){}
+}
 async function loadTeamChat(teamId){
   _teamChatId=teamId;
+  _unlockAdminChatLength();
   // Guard : si plus de user connecté (logout / changement de session pendant un poll
   // 3s en cours), on stoppe le poll et on sort. Évite l'erreur "Cannot read 'id' of null".
   if(!currentUser){
@@ -15032,6 +15044,7 @@ function startLeagueChatPoll(key){
 }
 
 async function loadLeagueChat(key){
+  _unlockAdminChatLength();
   if(!currentUser){
     if(_leagueChatPollInterval){clearInterval(_leagueChatPollInterval);_leagueChatPollInterval=null;}
     return;
@@ -19967,7 +19980,7 @@ async function confirmConvertRpcToNyx(){
   // l'un ni l'autre) reste bloqué, mirroir du même check dans convert_rpc_to_nyx
   // (source unique) — ce n'est ici qu'un raccourci d'affichage (2026-08-14).
   var mp=window.__myPlayer||{};
-  if(!mp.premiumTrial && !mp.premiumPaid){
+  if(!mp.premiumTrial && !mp.premiumPaid && !isAdmin()){
     showRpcConvertInfo('⏳','BIENTÔT DISPONIBLE','La conversion RPC → NYX sera activée dès l\'ouverture du vrai Premium payant. Les essais 15 jours y ont déjà accès.');
     return;
   }
@@ -26136,11 +26149,11 @@ async function swapCollabPriority(participantIdA,participantIdB){
 async function acceptCollabChallenge(participantId){
   if(!currentUser) return;
   try {
-    // CAP MENSUEL : Free = 2 défis/mois calendaire, Premium = 4 défis/mois.
+    // CAP MENSUEL : Free = 2 défis/mois calendaire, Premium = 6 défis/mois.
     // Compte tout défi accepté (declined=false, accepted_at>=début du mois courant).
     // Admin = pas de cap (utile pour tester / animer le jeu).
     var _isAdminBypass=(typeof isAdmin==='function' && isAdmin());
-    var _maxMonth=_isAdminBypass?999999:((typeof isPremium==='function' && isPremium())?4:2);
+    var _maxMonth=_isAdminBypass?999999:((typeof isPremium==='function' && isPremium())?6:2);
     var _now=new Date();
     var _monthStartIso=new Date(_now.getFullYear(),_now.getMonth(),1).toISOString();
     var {data:myMonth}=await supabaseClient.from('collab_challenge_participants')
@@ -26159,7 +26172,7 @@ async function acceptCollabChallenge(participantId){
       return !p.collab_challenges || p.collab_challenges.status!=='expired';
     }).length;
     if(monthCount>=_maxMonth){
-      var _premiumMonthHint=(_maxMonth===2)?' (Premium = 4 max)':'';
+      var _premiumMonthHint=(_maxMonth===2)?' (Premium = 6 max)':'';
       showToast('⚠️ Quota mensuel atteint : '+_maxMonth+' défis collaboratifs ce mois'+_premiumMonthHint+'. Reviens le mois prochain.');
       return;
     }
