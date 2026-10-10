@@ -13374,12 +13374,12 @@ function showRunStats(periodKey){
         }).join('')
       +'</div></div>';
   }
-  var tile=function(v,l,c){ return '<div style="flex:1;min-width:30%;background:#0c0f1a;border:1px solid rgba(144,96,240,.35);border-radius:8px;padding:.5rem .3rem;text-align:center"><div style="font-family:Space Mono,monospace;font-size:.95rem;font-weight:700;color:'+c+'">'+v+'</div><div style="font-size:.58rem;color:var(--muted2);letter-spacing:.5px;text-transform:uppercase;margin-top:.15rem">'+l+'</div></div>'; };
+  var tile=function(v,l,c){ return '<div style="min-width:0;display:flex;flex-direction:column;justify-content:center;min-height:3.4rem;background:#0c0f1a;border:1px solid rgba(144,96,240,.35);border-radius:8px;padding:.5rem .3rem;text-align:center"><div style="white-space:nowrap;font-family:Space Mono,monospace;font-size:.9rem;font-weight:700;color:'+c+'">'+v+'</div><div style="font-size:.58rem;color:var(--muted2);letter-spacing:.5px;text-transform:uppercase;margin-top:.15rem">'+l+'</div></div>'; };
   var html='<div style="display:flex;gap:.4rem;align-items:stretch">'+chips+'</div>'
-    +'<div style="display:flex;flex-wrap:wrap;gap:.4rem;margin-top:.5rem">'
+    +'<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:.4rem;margin-top:.5rem">'
     +tile(pr.length,'Courses','#20d0e0')
-    +tile(km.toFixed(1).replace('.',',')+' km','Distance','#2080e0')
-    +tile(_fmtPace(pace)+' /km','Allure moy.','var(--text)')
+    +tile(km.toFixed(1).replace('.',','),'Dist. km','#2080e0')
+    +tile(_fmtPace(pace),'Allure moy.','var(--text)')
     +tile(hr?hr+' bpm':'—','FC moyenne','#ff6060')
     +tile(elv>0?Math.round(elv).toLocaleString(SPEEDIX_LANG)+' m':'—','Dénivelé','#ff8040')
     +tile((function(){var m=Math.round(min);return String(Math.floor(m/60)).padStart(2,'0')+'h'+String(m%60).padStart(2,'0');})(),'Temps','#2ddb80')
