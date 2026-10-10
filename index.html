@@ -27970,7 +27970,7 @@ async function openCountryRanking(nat){
   if(!tbody) return;
   tbody.innerHTML='<tr><td colspan="4" style="text-align:center;padding:1rem;color:var(--muted2)">Chargement…</td></tr>';
   openModal('all-country-modal');
-  var plRes=await supabaseClient.from('players').select('id, username, grade, nat, avatar').eq('is_bot',false);
+  var plRes=await supabaseClient.from('players').select('id, username, grade, nat, avatar');
   if(plRes.error||!plRes.data){tbody.innerHTML='<tr><td colspan="4" style="color:#f66;font-size:.8rem;padding:.5rem">Erreur de chargement</td></tr>';return;}
   // Points de la période en cours par joueur (paginés, plafond PostgREST).
   var curPts={}; var _f=0,_s=1000;
