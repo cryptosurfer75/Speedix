@@ -25599,12 +25599,26 @@ async function _recomputeCollabProgressForPlayer(playerId){
       return null; // explore_total / referrals_each : pas de run consommé
     }
 
+    // 10/10/2026 (demande user) : attribution « collante ». Chaque défi mémorise les runs qu'il a
+    // consommés (progress.owned_runs). Un run déjà possédé par un AUTRE défi n'est jamais repris,
+    // même si on échange les priorités : seules les courses NON attribuées (nouvelles) suivent
+    // l'ordre de priorité, et l'échange ne « libère » que la dernière course (cf. swapCollabPriority).
+    var _ownerOf={}; // 'catégorie:runId' -> id de participation propriétaire
+    myParts.forEach(function(p0){
+      var ch0=chalById[p0.challenge_id];
+      var mt0=ch0 && COLLAB_CHALLENGE_CATALOG.find(function(x){return x.code===ch0.challenge_code;});
+      var cat0=(mt0 && mt0.criteria)?_critCategory(mt0.criteria.type):null;
+      var ids0=p0.progress && p0.progress.owned_runs;
+      if(cat0 && ids0 && ids0.forEach) ids0.forEach(function(id){_ownerOf[cat0+':'+id]=p0.id;});
+    });
+
     for(var i=0;i<myParts.length;i++){
       var part=myParts[i];
       var chal=chalById[part.challenge_id];
       if(!chal) continue;
       var meta=COLLAB_CHALLENGE_CATALOG.find(function(x){return x.code===chal.challenge_code;});
       if(!meta || !meta.criteria) continue;
+      var _myOwned=[]; // runs consommés par CE défi (mémorisés dans progress.owned_runs)
       var startedAt=chal.started_at;
       var deadline=chal.deadline;
       if(!startedAt) continue;
@@ -25630,13 +25644,17 @@ async function _recomputeCollabProgressForPlayer(playerId){
         if(_consumedSet){
           runs=runs.filter(function(r){return !_consumedSet.has(r.id);});
         }
+        if(_category){
+          // Runs déjà attribués à un autre défi de la même catégorie : on n'y touche pas.
+          runs=runs.filter(function(r){var o=_ownerOf[_category+':'+r.id]; return !o || o===part.id;});
+        }
 
         // Marquage des runs réellement consommés (selon le type). Évite de
         // bloquer des petits runs inutiles à un long_run_each pour un défi
         // km_each plus récent dans la même catégorie.
         function _markConsumed(rs){
           if(!_consumedSet) return;
-          (rs||[]).forEach(function(r){if(r&&r.id) _consumedSet.add(r.id);});
+          (rs||[]).forEach(function(r){if(r&&r.id){ _consumedSet.add(r.id); if(_myOwned.indexOf(r.id)<0) _myOwned.push(r.id); }});
         }
 
         if(crit.type==='km_each'){
@@ -25696,8 +25714,9 @@ async function _recomputeCollabProgressForPlayer(playerId){
           _markConsumed(runs);
         }
       }
+      if(_myOwned.length) newProgress.owned_runs=_myOwned;
       // CC12 : referrals_each — filleuls qui ont fait leur 1ère course pendant la fenêtre
-      else if(crit.type==='referrals_each'){
+      if(crit.type==='referrals_each'){
         var {data:newRefs}=await supabaseClient.from('referral_rewards')
           .select('filleul_id,created_at')
           .eq('parrain_id',playerId)
@@ -26141,7 +26160,7 @@ async function swapCollabPriority(participantIdA,participantIdB){
   if(!currentUser || !participantIdA || !participantIdB || participantIdA===participantIdB) return;
   try {
     var {data:rows}=await supabaseClient.from('collab_challenge_participants')
-      .select('id,priority_order').in('id',[participantIdA,participantIdB])
+      .select('id,priority_order,progress').in('id',[participantIdA,participantIdB])
       .eq('player_id',currentUser.id);
     if(!rows || rows.length!==2) return;
     var rowA=rows.find(function(r){return r.id===participantIdA;});
@@ -26151,6 +26170,30 @@ async function swapCollabPriority(participantIdA,participantIdB){
       .update({priority_order:rowB.priority_order}).eq('id',rowA.id).eq('player_id',currentUser.id);
     await supabaseClient.from('collab_challenge_participants')
       .update({priority_order:rowA.priority_order}).eq('id',rowB.id).eq('player_id',currentUser.id);
+    // 10/10/2026 (demande user) : l'échange ne déplace QUE la dernière course (la plus récente parmi celles
+    // des 2 défis) ; les courses déjà attribuées restent où elles sont (attribution « collante »,
+    // cf. progress.owned_runs dans _recomputeCollabProgressForPlayer).
+    try {
+      var ownedA=(rowA.progress&&rowA.progress.owned_runs)||[], ownedB=(rowB.progress&&rowB.progress.owned_runs)||[];
+      var allIds=ownedA.concat(ownedB);
+      if(allIds.length){
+        var {data:lastRun}=await supabaseClient.from('runs').select('id,run_date').in('id',allIds)
+          .order('run_date',{ascending:false}).limit(1);
+        if(lastRun && lastRun.length){
+          var lastId=lastRun[0].id;
+          var tasks=[[rowA,ownedA],[rowB,ownedB]];
+          for(var ti=0; ti<tasks.length; ti++){
+            var row=tasks[ti][0], owned=tasks[ti][1];
+            if(owned.indexOf(lastId)>=0){
+              var np=Object.assign({},row.progress||{});
+              np.owned_runs=owned.filter(function(x){return x!==lastId;});
+              await supabaseClient.from('collab_challenge_participants')
+                .update({progress:np}).eq('id',row.id).eq('player_id',currentUser.id);
+            }
+          }
+        }
+      }
+    } catch(e2){ console.warn('[collab] release last run error:', e2); }
     await renderCollabChallenges();
   } catch(e){
     console.warn('[collab] swap priority error:', e);
