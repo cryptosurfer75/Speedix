@@ -24046,6 +24046,7 @@ var _CITY_CREST_OVERRIDES=[
   {match:/PHILADELPHI[AE]/i, image:'ai-icons/challenge-crests/philadelphie-v5.webp', medal:true, ribbonColors:['#a8e0ff','#2a86d1'], ribbonPts:'29,0 71,0 71.0,21.9 69.5,21.3 68.0,20.9 66.5,20.3 65.0,19.7 63.5,19.2 62.0,18.7 60.5,18.2 59.0,18.2 57.5,18.7 56.0,19.2 54.5,19.9 53.0,20.3 51.5,20.9 50.0,21.0 48.5,20.3 47.0,19.7 45.5,19.2 44.0,18.5 42.5,18.0 41.0,18.2 39.5,18.7 38.0,19.3 36.5,19.9 35.0,20.1 33.5,20.7 32.0,21.2 30.5,21.7 29.0,22.2', medalImgH:92},
   {match:/ARRAS/i, image:'ai-icons/challenge-crests/arras-v1.webp', medal:true, ribbonColors:['#fbb92f','#002c7c'], ribbonFlat:true, medalImgH:92},
   {match:/PROSPECTEUR/i, image:'ai-icons/defi-icons/prospecteur-v1.webp', hexBadge:true},
+  {match:/TOUR COMPLET/i, image:'ai-icons/defi-icons/tourcomplet-v1.webp', hexBadge:true},
   {match:/^5K$/i, image:'ai-icons/defi-icons/run5k-v1.webp', hexBadge:true},
   {match:/^10K$/i, image:'ai-icons/defi-icons/run10k-v1.webp', hexBadge:true},
   {match:/SEMI-MARATHON/i, image:'ai-icons/defi-icons/runsemi-v1.webp', hexBadge:true},
@@ -24317,6 +24318,7 @@ function _badgeRibbonLabel(b){
     case 'morning_runs':     return '4→7h';
     case 'cashrun_jackpots': return v+' 🎰';
     case 'collab_wins':      return v+' 🤝';
+    case 'tour_laps':        return v+' 🏁';
     case 'account_age_days': return v+' j';
     default:                 return '';
   }
@@ -24549,7 +24551,7 @@ var DEFI_CATEGORIES=[
   {key:'denivele', title:'DÉNIVELÉ', icon:'⛰️', accent:'#c8935a', codes:['ELV_1000','ELV_MB','ELV_EVEREST','ELV_KILIMANDJARO']},
   {key:'regularite', title:'RÉGULARITÉ', icon:'🔥', accent:'#ff4040', codes:['STREAK_7','STREAK_30','STREAK_90','STREAK_180','STREAK_365']},
   {key:'horaires', title:'HORAIRES', icon:'🌙', accent:'#7c3aed', codes:['TIME_NIGHT','TIME_DAWN']},
-  {key:'exploration', title:'EXPLORATION', icon:'🗺️', accent:'#20c060', codes:['LOC_NOMADE','LOC_VOYAGEUR']},
+  {key:'exploration', title:'EXPLORATION', icon:'🗺️', accent:'#20c060', codes:['LOC_NOMADE','LOC_VOYAGEUR','TOUR_COMPLET']},
   {key:'duree', title:'DURÉE', icon:'⏱️', accent:'#4dd9e8', codes:['DUREE_2H','DUREE_3H']},
   {key:'auto', title:'AUTOMATIQUES', icon:'✨', accent:'#8a92a8', codes:['CASHRUN_5','COLLAB_10','LOYALTY_1Y','LANDS_8']},
 ];
@@ -24706,8 +24708,10 @@ async function renderChallenges(){
 
   // 4bis. Profil joueur (Cash Run, anciennete, onboarding objectifs) + defis collab gagnes
   // MIROIR de checkBadges.ts (_shared) — garder synchro, NE PAS diverger.
-  var {data:pRow}=await supabaseClient.from('players').select('cashrun_jackpots,created_at,quests_onboarded_at').eq('id',targetUuid).single();
+  var {data:pRow}=await supabaseClient.from('players').select('cashrun_jackpots,created_at,quests_onboarded_at,tour_laps').eq('id',targetUuid).single();
   var cashrunJackpots=(pRow&&pRow.cashrun_jackpots)||0;
+  // TOUR COMPLET (10/10/2026) : tours complets du SPEEDIX Tour (compteur vie entière). MIROIR de checkBadges.ts.
+  var tourLaps=(pRow&&pRow.tour_laps)||0;
   var {data:myParts}=await supabaseClient.from('collab_challenge_participants').select('challenge_id').eq('player_id',targetUuid);
   var myChallengeIds=(myParts||[]).map(function(p){return p.challenge_id;});
   var collabWinRows=[];
@@ -24799,6 +24803,7 @@ async function renderChallenges(){
     // lands_owned (PROSPECTEUR, 2026-08-09 -- règle confirmée : 8 Lands en même
     // temps, peu importe quand, cf landsOwned/tour_lands plus haut).
     if(b.threshold_type==='lands_owned') return landsOwned;
+    if(b.threshold_type==='tour_laps') return tourLaps;
     var q=activeQuestsMap[b.id];
     if(q){
       var live=statsSince(q.since)[b.threshold_type]||0;
@@ -25015,7 +25020,7 @@ async function renderChallenges(){
     // Badges "automatiques" (Fidèle/Jackpot/Esprit d'équipe/Prospecteur) : pas
     // de bouton CHOISIR, ils se déclenchent tout seuls — visibles dans leur
     // catégorie même non gagnés, juste sans action possible dessus.
-    var isAutoType=(b.threshold_type==='account_age_days'||b.threshold_type==='cashrun_jackpots'||b.threshold_type==='collab_wins'||b.threshold_type==='lands_owned');
+    var isAutoType=(b.threshold_type==='account_age_days'||b.threshold_type==='cashrun_jackpots'||b.threshold_type==='collab_wins'||b.threshold_type==='lands_owned'||b.threshold_type==='tour_laps');
     // VOYAGEUR (2026-08-05, demande explicite) : pas réalisable dans l'immédiat
     // (5 capitales européennes différentes réellement courues — quasi
     // impossible pour la majorité des joueurs), on ne le rend plus choisissable
@@ -26947,7 +26952,7 @@ function _questPickerCap(){
 // entière/état courant évalués en continu, cf. plus bas — pas de notion de "rejeu").
 // MIROIR : checkBadges.ts isReplayable() — garder synchro, NE PAS diverger.
 function _isQuestReplayable(b,timesEarned){
-  if(b.threshold_type==='event_run'||b.threshold_type==='account_age_days'||b.threshold_type==='cashrun_jackpots'||b.threshold_type==='collab_wins'||b.threshold_type==='lands_owned') return false;
+  if(b.threshold_type==='event_run'||b.threshold_type==='account_age_days'||b.threshold_type==='cashrun_jackpots'||b.threshold_type==='collab_wins'||b.threshold_type==='lands_owned'||b.threshold_type==='tour_laps') return false;
   if(b.max_completions==null) return true;
   return (timesEarned||0)<b.max_completions;
 }
@@ -27146,6 +27151,7 @@ function _badgeChallengeDescription(b){
                                      : 'Participer à l\'événement à la date prévue');
     case 'cashrun_jackpots':  return 'Gagner <strong style="color:'+(b.color||'#f5c842')+'">'+v+' jackpots</strong> à Cash Run';
     case 'collab_wins':       return 'Réussir <strong style="color:'+(b.color||'#f5c842')+'">'+v+' défis collaboratifs</strong> entre voisins';
+    case 'tour_laps':         return 'Boucler un <strong style="color:'+(b.color||'#f5c842')+'">tour complet</strong> du SPEEDIX Tour en repassant la ligne de départ — le compteur monte à chaque tour supplémentaire';
     case 'account_age_days':  return 'Être inscrit depuis <strong style="color:'+(b.color||'#f5c842')+'">'+v+' jours</strong>';
     // (2026-08-05) Précisé à la demande de l'user : un simple passage ne compte
     // pas, il faut vraiment ATTERRIR pile sur la case (même règle que les cases
