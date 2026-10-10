@@ -25553,11 +25553,16 @@ async function _recomputeCollabProgressForPlayer(playerId){
       .eq('player_id',playerId);
     if(!myParts || !myParts.length) return;
     var chalIds=myParts.map(function(p){return p.challenge_id;});
-    var {data:chals}=await supabaseClient.from('collab_challenges')
+    // 10/10/2026 : on charge TOUS les défis (pas seulement en cours) pour connaître les runs déjà
+    // « utilisés » par un défi RÉUSSI : ils ne comptent plus pour un autre défi (1 course = 1 défi).
+    var {data:chalsAll}=await supabaseClient.from('collab_challenges')
       .select('id,challenge_code,status,started_at,deadline')
-      .in('id',chalIds).eq('status','in_progress');
-    if(!chals || !chals.length) return;
+      .in('id',chalIds);
+    var chals=(chalsAll||[]).filter(function(c){return c.status==='in_progress';});
+    if(!chals.length) return;
     var chalById={}; chals.forEach(function(c){chalById[c.id]=c;});
+    var chalAllById={}; (chalsAll||[]).forEach(function(c){chalAllById[c.id]=c;});
+    var _doneParts=myParts.filter(function(p){var c=chalAllById[p.challenge_id]; return c && c.status==='success';});
     // Ne garder que les participations réellement en cours (une ligne peut
     // exister pour un défi déjà résolu/expiré : elle n'entre pas dans l'ordre).
     myParts=myParts.filter(function(p){return !!chalById[p.challenge_id];});
@@ -25604,8 +25609,8 @@ async function _recomputeCollabProgressForPlayer(playerId){
     // même si on échange les priorités : seules les courses NON attribuées (nouvelles) suivent
     // l'ordre de priorité, et l'échange ne « libère » que la dernière course (cf. swapCollabPriority).
     var _ownerOf={}; // 'catégorie:runId' -> id de participation propriétaire
-    myParts.forEach(function(p0){
-      var ch0=chalById[p0.challenge_id];
+    myParts.concat(_doneParts).forEach(function(p0){
+      var ch0=chalAllById[p0.challenge_id];
       var mt0=ch0 && COLLAB_CHALLENGE_CATALOG.find(function(x){return x.code===ch0.challenge_code;});
       var cat0=(mt0 && mt0.criteria)?_critCategory(mt0.criteria.type):null;
       var ids0=p0.progress && p0.progress.owned_runs;
