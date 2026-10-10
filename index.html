@@ -13382,7 +13382,7 @@ function showRunStats(periodKey){
     +tile(_fmtPace(pace)+' /km','Allure moy.','var(--text)')
     +tile(hr?hr+' bpm':'—','FC moyenne','#ff6060')
     +tile(elv>0?Math.round(elv).toLocaleString(SPEEDIX_LANG)+' m':'—','Dénivelé','#ff8040')
-    +tile(_fmtDur(min*60),'Temps','#2ddb80')
+    +tile((function(){var m=Math.round(min);return String(Math.floor(m/60)).padStart(2,'0')+'h'+String(m%60).padStart(2,'0');})(),'Temps','#2ddb80')
     +'</div>'
     +'<div style="margin-top:.9rem"><div style="font-family:Bebas Neue,sans-serif;font-size:1rem;letter-spacing:2px;color:#c8a8ff;margin-bottom:.4rem">📈 Volume par semaine</div>'
     +(wk.length?wk.map(function(w){
@@ -16939,7 +16939,7 @@ var TOUR_SIMULATOR_TEST_UIDS = [
   '1bc4d586-a4e8-411f-ad70-1f6bbb3fc430'  // Nakamoto-75
 ];
 function canUseTourSimulator(){
-  return isAdmin() || !!(currentUser && TOUR_SIMULATOR_TEST_UIDS.indexOf(currentUser.id)>=0);
+  return !!(currentUser && TOUR_SIMULATOR_TEST_UIDS.indexOf(currentUser.id)>=0);
 }
 
 // ── Présence live via Supabase Realtime ─────────────────────────────
