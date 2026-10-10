@@ -5731,12 +5731,12 @@ function askConfirm(message, opts){
 <div class="modal" id="quest-modal">
   <div class="modal-box" style="max-width:400px;text-align:center;padding:2rem 1.5rem">
     <button class="modal-close" onclick="closeModal('quest-modal')">✕</button>
-    <div id="quest-modal-emoji" style="width:110px;height:126px;margin:0 auto .6rem;position:relative;display:flex;align-items:center;justify-content:center;animation:blasonPop .5s cubic-bezier(.22,.68,0,1.2) both"></div>
+    <div id="quest-modal-emoji" style="width:110px;height:126px;margin:0 auto 1rem;position:relative;display:flex;align-items:center;justify-content:center;animation:blasonPop .5s cubic-bezier(.22,.68,0,1.2) both"></div>
     <div id="quest-modal-label" style="font-family:'Bebas Neue',sans-serif;font-size:.9rem;letter-spacing:3px;color:var(--muted2);margin-bottom:.15rem">🎯 OBJECTIF VALIDÉ</div>
     <div id="quest-modal-title" style="font-family:'Bebas Neue',sans-serif;font-size:1.7rem;letter-spacing:3px;color:var(--gold);margin-bottom:.25rem">—</div>
     <div id="quest-modal-sub" style="font-size:.8rem;color:var(--text);margin-bottom:.6rem">—</div>
     <div id="quest-modal-reward" style="font-family:'Space Mono',monospace;font-size:1.3rem;color:var(--gold);font-weight:700;margin-bottom:.6rem;text-shadow:0 0 12px rgba(245,200,66,.4)"></div>
-    <div style="font-size:.72rem;color:var(--muted2);line-height:1.5;margin-bottom:.6rem">Tu l'as choisi, tu l'as fait — file en choisir un nouveau dans tes Défis.</div>
+    <div id="quest-modal-hint" style="font-size:.72rem;color:var(--muted2);line-height:1.5;margin-bottom:.6rem">Tu l'as choisi, tu l'as fait — file en choisir un nouveau dans tes Défis.</div>
     <button id="quest-modal-btn" onclick="closeModal('quest-modal')" style="margin-top:.3rem;padding:.5rem 2rem;border-radius:8px;border:1.5px solid var(--green);background:linear-gradient(135deg,rgba(45,219,128,.15),rgba(32,180,100,.08));color:var(--green);font-weight:700;font-size:.85rem;cursor:pointer;letter-spacing:.5px">Bravo ! 🎉</button>
   </div>
 </div>
@@ -27138,16 +27138,21 @@ function showQuestValidatedModal(b){
   var rewards=[];
   if(b.reward_rpc) rewards.push('+'+b.reward_rpc.toLocaleString(SPEEDIX_LANG)+' RPC');
   if(b.reward_nyx) rewards.push('+'+b.reward_nyx+' 💎 NYX');
-  document.getElementById('quest-modal-emoji').innerHTML=
-    '<svg viewBox="0 0 100 115" style="width:100%;height:100%;filter:drop-shadow(0 0 18px '+color+'80)">'
+  if(typeof _decorateBadgeWithCityCrest==='function') _decorateBadgeWithCityCrest(b);
+  var _autoQ=(b.threshold_type==='account_age_days'||b.threshold_type==='cashrun_jackpots'||b.threshold_type==='collab_wins'||b.threshold_type==='lands_owned'||b.threshold_type==='tour_laps');
+  document.getElementById('quest-modal-emoji').innerHTML=(b.image&&b.hexBadge)
+    ? '<img src="'+b.image+'" style="width:130px;height:130px;max-width:none;margin:-6px 0;object-fit:contain;filter:drop-shadow(0 0 18px '+color+'80)">'
+    : '<svg viewBox="0 0 100 115" style="width:100%;height:100%;filter:drop-shadow(0 0 18px '+color+'80)">'
     +'<polygon points="50,2 95,28 95,82 50,108 5,82 5,28" fill="'+color+'" opacity="0.18"/>'
     +'<polygon points="50,2 95,28 95,82 50,108 5,82 5,28" fill="none" stroke="'+color+'" stroke-width="2.5"/>'
     +'</svg><div style="position:absolute;font-size:3rem">'+icon+'</div>';
+  var _hint=document.getElementById('quest-modal-hint');
+  if(_hint) _hint.textContent=_autoQ?(b.threshold_type==='tour_laps'?'Badge automatique : il rejoint ta collection, continue et accumule les tours 🚀':'Badge automatique : il rejoint ta collection tout seul, rien à choisir.'):'Tu l\'as choisi, tu l\'as fait — file en choisir un nouveau dans tes Défis.';
   document.getElementById('quest-modal-title').textContent=b.name||'BADGE';
   document.getElementById('quest-modal-sub').textContent=b.tagline||'';
   document.getElementById('quest-modal-reward').textContent=rewards.join(' · ');
   var lbl=document.getElementById('quest-modal-label');
-  if(lbl) lbl.textContent='🎯 OBJECTIF VALIDÉ'+((b.times_earned||1)>1?' (×'+b.times_earned+')':'');
+  if(lbl) lbl.textContent=(_autoQ?'🏁 BADGE DÉBLOQUÉ':'🎯 OBJECTIF VALIDÉ')+((b.times_earned||1)>1?' (×'+b.times_earned+')':'');
   openModal('quest-modal');
   // Clé par occurrence (badge+nb de fois) : un rejeu réussi doit re-déclencher
   // le popup même si ce badge_id a déjà été montré une 1ère fois — 2026-07-21.
