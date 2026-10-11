@@ -25576,210 +25576,23 @@ function switchChallengesTab(tab){
 // La RÉSOLUTION FINALE (vérifier que les 2 RPs ont rempli + attribuer la
 // récompense) est gérée par l'Edge Function resolve-collab-challenges
 // (brique 7, à venir) — ici on se contente de mettre à jour les compteurs.
+// 11/10/2026 — SOURCE UNIQUE : l'attribution des courses aux défis collab (ordre de priorité,
+// attribution collante, plafond « défi atteint = on n'ajoute plus de courses ») vit UNIQUEMENT
+// côté serveur (supabase/functions/_shared/collabChallenges.ts), appelée par tous les chemins
+// d'entrée de course ET par ici via l'Edge Function sync-collab-progress.
+// L'ancienne copie locale de ce calcul a été supprimée : c'est elle qui divergeait du serveur
+// et faisait « basculer d'un bloc » les km d'un défi à l'autre (cas Isabelle). NE JAMAIS la recoder ici.
 async function _recomputeCollabProgressForPlayer(playerId){
   if(!playerId) return;
   try {
-    // Charger les défis in_progress où le joueur participe (avec accepted_at
-    // pour ordre FIFO de l'attribution des runs).
-    var {data:myParts}=await supabaseClient.from('collab_challenge_participants')
-      .select('id,challenge_id,progress,completed_individually,accepted_at,priority_order')
-      .eq('player_id',playerId);
-    if(!myParts || !myParts.length) return;
-    var chalIds=myParts.map(function(p){return p.challenge_id;});
-    // 10/10/2026 : on charge TOUS les défis (pas seulement en cours) pour connaître les runs déjà
-    // « utilisés » par un défi RÉUSSI : ils ne comptent plus pour un autre défi (1 course = 1 défi).
-    var {data:chalsAll}=await supabaseClient.from('collab_challenges')
-      .select('id,challenge_code,status,started_at,deadline')
-      .in('id',chalIds);
-    var chals=(chalsAll||[]).filter(function(c){return c.status==='in_progress';});
-    if(!chals.length) return;
-    var chalById={}; chals.forEach(function(c){chalById[c.id]=c;});
-    var chalAllById={}; (chalsAll||[]).forEach(function(c){chalAllById[c.id]=c;});
-    var _doneParts=myParts.filter(function(p){var c=chalAllById[p.challenge_id]; return c && c.status==='success';});
-    // Ne garder que les participations réellement en cours (une ligne peut
-    // exister pour un défi déjà résolu/expiré : elle n'entre pas dans l'ordre).
-    myParts=myParts.filter(function(p){return !!chalById[p.challenge_id];});
-
-    // Tri par ordre de priorité choisi par le joueur (priority_order, 1=en
-    // premier) — par défaut (jamais touché) c'est l'ordre FIFO d'acceptation.
-    // Règle "1 course = 1 défi PAR CATÉGORIE de mesure" inchangée :
-    //   - 'km'    : km_each, km_total, runs_each, long_run_each, long_run_same_day, streak_each
-    //   - 'dplus' : dplus_each
-    // Un run consommé par un défi 'km' n'alimente PAS un autre défi 'km' plus bas
-    // en priorité. En revanche il peut alimenter en parallèle un défi 'dplus'.
-    // Le défi en tête de liste (priority_order le plus petit) consomme en
-    // priorité les runs qu'il utilise réellement.
-    myParts.sort(function(a,b){
-      var pa=(a.priority_order!=null)?a.priority_order:Infinity;
-      var pb=(b.priority_order!=null)?b.priority_order:Infinity;
-      if(pa!==pb) return pa-pb;
-      var da=a.accepted_at?new Date(a.accepted_at).getTime():0;
-      var db=b.accepted_at?new Date(b.accepted_at).getTime():0;
-      return da-db;
+    var {data:{session:_sess}}=await supabaseClient.auth.getSession();
+    var _userJwt=_sess?_sess.access_token:supabaseKey;
+    var _resp=await window.fetch(supabaseUrl+'/functions/v1/sync-collab-progress',{
+      method:'POST',
+      headers:{'apikey':supabaseKey,'Authorization':'Bearer '+_userJwt,'Content-Type':'application/json'},
+      body:JSON.stringify({})
     });
-    // Auto-réparation : garantit un rang 1..N contigu (comble les trous laissés
-    // par un défi terminé/expiré, initialise priority_order pour les anciennes
-    // lignes qui n'en avaient pas encore). Permet à l'UI de faire un simple
-    // échange de rang entre 2 lignes sans jamais se soucier des trous.
-    for(var ri=0; ri<myParts.length; ri++){
-      var wantRank=ri+1;
-      if(myParts[ri].priority_order!==wantRank){
-        await supabaseClient.from('collab_challenge_participants')
-          .update({priority_order:wantRank}).eq('id',myParts[ri].id);
-        myParts[ri].priority_order=wantRank;
-      }
-    }
-    var _consumedByCategory={}; // { km:Set<runId>, dplus:Set<runId>, time:Set<runId> }
-    function _critCategory(t){
-      if(t==='dplus_each') return 'dplus';
-      if(t==='time_total') return 'time';
-      if(['km_each','km_total','runs_each','long_run_each','long_run_same_day','streak_each'].indexOf(t)>=0) return 'km';
-      return null; // explore_total / referrals_each : pas de run consommé
-    }
-
-    // 10/10/2026 (demande user) : attribution « collante ». Chaque défi mémorise les runs qu'il a
-    // consommés (progress.owned_runs). Un run déjà possédé par un AUTRE défi n'est jamais repris,
-    // même si on échange les priorités : seules les courses NON attribuées (nouvelles) suivent
-    // l'ordre de priorité, et l'échange ne « libère » que la dernière course (cf. swapCollabPriority).
-    var _ownerOf={}; // 'catégorie:runId' -> id de participation propriétaire
-    myParts.concat(_doneParts).forEach(function(p0){
-      var ch0=chalAllById[p0.challenge_id];
-      var mt0=ch0 && COLLAB_CHALLENGE_CATALOG.find(function(x){return x.code===ch0.challenge_code;});
-      var cat0=(mt0 && mt0.criteria)?_critCategory(mt0.criteria.type):null;
-      var ids0=p0.progress && p0.progress.owned_runs;
-      if(cat0 && ids0 && ids0.forEach) ids0.forEach(function(id){_ownerOf[cat0+':'+id]=p0.id;});
-    });
-
-    for(var i=0;i<myParts.length;i++){
-      var part=myParts[i];
-      var chal=chalById[part.challenge_id];
-      if(!chal) continue;
-      var meta=COLLAB_CHALLENGE_CATALOG.find(function(x){return x.code===chal.challenge_code;});
-      if(!meta || !meta.criteria) continue;
-      var _myOwned=[]; // runs consommés par CE défi (mémorisés dans progress.owned_runs)
-      var startedAt=chal.started_at;
-      var deadline=chal.deadline;
-      if(!startedAt) continue;
-
-      var crit=meta.criteria;
-      var newProgress={};
-      var completed=false;
-
-      // Cas qui se basent sur les runs du joueur
-      if(['km_each','km_total','runs_each','dplus_each','long_run_each','long_run_same_day','streak_each','time_total'].indexOf(crit.type)>=0){
-        var {data:runs}=await supabaseClient.from('runs')
-          .select('id,distance,time,elevation,run_date')
-          .eq('player_id',playerId)
-          .gte('run_date',startedAt)
-          .lte('run_date',deadline);
-        runs=runs||[];
-        // Anti double-validation PAR CATÉGORIE (km vs dplus) : on retire les runs
-        // déjà attribués à un défi plus ancien de la MÊME catégorie. Catégories
-        // orthogonales (km ↔ dplus) peuvent partager les mêmes runs.
-        var _category=_critCategory(crit.type);
-        if(_category && !_consumedByCategory[_category]) _consumedByCategory[_category]=new Set();
-        var _consumedSet=_category?_consumedByCategory[_category]:null;
-        if(_consumedSet){
-          runs=runs.filter(function(r){return !_consumedSet.has(r.id);});
-        }
-        if(_category){
-          // Runs déjà attribués à un autre défi de la même catégorie : on n'y touche pas.
-          runs=runs.filter(function(r){var o=_ownerOf[_category+':'+r.id]; return !o || o===part.id;});
-        }
-
-        // Marquage des runs réellement consommés (selon le type). Évite de
-        // bloquer des petits runs inutiles à un long_run_each pour un défi
-        // km_each plus récent dans la même catégorie.
-        function _markConsumed(rs){
-          if(!_consumedSet) return;
-          (rs||[]).forEach(function(r){if(r&&r.id){ _consumedSet.add(r.id); if(_myOwned.indexOf(r.id)<0) _myOwned.push(r.id); }});
-        }
-
-        if(crit.type==='km_each'){
-          var totalKm=runs.reduce(function(s,r){return s+(r.distance||0);},0);
-          newProgress.km_done=Math.round(totalKm*100)/100;
-          completed=totalKm>=crit.value;
-          _markConsumed(runs); // tous les runs contribuent au cumul
-        } else if(crit.type==='km_total'){
-          // Progression individuelle (la combinaison se fait à la résolution)
-          var totalKm=runs.reduce(function(s,r){return s+(r.distance||0);},0);
-          newProgress.km_done=Math.round(totalKm*100)/100;
-          _markConsumed(runs);
-        } else if(crit.type==='runs_each'){
-          var minD=crit.min_distance||5;
-          var validRuns=runs.filter(function(r){return (r.distance||0)>=minD;});
-          newProgress.runs_done=validRuns.length;
-          completed=validRuns.length>=crit.value;
-          _markConsumed(validRuns); // seuls les runs ≥ min_distance sont consommés
-        } else if(crit.type==='dplus_each'){
-          var totalElv=runs.reduce(function(s,r){return s+(r.elevation||0);},0);
-          newProgress.dplus_done=Math.round(totalElv);
-          completed=totalElv>=crit.value;
-          var withDplus=runs.filter(function(r){return (r.elevation||0)>0;});
-          _markConsumed(withDplus); // runs avec D+ uniquement
-        } else if(crit.type==='long_run_each'){
-          var qualifying=runs.filter(function(r){return (r.distance||0)>=crit.value;});
-          var maxKm=qualifying.reduce(function(m,r){return Math.max(m,r.distance||0);},0);
-          newProgress.long_run_done=qualifying.length>0;
-          newProgress.long_run_max_km=Math.round(maxKm*100)/100;
-          completed=qualifying.length>0;
-          _markConsumed(qualifying); // seul le run qui valide est consommé
-        } else if(crit.type==='long_run_same_day'){
-          var validRunsLrsd=runs.filter(function(r){return (r.distance||0)>=crit.value && r.run_date;});
-          var validDays=[...new Set(validRunsLrsd.map(function(r){return r.run_date.slice(0,10);}))];
-          newProgress.long_run_days=validDays;
-          newProgress.completed_individually=validDays.length>0;
-          _markConsumed(validRunsLrsd);
-        } else if(crit.type==='streak_each'){
-          var dates=[...new Set(runs.filter(function(r){return r.run_date;}).map(function(r){return r.run_date.slice(0,10);}))].sort();
-          var longest=0,current=0,prev=null;
-          dates.forEach(function(d){
-            if(prev){
-              var diff=(new Date(d)-new Date(prev))/86400000;
-              if(Math.round(diff)===1) current++;
-              else { longest=Math.max(longest,current); current=1; }
-            } else current=1;
-            prev=d;
-          });
-          var streakDays=Math.max(longest,current);
-          newProgress.streak_days=streakDays;
-          completed=streakDays>=crit.value;
-          _markConsumed(runs); // tous les runs participent à la chaîne
-        } else if(crit.type==='time_total'){
-          // CC14 : cumul de temps à deux — résolution (bothDone) gérée côté serveur.
-          var totalMin=runs.reduce(function(s,r){return s+(r.time||0);},0);
-          newProgress.time_done=Math.round(totalMin);
-          _markConsumed(runs);
-        }
-      }
-      if(_myOwned.length) newProgress.owned_runs=_myOwned;
-      // CC12 : referrals_each — filleuls qui ont fait leur 1ère course pendant la fenêtre
-      if(crit.type==='referrals_each'){
-        var {data:newRefs}=await supabaseClient.from('referral_rewards')
-          .select('filleul_id,created_at')
-          .eq('parrain_id',playerId)
-          .eq('reward_type','first_run')
-          .gte('created_at',startedAt)
-          .lte('created_at',deadline);
-        var nb=(newRefs||[]).length;
-        newProgress.referrals_done=nb;
-        completed=nb>=crit.value;
-      }
-
-      // Patch si changement détecté
-      var oldProg=part.progress||{};
-      var changed=JSON.stringify(oldProg)!==JSON.stringify(newProgress);
-      var completedChanged=part.completed_individually!==completed;
-      if(changed || completedChanged){
-        var patch={progress:newProgress};
-        if(completedChanged){
-          patch.completed_individually=completed;
-          if(completed) patch.completed_at=new Date().toISOString();
-        }
-        await supabaseClient.from('collab_challenge_participants')
-          .update(patch).eq('id',part.id);
-      }
-    }
+    if(!_resp.ok) console.warn('[collab] recompute serveur HTTP',_resp.status);
   } catch(e){
     console.warn('[collab] recompute progress error:', e);
   }
@@ -26192,7 +26005,7 @@ if(!window._collabCountdownInterval){
 // Échange le rang de priorité (priority_order) entre 2 de mes propres défis
 // collaboratifs EN COURS. Ne touche jamais aux lignes du voisin (l'ordre
 // d'attribution des courses est individuel à chaque joueur, cf. règle FIFO
-// dans _recomputeCollabProgressForPlayer). Sécurisé par .eq('player_id',...)
+// dans supabase/functions/_shared/collabChallenges.ts). Sécurisé par .eq('player_id',...)
 // pour ne jamais permettre de patcher la ligne de quelqu'un d'autre.
 async function swapCollabPriority(participantIdA,participantIdB){
   if(!currentUser || !participantIdA || !participantIdB || participantIdA===participantIdB) return;
