@@ -27827,16 +27827,15 @@ async function openCountryRanking(nat){
   if(!tbody) return;
   tbody.innerHTML='<tr><td colspan="4" style="text-align:center;padding:1rem;color:var(--muted2)">Chargement…</td></tr>';
   openModal('all-country-modal');
-  var plRes=await supabaseClient.from('players').select('id, username, grade, nat, avatar');
+  var _cacheOk=_countryCache&&(Date.now()-_countryCache.t<180000);
+  var plRes=_cacheOk?_countryCache.pl:await supabaseClient.from('players').select('id, username, grade, nat, avatar');
   if(plRes.error||!plRes.data){tbody.innerHTML='<tr><td colspan="4" style="color:#f66;font-size:.8rem;padding:.5rem">Erreur de chargement</td></tr>';return;}
-  // Points de la période en cours par joueur (paginés, plafond PostgREST).
-  var curPts={}; var _f=0,_s=1000;
-  while(true){
-    var {data:_c,error:_e}=await supabaseClient.from('runs').select('player_id, points').eq('period',0).order('id',{ascending:true}).range(_f,_f+_s-1);
-    if(_e||!_c||!_c.length) break;
-    _c.forEach(function(r){curPts[r.player_id]=(curPts[r.player_id]||0)+(r.points||0);});
-    if(_c.length<_s) break; _f+=_s;
-  }
+  if(!_cacheOk){
+  // Points de la période en cours par joueur : agrégés côté base (points_by_player)
+  // au lieu de télécharger toutes les courses par paquets de 1000.
+  var curPts={};
+  var _aggRes=await supabaseClient.rpc('points_by_player',{p_period:0});
+  (_aggRes.data||[]).forEach(function(r){ curPts[r.player_id]=r.total_points||0; });
   // Team pays = tous les RP d'un drapeau ; score = somme des points de la période.
   var byNat={}, totNat={};
   plRes.data.forEach(function(p){
@@ -27849,12 +27848,14 @@ async function openCountryRanking(nat){
   Object.keys(byNat).forEach(function(k){ byNat[k].sort(function(a,b){return b.val-a.val;}); });
   _countryRankData=byNat; _countryTotals=totNat;
   _countryOrder=Object.keys(byNat).sort(function(a,b){return (totNat[b]-totNat[a])||(byNat[b].length-byNat[a].length);});
+  _countryCache={t:Date.now(),pl:plRes};
+  }
   var _me=currentUser?plRes.data.filter(function(p){return p.id===currentUser.id;})[0]:null; _countryMine=_me?natFlag(_me.nat||''):'';
   var def=natFlag(nat||'')||_countryMine;
-  if(!byNat[def]) def=_countryOrder[0]||'';
+  if(!_countryRankData[def]) def=_countryOrder[0]||'';
   renderCountryRanking(def);
 }
-var _countryTotals={}, _countryOrder=[], _countryMine='';
+var _countryTotals={}, _countryOrder=[], _countryMine='', _countryCache=null; // cache 3 min (classement nations)
 function renderCountryRanking(nat){
   var tbody=document.getElementById('country-tbody');
   var sub=document.getElementById('country-subtitle');
