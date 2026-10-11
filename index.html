@@ -21937,23 +21937,37 @@ async function loadIntervalsToken(){
 // Nettoyage DB Intervals.icu, SANS confirmation ni toast dédié — factorisé pour
 // être appelé aussi bien par disconnectIntervals() (bouton explicite) que par
 // la bascule auto d'exclusivité mutuelle (cf _revokeAndClearStrava/_clearCoros).
+// 11/10/2026 : l'ancienne version envoyait les 3 colonnes en UN seul PATCH sans lire la
+// réponse. Or intervals_access_token n'a pas de droit UPDATE pour le rôle authenticated :
+// Postgres refusait TOUTE la requête (42501) et rien n'était effacé, en silence → un RP
+// restait connecté à Intervals ET Strava (cas Natchaan : la même course revenait sans cesse).
+// Maintenant : 1) on efface d'abord athlete_id + api_key (colonnes inscriptibles, suffisent
+// pour l'ancienne méthode), 2) on tente le jeton OAuth à part (non bloquant), 3) on ne
+// déclare le RP déconnecté que si l'effacement a vraiment marché. Retourne true/false.
 async function _clearIntervals(){
+  var ok=true;
   if(currentUser){
-    await window.fetch(supabaseUrl+'/rest/v1/players?id=eq.'+encodeURIComponent(currentUser.id),{
-      method:'PATCH',
-      headers:{'apikey':supabaseKey,'Authorization':'Bearer '+(window.__sessionToken||supabaseKey),'Content-Type':'application/json'},
-      body:JSON.stringify({intervals_athlete_id:null,intervals_api_key:null,intervals_access_token:null})
-    });
+    var _hdr={'apikey':supabaseKey,'Authorization':'Bearer '+(window.__sessionToken||supabaseKey),'Content-Type':'application/json'};
+    var _url=supabaseUrl+'/rest/v1/players?id=eq.'+encodeURIComponent(currentUser.id);
+    try{
+      var r1=await window.fetch(_url,{method:'PATCH',headers:_hdr,body:JSON.stringify({intervals_athlete_id:null,intervals_api_key:null})});
+      if(!r1.ok){ok=false;console.warn('[intervals] effacement athlete/api_key refusé',r1.status);}
+      var r2=await window.fetch(_url,{method:'PATCH',headers:_hdr,body:JSON.stringify({intervals_access_token:null})});
+      if(!r2.ok) console.warn('[intervals] effacement jeton OAuth refusé',r2.status); // non bloquant : aucun jeton OAuth n'a pu être enregistré tant que le droit UPDATE manque
+    }catch(e){ok=false;console.warn('[intervals] effacement échoué',e);}
   }
-  window.__intervalsConnected=false;
-  updateIntervalsUI(false);
+  if(ok){
+    window.__intervalsConnected=false;
+    updateIntervalsUI(false);
+  }
+  return ok;
 }
 
 async function disconnectIntervals(){
   if(!currentUser) return;
   if(!await askConfirm('Tu pourras te reconnecter quand tu veux.',{title:'Déconnecter Intervals.icu',emoji:'🔌',okLabel:'Déconnecter',destructive:true})) return;
-  await _clearIntervals();
-  showToast('✓ Intervals.icu déconnecté');
+  var _okClr=await _clearIntervals();
+  showToast(_okClr?'✓ Intervals.icu déconnecté':'⚠️ Déconnexion Intervals.icu non enregistrée, réessaie');
 }
 
 // Sync manuel Intervals.icu — pas de webhook exploitable non plus (cf en-tête
