@@ -23151,31 +23151,19 @@ async function renderTeams(){
       .select('team_id, player_id, role, joined_at, players(id, username, grade, nat, avatar)');
     if(errM2) throw errM2;
 
-    // 3. Charger les runs de la PÉRIODE COURANTE (period=0) pour calculer
-    //    les pts par joueur. Sans ce filtre, on cumulait les pts lifetime →
-    //    après rotation les scores teams ne se reset pas.
-    // Ici on a besoin de la DATE de chaque course (membres arrivés en cours de
-    // période), donc pas d'agrégat côté base — on lit toutes les courses par
-    // paquets de 1000 pour ne jamais en couper (plafond 1000 lignes PostgREST).
-    var allRuns=[]; var _rFrom=0; var _rStep=1000;
-    while(true){
-      var {data:_rChunk,error:errR}=await supabaseClient
-        .from('runs')
-        .select('player_id, points, run_date')
-        .eq('period', 0)
-        .order('id',{ascending:true})
-        .range(_rFrom,_rFrom+_rStep-1);
-      if(errR) throw errR;
-      if(!_rChunk||!_rChunk.length) break;
-      allRuns=allRuns.concat(_rChunk);
-      if(_rChunk.length<_rStep) break;
-      _rFrom+=_rStep;
-    }
-
+    // 3. Points de la PÉRIODE COURANTE (period=0) par joueur, agrégés EN BASE
+    //    (points_by_player) + points faits AVANT l'arrivée dans la team
+    //    (team_pts_before_join, exception « 0 pt à l'arrivée »). Plus aucun
+    //    téléchargement de toutes les courses côté appareil.
+    var [_aggRes,_pbjRes]=await Promise.all([
+      supabaseClient.rpc('points_by_player',{p_period:0}),
+      supabaseClient.rpc('team_pts_before_join',{p_period:0})
+    ]);
+    if(_aggRes.error) throw _aggRes.error;
     var ptsByPlayer={};
-    (allRuns||[]).forEach(function(r){
-      ptsByPlayer[r.player_id]=(ptsByPlayer[r.player_id]||0)+(r.points||0);
-    });
+    (_aggRes.data||[]).forEach(function(r){ ptsByPlayer[r.player_id]=r.total_points||0; });
+    var ptsBeforeJoinByPlayer={};
+    (_pbjRes.data||[]).forEach(function(r){ ptsBeforeJoinByPlayer[r.player_id]=r.pts_before||0; });
 
     // 4. Regrouper les membres par team et calculer le score réel
     // Un membre ne compte pour le score que s'il a rejoint AVANT la fin de la
@@ -23190,8 +23178,7 @@ async function renderTeams(){
       // date de join (cf computeTeamMemberPtsForTeam, source unique du calcul).
       var ptsBeforeJoin=null;
       if(!joinedBefore && m.role!=='capitaine' && m.joined_at){
-        ptsBeforeJoin=(allRuns||[]).filter(function(r){return r.player_id===m.player_id&&r.run_date&&new Date(r.run_date)<new Date(m.joined_at);})
-          .reduce(function(s,r){return s+(r.points||0);},0);
+        ptsBeforeJoin=ptsBeforeJoinByPlayer[m.player_id]||0;
       }
       var ptsForTeam=computeTeamMemberPtsForTeam(pts, m.role, joinedBefore, ptsBeforeJoin);
       membersByTeam[m.team_id].push({player_id:m.player_id, role:m.role, pts:pts, ptsForTeam:ptsForTeam, joinedBefore:joinedBefore, players:m.players});
@@ -27579,23 +27566,13 @@ async function loadTeamMembers(teamId, teamName){
   // (cohérent avec renderTeams). run_date pour calculer ptsBeforeJoin (cas RP zéro pts).
   var [membRes, runsRes, medalRes]=await Promise.all([
     supabaseClient.from('team_members').select('player_id, role, joined_at, players(username, grade, nat, avatar)').eq('team_id',teamId),
-    (async function(){
-      // run_date nécessaire (cas RP arrivé en cours de période) → pas d'agrégat
-      // côté base : on lit toutes les courses par paquets de 1000 pour ne jamais
-      // en couper (plafond 1000 lignes PostgREST).
-      var acc=[]; var _f=0; var _s=1000;
-      while(true){
-        var {data:_c,error:_e}=await supabaseClient.from('runs')
-          .select('player_id, points, run_date').eq('period',0)
-          .order('id',{ascending:true}).range(_f,_f+_s-1);
-        if(_e) return {data:[],error:_e};
-        if(!_c||!_c.length) break;
-        acc=acc.concat(_c);
-        if(_c.length<_s) break;
-        _f+=_s;
-      }
-      return {data:acc};
-    })(),
+    // Points de la période agrégés EN BASE (1 ligne par joueur) + points faits avant
+    // l'arrivée dans la team (exception « 0 pt à l'arrivée ») : plus aucun
+    // téléchargement de toutes les courses de la période.
+    Promise.all([
+      supabaseClient.rpc('points_by_player',{p_period:0}),
+      supabaseClient.rpc('team_pts_before_join',{p_period:0})
+    ]).then(function(r){ return {data:r[0].data||[], pbj:r[1].data||[], error:r[0].error}; }),
     supabaseClient.from('palmares').select('rank').eq('team_id',teamId)
   ]);
   // Compter les médailles
@@ -27619,7 +27596,8 @@ async function loadTeamMembers(teamId, teamName){
   if(membRes.error||!membRes.data){tbody.innerHTML='<tr><td colspan="4" style="color:#f66;font-size:.8rem;padding:.5rem">Erreur</td></tr>';return;}
   // Agréger points par joueur (total période courante)
   var ptsByP={};
-  (runsRes.data||[]).forEach(function(r){ptsByP[r.player_id]=(ptsByP[r.player_id]||0)+(r.points||0);});
+  (runsRes.data||[]).forEach(function(r){ptsByP[r.player_id]=r.total_points||0;});
+  var _pbjByP={}; (runsRes.pbj||[]).forEach(function(r){_pbjByP[r.player_id]=r.pts_before||0;});
   var data=membRes.data;
   // Calcul ptsForTeam (cohérent avec renderTeams / teamJoinGraceCutoff) : un RP
   // qui rejoint APRÈS la fenêtre de grâce de 10 jours ne compte pas pour le
@@ -27631,9 +27609,7 @@ async function loadTeamMembers(teamId, teamName){
     var joinedBefore=(!_joinGraceCutoff||!m.joined_at||new Date(m.joined_at)<_joinGraceCutoff);
     var ptsBeforeJoin=null;
     if(!joinedBefore && m.role!=='capitaine' && m.joined_at){
-      ptsBeforeJoin=(runsRes.data||[]).filter(function(r){
-        return r.player_id===m.player_id && r.run_date && new Date(r.run_date)<new Date(m.joined_at);
-      }).reduce(function(s,r){return s+(r.points||0);},0);
+      ptsBeforeJoin=_pbjByP[m.player_id]||0;
     }
     m._ptsForTeam=computeTeamMemberPtsForTeam(pts, m.role, joinedBefore, ptsBeforeJoin);
     // Gardé pour l'affichage (2026-08-08, demande explicite user, signalement d'un
@@ -27734,19 +27710,11 @@ async function openStatRanking(metric){
   if(cfg.custom){
     curByP=await cfg.custom();
   } else {
-    // Courses de la période courante, lues par paquets de 1000 (plafond PostgREST)
-    // pour ne jamais en couper, puis agrégées par joueur côté client.
-    var _f=0; var _s=1000;
-    while(true){
-      var {data:_c,error:_e}=await supabaseClient.from('runs')
-        .select('player_id, points, distance, elevation, time').eq('period',0)
-        .order('id',{ascending:true}).range(_f,_f+_s-1);
-      if(_e) break;
-      if(!_c||!_c.length) break;
-      _c.forEach(function(r){ curByP[r.player_id]=(curByP[r.player_id]||0)+(cfg.runCol==='__count'?1:(r[cfg.runCol]||0)); });
-      if(_c.length<_s) break;
-      _f+=_s;
-    }
+    // Agrégé EN BASE (points_by_player) : 1 ligne par joueur, au lieu de télécharger
+    // toutes les courses de la période par paquets de 1000.
+    var _aggCol={points:'total_points',distance:'total_distance',elevation:'total_elevation',time:'total_time',__count:'runs_count'}[cfg.runCol];
+    var {data:_agg}=await supabaseClient.rpc('points_by_player',{p_period:0});
+    (_agg||[]).forEach(function(r){ curByP[r.player_id]=Number(r[_aggCol])||0; });
   }
   // Total = périodes terminées (colonne cumulée) + mois en cours.
   // Pour le ranking mensuel (currentOnly) et les metrics custom : valeur brute, sans cumul.
