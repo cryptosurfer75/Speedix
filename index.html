@@ -22976,12 +22976,25 @@ async function loadOpenTeamsForJoin(){
   }).join('');
 }
 
+// Un joueur déjà passé par cette team (historique team_member_history) ne peut
+// y revenir que par une demande : le capitaine paie alors 10 NYX (cf handleJoinRequest).
+var TEAM_REJOIN_FEE_NYX=10;
+async function wasInTeamBefore(teamId, playerId){
+  var {data}=await supabaseClient.from('team_member_history').select('team_id')
+    .eq('team_id',teamId).eq('player_id',playerId).maybeSingle();
+  return !!data;
+}
+
 async function doJoinTeam(teamId, teamName){
   if(!currentUser){showToast('⚠️ Connecte-toi d\'abord');return;}
   // Vérifier que le joueur n'a pas déjà une team
   var {data:existing}=await supabaseClient
     .from('team_members').select('id').eq('player_id',currentUser.id).maybeSingle();
   if(existing){showToast('⚠️ Tu es déjà dans une team');closeModal('join-team-modal');return;}
+  if(await wasInTeamBefore(teamId,currentUser.id)){
+    closeModal('join-team-modal');
+    return requestJoinTeam(teamId,encodeURIComponent(teamName));
+  }
   var {error}=await supabaseClient.from('team_members').insert({
     player_id:currentUser.id, team_id:teamId, role:'membre'
   });
@@ -23019,6 +23032,12 @@ async function doJoinPrivateTeam(){
     .from('team_members').select('id',{count:'exact',head:true}).eq('team_id',team.id);
   var cap=getTeamCapacity(team);
   if(nb>=cap){ msg.style.color='#f66'; msg.textContent='Cette team est complète ('+nb+'/'+cap+').'; return; }
+
+  if(await wasInTeamBefore(team.id,currentUser.id)){
+    input.value=''; msg.textContent='';
+    closeModal('join-team-modal');
+    return requestJoinTeam(team.id,encodeURIComponent(team.name));
+  }
 
   var {error:errJ}=await supabaseClient.from('team_members').insert({
     player_id:currentUser.id, team_id:team.id, role:'membre'
@@ -23724,6 +23743,15 @@ async function handleJoinRequest(requestId,playerId,teamId,accept){
     var cap=teamData?getTeamCapacity(teamData):TEAM_BASE_SLOTS;
     var {count:nb}=await supabaseClient.from('team_members').select('id',{count:'exact',head:true}).eq('team_id',teamId);
     if(nb>=cap){showToast('⚠️ Team complète ('+nb+'/'+cap+') — clique 🪪 Licences pour agrandir');loadJoinRequests(teamId);return;}
+    // Ancien membre de cette team : le capitaine paie 10 NYX pour le réintégrer
+    if(await wasInTeamBefore(teamId,playerId)){
+      var {data:_rp}=await supabaseClient.from('players').select('username').eq('id',playerId).maybeSingle();
+      var _rn=(_rp&&_rp.username)||'ce joueur';
+      var _pay=await askConfirm('Tu souhaites réintégrer <strong>'+_rn+'</strong> dans ta team, pour cela il t\'en coûte <strong>'+TEAM_REJOIN_FEE_NYX+' NYX</strong>.',
+        {title:'Réintégrer un ancien membre',emoji:'💎',okLabel:'PAYER',cancelLabel:'REFUSER',success:true});
+      if(!_pay){ return handleJoinRequest(requestId,playerId,teamId,false); }
+      if(!await walletDebitNyx(TEAM_REJOIN_FEE_NYX,'Réintégration de '+_rn+' en team')){ loadJoinRequests(teamId); return; }
+    }
     await window.fetch(supabaseUrl+'/rest/v1/team_members',{
       method:'POST',
       headers:{'apikey':supabaseKey,'Authorization':'Bearer '+(window.__sessionToken||supabaseKey),'Content-Type':'application/json','Prefer':'return=minimal'},
@@ -23757,7 +23785,7 @@ async function leaveTeam(teamId, teamNameEnc){
 
   // Vérifier le nombre de membres
   var {data:membersCount,error:errC}=await supabaseClient
-    .from('team_members').select('id,role',{count:'exact',head:false}).eq('team_id',teamId);
+    .from('team_members').select('id,role,joined_at',{count:'exact',head:false}).eq('team_id',teamId);
   if(errC){showToast('⚠️ Erreur : '+errC.message);return;}
 
   var nbMembers=membersCount?membersCount.length:0;
@@ -23766,7 +23794,9 @@ async function leaveTeam(teamId, teamNameEnc){
     // Capitaine avec d'autres membres → transférer le rôle au plus ancien
     if(!await askConfirm('Tu es capitaine de <strong>'+teamName+'</strong>.\n\nEn quittant, le rôle sera transféré à un autre membre.',{title:'Quitter la team ?',emoji:'🚪',okLabel:'Quitter',destructive:true})) return;
     // Trouver un autre membre
-    var otherMember=membersCount.find(function(m){return m.role!=='capitaine';});
+    // Le capitanat passe au membre arrivé le plus tôt (ordre chronologique de joined_at)
+    var otherMember=membersCount.filter(function(m){return m.role!=='capitaine';})
+      .sort(function(x,y){return new Date(x.joined_at||0)-new Date(y.joined_at||0);})[0];
     if(otherMember){
       // Update via XHR direct (contourne les restrictions RLS sur le client Supabase)
       var _transferResp=await window.fetch(
