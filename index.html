@@ -27825,9 +27825,12 @@ function renderCountryRanking(nat){
     return '<div onclick="renderCountryRanking(\''+k+'\')" style="display:flex;align-items:center;gap:.5rem;padding:.4rem .5rem;margin-bottom:.25rem;border-radius:8px;cursor:pointer;background:#0c0f1a;border:1.5px solid '+(sel?'var(--gold)':'rgba(144,96,240,.35)')+'">'
       +'<span style="width:26px;text-align:center;flex-shrink:0;font-family:Space Mono,monospace;font-size:.8rem;font-weight:700;color:'+(i<3?'var(--gold)':'var(--muted2)')+'">'+(i<3?'<img src="ai-icons/'+['medal-1-gold','medal-2-silver','medal-3-bronze'][i]+'.webp" style="width:26px;height:26px;object-fit:contain;display:block">':(i+1))+'</span>'
       +'<span style="font-size:1.3rem">'+k+'</span>'
-      +'<span style="flex:1;min-width:0;font-family:Bebas Neue,sans-serif;font-size:1.25rem;letter-spacing:1px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Team '+nm+'</span>'
-      +'<span style="font-family:Space Mono,monospace;font-size:.82rem;font-weight:700;color:var(--gold)">'+(_countryTotals[k]||0).toLocaleString(SPEEDIX_LANG)+' pts</span></div>';
+      +'<span style="flex:1 1 auto;min-width:0;font-family:Bebas Neue,sans-serif;font-size:1.25rem;letter-spacing:1px;color:var(--text);white-space:nowrap;overflow:hidden" class="cty-name">Team '+nm+'</span>'
+      +'<span style="flex-shrink:0;white-space:nowrap;font-family:Space Mono,monospace;font-size:.76rem;font-weight:700;color:var(--gold)">'+(_countryTotals[k]||0).toLocaleString(SPEEDIX_LANG)+' pts</span></div>';
   }).join('');
+  // Nom du pays JAMAIS coupé ni sur 2 lignes : on réduit la police jusqu'à ce qu'il tienne.
+  function _fitCtyNames(){ if(!box) return; box.querySelectorAll('.cty-name').forEach(function(el){ var fs=20; el.style.fontSize=fs+'px'; while(el.scrollWidth>el.clientWidth+1 && fs>9){ fs-=0.5; el.style.fontSize=fs+'px'; } }); }
+  _fitCtyNames(); setTimeout(_fitCtyNames,60);
   var arr=_countryRankData[nat]||[];
   if(sub) sub.textContent=(names[nat]||nat)+' · tous les RP classés par points';
   // Scroll infini : 40 lignes d'abord, +40 à l'approche du bas ; si je suis dans ce pays,
