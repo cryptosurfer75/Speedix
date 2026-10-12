@@ -24137,6 +24137,7 @@ var _CITY_CREST_OVERRIDES=[
   {match:/AMSTERDAM/i, image:'ai-icons/challenge-crests/amsterdam-v1.webp', medal:true, ribbonColors:['#c15aff','#3d0a52'], ribbonFlat:true, medalImgH:84},
   {match:/WITTELSHEIM|SAINTE.BARBE/i, image:'ai-icons/challenge-crests/wittelsheim-v1.webp', medal:true, ribbonColors:['#ffb02e','#a83200'], ribbonFlat:true, medalImgH:84},
   {match:/PHILADELPHI[AE]/i, image:'ai-icons/challenge-crests/philadelphie-v5.webp', medal:true, ribbonColors:['#a8e0ff','#2a86d1'], ribbonPts:'29,0 71,0 71.0,21.9 69.5,21.3 68.0,20.9 66.5,20.3 65.0,19.7 63.5,19.2 62.0,18.7 60.5,18.2 59.0,18.2 57.5,18.7 56.0,19.2 54.5,19.9 53.0,20.3 51.5,20.9 50.0,21.0 48.5,20.3 47.0,19.7 45.5,19.2 44.0,18.5 42.5,18.0 41.0,18.2 39.5,18.7 38.0,19.3 36.5,19.9 35.0,20.1 33.5,20.7 32.0,21.2 30.5,21.7 29.0,22.2', medalImgH:92},
+  {match:/MONTPELLIER/i, image:'ai-icons/challenge-crests/montpellier-v2.webp', medal:true, ribbonColors:['#34d86a','#0a6b2b'], ribbonFlat:true, ribbonHalf:19, medalImgH:94, yearDy:7},
   {match:/ARRAS/i, image:'ai-icons/challenge-crests/arras-v1.webp', medal:true, ribbonColors:['#fbb92f','#002c7c'], ribbonFlat:true, medalImgH:92},
   {match:/PROSPECTEUR/i, image:'ai-icons/defi-icons/prospecteur-v1.webp', hexBadge:true},
   {match:/TOUR COMPLET/i, image:'ai-icons/defi-icons/tourcomplet-v1.webp', hexBadge:true},
@@ -24192,7 +24193,7 @@ var _CITY_CREST_OVERRIDES=[
 function _decorateBadgeWithCityCrest(b){
   if(!b || b.image) return b; // déjà décoré (ou pas de match nécessaire)
   var ov=_CITY_CREST_OVERRIDES.find(function(o){return o.match.test(b.name||'');});
-  if(ov){ b.image=ov.image; b.image_x=15; b.image_y=18; b.image_w=70; b.image_h=74; b.medal=!!ov.medal; b.ribbonColors=ov.ribbonColors; b.ribbonRise=ov.ribbonRise||0; b.ribbonLen=ov.ribbonLen; b.ribbonFlat=!!ov.ribbonFlat; b.medalImgY=ov.medalImgY; b.medalImgW=ov.medalImgW; b.medalImgH=ov.medalImgH; b.hexBadge=!!ov.hexBadge; b.glowAlpha=ov.glowAlpha; b.medalBackdrop=!!ov.medalBackdrop; b.ribbonPts=ov.ribbonPts; }
+  if(ov){ b.image=ov.image; b.image_x=15; b.image_y=18; b.image_w=70; b.image_h=74; b.medal=!!ov.medal; b.ribbonColors=ov.ribbonColors; b.ribbonRise=ov.ribbonRise||0; b.ribbonLen=ov.ribbonLen; b.ribbonFlat=!!ov.ribbonFlat; b.medalImgY=ov.medalImgY; b.medalImgW=ov.medalImgW; b.medalImgH=ov.medalImgH; b.hexBadge=!!ov.hexBadge; b.glowAlpha=ov.glowAlpha; b.medalBackdrop=!!ov.medalBackdrop; b.ribbonPts=ov.ribbonPts; b.ribbonHalf=ov.ribbonHalf; b.yearDy=ov.yearDy; }
   return b;
 }
 
@@ -24442,9 +24443,11 @@ function _renderBadgeHex(b,isUnlocked){
     var rectFill=isUnlocked?color:'#2a303c';
     var rectStroke=isUnlocked?_mixHex(color,0.25):'#4a5062';
     var rectTextCol=isUnlocked?'#000':'#9098a8';
+    // b.yearDy (2026-10-12) : descend le rectangle année pour qu'il ne mange pas le bas du blason.
+    var ydy=b.yearDy||0;
     yearRect=''
-      +'  <rect x="35" y="100" width="30" height="12" rx="2" fill="'+rectFill+'" stroke="'+rectStroke+'" stroke-width="0.6"/>'
-      +'  <text x="50" y="109" text-anchor="middle" font-family="Bebas Neue,sans-serif" font-size="8.5" font-weight="900" letter-spacing="1.5" fill="'+rectTextCol+'">'+year+'</text>';
+      +'  <rect x="35" y="'+(100+ydy)+'" width="30" height="12" rx="2" fill="'+rectFill+'" stroke="'+rectStroke+'" stroke-width="0.6"/>'
+      +'  <text x="50" y="'+(109+ydy)+'" text-anchor="middle" font-family="Bebas Neue,sans-serif" font-size="8.5" font-weight="900" letter-spacing="1.5" fill="'+rectTextCol+'">'+year+'</text>';
   }
   // Badge illustré (blason détouré) au lieu du fond couleur + emoji — b.image
   // + b.image_x/y/w/h calés à la main par artwork (chaque blason a son propre
@@ -24504,9 +24507,12 @@ function _renderBadgeHex(b,isUnlocked){
       // b.ribbonPts (2026-09-29) : polygone du ruban calé sur le contour du haut du blason
       // (bas du ruban en "M" qui épouse les 2 pointes, caché derrière le blason) --
       // pour les blasons dont l'encoche est trop étroite pour ribbonFlat/ribbonLen.
+      // b.ribbonHalf (2026-10-12) : demi-largeur du ruban, défaut 21 (= x 29→71,
+      // comportement historique). Plus petit = ruban plus étroit, rayures recalées.
+      var rhw=b.ribbonHalf!=null?b.ribbonHalf:21, rx0=50-rhw, rx1=50+rhw;
       var ribPts=b.ribbonPts ? b.ribbonPts : b.ribbonFlat
-        ? (29)+','+(0-rr)+' '+71+','+(0-rr)+' '+71+','+(rl-rr)+' '+29+','+(rl-rr)
-        : (29)+','+(0-rr)+' '+71+','+(0-rr)+' '+71+','+(29-rr)+' '+50+','+(21-rr)+' '+29+','+(29-rr);
+        ? (rx0)+','+(0-rr)+' '+rx1+','+(0-rr)+' '+rx1+','+(rl-rr)+' '+rx0+','+(rl-rr)
+        : (rx0)+','+(0-rr)+' '+rx1+','+(0-rr)+' '+rx1+','+(29-rr)+' '+50+','+(21-rr)+' '+rx0+','+(29-rr);
       // Taille/position du blason réglables par médaille (2026-08-07) —
       // b.medalImgY/W/H, défaut 14/96/94 = comportement identique aux
       // médailles existantes (Cali, Touquet…), jamais touché. Largeur
@@ -24534,10 +24540,10 @@ function _renderBadgeHex(b,isUnlocked){
         +'  <g opacity="'+ribbonOp+'" filter="url(#'+ribUid+'shadow)">'
         +'    <polygon points="'+ribPts+'" fill="url(#'+ribUid+')"/>'
         +'    <g clip-path="url(#'+ribUid+'clip)">'
-        +'      <rect x="30.4" y="-2" width="2.6" height="36" fill="'+rc[1]+'"/>'
-        +'      <rect x="33" y="-2" width="2.6" height="36" fill="#ffffff" opacity="0.92"/>'
-        +'      <rect x="64.4" y="-2" width="2.6" height="36" fill="#ffffff" opacity="0.92"/>'
-        +'      <rect x="67" y="-2" width="2.6" height="36" fill="'+rc[1]+'"/>'
+        +'      <rect x="'+(rx0+1.4)+'" y="-2" width="2.6" height="36" fill="'+rc[1]+'"/>'
+        +'      <rect x="'+(rx0+4)+'" y="-2" width="2.6" height="36" fill="#ffffff" opacity="0.92"/>'
+        +'      <rect x="'+(rx1-6.6)+'" y="-2" width="2.6" height="36" fill="#ffffff" opacity="0.92"/>'
+        +'      <rect x="'+(rx1-4)+'" y="-2" width="2.6" height="36" fill="'+rc[1]+'"/>'
         +'    </g>'
         +'  </g>'
         // Fond noir sous le ruban (2026-08-15, b.medalBackdrop) : posé juste
@@ -25412,7 +25418,7 @@ async function renderChallenges(){
                               ?'<div style="font-size:.55rem;color:var(--muted);font-style:italic">'+progressTxt+'</div>'+questFooter
                               :'<div style="font-size:.55rem;color:var(--muted);font-family:Space Mono,monospace;margin-bottom:.3rem">'+progressTxt+'</div>'
                                 +'<div style="height:3px;border-radius:2px;background:rgba(255,255,255,.06);overflow:hidden"><div style="height:100%;width:'+pct+'%;background:linear-gradient(90deg,'+_mixHex(color,0.3)+','+color+');border-radius:2px;transition:width .4s"></div></div>'+questFooter))))))
-      +(rewardTxt.length?'<div style="font-size:.52rem;color:var(--muted2);margin-top:.3rem;letter-spacing:.3px">'+rewardTxt.join(' · ')+'</div>':'')
+      +(rewardTxt.length?'<div style="font-size:.52rem;color:var(--muted2);margin-top:.3rem;letter-spacing:.3px">'+rewardTxt.join(' · ')+'</div>':'<div aria-hidden="true" style="font-size:.52rem;margin-top:.3rem;visibility:hidden">&nbsp;</div>') // sans récompense (ex. Tour complet) : ligne vide invisible pour garder la même hauteur de carte
     +_cardClose
     // Vrais siblings du div biseauté (2026-08-05, cf commentaire sur
     // _cardOpen/_cardClose plus haut) : plus jamais rognés par le chanfrein,
