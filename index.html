@@ -4173,6 +4173,37 @@ select option{background:#040c1c}
   </div>
 </div>
 
+<div id="page-teamchat" class="page">
+
+  <div style="margin-bottom:1.25rem">
+    <div style="display:flex;align-items:center">
+      <div style="width:40px;flex-shrink:0"></div>
+      <div style="flex:1;min-width:0;display:flex;align-items:center;justify-content:center;gap:.35rem">
+        <img src="league-title-chevron-left.webp" alt="" style="height:30px;width:auto;max-width:25vw;object-fit:contain;flex-shrink:0;min-width:0;pointer-events:none;user-select:none">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:clamp(1.2rem,5.8vw,2rem);letter-spacing:2px;line-height:1;white-space:nowrap;flex-shrink:0">
+          💬 Chat <span style="color:var(--gold)">Team</span>
+        </div>
+        <img src="league-title-chevron-right.webp" alt="" style="height:30px;width:auto;max-width:25vw;object-fit:contain;flex-shrink:0;min-width:0;pointer-events:none;user-select:none">
+      </div>
+      <button onclick="nav('teams')" title="Fermer" style="position:relative;width:40px;height:40px;border:none;background:transparent;padding:0;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;transform:translate(8px,-34px)"><span style="position:absolute;inset:5px;background:url('icon-close-x.webp') center/contain no-repeat"></span></button>
+    </div>
+    <div style="height:1px;width:100%;margin:.15rem auto 0;background:linear-gradient(90deg,transparent,#fff 15%,var(--gold) 50%,#fff 85%,transparent)"></div>
+  </div>
+
+  <div class="block" style="padding:0;overflow:hidden;border:1.5px solid rgba(74,144,255,.6)">
+    <div id="team-chat-locked" data-i18n-html="teams.chat.locked" style="display:none;text-align:center;padding:1.25rem;color:var(--muted2);font-size:.85rem;line-height:1.6;cursor:pointer" onclick="showPremiumGate(t('teams.chat.lockedToast'))">
+      🔒 <span style="text-decoration:underline">Chat réservé aux membres Premium</span>
+    </div>
+    <div id="team-chat-content">
+      <div id="team-chat-messages" style="height:60vh;min-height:320px;overflow-y:auto;display:flex;flex-direction:column;gap:.4rem;padding:1rem;scrollbar-width:thin;scrollbar-color:rgba(74,144,255,.25) transparent"></div>
+      <div style="display:flex;gap:.5rem;padding:.75rem 1rem;border-top:1px solid rgba(74,144,255,.25)">
+        <input id="team-chat-input" type="text" placeholder="Message…" data-i18n-placeholder="teams.chat.placeholder" maxlength="300" style="flex:1;min-width:0;padding:.7rem .8rem;border-radius:8px;border:1px solid rgba(74,144,255,.25);background:rgba(4,12,28,.5);color:var(--text);font-size:.95rem;outline:none" onkeydown="if(event.key==='Enter')sendTeamMessage()">
+        <button onclick="sendTeamMessage()" style="flex-shrink:0;padding:.55rem 1.1rem;border-radius:8px;border:1.5px solid rgba(45,219,128,.6);background:linear-gradient(135deg,rgba(45,219,128,.28),rgba(45,219,128,.08));color:var(--green);font-size:.85rem;font-weight:700;cursor:pointer">→</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- ==========================================
      PAGE : LANDS
 =========================================== -->
@@ -4484,6 +4515,7 @@ select option{background:#040c1c}
     <!-- Chat -- scroll vers le panneau de chat d'équipe déjà existant
          (#myteam-chat-panel), via l'utilitaire _scrollToTeamPanel déjà en
          place (2026-09-25). -->
+    <div style="position:relative">
     <div style="background:rgba(255,255,255,.4);clip-path:polygon(10px 0,calc(100% - 10px) 0,100% 10px,100% calc(100% - 10px),calc(100% - 10px) 100%,10px 100%,0 calc(100% - 10px),0 10px);padding:1.5px;transition:all .18s"
       onmouseover="this.style.background='#2ddb80';this.style.boxShadow='0 0 10px rgba(45,219,128,.6)'"
       onmouseout="this.style.background='rgba(255,255,255,.4)';this.style.boxShadow='none'">
@@ -4499,6 +4531,9 @@ select option{background:#040c1c}
       onclick="openTeamChatShortcut()">
         <span style="font-size:1.2rem;line-height:1">💬</span><span style="line-height:1;white-space:nowrap;font-size:clamp(.68rem,3.3vw,1.05rem)">Chat</span>
       </button>
+    </div>
+      <!-- Pastille verte "nouveau message team" (sœur du tile clippé, même pattern que team-challenge-tile-badge) -->
+      <div id="team-chat-tile-badge" style="display:none;position:absolute;top:-4px;right:-4px;width:14px;height:14px;border-radius:50%;background:#2ddb80;box-shadow:0 0 8px rgba(45,219,128,.7);border:2px solid #0a1432;animation:onlinePulse 1.6s infinite;pointer-events:none"></div>
     </div>
     <!-- Défi collectif Team (2026-09-25, prototype LOCAL, pas encore déployé) --
          voir openTeamWeekendChallenge(). Wrapper position:relative EXTÉRIEUR
@@ -4573,31 +4608,6 @@ select option{background:#040c1c}
         </div>
       </div>
 
-      <!-- Chat Team — cadre séparé de #myteam-panel (2026-08-04, demande explicite) :
-           #myteam-panel est RÉUTILISÉ pour afficher la composition d'une AUTRE team
-           en mode consultation (cf renderTeams, _isViewedTeamMode — on regarde la PC
-           d'un RP d'une autre team). Le chat, lui, N'EST JAMAIS rechargé dans ce cas
-           (cf loadTeamChat plus bas, skip explicite) : il continue d'afficher LE MIEN.
-           Rester dans la même boîte donnait l'impression que ce chat appartenait à la
-           team consultée — détaché en boîte à part (couleur bleue, distincte du violet
-           team) pour que ce soit sans ambiguïté : ce chat est TOUJOURS le mien. -->
-      <div id="myteam-chat-panel" class="block" style="position:relative;z-index:0;border:none;border-radius:0;background:transparent;display:none">
-        <span style="position:absolute;inset:0;z-index:-2;clip-path:polygon(11px 0,calc(100% - 11px) 0,100% 11px,100% calc(100% - 11px),calc(100% - 11px) 100%,11px 100%,0 calc(100% - 11px),0 11px);background:rgba(74,144,255,.5)"></span>
-        <span style="position:absolute;inset:1.5px;z-index:-1;clip-path:polygon(10px 0,calc(100% - 10px) 0,100% 10px,100% calc(100% - 10px),calc(100% - 10px) 100%,10px 100%,0 calc(100% - 10px),0 10px);background:var(--card-grad)"></span>
-        <div style="padding:.65rem .85rem">
-          <div data-i18n="teams.chat.title" style="font-family:'Bebas Neue',sans-serif;font-size:.9rem;letter-spacing:2px;color:var(--gold);margin-bottom:.4rem">💬 Chat Team</div>
-          <div id="team-chat-locked" data-i18n-html="teams.chat.locked" style="display:none;text-align:center;padding:.75rem;color:var(--muted2);font-size:.75rem;line-height:1.6;cursor:pointer" onclick="showPremiumGate(t('teams.chat.lockedToast'))">
-            🔒 <span style="text-decoration:underline">Chat réservé aux membres Premium</span>
-          </div>
-          <div id="team-chat-content">
-            <div id="team-chat-messages" style="max-height:250px;overflow-y:auto;display:flex;flex-direction:column;gap:.3rem;margin-bottom:.5rem;scrollbar-width:thin;scrollbar-color:rgba(74,144,255,.2) transparent"></div>
-            <div style="display:flex;gap:.4rem">
-              <input id="team-chat-input" type="text" placeholder="Message…" data-i18n-placeholder="teams.chat.placeholder" maxlength="300" style="flex:1;padding:.4rem .6rem;border-radius:6px;border:1px solid rgba(74,144,255,.15);background:rgba(4,12,28,.5);color:var(--text);font-size:.75rem;outline:none" onkeydown="if(event.key==='Enter')sendTeamMessage()">
-              <button onclick="sendTeamMessage()" style="padding:.4rem .7rem;border-radius:6px;border:1.5px solid rgba(45,219,128,.6);background:linear-gradient(135deg,rgba(45,219,128,.28),rgba(45,219,128,.08));color:var(--green);font-size:.75rem;font-weight:700;cursor:pointer">→</button>
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
 
     <!-- RIGHT : Règles + Récompenses -->
@@ -5671,7 +5681,6 @@ function askConfirm(message, opts){
 
 <div class="modal" id="referral-notif-modal">
   <div class="modal-box" style="max-width:380px;text-align:center;padding:2rem 1.5rem">
-    <button class="modal-close" onclick="closeModal('referral-notif-modal')">✕</button>
     <div style="font-size:3.5rem;margin-bottom:.5rem;animation:blasonPop .5s cubic-bezier(.22,.68,0,1.2) both">🤝</div>
     <div data-i18n="refnotif.bravo" style="font-family:'Bebas Neue',sans-serif;font-size:1.6rem;letter-spacing:3px;color:var(--gold);margin-bottom:.25rem">Bravo !</div>
     <div id="ref-notif-text" style="font-size:.85rem;color:var(--text);margin-bottom:.5rem;line-height:1.5"></div>
@@ -5697,7 +5706,6 @@ function askConfirm(message, opts){
 <!-- Modal Cadeau d'anniversaire -->
 <div class="modal" id="birthday-gift-modal">
   <div class="modal-box" style="max-width:380px;text-align:center;padding:2rem 1.5rem">
-    <button class="modal-close" onclick="closeModal('birthday-gift-modal')">✕</button>
     <div style="font-size:3.5rem;margin-bottom:.5rem;animation:blasonPop .5s cubic-bezier(.22,.68,0,1.2) both">🎉🎂</div>
     <div style="font-family:'Bebas Neue',sans-serif;font-size:1.6rem;letter-spacing:3px;color:var(--gold);margin-bottom:.25rem">C'est un jour spécial !</div>
     <div style="font-size:.85rem;color:var(--text);margin-bottom:.75rem;line-height:1.5">Speedix te souhaite un joyeux anniversaire 🎉🎂<br>et t'offre :</div>
@@ -5730,7 +5738,6 @@ function askConfirm(message, opts){
      de grade qui ont déjà chacune leur propre fenêtre. -->
 <div class="modal" id="quest-modal">
   <div class="modal-box" style="max-width:400px;text-align:center;padding:2rem 1.5rem">
-    <button class="modal-close" onclick="closeModal('quest-modal')">✕</button>
     <div id="quest-modal-emoji" style="width:110px;height:126px;margin:0 auto 1rem;position:relative;display:flex;align-items:center;justify-content:center;animation:blasonPop .5s cubic-bezier(.22,.68,0,1.2) both"></div>
     <div id="quest-modal-label" style="font-family:'Bebas Neue',sans-serif;font-size:.9rem;letter-spacing:3px;color:var(--muted2);margin-bottom:.15rem">🎯 OBJECTIF VALIDÉ</div>
     <div id="quest-modal-title" style="font-family:'Bebas Neue',sans-serif;font-size:1.7rem;letter-spacing:3px;color:var(--gold);margin-bottom:.25rem">—</div>
@@ -5755,7 +5762,6 @@ function askConfirm(message, opts){
 <!-- Modal Bonus de bienvenue (jour 1 uniquement) -->
 <div class="modal" id="welcome-bonus-modal">
   <div class="modal-box" style="max-width:400px;text-align:center;padding:2rem 1.5rem">
-    <button class="modal-close" onclick="closeModal('welcome-bonus-modal')">✕</button>
     <div style="font-size:3.5rem;margin-bottom:.5rem;animation:blasonPop .5s cubic-bezier(.22,.68,0,1.2) both">🎁</div>
     <div style="font-family:'Bebas Neue',sans-serif;font-size:1.8rem;letter-spacing:3px;margin-bottom:.35rem"><span style="color:var(--text)">Bienvenue dans</span> <span style="color:var(--gold)">Speedix !</span></div>
     <div style="font-size:.82rem;color:var(--muted2);margin-bottom:1.25rem">Bonus de départ</div>
@@ -5771,7 +5777,7 @@ function askConfirm(message, opts){
       </div>
     </div>
     <div style="font-size:.72rem;color:var(--muted2);line-height:1.6;margin-bottom:1rem">Ces ressources sont créditées sur ton compte.<br>L'effort devient un jeu à partir d'aujourd'hui.</div>
-    <button id="welcome-bonus-btn" style="padding:.5rem 2rem;border-radius:8px;border:1.5px solid var(--green);background:linear-gradient(135deg,rgba(45,219,128,.15),rgba(32,180,100,.08));color:var(--green);font-weight:700;font-size:.85rem;cursor:pointer;letter-spacing:.5px">Next →</button>
+    <button id="welcome-bonus-btn" onclick="closeModal('welcome-bonus-modal')" style="padding:.5rem 2rem;border-radius:8px;border:1.5px solid var(--green);background:linear-gradient(135deg,rgba(45,219,128,.15),rgba(32,180,100,.08));color:var(--green);font-weight:700;font-size:.85rem;cursor:pointer;letter-spacing:.5px">Next →</button>
   </div>
 </div>
 
@@ -14909,7 +14915,7 @@ async function loadTeamChat(teamId){
     // corrigé avant l'arrivée d'un vrai nouveau message — pastille qui "revient sans
     // cesse même après avoir ouvert la page", signalé 2026-09-08.
     window.__teamChatUnread=false;
-    if(typeof _setBadgeBlink==='function') _setBadgeBlink('team-chat-badge', false);
+    if(typeof _setTeamChatBadges==='function') _setTeamChatBadges(false);
     // Garde-fou window.__teamChatReadMarks : n'écrire en base (PATCH) qu'une fois par
     // nouveau dernier message, pas à chaque poll 3s si rien de neuf n'est arrivé.
     if(!window.__teamChatReadMarks) window.__teamChatReadMarks={};
@@ -14923,7 +14929,7 @@ async function loadTeamChat(teamId){
     }
   }
   if(!msgs||!msgs.length){
-    el.innerHTML='<div style="text-align:center;padding:.75rem;color:var(--muted2);font-size:.7rem">Aucun message. Sois le premier !</div>';
+    el.innerHTML='<div style="text-align:center;padding:1.5rem;color:var(--muted2);font-size:.85rem">Aucun message. Sois le premier !</div>';
     return;
   }
   // Charger les noms
@@ -14953,15 +14959,15 @@ async function loadTeamChat(teamId){
     var canDel=isMe||isAdmin();
     var time=m.created_at?new Date(m.created_at).toLocaleTimeString('fr',{hour:'2-digit',minute:'2-digit'}):'';
     var date=m.created_at?new Date(m.created_at).toLocaleDateString(SPEEDIX_LANG,{day:'2-digit',month:'2-digit'}):'';
-    return '<div style="display:flex;gap:.4rem;align-items:flex-start'+(isMe?';flex-direction:row-reverse':'')+'">'
-      +(p.avatar?'<img src="'+escapeHtml(p.avatar)+'" style="width:24px;height:24px;border-radius:6px;object-fit:cover;flex-shrink:0">':'<div style="width:24px;height:24px;border-radius:6px;background:rgba(74,144,255,.15);display:flex;align-items:center;justify-content:center;font-size:.6rem;font-weight:700;color:var(--muted2);flex-shrink:0">'+escapeHtml(p.username.charAt(0).toUpperCase())+'</div>')
-      +'<div style="max-width:75%;padding:.35rem .55rem;border-radius:8px;background:'+(isMe?'rgba(74,144,255,.12)':'rgba(30,37,53,.6)')+';border:1px solid '+(isMe?'rgba(74,144,255,.2)':'rgba(30,37,53,.8)')+'">'
-      +'<div style="display:flex;align-items:center;gap:.3rem;margin-bottom:.15rem">'
-      +'<span style="font-size:.6rem;font-weight:700;color:'+(isMe?'#4a90ff':'var(--text)')+'">'+escapeHtml(p.username)+'</span>'
-      +'<span style="font-size:.5rem;color:var(--muted)">'+date+' '+time+'</span>'
-      +(canDel?'<span onclick="deleteTeamMessage(\''+m.id+'\')" style="margin-left:auto;color:#ff4444;cursor:pointer;font-size:.55rem;padding:0 .15rem" title="Supprimer">✕</span>':'')
+    return '<div style="display:flex;gap:.5rem;align-items:flex-start'+(isMe?';flex-direction:row-reverse':'')+'">'
+      +(p.avatar?'<img src="'+escapeHtml(p.avatar)+'" style="width:34px;height:34px;border-radius:8px;object-fit:cover;flex-shrink:0">':'<div style="width:34px;height:34px;border-radius:8px;background:rgba(74,144,255,.15);display:flex;align-items:center;justify-content:center;font-size:.8rem;font-weight:700;color:var(--muted2);flex-shrink:0">'+escapeHtml(p.username.charAt(0).toUpperCase())+'</div>')
+      +'<div style="max-width:75%;padding:.5rem .75rem;border-radius:10px;background:'+(isMe?'rgba(74,144,255,.12)':'rgba(30,37,53,.6)')+';border:1px solid '+(isMe?'rgba(74,144,255,.2)':'rgba(30,37,53,.8)')+'">'
+      +'<div style="display:flex;align-items:center;gap:.4rem;margin-bottom:.2rem">'
+      +'<span style="font-size:.8rem;font-weight:700;color:'+(isMe?'#4a90ff':'var(--text)')+'">'+escapeHtml(p.username)+'</span>'
+      +'<span style="font-size:.68rem;color:var(--muted)">'+date+' '+time+'</span>'
+      +(canDel?'<span onclick="deleteTeamMessage(\''+m.id+'\')" style="margin-left:auto;color:#ff4444;cursor:pointer;font-size:.8rem;padding:0 .2rem" title="Supprimer">✕</span>':'')
       +'</div>'
-      +'<div style="font-size:.72rem;color:var(--text);line-height:1.4;word-break:break-word">'+escapeHtml(m.content)+'</div>'
+      +'<div style="font-size:.95rem;color:var(--text);line-height:1.45;word-break:break-word">'+escapeHtml(m.content)+'</div>'
       +'</div></div>';
   }).join('');
   el.scrollTop=_wasAtBottom?el.scrollHeight:_prevScrollTop;
@@ -17802,14 +17808,13 @@ function _scrollToTeamPanel(panelId, opts){
 // force donc en plus son scrollTop en bas pendant ~1.5s (le temps que
 // loadTeamChat() finisse de charger/re-render les messages en async).
 function openTeamChatShortcut(){
-  _scrollToTeamPanel('myteam-chat-panel');
-  var _tries=0;
-  var _iv=setInterval(function(){
-    _tries++;
+  if(!window.__myTeamId) return;
+  nav('teamchat');
+  loadTeamChat(window.__myTeamId).then(function(){
     var el=document.getElementById('team-chat-messages');
     if(el) el.scrollTop=el.scrollHeight;
-    if(_tries>=15) clearInterval(_iv);
-  },100);
+  });
+  startChatPoll(window.__myTeamId);
 }
 function goToPcTeam(){
   // Récupère le team_id affiché sur la PC et compare à ma team
@@ -18781,13 +18786,15 @@ function nav(page){
     // et ce bouton déclenche directement l'avancée (manualSyncTourAdvance).
   }
   // Arrêter le polling chat si on quitte Teams
-  if(page!=='teams'&&_chatPollInterval){clearInterval(_chatPollInterval);_chatPollInterval=null;}
+  if(page!=='teamchat'&&_chatPollInterval){clearInterval(_chatPollInterval);_chatPollInterval=null;}
   // Arrêter le polling du chat league si on quitte sa page
   if(page!=='leaguechat'&&_leagueChatPollInterval){clearInterval(_leagueChatPollInterval);_leagueChatPollInterval=null;}
   // Masquer le badge team quand on ouvre Teams
   if(page==='teams'){
     _setBadgeBlink('team-notif-badge', false);
-    _setBadgeBlink('team-chat-badge', false);
+  }
+  if(page==='teamchat'){
+    _setTeamChatBadges(false);
     window.__teamChatUnread=false;
   }
   if(page==='social'){
@@ -19209,6 +19216,11 @@ function _findBadgeHost(badge){
   // même conteneur parent.
   var parent=badge.parentElement;
   return parent ? parent.querySelector('button,[onclick]') : null;
+}
+// Pastille « message team non lu » : sur la tuile Team de la PC ET sur la tuile Chat de la page Teams.
+function _setTeamChatBadges(on){
+  _setBadgeBlink('team-chat-badge', on, '#2ddb80');
+  _setBadgeBlink('team-chat-tile-badge', on, '#2ddb80');
 }
 function _setBadgeBlink(badgeId, on, color, displayVal){
   var badge=document.getElementById(badgeId);
@@ -23567,8 +23579,6 @@ async function renderTeams(){
         // personne ne l'avait consulté → la pastille verte "nouveau message" posée
         // 3s plus tôt par checkTeamChatUnread() se voyait effacée juste après
         // (signalé 2026-09-28 : "la pastille apparaît puis disparaît de suite").
-        var _teamsPageActive=document.getElementById('page-teams')&&document.getElementById('page-teams').classList.contains('active');
-        if(_teamsPageActive && window.__myTeamId && typeof loadTeamChat==='function'){loadTeamChat(window.__myTeamId);startChatPoll(window.__myTeamId);}
       }
     }
 
@@ -23667,7 +23677,7 @@ async function checkTeamChatUnread(){
   var {data:msgs}=await supabaseClient.from('team_messages').select('id')
     .eq('team_id',window.__myTeamId).neq('player_id',currentUser.id).gt('created_at',since).limit(1);
   window.__teamChatUnread=!!(msgs&&msgs.length>0);
-  _setBadgeBlink('team-chat-badge', window.__teamChatUnread, '#2ddb80');
+  _setTeamChatBadges(window.__teamChatUnread);
 }
 
 // ── Demandes de rejoindre une team ──
@@ -28571,8 +28581,8 @@ async function _enableNativePush(silent){
           // Notif "nouveau message team" : direct sur le chat (tout en bas de la
           // page Teams), pas juste le classement — sinon on retombe dans le même
           // problème que le clic PC (chat manqué faute de scroll).
-          if(data.screen==='teams' && data.tab==='chat' && typeof _scrollToTeamPanel==='function'){
-            setTimeout(function(){ _scrollToTeamPanel('team-chat-input',{block:'end'}); },300);
+          if(data.screen==='teams' && data.tab==='chat' && typeof openTeamChatShortcut==='function'){
+            setTimeout(function(){ openTeamChatShortcut(); },300);
           }
         }
       }catch(e){ console.warn('[push-action]',e); }
