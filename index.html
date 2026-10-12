@@ -5169,7 +5169,7 @@ var SpeedixReview=(function(){
     </div>
     <div style="font-size:.78rem;color:var(--muted2);line-height:1.7;background:rgba(45,219,128,.05);border:1px solid rgba(45,219,128,.2);border-radius:8px;padding:.7rem .85rem;text-align:center">
       <strong style="color:var(--green)">📅 Compétition officielle dans</strong><br>
-      <span id="calib-days-left" style="font-family:'Bebas Neue',sans-serif;font-size:1.3rem;letter-spacing:1px;color:var(--text)">—</span>
+      <span id="calib-days-left" style="font-family:'Bebas Neue',sans-serif;font-size:1.3rem;letter-spacing:1px;color:var(--text)">—</span><br><span id="calib-days-detail" style="font-size:.72rem;color:var(--muted2)"></span>
     </div>
   </div>
 </div>
@@ -5851,7 +5851,11 @@ function askConfirm(message, opts){
     <div style="font-family:'Bebas Neue',sans-serif;font-size:1.3rem;letter-spacing:2px;color:var(--text);margin-bottom:.15rem">🌍 League des <span style="color:var(--gold)">Nations</span></div>
     <div style="margin-bottom:.6rem"><div style="position:relative;z-index:0;display:inline-block;font-family:'Space Mono',monospace;font-size:.8rem;font-weight:700;padding:.25rem .7rem;color:#fff;filter:drop-shadow(0 0 6px rgba(228,84,255,.35))"><span style="position:absolute;inset:0;clip-path:polygon(6px 0,calc(100% - 6px) 0,100% 6px,100% calc(100% - 6px),calc(100% - 6px) 100%,6px 100%,0 calc(100% - 6px),0 6px);background:linear-gradient(135deg,rgba(240,180,255,.85) 0%,rgba(228,84,255,.55) 50%,rgba(160,10,190,.85) 100%);z-index:-2"></span><span style="position:absolute;inset:1.5px;clip-path:polygon(5px 0,calc(100% - 5px) 0,100% 5px,100% calc(100% - 5px),calc(100% - 5px) 100%,5px 100%,0 calc(100% - 5px),0 5px);background:#0c0f1a;z-index:-1"></span><span id="country-period" style="position:relative"></span></div></div>
     <div style="font-size:.7rem;color:var(--muted2);margin-bottom:.6rem">Porte le maillot de ton pays et défends ton drapeau !</div>
-    <div id="country-teams" style="overflow-y:auto;max-height:230px;margin:0 -1rem .7rem"></div>
+    <div style="border:1.5px solid rgba(255,255,255,.22);border-radius:12px;background:rgba(255,255,255,.025);padding:.5rem .35rem .35rem;margin-bottom:.8rem">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:.95rem;letter-spacing:2px;color:var(--text);margin:0 .4rem .4rem">🏆 Classement des Teams</div>
+      <div id="country-teams" style="overflow-y:auto;max-height:230px"></div>
+    </div>
+    <div style="border:1.5px solid rgba(255,255,255,.22);border-radius:12px;background:rgba(255,255,255,.025);padding:.55rem .7rem .4rem">
     <div id="country-subtitle" style="font-size:.72rem;font-weight:700;color:var(--gold);margin-bottom:.4rem"></div>
     <div id="country-scroll" style="overflow-y:auto;max-height:230px;position:relative">
       <table class="tbl" style="width:100%;table-layout:fixed">
@@ -5863,6 +5867,7 @@ function askConfirm(message, opts){
         </tr></thead>
         <tbody id="country-tbody"></tbody>
       </table>
+    </div>
     </div>
   </div>
 </div>
@@ -13865,11 +13870,28 @@ function getPeriodTimeLeft(){
 function showCalibInfoModal(){
   var tl=(typeof getPeriodTimeLeft==='function')?getPeriodTimeLeft():null;
   var daysEl=document.getElementById('calib-days-left');
+  var detEl=document.getElementById('calib-days-detail');
+  var jw=function(n){return n+' '+(n>1?'jours':'jour');};
+  if(detEl) detEl.textContent='';
   if(daysEl){
     if(!tl||tl.expired){ daysEl.textContent='Imminent'; }
-    else{ var jourWord=tl.days>1?'jours':'jour'; daysEl.textContent=tl.days+' '+jourWord; }
+    else{ daysEl.textContent=jw(tl.days); }
   }
   openModal('calib-info-modal');
+  // (2026-10-12) Un RP sorti de Starter EN COURS de période a calibration_period = période courante + 1 :
+  // la fin de la période en cours ne compte pas, son calibrage complet est la période suivante, et la
+  // compétition ne démarre qu'à la fin de celle-ci. On affiche donc : reste de la période en cours
+  // + durée du mois suivant (périodes = mois civils, cf rotation).
+  if(!tl||tl.expired||!window.__myPlayer||!window.__myPlayer._uuid||!_periodData.end) return;
+  supabaseClient.from('players').select('calibration_period').eq('id',window.__myPlayer._uuid).single().then(function(r){
+    var cp=r&&r.data?r.data.calibration_period:null;
+    if(typeof cp!=='number'||cp<=_periodData.period) return;
+    var e=new Date(_periodData.end), pm=new Date(e.getTime()+3*3600000); // fin de période (heure de Paris approx.)
+    var nextLen=new Date(Date.UTC(pm.getUTCFullYear(),pm.getUTCMonth()+2,0)).getUTCDate();
+    var total=tl.days+nextLen;
+    if(daysEl) daysEl.textContent=jw(total);
+    if(detEl) detEl.textContent=jw(tl.days)+' de la période en cours + '+jw(nextLen)+' de ta période de calibrage';
+  }).catch(function(){});
 }
 function startPeriodTimer(){
   if(_periodTimerInterval) clearInterval(_periodTimerInterval);
