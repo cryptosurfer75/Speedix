@@ -30959,16 +30959,30 @@ window.Tour.init = async function(){
   // est trop clair") : le doré vif en fillColor à faible opacité rendait un lavis
   // pâle, un ton plus foncé à opacité plus soutenue lit comme une vraie couleur
   // pleine plutôt qu'un voile.
-  const ETAPE_OWNED_COLOR = '#f5c842';
-  const ETAPE_FILL_COLOR = '#7a5c10';
+  // 12/10/2026 (demande explicite -- « mets en orange les villes étapes déjà achetées ») :
+  // une étape possédée passe de doré à ORANGE (contour, halo, remplissage, centre, nom) pour
+  // se distinguer des étapes encore libres (qui restent dorées).
+  const ETAPE_OWNED_COLOR = '#ff8a1f';
+  const ETAPE_FILL_COLOR = '#8a3f08';
+  const ETAPE_OWNED_GLOW = '#ff9a3c';
   // Repère central (2026-08-10, demande explicite -- "le repère de distance,
   // de toute façon pas vraiment visible, remets un point comme toutes les
   // autres Lands doré") : simple point plein doré au centre, plus de pochoir
   // pin.png (retiré, jugé pas assez lisible à cette taille).
+  // Passe une étape en orange juste après un achat (sans attendre le rechargement) :
+  // contour de l'hexagone + couleur du nom de la ville.
+  function etapeRestyleOwned(land){
+    try{
+      if(land.layer) land.layer.setStyle({color:ETAPE_OWNED_COLOR});
+      const el = land.labelMarker && land.labelMarker.getElement && land.labelMarker.getElement();
+      const d = el && el.querySelector('.etape-marker');
+      if(d) d.style.color = ETAPE_OWNED_COLOR;
+    }catch(e){}
+  }
   function etapeStatBadgeIcon(){
     return L.divIcon({
       className:'', iconSize:[10,10], iconAnchor:[5,5],
-      html:`<div style="width:10px;height:10px;border-radius:50%;background:#f5c842;box-shadow:0 0 3px rgba(0,0,0,.85)"></div>`
+      html:`<div style="width:10px;height:10px;border-radius:50%;background:#ff8a1f;box-shadow:0 0 3px rgba(0,0,0,.85)"></div>`
     });
   }
   // Fenêtre "propriétaire" au clic (2026-08-10, demande explicite — "le cadre
@@ -31018,7 +31032,7 @@ window.Tour.init = async function(){
       }).addTo(map);
     }
     const hex = L.polygon(hexVertices(l.lat,l.lng,l.etapeRadius,l.bearing), {
-      stroke:true, color: isStartCity ? '#20d0e0' : '#f5c842', weight:3,
+      stroke:true, color: isStartCity ? '#20d0e0' : (owned ? ETAPE_OWNED_COLOR : '#f5c842'), weight:3,
       fillColor: owned ? ETAPE_FILL_COLOR : undefined, fillOpacity: owned ? .7 : 0
     }).addTo(map);
     l.layer = hex; // absent avant (2026-08-10) : buyFromMarketplace() essayait déjà de
@@ -31029,7 +31043,7 @@ window.Tour.init = async function(){
     // sombre, simule un centre plus lumineux qui s'assombrit vers les bords.
     if(owned){
       L.polygon(hexVertices(l.lat,l.lng,l.etapeRadius*0.55,l.bearing), {
-        stroke:false, fill:true, fillColor:'#f5c842', fillOpacity:.4, interactive:false
+        stroke:false, fill:true, fillColor:ETAPE_OWNED_GLOW, fillOpacity:.4, interactive:false
       }).addTo(map);
       L.marker([l.lat,l.lng], {icon: etapeStatBadgeIcon(), zIndexOffset:500, interactive:false}).addTo(map);
     }
@@ -31105,8 +31119,8 @@ window.Tour.init = async function(){
     const labelText = l.name;
     // REVERT (2026-08-10) : plus de violet sur le nom d'une étape possédée --
     // cyan pour les 2 villes de départ, doré par défaut sinon (cf .etape-marker).
-    const labelStyle = isStartCity ? ' style="color:#20d0e0"' : '';
-    L.marker([labelPt.lat,labelPt.lng], {
+    const labelStyle = isStartCity ? ' style="color:#20d0e0"' : (owned ? ` style="color:${ETAPE_OWNED_COLOR}"` : '');
+    l.labelMarker = L.marker([labelPt.lat,labelPt.lng], {
       icon: L.divIcon({className:'', html:`<div class="etape-marker ${dirClass}"${labelStyle}>${labelText}</div>`, iconSize:[0,0], iconAnchor:[ax,ay]})
     }).addTo(map);
   });
@@ -33290,9 +33304,10 @@ window.Tour.init = async function(){
         stroke:true, color:ETAPE_OWNED_COLOR, weight:4, opacity:.3, fill:false, interactive:false
       }).addTo(map);
       L.polygon(hexVertices(land.lat,land.lng,land.etapeRadius*0.55,land.bearing), {
-        stroke:false, fill:true, fillColor:'#f5c842', fillOpacity:.4, interactive:false
+        stroke:false, fill:true, fillColor:ETAPE_OWNED_GLOW, fillOpacity:.4, interactive:false
       }).addTo(map);
       L.marker([land.lat,land.lng], {icon: etapeStatBadgeIcon(), zIndexOffset:500, interactive:false}).addTo(map);
+      etapeRestyleOwned(land);
     }
     if(land.layer){
       land.layer.setStyle(isEtape
@@ -33876,12 +33891,13 @@ window.Tour.init = async function(){
     // y compris sur SA PROPRE étape.
     if(land.layer){
       land.layer.setStyle({fillColor: ETAPE_FILL_COLOR, fillOpacity:.7});
+      etapeRestyleOwned(land);
       land.layer.bindPopup(etapeOwnerPopupHtml(land, ETAPE_IDX.indexOf(land.idx)+1), {className:'etape-popup'});
       L.polygon(hexVertices(land.lat,land.lng,land.etapeRadius*1.08,land.bearing), {
         stroke:true, color:ETAPE_OWNED_COLOR, weight:4, opacity:.3, fill:false, interactive:false
       }).addTo(map);
       L.polygon(hexVertices(land.lat,land.lng,land.etapeRadius*0.55,land.bearing), {
-        stroke:false, fill:true, fillColor:'#f5c842', fillOpacity:.4, interactive:false
+        stroke:false, fill:true, fillColor:ETAPE_OWNED_GLOW, fillOpacity:.4, interactive:false
       }).addTo(map);
       L.marker([land.lat,land.lng], {icon: etapeStatBadgeIcon(), zIndexOffset:500, interactive:false}).addTo(map);
     }
