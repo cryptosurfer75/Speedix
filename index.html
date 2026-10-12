@@ -24157,6 +24157,7 @@ var _CITY_CREST_OVERRIDES=[
   {match:/GALACTIQUE/i, image:'ai-icons/defi-icons/galactique-v1.webp', hexBadge:true},
   {match:/ESPACE/i, image:'ai-icons/defi-icons/espace-v1.webp', hexBadge:true},
   {match:/BUZZ/i, image:'ai-icons/defi-icons/buzz-v1.webp', hexBadge:true},
+  {match:/100.?000 PTS/i, image:'ai-icons/defi-icons/pts100k-v1.webp', hexBadge:true},
   {match:/^S[ÉE]RIE 7$/i, image:'ai-icons/defi-icons/serie7-v1.webp', hexBadge:true},
   {match:/^S[ÉE]RIE 30$/i, image:'ai-icons/defi-icons/serie30-v1.webp', hexBadge:true},
   {match:/^S[ÉE]RIE 90$/i, image:'ai-icons/defi-icons/serie90-v1.webp', hexBadge:true},
@@ -24410,6 +24411,7 @@ function _badgeRibbonLabel(b){
     case 'cashrun_jackpots': return v+' 🎰';
     case 'collab_wins':      return v+' 🤝';
     case 'tour_laps':        return v+' 🏁';
+    case 'cumul_pts':        return (v>=1000?(v/1000)+'K':v)+' pts';
     case 'account_age_days': return v+' j';
     default:                 return '';
   }
@@ -24644,7 +24646,7 @@ var DEFI_CATEGORIES=[
   {key:'horaires', title:'HORAIRES', icon:'🌙', accent:'#7c3aed', codes:['TIME_NIGHT','TIME_DAWN']},
   {key:'exploration', title:'EXPLORATION', icon:'🗺️', accent:'#20c060', codes:['LOC_NOMADE','LOC_VOYAGEUR']},
   {key:'duree', title:'DURÉE', icon:'⏱️', accent:'#4dd9e8', codes:['DUREE_2H','DUREE_3H']},
-  {key:'auto', title:'AUTOMATIQUES', icon:'✨', accent:'#8a92a8', codes:['CASHRUN_5','COLLAB_10','LOYALTY_1Y','LANDS_8','TOUR_COMPLET']},
+  {key:'auto', title:'AUTOMATIQUES', icon:'✨', accent:'#8a92a8', codes:['CASHRUN_5','COLLAB_10','LOYALTY_1Y','LANDS_8','TOUR_COMPLET','PTS_100K']},
 ];
 function _defiCategoryFor(code){
   for(var i=0;i<DEFI_CATEGORIES.length;i++){ if(DEFI_CATEGORIES[i].codes.indexOf(code)>=0) return DEFI_CATEGORIES[i]; }
@@ -24771,8 +24773,11 @@ async function renderChallenges(){
   // bloquer la progression du joueur (compteur Player Card et badges restent
   // cohérents). Le seuil anti-triche à 35 km/h est large mais pas parfait,
   // donc on évite de pénaliser silencieusement.
-  var {data:runs}=await supabaseClient.from('runs_public').select('distance,time,elevation,run_date,polyline,flagged').eq('player_id',targetUuid);
+  var {data:runs}=await supabaseClient.from('runs_public').select('distance,time,elevation,points,run_date,polyline,flagged').eq('player_id',targetUuid);
   var valid=(runs||[]);
+  // POINTS CUMULÉS (badge « 100 000 PTS », 12/10/2026) : somme de TOUTES les courses, vie entière (périodes terminées + mois en cours).
+  // MIROIR de checkBadges.ts (_shared) — garder synchro, NE PAS diverger.
+  var ptsCumul=valid.reduce(function(s,r){return s+(r.points||0);},0);
 
   // 4. Lands louées 60min — lecture conservée pour statsSince()/badge PROSPECTEUR
   // (simultaneous_lands), même si plus personne ne peut alimenter `lands.rented_at`
@@ -24895,6 +24900,7 @@ async function renderChallenges(){
     // temps, peu importe quand, cf landsOwned/tour_lands plus haut).
     if(b.threshold_type==='lands_owned') return landsOwned;
     if(b.threshold_type==='tour_laps') return tourLaps;
+    if(b.threshold_type==='cumul_pts') return ptsCumul;
     var q=activeQuestsMap[b.id];
     if(q){
       var live=statsSince(q.since)[b.threshold_type]||0;
@@ -25080,6 +25086,7 @@ async function renderChallenges(){
     if(b.threshold_type==='cumul_elv_m') return Math.round(cur)+' / '+tgt+' m';
     if(b.threshold_type==='streak_days') return Math.floor(cur)+' / '+tgt+' j';
     if(b.threshold_type==='account_age_days') return Math.floor(cur)+' / '+tgt+' j';
+    if(b.threshold_type==='cumul_pts') return Math.round(cur).toLocaleString(SPEEDIX_LANG)+' / '+Number(tgt).toLocaleString(SPEEDIX_LANG)+' pts';
     return Math.round(cur)+' / '+tgt;
   }
 
@@ -25111,7 +25118,7 @@ async function renderChallenges(){
     // Badges "automatiques" (Fidèle/Jackpot/Esprit d'équipe/Prospecteur) : pas
     // de bouton CHOISIR, ils se déclenchent tout seuls — visibles dans leur
     // catégorie même non gagnés, juste sans action possible dessus.
-    var isAutoType=(b.threshold_type==='account_age_days'||b.threshold_type==='cashrun_jackpots'||b.threshold_type==='collab_wins'||b.threshold_type==='lands_owned'||b.threshold_type==='tour_laps');
+    var isAutoType=(b.threshold_type==='account_age_days'||b.threshold_type==='cashrun_jackpots'||b.threshold_type==='collab_wins'||b.threshold_type==='lands_owned'||b.threshold_type==='tour_laps'||b.threshold_type==='cumul_pts');
     // VOYAGEUR (2026-08-05, demande explicite) : pas réalisable dans l'immédiat
     // (5 capitales européennes différentes réellement courues — quasi
     // impossible pour la majorité des joueurs), on ne le rend plus choisissable
@@ -26856,7 +26863,7 @@ function _questPickerCap(){
 // entière/état courant évalués en continu, cf. plus bas — pas de notion de "rejeu").
 // MIROIR : checkBadges.ts isReplayable() — garder synchro, NE PAS diverger.
 function _isQuestReplayable(b,timesEarned){
-  if(b.threshold_type==='event_run'||b.threshold_type==='account_age_days'||b.threshold_type==='cashrun_jackpots'||b.threshold_type==='collab_wins'||b.threshold_type==='lands_owned'||b.threshold_type==='tour_laps') return false;
+  if(b.threshold_type==='event_run'||b.threshold_type==='account_age_days'||b.threshold_type==='cashrun_jackpots'||b.threshold_type==='collab_wins'||b.threshold_type==='lands_owned'||b.threshold_type==='tour_laps'||b.threshold_type==='cumul_pts') return false;
   if(b.max_completions==null) return true;
   return (timesEarned||0)<b.max_completions;
 }
@@ -27015,7 +27022,7 @@ function showQuestValidatedModal(b){
   if(b.reward_rpc) rewards.push('+'+b.reward_rpc.toLocaleString(SPEEDIX_LANG)+' RPC');
   if(b.reward_nyx) rewards.push('+'+b.reward_nyx+' 💎 NYX');
   if(typeof _decorateBadgeWithCityCrest==='function') _decorateBadgeWithCityCrest(b);
-  var _autoQ=(b.threshold_type==='account_age_days'||b.threshold_type==='cashrun_jackpots'||b.threshold_type==='collab_wins'||b.threshold_type==='lands_owned'||b.threshold_type==='tour_laps');
+  var _autoQ=(b.threshold_type==='account_age_days'||b.threshold_type==='cashrun_jackpots'||b.threshold_type==='collab_wins'||b.threshold_type==='lands_owned'||b.threshold_type==='tour_laps'||b.threshold_type==='cumul_pts');
   document.getElementById('quest-modal-emoji').innerHTML=(b.image&&b.hexBadge)
     ? '<img src="'+b.image+'" style="width:130px;height:130px;max-width:none;margin:-6px 0;object-fit:contain;filter:drop-shadow(0 0 18px '+color+'80)">'
     : '<svg viewBox="0 0 100 115" style="width:100%;height:100%;filter:drop-shadow(0 0 18px '+color+'80)">'
@@ -27023,7 +27030,7 @@ function showQuestValidatedModal(b){
     +'<polygon points="50,2 95,28 95,82 50,108 5,82 5,28" fill="none" stroke="'+color+'" stroke-width="2.5"/>'
     +'</svg><div style="position:absolute;font-size:3rem">'+icon+'</div>';
   var _hint=document.getElementById('quest-modal-hint');
-  if(_hint) _hint.textContent=_autoQ?(b.threshold_type==='tour_laps'?'Badge automatique : il rejoint ta collection, continue et accumule les tours 🚀':'Badge automatique : il rejoint ta collection tout seul, rien à choisir.'):'Tu l\'as choisi, tu l\'as fait — file en choisir un nouveau dans tes Défis.';
+  if(_hint) _hint.textContent=_autoQ?(b.threshold_type==='tour_laps'?'Badge automatique : il rejoint ta collection, continue et accumule les tours 🚀':'Badge automatique : il rejoint ta collection.'):'Tu l\'as choisi, tu l\'as fait — file en choisir un nouveau dans tes Défis.';
   document.getElementById('quest-modal-title').textContent=b.name||'BADGE';
   document.getElementById('quest-modal-sub').textContent=b.tagline||'';
   document.getElementById('quest-modal-reward').textContent=rewards.join(' · ');
@@ -27060,6 +27067,7 @@ function _badgeChallengeDescription(b){
                                      : 'Participer à l\'événement à la date prévue');
     case 'cashrun_jackpots':  return 'Gagner <strong style="color:'+(b.color||'#f5c842')+'">'+v+' jackpots</strong> à Cash Run';
     case 'collab_wins':       return 'Réussir <strong style="color:'+(b.color||'#f5c842')+'">'+v+' défis collaboratifs</strong> entre voisins';
+    case 'cumul_pts':         return 'Cumuler <strong style="color:'+(b.color||'#f5c842')+'">'+fmt(v)+' points</strong> au total, toutes périodes confondues — le badge se débloque tout seul';
     case 'tour_laps':         return 'Boucler un <strong style="color:'+(b.color||'#f5c842')+'">tour complet</strong> du SPEEDIX Tour en repassant la ligne de départ — le compteur monte à chaque tour supplémentaire';
     case 'account_age_days':  return 'Être inscrit depuis <strong style="color:'+(b.color||'#f5c842')+'">'+v+' jours</strong>';
     // (2026-08-05) Précisé à la demande de l'user : un simple passage ne compte
