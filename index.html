@@ -30396,17 +30396,25 @@ window.Tour.init = async function(){
   // (2026-08-08, demande explicite : "importante pour le jeu"), même principe
   // que FRIEND_LANDS dans la démo mais lue en base au lieu d'être inventée.
   // Une seule requête groupée pour tous les amis affichés (pas une par ami).
+  // 12/10/2026 (bug signalé : « 0 Land active » affiché sur des RP qui en ont) : l'ancienne
+  // requête passait TOUS les ids des RP du tracé (~350) dans un filtre .or(...in.(...)) = URL de
+  // ~25 000 caractères -> 400 Bad Request, avalé par le catch -> tous les compteurs à 0. On lit
+  // maintenant en UNE requête courte les lignes tour_lands qui ont un détenteur / propriétaire
+  // d'étape (~550 lignes), on compte côté appareil, et on garde le résultat 90 s en mémoire.
+  var _landsCountsCache = {t:0, counts:null};
   async function _fetchFriendLandsCounts(friendIds){
+    if(!friendIds.length) return {};
+    if(_landsCountsCache.counts && (Date.now()-_landsCountsCache.t) < 90000) return _landsCountsCache.counts;
     var counts = {};
-    if(!friendIds.length) return counts;
     try{
-      const orFilter = 'holder_id.in.('+friendIds.join(',')+'),etape_owner_id.in.('+friendIds.join(',')+')';
-      const {data} = await supabaseClient.from('tour_lands').select('holder_id,etape_owner_id').or(orFilter);
+      const {data,error} = await supabaseClient.from('tour_lands').select('holder_id,etape_owner_id').or('holder_id.not.is.null,etape_owner_id.not.is.null');
+      if(error) throw error;
       (data||[]).forEach(function(l){
-        if(l.holder_id && friendIds.indexOf(l.holder_id)>=0) counts[l.holder_id] = (counts[l.holder_id]||0)+1;
-        if(l.etape_owner_id && friendIds.indexOf(l.etape_owner_id)>=0) counts[l.etape_owner_id] = (counts[l.etape_owner_id]||0)+1;
+        if(l.holder_id) counts[l.holder_id] = (counts[l.holder_id]||0)+1;
+        if(l.etape_owner_id) counts[l.etape_owner_id] = (counts[l.etape_owner_id]||0)+1;
       });
-    }catch(e){ console.warn('[Tour] comptage Lands amis échoué', e); }
+      _landsCountsCache = {t:Date.now(), counts:counts};
+    }catch(e){ console.warn('[Tour] comptage Lands amis échoué', e); return _landsCountsCache.counts || {}; }
     return counts;
   }
   // Change la couleur d'un ami RÉEL depuis les pastilles cliquables du popup
