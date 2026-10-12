@@ -23872,7 +23872,7 @@ var OPEN_TEAM_PREFIX='Team Open ';
 var OPEN_TEAM_MARKER='__OPEN__'; // invite_code utilisé comme marqueur
 var OPEN_TEAM_EMOJI='🌐';
 var OPEN_TEAM_COLOR='#20d0e0';
-var OPEN_TEAM_THRESHOLD=12; // seuil pour créer la suivante
+var OPEN_TEAM_THRESHOLD=16; // seuil pour créer la suivante (12 -> 16 le 12/10/2026 : Open 5 créée alors que d'autres Open avaient encore des places)
 
 // Créer une Team Open (numéro auto)
 async function createOpenTeam(number){
@@ -23906,7 +23906,7 @@ async function ensureOpenTeamExists(){
 }
 
 // Vérifier si on doit créer une nouvelle Team Open.
-// Règle : créer la suivante seulement si TOUTES les teams open ont >= 12 RP.
+// Règle : créer la suivante seulement si TOUTES les teams open ont >= 16 RP (OPEN_TEAM_THRESHOLD).
 // Ménage préalable (B) : la création d'une Open est à sens unique (une Open ne
 // se supprime jamais toute seule, contrairement aux teams privées). Après des
 // vagues de départs, on peut donc se retrouver avec des Open VIDES en trop
@@ -23942,7 +23942,7 @@ async function checkOpenTeamCreation(){
     }
   }
 
-  // ── Création : seulement si TOUTES les Open restantes ont >= 12 RP ─────────
+  // ── Création : seulement si TOUTES les Open restantes ont >= 16 RP ─────────
   var allAboveThreshold=list.every(function(t){return t.nb>=OPEN_TEAM_THRESHOLD;});
   if(allAboveThreshold){
     // Numéro = max des numéros existants + 1 (robuste aux trous laissés par le
