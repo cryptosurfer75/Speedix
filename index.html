@@ -22494,6 +22494,18 @@ function _squadEndText(ed){
   var m=parseInt(d.toLocaleTimeString('fr-FR',{minute:'2-digit',timeZone:'Europe/Paris'}),10);
   return 'Fin du défi '+day+' '+h+'h'+(m?(m<10?'0':'')+m:'');
 }
+// « sam 17 + dim 18 oct » (jours de début et de fin du défi, heure de Paris).
+function _squadDaysText(ed){
+  function f(iso){
+    var d=new Date(iso), o={timeZone:'Europe/Paris'};
+    var wd=d.toLocaleDateString('fr-FR',Object.assign({weekday:'short'},o)).replace('.','');
+    var dn=d.toLocaleDateString('fr-FR',Object.assign({day:'numeric'},o));
+    return wd+' '+dn;
+  }
+  var endIso=new Date(new Date(ed.end_at).getTime()-1000).toISOString();
+  var mo=new Date(endIso).toLocaleDateString('fr-FR',{month:'short',timeZone:'Europe/Paris'}).replace('.','');
+  return f(new Date(ed.start_at).getTime()+3600000)+' + '+f(endIso)+' '+mo;
+}
 function _squadGroupNames(g){
   return g.members.map(function(m){return escapeHtml(m.name);}).join(' + ');
 }
@@ -22576,7 +22588,9 @@ function _teamChallengeSquadBody(c){
   var minKm=s.minKm, my=s.mySquad;
   var head='<div style="text-align:center;margin-bottom:.6rem">'
       +'<div style="font-family:\'Bebas Neue\',sans-serif;font-size:1.5rem;letter-spacing:3px;text-transform:uppercase;color:var(--text)">'+'DUO / <span style="color:var(--gold)">TRIO</span></div>'
-      +(_teamChallengeTab==='intro'?'':'<span style="color:var(--muted2);font-size:.7rem">'+_squadEndText(ed)+'</span>')
+      +(_teamChallengeTab==='intro'
+        ?'<span style="color:var(--muted2);font-size:.68rem">'+_squadDaysText(ed)+'</span>'
+        :'<span style="color:var(--muted2);font-size:.7rem">'+_squadEndText(ed)+'</span>')
     +'</div>';
 
   // ── Onglet « Mon groupe » ──
@@ -22638,7 +22652,7 @@ function _teamChallengeSquadBody(c){
   }
 
   // ── Onglet « Règles » (défaut) ── (textes validés par l'user le 13/10 : pas de récompenses ici)
-  var rules='<div style="padding:.6rem .55rem;border-radius:7px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.3);font-size:.68rem;color:var(--muted2);line-height:1.8;margin-bottom:.7rem">'
+  var rules='<div style="padding:.6rem .55rem;border-radius:7px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.3);font-size:.64rem;color:var(--muted2);line-height:1.8;margin-bottom:.7rem">'
     +'<div style="text-align:center;font-family:\'Bebas Neue\',sans-serif;font-size:1.25rem;letter-spacing:3px;color:var(--text);margin-bottom:.2rem">OBJECTIF</div>'
     +'<div style="white-space:nowrap">• Valider la distance du défi ('+minKm+' km minimum par RP).</div>'
     +'<div style="white-space:nowrap">• Choisis ton groupe et la distance.</div>'
