@@ -22546,6 +22546,28 @@ function _squadBtn(label,onclick,col,small){
   col=col||'var(--green)';
   return '<button onclick="'+onclick+'" style="'+(small?'flex-shrink:0;padding:.3rem .7rem;font-size:.9rem;':'width:100%;margin-top:.45rem;padding:.55rem;font-size:1.05rem;')+'border-radius:8px;border:1.5px solid '+col+';background:#0c0f1a;color:'+col+';font-family:\'Bebas Neue\',sans-serif;letter-spacing:2px;cursor:pointer">'+label+'</button>';
 }
+// Section « Les groupes de ma team » (visible par tous, Free compris) : duos/trios de MA team avec les km de chacun.
+function _squadTeamGroupsHtml(c,excludeId,onlyComplete){
+  var s=c.squad, minKm=s.minKm;
+  var list=s.squads.filter(function(g){return g.tid===c.myTeamId && g.id!==excludeId && (!onlyComplete||g.complete);})
+    .sort(function(a,b){return (b.lv.size-a.lv.size)||(b.total-a.total);});
+  if(!list.length) return '';
+  return '<div style="font-family:\'Bebas Neue\',sans-serif;font-size:1.05rem;letter-spacing:2px;color:var(--text);margin:.7rem 0 .35rem">LES GROUPES DE MA TEAM</div>'
+    +list.map(function(g){
+      var gold=g.lv.size===3;
+      return '<div style="padding:.45rem .6rem;border-radius:6px;border:1.5px solid rgba(255,255,255,.28);background:var(--bg2);margin-bottom:.4rem">'
+        +'<div style="display:flex;align-items:baseline;justify-content:space-between;gap:.4rem;margin-bottom:.25rem">'
+          +'<span style="font-family:\'Bebas Neue\',sans-serif;font-size:.95rem;letter-spacing:1.5px;color:'+(gold?'var(--gold)':'var(--text)')+'">'+(g.lv.size===2?'DUO':'TRIO')+' '+g.lv.km+' KM'+(g.complete?'':' - '+g.members.length+'/'+g.lv.size)+'</span>'
+          +'<span style="font-family:\'Bebas Neue\',sans-serif;font-size:1.05rem;letter-spacing:1px;color:'+(g.reached?'var(--green)':'var(--text)')+'">'+_tcFmtKm(g.total)+'<span style="font-size:.65rem;margin-left:.1rem">KM</span></span>'
+        +'</div>'
+        +g.members.slice().sort(function(a,b){return b.km-a.km;}).map(function(m){
+          return '<div style="display:flex;align-items:center;justify-content:space-between;gap:.4rem;padding:.1rem 0">'
+            +'<span style="display:flex;align-items:center;gap:.35rem;min-width:0">'+_squadAvatar(m,20)+_teamChallengeNameHtml(m)+'</span>'
+            +'<span style="flex-shrink:0;font-family:Space Mono,monospace;font-size:.68rem;color:'+(m.km>=minKm?'var(--green)':'var(--text)')+'">'+_tcFmtKm(m.km)+' km</span></div>';
+        }).join('')
+      +'</div>';
+    }).join('');
+}
 function _teamChallengeSquadBody(c){
   var ed=c.edition, s=c.squad;
   if(!ed||!s) return '<div style="text-align:center;color:var(--muted2);font-size:.85rem;padding:1.5rem 0">Aucun défi collectif en cours.</div>';
@@ -22588,6 +22610,7 @@ function _teamChallengeSquadBody(c){
           +'</div>';
           return groups+start;
         }).join('')
+        +_squadTeamGroupsHtml(c,null,true)
         +'</div>';
     }
     var lv2=my.lv, pct=Math.min(100,Math.round(100*my.total/lv2.km));
@@ -22608,7 +22631,8 @@ function _teamChallengeSquadBody(c){
       +'</div>'
       +'<div style="padding:.55rem .7rem;border-radius:9px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.3);font-size:.76rem;line-height:1.45;color:var(--text);margin-bottom:.7rem">'+msg+'</div>'
       +my.members.map(function(m){return _squadStatusRow(m,minKm);}).join('')+slots
-      +(ended?'':'<div style="text-align:center;margin-top:.55rem"><span onclick="squadLeave(\''+my.id+'\')" style="cursor:pointer;font-size:.7rem;color:var(--muted2);text-decoration:underline">Quitter mon groupe</span></div>');
+      +(ended?'':'<div style="text-align:center;margin-top:.55rem"><span onclick="squadLeave(\''+my.id+'\')" style="cursor:pointer;font-size:.7rem;color:var(--muted2);text-decoration:underline">Quitter mon groupe</span></div>')
+      +_squadTeamGroupsHtml(c,my.id,false);
   }
 
   // ── Onglet « Règles » (défaut) ── (textes validés par l'user le 13/10 : pas de récompenses ici)
