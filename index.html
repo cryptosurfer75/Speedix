@@ -22631,7 +22631,9 @@ function _teamChallengeSquadBody(c){
       +'</div>'
       +'<div style="padding:.55rem .7rem;border-radius:9px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.3);font-size:.76rem;line-height:1.45;color:var(--text);margin-bottom:.7rem">'+msg+'</div>'
       +my.members.map(function(m){return _squadStatusRow(m,minKm);}).join('')+slots
-      +(ended?'':'<div style="text-align:center;margin-top:.55rem"><span onclick="squadLeave(\''+my.id+'\')" style="cursor:pointer;font-size:.7rem;color:var(--muted2);text-decoration:underline">Quitter mon groupe</span></div>')
+      +(ended?'':(my.members.some(function(m){return m.pid===currentUser.id && m.km>0;})
+        ?'<div style="text-align:center;margin-top:.55rem;font-size:.68rem;color:var(--muted2)">Tu as déjà couru : ton groupe est verrouillé.</div>'
+        :'<div style="text-align:center;margin-top:.55rem"><span onclick="squadLeave(\''+my.id+'\')" style="cursor:pointer;font-size:.7rem;color:var(--muted2);text-decoration:underline">Quitter mon groupe</span></div>'))
       +_squadTeamGroupsHtml(c,my.id,false);
   }
 
