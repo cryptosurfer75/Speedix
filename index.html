@@ -25010,6 +25010,9 @@ async function renderChallenges(){
   // en mode 'events' — les Défis perso n'ont pas de notion de groupe.
   if(_CHALLENGES_TAB==='events'){
     var _evGroups={};
+    // Groupes dont la course porte le nom de la plus LONGUE distance (ex. « les 20 km de
+    // Montpellier ») : la carte affiche ce palier en premier, pas le plus petit.
+    var _EVENT_GROUP_MAIN_LAST={MONTPELLIER_2026:true};
     list=list.filter(function(b){
       if(!b.event_group) return true;
       (_evGroups[b.event_group]=_evGroups[b.event_group]||[]).push(b);
@@ -25023,7 +25026,7 @@ async function renderChallenges(){
       // groupe, seuls threshold_value/reward changent par membre).
       var earned=members.find(function(m){return !!unlockedMap[m.id];});
       var registered=members.find(function(m){return currentUser && localStorage.getItem('participated-'+m.id+'-'+currentUser.id)==='1';});
-      var rep=Object.assign({},earned||registered||members[0]);
+      var rep=Object.assign({},earned||registered||(_EVENT_GROUP_MAIN_LAST[k]?members[members.length-1]:members[0]));
       rep._groupMembers=members;
       rep._groupPicked=!!(earned||registered);
       list.push(rep);
@@ -26594,6 +26597,7 @@ function openEventDistancePicker(ids){
   if(!_badgesCatalog) return;
   var opts=ids.map(function(id){return _badgesCatalog.find(function(b){return b.id===id;});}).filter(Boolean)
     .sort(function(a,b){return (a.threshold_value||0)-(b.threshold_value||0);});
+  if(opts.length&&opts[0].event_group==='MONTPELLIER_2026') opts.reverse(); // la course s'appelle « 20 km de Montpellier » : 20 km en premier
   if(!opts.length) return;
   // Cadre du picker : rose de la médaille pour un groupe "durée" (2026-09-13,
   // demandé — le orange du 1er palier n'a aucun lien avec l'illustration),
