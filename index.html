@@ -22419,6 +22419,235 @@ function _teamChallengePartBody(c){
     +rowsHtml;
 }
 
+// ──────────────────────────────────────────────────────────────────────────
+// Défi « DUO / TRIO » (2026-10-13, metric 'squad'). Règle (MIROIR de
+// _resolve_squad_edition() / squad_level_info() en base -- garder synchro) : dans sa team, chaque RP
+// s'inscrit LUI-MÊME dans un groupe de 2 ou 3 d'un des 4 niveaux (rejoindre une place libre ou
+// démarrer un groupe, pas d'invitation). Un groupe COMPLET réussit si total de km >= objectif du
+// niveau ET chaque membre >= min_km_for_reward (5 km) sur la fenêtre. Classements séparés
+// Duos / Trios (toutes teams, blason de la team à côté), sans prix de podium.
+// ──────────────────────────────────────────────────────────────────────────
+var _SQUAD_LEVELS=[
+  {k:'duo_42',size:2,km:42,rpc:2100,nyx:8},{k:'trio_78',size:3,km:78,rpc:2600,nyx:10}
+];
+function _squadLevel(k){ return _SQUAD_LEVELS.find(function(l){return l.k===k;})||_SQUAD_LEVELS[0]; }
+function _squadLevelLabel(l){ return (l.size===2?'Duo':'Trio')+' '+l.km+' km'; }
+
+
+function _squadCompute(g,minKm){
+  g.complete=g.members.length===g.lv.size;
+  g.total=g.members.reduce(function(a,m){return a+m.km;},0);
+  g.okMin=g.members.length>0 && g.members.every(function(m){return m.km>=minKm;});
+  g.reached=g.complete && g.total>=g.lv.km && g.okMin;
+  g.free=g.lv.size-g.members.length;
+}
+async function _buildSquadData(edition,teamId){
+  var qs=await Promise.all([
+    supabaseClient.from('team_squads').select('id,team_id,level,created_by').eq('edition_id',edition.id),
+    supabaseClient.from('team_squad_members').select('squad_id,player_id,created_at').eq('edition_id',edition.id).order('created_at',{ascending:true}),
+    supabaseClient.from('team_members').select('player_id,joined_at').eq('team_id',teamId).eq('player_id',currentUser.id)
+  ]);
+  var squads=qs[0].data||[], members=qs[1].data||[], myRows=qs[2].data||[];
+  var ids=Array.from(new Set(members.map(function(m){return m.player_id;}))), info={}, kmBy={};
+  for(var i=0;i<ids.length;i+=150){
+    var chunk=ids.slice(i,i+150);
+    var {data:pl}=await supabaseClient.from('players').select('id,username,nat,avatar').in('id',chunk);
+    (pl||[]).forEach(function(p){info[p.id]=p;});
+    var {data:runs}=await supabaseClient.from('runs').select('player_id,distance')
+      .in('player_id',chunk).gte('run_date',edition.start_at).lt('run_date',edition.end_at);
+    (runs||[]).forEach(function(r){kmBy[r.player_id]=(kmBy[r.player_id]||0)+(r.distance||0);});
+  }
+  var tIds=Array.from(new Set(squads.map(function(s){return s.team_id;}).concat([teamId])));
+  var {data:tinfo}=await supabaseClient.from('teams').select('id,name,color,blason_index').in('id',tIds);
+  var teamById={}; (tinfo||[]).forEach(function(t){teamById[t.id]=t;});
+  var minKm=Number(edition.min_km_for_reward)||0;
+  var out=squads.map(function(s){
+    var ms=members.filter(function(m){return m.squad_id===s.id;}).map(function(m){
+      var pi=info[m.player_id]||{};
+      return {pid:m.player_id,name:pi.username||'RP',nat:pi.nat||null,avatar:pi.avatar||null,status:'accepted',km:kmBy[m.player_id]||0};
+    });
+    var g={id:s.id,tid:s.team_id,team:teamById[s.team_id],lv:_squadLevel(s.level),members:ms};
+    _squadCompute(g,minKm);
+    return g;
+  });
+  var mySquad=out.find(function(g){return g.members.some(function(m){return m.pid===currentUser.id;});})||null;
+  var meEligible=myRows.length>0 && new Date(myRows[0].joined_at).getTime()<new Date(edition.start_at).getTime();
+  return {minKm:minKm,squads:out,mySquad:mySquad,meEligible:meEligible,
+    allTeamsStats:[{team:teamById[teamId],teamSize:0,joinedIds:[],rows:[],totalCapped:0,progressPct:0,minOk:true}]};
+}
+
+// Avatar d'un RP (même rendu que les listes du défi collectif km : carré arrondi, initiale si pas d'image).
+function _squadAvatar(m,size){
+  size=size||24;
+  return m.avatar
+    ?'<img src="'+escapeHtml(m.avatar)+'" style="width:'+size+'px;height:'+size+'px;border-radius:6px;object-fit:cover;flex-shrink:0">'
+    :'<div style="width:'+size+'px;height:'+size+'px;border-radius:6px;background:rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;font-size:.6rem;font-weight:700;color:var(--muted2);flex-shrink:0">'+escapeHtml((m.name||'?').charAt(0).toUpperCase())+'</div>';
+}
+function _squadMemberLine(m,color){
+  return '<span style="display:flex;align-items:center;gap:.45rem;min-width:0">'+_squadAvatar(m,24)+_teamChallengeNameHtml(m,color)+'</span>';
+}
+// « Fin du défi dimanche 20h » (heure de Paris, lue sur end_at de l'édition).
+function _squadEndText(ed){
+  var d=new Date(ed.end_at);
+  var day=d.toLocaleDateString('fr-FR',{weekday:'long',timeZone:'Europe/Paris'});
+  var h=parseInt(d.toLocaleTimeString('fr-FR',{hour:'2-digit',hour12:false,timeZone:'Europe/Paris'}),10);
+  var m=parseInt(d.toLocaleTimeString('fr-FR',{minute:'2-digit',timeZone:'Europe/Paris'}),10);
+  return 'Fin du défi '+day+' '+h+'h'+(m?(m<10?'0':'')+m:'');
+}
+function _squadGroupNames(g){
+  return g.members.map(function(m){return escapeHtml(m.name);}).join(' + ');
+}
+// Onglet « Classement » : deux listes (Duos, Trios), blason de la team à côté, tri par km totaux.
+function _squadRankingBody(c){
+  var s=c.squad, minKm=s.minKm;
+  function section(size,titleHtml,empty){
+    var list=s.squads.filter(function(g){return g.lv.size===size && g.complete;}).sort(function(a,b){return b.total-a.total;});
+    var rows=list.length?list.map(function(g,i){
+      var col=g.team&&g.team.color?g.team.color:'var(--muted2)';
+      var mine=s.mySquad&&s.mySquad.id===g.id;
+      var lines=g.members.slice().sort(function(a,b){return b.km-a.km;}).map(function(m){
+        return '<div style="display:flex;align-items:center;justify-content:space-between;gap:.4rem;padding:.12rem 0">'
+          +'<span style="display:flex;align-items:center;gap:.35rem;min-width:0">'+_squadAvatar(m,20)+_teamChallengeNameHtml(m)+'</span>'
+          +'<span style="flex-shrink:0;font-family:Space Mono,monospace;font-size:.68rem;color:'+(m.km>=minKm?'var(--green)':'var(--text)')+'">'+_tcFmtKm(m.km)+' km</span>'
+        +'</div>';
+      }).join('');
+      var tot='<span style="flex-shrink:0;min-width:3.4rem;text-align:right;align-self:center;font-family:\'Bebas Neue\',sans-serif;font-size:1.25rem;letter-spacing:1px;line-height:1;color:'+(g.reached?'var(--green)':'var(--text)')+'">'+_tcFmtKm(g.total)+'<span style="font-size:.7rem;margin-left:.1rem">KM</span></span>';
+      return '<div style="padding:.5rem .6rem;border-radius:6px;border:1.5px solid '+(mine?'rgba(255,255,255,.65)':'rgba(255,255,255,.28)')+';background:var(--bg2);margin-bottom:.4rem">'
+        +'<div style="display:flex;align-items:center;gap:.55rem;margin-bottom:.4rem;padding-bottom:.4rem;border-bottom:1px solid rgba(255,255,255,.08)">'
+          +'<span style="color:var(--muted2);font-family:Space Mono,monospace;font-size:.72rem;min-width:1rem;flex-shrink:0">'+(i+1)+'</span>'
+          +(g.team?_teamChallengeBlasonHtml(g.team,28):'')
+          +'<span style="display:flex;flex-direction:column;min-width:0;line-height:1.25">'
+            +'<span style="font-size:.82rem;font-weight:700;color:'+_teamNameColor(col)+';text-transform:uppercase;letter-spacing:.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(g.team?escapeHtml(g.team.name):'Team')+'</span>'
+          +'</span>'
+        +'</div>'
+        +'<div style="display:flex;align-items:stretch;gap:.5rem">'
+          +'<div style="flex:1;min-width:0">'+lines+'</div>'
+          +tot
+        +'</div>'
+      +'</div>';
+    }).join(''):'<div style="text-align:center;color:var(--muted2);font-size:.75rem;padding:.6rem">'+empty+'</div>';
+    return '<div style="font-family:\'Bebas Neue\',sans-serif;font-size:1.05rem;letter-spacing:2px;color:var(--text);margin:.2rem 0 .35rem">'+titleHtml+'</div>'+rows;
+  }
+  return '<div id="tc-ranking-scroll" style="max-height:52vh;overflow-y:auto">'
+    +section(2,'DUO 42 KM','Aucun duo complet pour l\'instant.')+'<div style="height:.5rem"></div>'
+    +section(3,'<span style="color:var(--gold)">TRIO 78 KM</span>','Aucun trio complet pour l\'instant.')+'</div>';
+}
+function _squadStatusRow(m,minKm){
+  var kmTxt=_tcFmtKm(m.km)+' km';
+  var st=m.km>=minKm?kmTxt:(m.km>0?(kmTxt+' · min. '+minKm+' km'):'À faire courir');
+  var col=m.km>=minKm?'var(--green)':'var(--text)';
+  var isMe=m.pid===currentUser.id;
+  return '<div style="display:flex;align-items:center;justify-content:space-between;gap:.5rem;padding:.45rem .6rem;border-radius:6px;border:1px solid '+(isMe?'rgba(255,255,255,.65)':'rgba(255,255,255,.28)')+';background:rgba(255,255,255,.03);margin-bottom:.3rem;font-size:.75rem">'
+    +_squadMemberLine(m,isMe?'var(--gold)':'var(--text)')
+    +'<span style="color:'+col+';font-weight:700;flex-shrink:0;font-size:.72rem">'+st+'</span>'
+  +'</div>';
+}
+function _squadBtn(label,onclick,col,small){
+  col=col||'var(--green)';
+  return '<button onclick="'+onclick+'" style="'+(small?'flex-shrink:0;padding:.3rem .7rem;font-size:.9rem;':'width:100%;margin-top:.45rem;padding:.55rem;font-size:1.05rem;')+'border-radius:8px;border:1.5px solid '+col+';background:#0c0f1a;color:'+col+';font-family:\'Bebas Neue\',sans-serif;letter-spacing:2px;cursor:pointer">'+label+'</button>';
+}
+function _teamChallengeSquadBody(c){
+  var ed=c.edition, s=c.squad;
+  if(!ed||!s) return '<div style="text-align:center;color:var(--muted2);font-size:.85rem;padding:1.5rem 0">Aucun défi collectif en cours.</div>';
+  if(_teamChallengeTab==='ranking') return _squadRankingBody(c);
+  var ended=Date.now()>=new Date(ed.end_at).getTime();
+  var minKm=s.minKm, my=s.mySquad;
+  var head='<div style="text-align:center;margin-bottom:.6rem">'
+      +'<div style="font-family:\'Bebas Neue\',sans-serif;font-size:1.5rem;letter-spacing:3px;text-transform:uppercase;color:var(--text)">'+'DUO / <span style="color:var(--gold)">TRIO</span></div>'
+      +(_teamChallengeTab==='intro'?'':'<span style="color:var(--muted2);font-size:.7rem">'+_squadEndText(ed)+'</span>')
+    +'</div>';
+
+  // ── Onglet « Mon groupe » ──
+  if(_teamChallengeTab==='mine'){
+    if(!my){
+      if(!s.meEligible) return head+'<div style="padding:.65rem .75rem;border-radius:9px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.3);font-size:.76rem;line-height:1.5;color:var(--text);text-align:center">Tu as rejoint la team après le départ du défi : tu ne peux pas jouer cette fois.</div>';
+      if(ended) return head+'<div style="text-align:center;color:var(--muted2);font-size:.8rem;padding:1rem">Le défi est terminé.</div>';
+      // Choix du groupe : 4 niveaux, avec les groupes ouverts de MA team + « Démarrer un groupe ».
+      var myTid=c.myTeamId;
+      return head+'<div style="font-size:.74rem;color:var(--muted2);margin-bottom:.45rem;text-align:center">Rejoins un groupe de ta team :</div>'
+        +'<div style="max-height:max(150px,calc(85vh - 330px));overflow-y:auto">'
+        +_SQUAD_LEVELS.map(function(l){
+          var open=s.squads.filter(function(g){return g.tid===myTid && g.lv.k===l.k && !g.complete;});
+          var nm=(l.size===2?'DUO':'TRIO')+' - '+l.km+' KM';
+          var rw='<span style="font-size:.64rem;font-family:Space Mono,monospace;flex-shrink:0"><span style="color:var(--gold)">+'+l.rpc+' RPC</span> <span style="color:var(--green)">+'+l.nyx+' 💎</span></span>';
+          var cardOpen='<div style="padding:.5rem .6rem;border-radius:8px;border:1.5px solid rgba(255,255,255,.28);background:#0c0f1a;margin-bottom:.45rem">';
+          var groups=open.map(function(g){
+            return cardOpen
+              +'<div style="display:flex;align-items:baseline;justify-content:space-between;gap:.4rem;margin-bottom:.35rem">'
+                +'<span style="font-family:\'Bebas Neue\',sans-serif;font-size:1.1rem;letter-spacing:1.5px;color:var(--text)">'+nm+' - '+g.members.length+'/'+l.size+'</span>'+rw
+              +'</div>'
+              +g.members.map(function(m){return '<div style="padding:.2rem 0">'+_squadMemberLine(m)+'</div>';}).join('')
+              +'<div style="text-align:center">'+_squadBtn('Rejoindre','squadJoin(\''+l.k+'\',\''+g.id+'\')',null,true)+'</div>'
+            +'</div>';
+          }).join('');
+          var start=cardOpen
+            +'<div style="display:flex;align-items:baseline;justify-content:space-between;gap:.4rem;margin-bottom:.1rem">'
+              +'<span style="font-family:\'Bebas Neue\',sans-serif;font-size:1.1rem;letter-spacing:1.5px;color:var(--text)">'+nm+' - 0/'+l.size+'</span>'+rw
+            +'</div>'
+            +'<div style="text-align:center">'+_squadBtn('Rejoindre','squadJoin(\''+l.k+'\',null)',null,true)+'</div>'
+          +'</div>';
+          return groups+start;
+        }).join('')
+        +'</div>';
+    }
+    var lv2=my.lv, pct=Math.min(100,Math.round(100*my.total/lv2.km));
+    var msg;
+    if(!my.complete) msg='Il manque <b style="color:var(--gold)">'+my.free+' coéquipier'+(my.free>1?'s':'')+'</b> : préviens ta team, ils peuvent te rejoindre ici. Le groupe ne compte qu\'une fois complet.';
+    else if(my.reached) msg='<b style="color:var(--green)">🏁 Objectif atteint !</b> Récompense créditée à la fin du week-end.';
+    else if(ended) msg='Défi terminé : objectif non atteint cette fois. Rendez-vous au prochain défi !';
+    else if(!my.okMin && my.total>=lv2.km) msg='Total atteint, mais <b style="color:var(--gold)">chacun doit courir au moins '+minKm+' km</b>.';
+    else msg='Plus que <b style="color:var(--gold)">'+_tcFmtKm(Math.max(0,lv2.km-my.total))+' km</b> à courir ensemble (chacun '+minKm+' km minimum).';
+    var bar='<div style="width:100%;height:14px;border-radius:7px;background:rgba(255,255,255,.06);overflow:hidden;border:1px solid var(--border)"><div style="height:100%;width:'+pct+'%;background:var(--green);opacity:.85"></div></div>';
+    var slots='';
+    for(var f=0;f<my.free;f++) slots+='<div style="padding:.45rem .6rem;border-radius:6px;border:1px dashed rgba(255,255,255,.28);margin-bottom:.3rem;font-size:.72rem;color:var(--muted2);text-align:center">Place libre</div>';
+    return head
+      +'<div style="text-align:center;margin-bottom:.7rem">'
+        +'<div style="font-family:\'Bebas Neue\',sans-serif;font-size:1.15rem;letter-spacing:2px;color:var(--text)">'+(lv2.size===2?'DUO':'TRIO')+' - '+lv2.km+' KM - '+my.members.length+'/'+lv2.size+'</div>'
+        +'<div style="font-family:Space Mono,monospace;font-size:.8rem;color:var(--muted2);margin:.2rem 0 .3rem"><b style="color:var(--text)">'+_tcFmtKm(my.total)+'</b> / '+lv2.km+' km</div>'+bar
+        +'<div style="font-size:.66rem;font-family:Space Mono,monospace;margin-top:.3rem"><span style="color:var(--gold)">+'+lv2.rpc+' RPC</span> <span style="color:var(--green)">+'+lv2.nyx+' 💎</span> par membre</div>'
+      +'</div>'
+      +'<div style="padding:.55rem .7rem;border-radius:9px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.3);font-size:.76rem;line-height:1.45;color:var(--text);margin-bottom:.7rem">'+msg+'</div>'
+      +my.members.map(function(m){return _squadStatusRow(m,minKm);}).join('')+slots
+      +(ended?'':'<div style="text-align:center;margin-top:.55rem"><span onclick="squadLeave(\''+my.id+'\')" style="cursor:pointer;font-size:.7rem;color:var(--muted2);text-decoration:underline">Quitter mon groupe</span></div>');
+  }
+
+  // ── Onglet « Règles » (défaut) ── (textes validés par l'user le 13/10 : pas de récompenses ici)
+  var rules='<div style="padding:.6rem .55rem;border-radius:7px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.3);font-size:.68rem;color:var(--muted2);line-height:1.8;margin-bottom:.7rem">'
+    +'<div style="text-align:center;font-family:\'Bebas Neue\',sans-serif;font-size:1.25rem;letter-spacing:3px;color:var(--text);margin-bottom:.2rem">OBJECTIF</div>'
+    +'<div style="white-space:nowrap">• Valider la distance du défi ('+minKm+' km minimum par RP).</div>'
+    +'<div style="white-space:nowrap">• Choisis ton groupe et la distance.</div>'
+    +'<div style="white-space:nowrap">• Pour débuter, le groupe doit être complet.</div>'
+    +'<div style="white-space:nowrap">• Classement par groupe et par défi.</div>'
+    +'<div style="white-space:nowrap">• Bonus pour le meilleur groupe en distance cumulée <b style="color:var(--green)">+5 NYX</b></div>'
+    +'<div style="white-space:nowrap">• '+_squadEndText(ed)+'</div>'
+    +'<div style="white-space:nowrap">• Solidarité et cohésion à l\'intérieur de la team 🤜 🤛</div>'
+    +'<div style="text-align:center;color:var(--text);font-weight:700;margin-top:.35rem">Bon défi à tous et bonne stratégie de groupe 😉</div>'
+  +'</div>';
+  var cta='';
+  if(!s.meEligible) cta='<div style="text-align:center;font-size:.76rem;color:var(--muted2);line-height:1.5;padding:.4rem .2rem">Tu as rejoint la team après le départ du défi : tu ne comptes pas cette fois.</div>';
+  else if(my) cta='<div style="text-align:center;font-size:.8rem;color:var(--green);font-weight:700;padding:.3rem">✓ Tu es dans un groupe (voir « Mon groupe »)</div>';
+  else if(!ended) cta=_squadBtn('Choisir mon groupe','squadGoMine()');
+  return head+rules+cta;
+}
+
+function squadGoMine(){ _teamChallengeTab='mine'; _renderTeamChallengeModal(); }
+async function squadJoin(level,squadId){
+  var c=_teamChallengeCache; if(!c||!c.edition) return;
+  var {error}=await supabaseClient.rpc('squad_join',{p_edition:c.edition.id,p_level:level,p_squad:squadId||null});
+  if(error){ showToast('⚠️ '+(error.message||'Impossible de rejoindre')); await openTeamWeekendChallenge(); _teamChallengeTab='mine'; _renderTeamChallengeModal(); return; }
+  showToast('✅ Tu es dans le groupe !');
+  await openTeamWeekendChallenge();
+  _teamChallengeTab='mine'; _renderTeamChallengeModal();
+}
+async function squadLeave(id){
+  if(!confirm('Quitter ce groupe ? Ta place sera libérée.')) return;
+  var {error}=await supabaseClient.rpc('squad_leave',{p_squad:id});
+  if(error){ showToast('⚠️ '+(error.message||'Erreur')); return; }
+  showToast('Tu as quitté le groupe.');
+  await openTeamWeekendChallenge();
+  _teamChallengeTab='mine'; _renderTeamChallengeModal();
+}
+
 async function openTeamWeekendChallenge(){
   if(!currentUser){ showToast('Connecte-toi pour participer.'); return; }
   var {data:myMembership}=await supabaseClient.from('team_members')
@@ -22459,7 +22688,12 @@ async function openTeamWeekendChallenge(){
     partData=await _buildTeamParticipationData(edition,teamId);
     allTeamsStats=partData.allTeamsStats; capKm=Infinity;
   }
-  if(edition && !partData){
+  var squadData=null;
+  if(edition && edition.metric==='squad'){
+    squadData=await _buildSquadData(edition,teamId);
+    allTeamsStats=squadData.allTeamsStats; capKm=Infinity;
+  }
+  if(edition && !partData && !squadData){
     capKm=_tcCap(edition);
 
     // Inscrits À CETTE ÉDITION, toutes teams confondues (2026-09-25, demande
@@ -22527,7 +22761,7 @@ async function openTeamWeekendChallenge(){
     allTeamsStats=teamIdsInvolved.map(buildTeamStats).sort(function(a,b){return b.totalCapped-a.totalCapped;});
   }
 
-  _teamChallengeCache={myTeamId:teamId, edition:edition, capKm:capKm, allTeamsStats:allTeamsStats, part:partData,
+  _teamChallengeCache={myTeamId:teamId, edition:edition, capKm:capKm, allTeamsStats:allTeamsStats, part:partData, squad:squadData,
     successCount:successCount||0, failedCount:failedCount||0, history:historyRows};
   _teamChallengeTab='intro';
   _teamChallengeHistoryOpen=false;
@@ -22547,7 +22781,7 @@ async function openTeamWeekendChallenge(){
 // onglet actuel et voit juste le message d'incitation standard du jeu.
 function switchTeamChallengeTab(tab){
   if(tab==='ranking' && !isPremium()){
-    showPremiumGate((_teamChallengeCache&&_teamChallengeCache.edition&&_teamChallengeCache.edition.metric==='participation')?'La progression de toutes les teams est réservée au Premium.':'Le classement de toutes les teams est réservé au Premium.');
+    showPremiumGate((_teamChallengeCache&&_teamChallengeCache.edition&&_teamChallengeCache.edition.metric==='squad')?'Le classement des duos et des trios est réservé au Premium.':(_teamChallengeCache&&_teamChallengeCache.edition&&_teamChallengeCache.edition.metric==='participation')?'La progression de toutes les teams est réservée au Premium.':'Le classement de toutes les teams est réservé au Premium.');
     return;
   }
   _teamChallengeTab=tab;
@@ -22696,9 +22930,10 @@ function _renderTeamChallengeModal(){
     +'</div>';
   }
   var _isPart=!!(edition && edition.metric==='participation');
+  var _isSquad=!!(edition && edition.metric==='squad');
   var tabsHtml='<div style="display:flex;gap:.5rem;margin-top:.8rem">'
-    +(_isPart?_teamChallengeTabBtn('intro','Règles',false):'')
-    +_teamChallengeTabBtn('mine','Ma team',false)
+    +((_isPart||_isSquad)?_teamChallengeTabBtn('intro','Règles',false):'')
+    +_teamChallengeTabBtn('mine',_isSquad?'Mon groupe':'Ma team',false)
     +(_isPart?_teamChallengeTabBtn('ranking','Progression',!isPremium()):_teamChallengeTabBtn('ranking','Classement',!isPremium()))
     +'</div>';
 
@@ -22738,7 +22973,9 @@ function _renderTeamChallengeModal(){
 
   var bodyHtml='';
 
-  if(_isPart){
+  if(_isSquad){
+    bodyHtml=_teamChallengeSquadBody(c);
+  } else if(_isPart){
     bodyHtml=_teamChallengePartBody(c);
   } else if(_teamChallengeTab==='ranking'){
     // Liste enveloppée dans son propre scroll (max-height, cf. _renderEventRanking)
