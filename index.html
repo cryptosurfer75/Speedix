@@ -29287,18 +29287,18 @@ if ('serviceWorker' in navigator) {
 
 // Constitue une partie où la difficulté monte avec l'échelle de gains (très facile → dur).
 // Un seul aller-retour réseau : la fonction pioche les 12 questions dans l'ordre du plan.
-async function pickRound(){
+async function startServerRound(){
   const n = CONFIG.questionsPerRound;
   const plan = (CONFIG.diffPlan && CONFIG.diffPlan.length===n) ? CONFIG.diffPlan
              : Array.from({length:n},(_,i)=> i < n*0.3 ? 1 : i < n*0.7 ? 2 : 3);
   try{
-    const {data,error} = await supabaseClient.rpc('cashrun_pick_round', {p_player_id: CU().id, p_diff_plan: plan});
+    const {data,error} = await supabaseClient.rpc('cashrun_start_round', {p_player_id: CU().id, p_diff_plan: plan});
     if(error) throw error;
-    if(!data || !data.length) throw new Error('empty pick');
-    return data.sort((x,y)=>x.pos-y.pos).map(r=>({id:r.id, cat:r.cat, q:r.q, a:r.a, q_en:r.q_en, a_en:r.a_en}));
+    if(!data || !data.round_id || !data.questions || !data.questions.length) throw new Error('empty round');
+    return {roundId:data.round_id, questions:data.questions.sort((x,y)=>x.pos-y.pos).map(r=>({id:r.id, cat:r.cat, q:r.q, a:r.a, q_en:r.q_en, a_en:r.a_en}))};
   }catch(e){
-    console.warn('cashrun_pick_round fail', e);
-    return null;
+    console.warn('cashrun_start_round fail', e);
+    return {error:String((e&&e.message)||e)};
   }
 }
 
@@ -29337,16 +29337,6 @@ const nowDate = () => new Date();
 const CU = () => (typeof currentUser!=='undefined' && currentUser) ? currentUser : {};
 const cooldownMs = () => ((typeof isPremium==='function' && isPremium())?CONFIG.cooldownPremiumHours:CONFIG.cooldownFreeHours)*3600000;
 function crMonthKey(){ const d=nowDate(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'); }
-// PATCH direct de la ligne players (mêmes en-têtes que le reste de l'appli)
-async function crPatch(fields){
-  try{
-    await window.fetch(supabaseUrl+'/rest/v1/players?id=eq.'+encodeURIComponent(CU().id),{
-      method:'PATCH',
-      headers:{'apikey':supabaseKey,'Authorization':'Bearer '+(window.__sessionToken||supabaseKey),'Content-Type':'application/json'},
-      body:JSON.stringify(fields)
-    });
-  }catch(e){ console.warn('cashrun patch fail',e); }
-}
 // Recharge les colonnes cashrun_* sur currentUser à l'ouverture de la page
 async function loadCashrunData(){
   if(!CU().id) return;
@@ -29389,7 +29379,7 @@ const LEVELS = [
 
 function todayStr(){ const d=nowDate(); return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate(); }
 function getPlays(){ const t=CU().cashrun_last_played_at; return {last: t ? new Date(t).getTime() : 0}; }
-function savePlays(p){ const iso=new Date(p.last).toISOString(); CU().cashrun_last_played_at=iso; crPatch({cashrun_last_played_at:iso}); updateBadge(); }
+function savePlays(p){ const iso=new Date(p.last).toISOString(); CU().cashrun_last_played_at=iso; updateBadge(); }   // local seulement : écrit côté serveur par cashrun_start_round
 // Pastille verte sur le bouton Cash Run de la carte joueur : visible dès qu'une
 // nouvelle partie est dispo (cooldown écoulé ou jamais joué), masquée sinon.
 function updateBadge(){
@@ -29446,39 +29436,6 @@ function currentStreak(){                           // série affichée (cassée
   const u=CU(); if(!u.cashrun_last_day) return 0;
   const last=crDayMs(u.cashrun_last_day);
   return Math.round((dayStartMs()-last)/86400000)<=1 ? (u.cashrun_streak||0) : 0;
-}
-// Fin de partie : on crédite le VRAI solde (walletCredit) puis on met à jour les agrégats Cash Run.
-async function recordWinnings(rpc,nyx,perfect,asked,good){
-  const u=CU(), mk=crMonthKey();
-  if((rpc>0||nyx>0) && typeof walletCredit==='function'){
-    await walletCredit(rpc, nyx, 'Cash Run');       // crédite rpc_balance + nyx_balance + wallet_tx
-  }
-  // ⚠️ ANTI-ÉCRASEMENT (bug Laura Q-Runner 2026-06-09) : cette fonction fait un
-  // read-modify-write. Si la mémoire (currentUser) avait perdu les colonnes cashrun_*
-  // (ex. rechargement des joueurs sans ces colonnes entre l'ouverture et la fin de partie),
-  // on réécrirait TOUT comme une 1re partie (games→1, total→dernier gain, série→1).
-  // On RELIT donc toujours les vraies valeurs en base juste avant de calculer → on
-  // additionne sur la vérité DB, jamais sur une mémoire potentiellement vide.
-  try{
-    const {data:fresh}=await supabaseClient.from('players')
-      .select('cashrun_total_rpc,cashrun_month_rpc,cashrun_month,cashrun_jackpots,cashrun_month_jackpots,cashrun_games,cashrun_month_games,cashrun_q_asked,cashrun_q_good')
-      .eq('id',u.id).maybeSingle();
-    if(fresh) Object.assign(u, fresh);
-  }catch(e){ console.warn('recordWinnings refresh fail',e); }
-  const sameMonth=(u.cashrun_month===mk);           // reset auto au changement de mois
-  const fields={
-    cashrun_total_rpc:(u.cashrun_total_rpc||0)+rpc,
-    cashrun_month_rpc:(sameMonth?(u.cashrun_month_rpc||0):0)+rpc,
-    cashrun_month:mk,
-    cashrun_jackpots:(u.cashrun_jackpots||0)+(perfect?1:0),
-    cashrun_month_jackpots:(sameMonth?(u.cashrun_month_jackpots||0):0)+(perfect?1:0),
-    cashrun_games:(u.cashrun_games||0)+1,
-    cashrun_month_games:(sameMonth?(u.cashrun_month_games||0):0)+1,   // parties DU MOIS (reset auto à la rotation, comme les RPC)
-    cashrun_q_asked:(u.cashrun_q_asked||0)+(asked||0),
-    cashrun_q_good:(u.cashrun_q_good||0)+(good||0)
-  };
-  Object.assign(u, fields);
-  await crPatch(fields);
 }
 function levelFor(rpc){ let idx=0; for(let i=0;i<LEVELS.length;i++) if(rpc>=LEVELS[i].min) idx=i;
   return {idx,name:LEVELS[idx].name,min:LEVELS[idx].min,next:LEVELS[idx+1]||null}; }
@@ -29661,17 +29618,23 @@ async function startRound(){
   startingRound=true;
   const btns=[$('t-play'),$('e-replay')].filter(Boolean);
   btns.forEach(b=>b.disabled=true);
-  const questions = await pickRound();                          // difficulté croissante : facile → dur, jamais déjà vu
+  const started = await startServerRound();                     // SERVEUR : tirage + manche + cooldown (8h Premium / 12h Free) en un seul appel
   btns.forEach(b=>b.disabled=false);
   startingRound=false;
-  if(!questions){                                                // tirage en base indisponible : ne rien consommer (pas de cooldown perdu)
-    alert(lang==='fr' ? "Connexion instable, réessaie dans un instant." : "Unstable connection, try again in a moment.");
+  if(started.error){
+    if(/cooldown/i.test(started.error)){                         // le serveur refuse : délai pas écoulé
+      alert(lang==='fr' ? "Ta prochaine partie n'est pas encore disponible." : "Your next round is not available yet.");
+      await loadCashrunData(); paintStart(); show('s-start');
+    } else {
+      alert(lang==='fr' ? "Connexion instable, réessaie dans un instant." : "Unstable connection, try again in a moment.");
+    }
     return;
   }
-  savePlays({last:now()});                                     // démarre le cooldown (8h Premium / 12h Free)
+  const questions = started.questions;
+  savePlays({last:now()});                                     // affichage local du cooldown (la vraie valeur est posée par le serveur)
   bumpStreak();                                                 // série de jours consécutifs
   clearInterval(timerId); clearInterval(cdId);
-  S={ questions,
+  S={ questions, roundId:started.roundId,
       qIndex:0, chain:0, bank:0, bankNyx:0, locked:false,
       asked:0, good:0,                                          // compteurs précision
       endTs: now()+CONFIG.roundSeconds*1000 };
@@ -29719,41 +29682,49 @@ function renderQuestion(){
   saveRound();   // checkpoint propre : reprise possible si l'app se recharge ici
 }
 
-// La bonne réponse n'est JAMAIS envoyée au client avant que le joueur ait répondu :
-// le verdict (bon/faux) vient du serveur (cashrun_check_answer), qui ne compte qu'UNE réponse par question.
+// SERVEUR-AUTORITAIRE : la bonne réponse n'est JAMAIS envoyée au client avant que le joueur ait
+// répondu, et c'est le serveur (cashrun_answer) qui tient l'échelle, la banque et le chrono.
+// Le client ne fait qu'afficher ce que le serveur renvoie.
 async function answer(btn,choice){
   if(S.locked) return;
   S.locked=true;
   $('g-bank').disabled=true;
   document.querySelectorAll('#cr-app .ans').forEach(a=>a.classList.add('disabled'));
   const q0=S.questions[S.qIndex];
-  let correct=false, goodIdx=null;
+  let r=null;
   try{
-    const {data,error}=await supabaseClient.rpc('cashrun_check_answer',{p_player_id:CU().id,p_question_id:q0.id,p_choice:choice});
+    const {data,error}=await supabaseClient.rpc('cashrun_answer',{p_round_id:S.roundId,p_question_id:q0.id,p_choice:choice});
     if(error) throw error;
-    const r=Array.isArray(data)?data[0]:data;
+    r=data;
     if(!r) throw new Error('no verdict');
-    correct=!!r.correct; goodIdx=(r.c===null||r.c===undefined)?null:r.c;
   }catch(e){
-    console.warn('cashrun_check_answer fail', e);
-    // Réseau coupé : on rend la main (le chrono continue, une seule réponse sera comptée côté serveur)
-    S.locked=false;
+    console.warn('cashrun_answer fail', e);
+    S.locked=false;                        // réseau coupé : on rend la main, le serveur ne comptera qu'une réponse
     document.querySelectorAll('#cr-app .ans').forEach(a=>a.classList.remove('disabled'));
     $('g-bank').disabled = pot()===0;
     $('g-hint').textContent = lang==='fr' ? "Connexion instable, réessaie." : "Unstable connection, try again.";
     return;
   }
-  if(S.ended) return;                    // le chrono a clos la manche pendant l'aller-retour
-  S.asked++; if(correct) S.good++;        // précision : 1 question posée, +1 si bonne
+  if(r.error){                             // manche close / chrono dépassé / réponse déjà comptée
+    if(S.ended) return;
+    if(r.error==='order'){                 // déjà comptée côté serveur : on se recale dessus et on passe à la suite
+      S.asked=r.asked; S.good=r.good; S.chain=r.chain; S.bank=r.bank; S.bankNyx=r.bank_nyx; paintLadder();
+      nextQuestion(); return;
+    }
+    endRound('time', r.result); return;
+  }
+  if(S.ended) return;
+  const correct=!!r.correct, goodIdx=(r.c===null||r.c===undefined)?null:r.c;
+  S.asked=r.asked; S.good=r.good;
   if(correct){
     btn.classList.add('correct');
-    if(S.chain < CONFIG.ladder.length) S.chain++;   // monte d'un palier, sans dépasser le sommet (10 paliers)
+    S.chain=r.chain;
     paintLadder();
     document.querySelector('#cr-app .chip.active')?.classList.add('pop');
     setTimeout(()=>{
-      if(S.chain>=CONFIG.ladder.length){            // sommet atteint → on arrête la manche tout de suite
-        S.bank+=pot(); S.bankNyx+=potNyx(); paintLadder();
-        endRound('done');                            // SEUL cas du pop-up "Félicitations" ; le chrono s'arrête
+      if(r.finished){                               // sommet atteint ('done') ou 12 questions ('finish') : le serveur a clos et crédité
+        S.bank=r.bank; S.bankNyx=r.bank_nyx; paintLadder();
+        endRound(r.reason, r.result);
         return;
       }
       $('g-hint').innerHTML=T[lang].hintAfter(pot());
@@ -29761,32 +29732,45 @@ async function answer(btn,choice){
     },CONFIG.feedbackMs);
   }else{
     btn.classList.add('wrong');
-    // révèle la bonne
-    const q=S.questions[S.qIndex];
-    const ansSrc = lang==='en'&&q.a_en ? q.a_en : q.a;
+    // révèle la bonne (renvoyée par le serveur seulement APRÈS la réponse)
+    const ansSrc = lang==='en'&&q0.a_en ? q0.a_en : q0.a;
     document.querySelectorAll('#cr-app .ans').forEach(a=>{
       if(goodIdx!==null && a.querySelector('.lab').textContent===ansSrc[goodIdx]) a.classList.add('correct');
     });
     S.chain=0;                       // mauvaise réponse → l'échelle redescend à zéro (cagnotte non encaissée perdue)
     paintLadder();
     $('g-hint').innerHTML='';        // pas de message : le vert/rouge sur les réponses suffit
-    setTimeout(nextQuestion,CONFIG.feedbackMs+300); // la manche continue jusqu'aux 12 questions / la minute
+    setTimeout(()=>{
+      if(r.finished){ S.bank=r.bank; S.bankNyx=r.bank_nyx; endRound(r.reason, r.result); return; }
+      nextQuestion();
+    },CONFIG.feedbackMs+300); // la manche continue jusqu'aux 12 questions / la minute
   }
 }
 // Passe à la question suivante ; clôt la manche seulement si toutes les questions sont posées
 function nextQuestion(){
   S.qIndex++;
-  if(S.qIndex>=CONFIG.questionsPerRound){            // 12 questions posées sans atteindre le sommet : on sécurise le pot en cours
-    S.bank+=pot(); S.bankNyx+=potNyx(); S.chain=0; paintLadder();
-    endRound('finish');                              // écran de fin classique (pas le pop-up jackpot)
+  if(S.qIndex>=CONFIG.questionsPerRound){            // filet : le serveur a déjà clos à la 12e réponse (endRound relit son verdict)
+    endRound('finish');
   } else renderQuestion();
 }
 
-function doBank(){
+async function doBank(){
   if(S.locked||pot()===0) return;
-  S.bank+=pot();
-  S.bankNyx+=potNyx();
-  S.chain=0;
+  S.locked=true;                                      // anti double-clic pendant l'aller-retour serveur
+  $('g-bank').disabled=true;
+  try{
+    const {data,error}=await supabaseClient.rpc('cashrun_bank',{p_round_id:S.roundId});
+    if(error) throw error;
+    if(!data) throw new Error('no bank');
+    if(data.error){ S.locked=false; if(!S.ended) endRound('time', data.result); return; }
+    S.bank=data.bank; S.bankNyx=data.bank_nyx; S.chain=data.chain;   // verdict du serveur
+  }catch(e){
+    console.warn('cashrun_bank fail', e);
+    S.locked=false; $('g-bank').disabled = pot()===0;
+    $('g-hint').textContent = lang==='fr' ? "Connexion instable, réessaie." : "Unstable connection, try again.";
+    return;
+  }
+  S.locked=false;
   paintLadder();
   $('chip-bank').classList.add('pop');
   setTimeout(()=>$('chip-bank').classList.remove('pop'),400);
@@ -29802,7 +29786,7 @@ function amountHtml(total){
   return fmt(total)+' '+CONFIG.currency
     + (S.bankNyx>0 ? ` <span class="nyx" style="font-size:.6em">+${S.bankNyx} NYX ◆</span>` : '');
 }
-function endRound(reason){
+async function endRound(reason, serverResult){
   // ⚠️ GARDE ANTI-DOUBLE-CRÉDIT (bug Gaby34/Anna 2026-07-01) : endRound peut être appelé
   // 2× quasi simultanément — course entre le tick() du chrono qui tombe à 0 et le
   // setTimeout(feedbackMs) de answer()/nextQuestion(). Sans garde, recordWinnings tournait
@@ -29813,8 +29797,18 @@ function endRound(reason){
   clearInterval(timerId);
   clearRound();                 // manche terminée → plus rien à reprendre (évite tout re-crédit)
   const tr=T[lang];
+  // Le SERVEUR crédite et met à jour les stats (idempotent : si la manche est déjà close on relit son verdict).
+  // Si l'appel échoue (réseau), le balai serveur (cron) clôt et crédite la manche dans les 5 min.
+  let res=serverResult||null;
+  if(!res){
+    try{
+      const {data}=await supabaseClient.rpc('cashrun_end_round',{p_round_id:S.roundId});
+      res=data||null;
+    }catch(e){ console.warn('cashrun_end_round fail', e); }
+  }
+  if(res){ S.bank=res.rpc; S.bankNyx=res.nyx; if(res.reason==='done') reason='done'; }
   const total=S.bank;
-  recordWinnings(total, S.bankNyx, reason==='done', S.asked, S.good);   // 'done' = échelle complète parfaite
+  try{ if(typeof walletLoad==='function') walletLoad(); loadCashrunData(); }catch(e){}   // resynchronise solde + stats sur la vraie base
   // Filet de sécurité série : la journée est validée dès le LANCEMENT (startRound),
   // mais si cet appel avait échoué (coupure réseau), on revalide ici en fin de partie.
   // La fonction base est idempotente (même jour → diff=0 → ne change rien) : aucune
@@ -30003,7 +29997,8 @@ function resumeRound(o){
 function __crOpen(){
   lang=(typeof SPEEDIX_LANG!=='undefined'?SPEEDIX_LANG:'fr');
   loadCashrunData().then(function(){
-    const o=loadRound();                 // une manche a-t-elle été interrompue (mise à jour) ?
+    let o=loadRound();                   // une manche a-t-elle été interrompue (mise à jour) ?
+    if(o && !o.S.roundId){ clearRound(); o=null; }   // ancienne manche sans identifiant serveur : rien à reprendre
     if(o){
       if(now() < o.S.endTs){ resumeRound(o); return; }   // il reste du temps → on reprend où on en était
       // temps déjà écoulé pendant l'absence → on clôt la manche en sécurisant l'acquis (pas de cooldown perdu pour rien)
