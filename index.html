@@ -29295,7 +29295,7 @@ async function pickRound(){
     const {data,error} = await supabaseClient.rpc('cashrun_pick_round', {p_player_id: CU().id, p_diff_plan: plan});
     if(error) throw error;
     if(!data || !data.length) throw new Error('empty pick');
-    return data.sort((x,y)=>x.pos-y.pos).map(r=>({cat:r.cat, q:r.q, a:r.a, q_en:r.q_en, a_en:r.a_en, c:r.c}));
+    return data.sort((x,y)=>x.pos-y.pos).map(r=>({id:r.id, cat:r.cat, q:r.q, a:r.a, q_en:r.q_en, a_en:r.a_en}));
   }catch(e){
     console.warn('cashrun_pick_round fail', e);
     return null;
@@ -29710,7 +29710,7 @@ function renderQuestion(){
     const b=document.createElement('button');
     b.className='ans';
     b.innerHTML=`<span class="key">${keys[pos]}</span><span class="lab">${ansSrc[origIdx]}</span>`;
-    b.onclick=()=>answer(b,origIdx===q.c);
+    b.onclick=()=>answer(b,origIdx);
     wrap.appendChild(b);
   });
   // bouton banque dispo seulement s'il y a une cagnotte à sécuriser
@@ -29719,12 +29719,32 @@ function renderQuestion(){
   saveRound();   // checkpoint propre : reprise possible si l'app se recharge ici
 }
 
-function answer(btn,correct){
+// La bonne réponse n'est JAMAIS envoyée au client avant que le joueur ait répondu :
+// le verdict (bon/faux) vient du serveur (cashrun_check_answer), qui ne compte qu'UNE réponse par question.
+async function answer(btn,choice){
   if(S.locked) return;
   S.locked=true;
-  S.asked++; if(correct) S.good++;        // précision : 1 question posée, +1 si bonne
   $('g-bank').disabled=true;
   document.querySelectorAll('#cr-app .ans').forEach(a=>a.classList.add('disabled'));
+  const q0=S.questions[S.qIndex];
+  let correct=false, goodIdx=null;
+  try{
+    const {data,error}=await supabaseClient.rpc('cashrun_check_answer',{p_player_id:CU().id,p_question_id:q0.id,p_choice:choice});
+    if(error) throw error;
+    const r=Array.isArray(data)?data[0]:data;
+    if(!r) throw new Error('no verdict');
+    correct=!!r.correct; goodIdx=(r.c===null||r.c===undefined)?null:r.c;
+  }catch(e){
+    console.warn('cashrun_check_answer fail', e);
+    // Réseau coupé : on rend la main (le chrono continue, une seule réponse sera comptée côté serveur)
+    S.locked=false;
+    document.querySelectorAll('#cr-app .ans').forEach(a=>a.classList.remove('disabled'));
+    $('g-bank').disabled = pot()===0;
+    $('g-hint').textContent = lang==='fr' ? "Connexion instable, réessaie." : "Unstable connection, try again.";
+    return;
+  }
+  if(S.ended) return;                    // le chrono a clos la manche pendant l'aller-retour
+  S.asked++; if(correct) S.good++;        // précision : 1 question posée, +1 si bonne
   if(correct){
     btn.classList.add('correct');
     if(S.chain < CONFIG.ladder.length) S.chain++;   // monte d'un palier, sans dépasser le sommet (10 paliers)
@@ -29745,7 +29765,7 @@ function answer(btn,correct){
     const q=S.questions[S.qIndex];
     const ansSrc = lang==='en'&&q.a_en ? q.a_en : q.a;
     document.querySelectorAll('#cr-app .ans').forEach(a=>{
-      if(a.querySelector('.lab').textContent===ansSrc[q.c]) a.classList.add('correct');
+      if(goodIdx!==null && a.querySelector('.lab').textContent===ansSrc[goodIdx]) a.classList.add('correct');
     });
     S.chain=0;                       // mauvaise réponse → l'échelle redescend à zéro (cagnotte non encaissée perdue)
     paintLadder();
