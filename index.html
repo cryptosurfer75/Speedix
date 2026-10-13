@@ -22591,7 +22591,7 @@ function _teamChallengeSquadBody(c){
         +_SQUAD_LEVELS.map(function(l){
           var open=s.squads.filter(function(g){return g.tid===myTid && g.lv.k===l.k && !g.complete;});
           var nm=(l.size===2?'DUO':'TRIO')+' - '+l.km+' KM';
-          var rw='<span style="font-size:.64rem;font-family:Space Mono,monospace;flex-shrink:0"><span style="color:var(--gold)">+'+l.rpc+' RPC</span> <span style="color:var(--green)">+'+l.nyx+' 💎</span></span>';
+          var rw='<span style="font-size:.64rem;font-family:Space Mono,monospace;flex-shrink:0"><span style="color:var(--gold)">+'+l.rpc+' RPC</span> <span style="color:var(--green)">+'+l.nyx+' 💎</span> <span style="color:var(--muted2)">/ RP</span></span>';
           var cardOpen='<div style="padding:.5rem .6rem;border-radius:8px;border:1.5px solid rgba(255,255,255,.28);background:#0c0f1a;margin-bottom:.45rem">';
           var groups=open.map(function(g){
             return cardOpen
@@ -22627,7 +22627,7 @@ function _teamChallengeSquadBody(c){
       +'<div style="text-align:center;margin-bottom:.7rem">'
         +'<div style="font-family:\'Bebas Neue\',sans-serif;font-size:1.15rem;letter-spacing:2px;color:var(--text)">'+(lv2.size===2?'DUO':'TRIO')+' - '+lv2.km+' KM - '+my.members.length+'/'+lv2.size+'</div>'
         +'<div style="font-family:Space Mono,monospace;font-size:.8rem;color:var(--muted2);margin:.2rem 0 .3rem"><b style="color:var(--text)">'+_tcFmtKm(my.total)+'</b> / '+lv2.km+' km</div>'+bar
-        +'<div style="font-size:.66rem;font-family:Space Mono,monospace;margin-top:.3rem"><span style="color:var(--gold)">+'+lv2.rpc+' RPC</span> <span style="color:var(--green)">+'+lv2.nyx+' 💎</span> par membre</div>'
+        +'<div style="font-size:.66rem;font-family:Space Mono,monospace;margin-top:.3rem"><span style="color:var(--gold)">+'+lv2.rpc+' RPC</span> <span style="color:var(--green)">+'+lv2.nyx+' 💎</span> / RP</div>'
       +'</div>'
       +'<div style="padding:.55rem .7rem;border-radius:9px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.3);font-size:.76rem;line-height:1.45;color:var(--text);margin-bottom:.7rem">'+msg+'</div>'
       +my.members.map(function(m){return _squadStatusRow(m,minKm);}).join('')+slots
@@ -22644,7 +22644,7 @@ function _teamChallengeSquadBody(c){
     +'<div style="white-space:nowrap">• Choisis ton groupe et la distance.</div>'
     +'<div style="white-space:nowrap">• Pour débuter, le groupe doit être complet.</div>'
     +'<div style="white-space:nowrap">• Classement par groupe et par défi.</div>'
-    +'<div style="white-space:nowrap">• Bonus pour le meilleur groupe en distance cumulée <b style="color:var(--green)">+5 NYX</b></div>'
+    +'<div style="white-space:nowrap">• Bonus pour le meilleur groupe en distance cumulée <b style="color:var(--green)">+5 NYX / RP</b></div>'
     +'<div style="white-space:nowrap">• '+_squadEndText(ed)+'</div>'
     +'<div style="white-space:nowrap">• Solidarité et cohésion à l\'intérieur de la team 🤜 🤛</div>'
     +'<div style="text-align:center;color:var(--text);font-weight:700;margin-top:.35rem">Bon défi à tous et bonne stratégie de groupe 😉</div>'
