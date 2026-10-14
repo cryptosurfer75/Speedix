@@ -14225,7 +14225,7 @@ async function _processEndOfPeriodInner(){
           for(var mi=0; mi<teamMembers.length; mi++){
             var tmm=teamMembers[mi];
             try {
-              var _pptOk=await walletCreditOther(tmm.player_id, rpcPerMember, nyxPerMember, 'Prize pool team #'+(pi+1)+' P'+_periodData.period+' — '+winnerTeam.name);
+              var _pptOk=await rotationCredit(tmm.player_id, rpcPerMember, nyxPerMember, 'Prize pool team #'+(pi+1)+' P'+_periodData.period+' — '+winnerTeam.name);
               if(!_pptOk) console.error('[rotation] ÉCHEC crédit prize pool team, joueur '+tmm.player_id+' — non versé');
             } catch(eppt){ console.warn('[rotation] prize pool team RP '+tmm.player_id+' :', eppt); }
           }
@@ -14425,7 +14425,7 @@ async function _processEndOfPeriodInner(){
       for(var ri=startR-1;ri<Math.min(endR,ppPlayers.length);ri++){
         var winner=ppPlayers[ri];
         if(winner){
-          var _ppOk=await walletCreditOther(winner.id, perPlayer, 0, 'Prize pool P'+_periodData.period+' '+ppLk+' #'+(ri+1));
+          var _ppOk=await rotationCredit(winner.id, perPlayer, 0, 'Prize pool P'+_periodData.period+' '+ppLk+' #'+(ri+1));
           if(!_ppOk) console.error('[rotation] ÉCHEC crédit prize pool, joueur '+winner.id+' — non versé');
         }
       }
@@ -14466,7 +14466,7 @@ async function _processEndOfPeriodInner(){
     // avant, un débit raté laissait quand même le joueur marqué "à jour" en silence.
     if(brp.frozen){
       if(currentRpc>=buyin){
-        var _biOk1=await walletCreditOther(brp.id, -buyin, 0, 'Buy-in league '+brLgName);
+        var _biOk1=await rotationCredit(brp.id, -buyin, 0, 'Buy-in league '+brLgName);
         if(_biOk1) await supabaseClient.rpc('rotation_patch_player',{p_player_id:brp.id,p_patch:{frozen:false,buyin_debt:false}});
         else console.error('[rotation] ÉCHEC débit buy-in (dégel), joueur '+brp.id+' — reste gelé/dette inchangée');
       }
@@ -14475,17 +14475,17 @@ async function _processEndOfPeriodInner(){
 
     if(currentRpc>=buyin){
       // Assez de RPC → buy-in normal
-      var _biOk2=await walletCreditOther(brp.id, -buyin, 0, 'Buy-in league '+brLgName);
+      var _biOk2=await rotationCredit(brp.id, -buyin, 0, 'Buy-in league '+brLgName);
       if(_biOk2) await supabaseClient.rpc('rotation_patch_player',{p_player_id:brp.id,p_patch:{buyin_debt:false}});
       else console.error('[rotation] ÉCHEC débit buy-in, joueur '+brp.id+' — statut dette inchangé');
     } else if(!brp.buyin_debt){
       // 1ère période sans pouvoir payer → dette (joue mais exclu des récompenses)
-      var _biOk3=currentRpc>0 ? await walletCreditOther(brp.id, -currentRpc, 0, 'Buy-in league '+brLgName+' (dette)') : true;
+      var _biOk3=currentRpc>0 ? await rotationCredit(brp.id, -currentRpc, 0, 'Buy-in league '+brLgName+' (dette)') : true;
       if(_biOk3) await supabaseClient.rpc('rotation_patch_player',{p_player_id:brp.id,p_patch:{buyin_debt:true}});
       else console.error('[rotation] ÉCHEC débit buy-in partiel, joueur '+brp.id+' — statut dette inchangé');
     } else {
       // 2ème période consécutive sans payer → compte gelé
-      var _biOk4=currentRpc>0 ? await walletCreditOther(brp.id, -currentRpc, 0, 'Buy-in league '+brLgName+' (dette)') : true;
+      var _biOk4=currentRpc>0 ? await rotationCredit(brp.id, -currentRpc, 0, 'Buy-in league '+brLgName+' (dette)') : true;
       if(_biOk4) await supabaseClient.rpc('rotation_patch_player',{p_player_id:brp.id,p_patch:{buyin_debt:true,frozen:true}});
       else console.error('[rotation] ÉCHEC débit buy-in partiel (gel), joueur '+brp.id+' — statut inchangé');
     }
@@ -17394,14 +17394,14 @@ async function adminWalletModify(mode){
   // Ne jamais faire passer un solde sous 0 (même garde qu'avant)
   if(deltaRpc<0) deltaRpc=Math.max(deltaRpc,-(p.rpc_balance||0));
   if(deltaNyx<0) deltaNyx=Math.max(deltaNyx,-(p.nyx_balance||0));
-  // SOURCE UNIQUE : credit_player (même recette base que tous les autres
-  // crédits/débits du jeu) — met à jour le solde ET journalise dans wallet_tx.
+  // SOURCE UNIQUE : admin_credit_player (réservée à l'admin côté serveur) → credit_player
+  // (même recette base que tous les autres crédits/débits du jeu) — met à jour le solde ET journalise dans wallet_tx.
   // L'ancien PATCH direct sur players.rpc_balance/nyx_balance ne laissait
   // aucune trace dans wallet_tx, donc ces crédits admin étaient invisibles
   // dans le détail "Ma cagnotte" (2026-08-02, signalé par l'admin lui-même —
   // crédit fait via ce panel, rien n'apparaissait dans "Bonus divers").
-  var {error:creditErr}=await supabaseClient.rpc('credit_player',{
-    p_player_id:pid, p_rpc:deltaRpc, p_nyx:deltaNyx, p_reason:'Cadeau admin'
+  var {error:creditErr}=await supabaseClient.rpc('admin_credit_player',{
+    p_player_id:pid, p_rpc:deltaRpc, p_nyx:deltaNyx
   });
   if(creditErr){msg.style.color='var(--red)';msg.textContent='⚠ Erreur : '+creditErr.message;return;}
   var newRpc=(p.rpc_balance||0)+deltaRpc;
@@ -19924,24 +19924,6 @@ async function showNyxBreakdown(){
   }
 }
 
-async function walletCredit(rpc, nyx, reason){
-  if(!currentUser) return false;
-  // Crédit ATOMIQUE côté base (fonction credit_player, SOURCE UNIQUE — cf strava-webhook).
-  // ⚠️ NE JAMAIS calculer newRpc/newNyx à partir de window.__wallet (cache local
-  // potentiellement périmé si l'appli reste ouverte longtemps) puis réécrire un total
-  // absolu : ça écrase silencieusement tout changement de solde survenu entretemps
-  // côté serveur (ex. correction admin) — bug vécu par Jopoinpoin (2026-07-29/30,
-  // corrigé 2026-08-01). credit_player fait un `rpc_balance = rpc_balance + delta`
-  // directement en base, sans lecture préalable, donc pas de course possible, et
-  // journalise lui-même dans wallet_tx (ne pas dupliquer l'insert ici).
-  var {error}=await supabaseClient.rpc('credit_player',{
-    p_player_id:currentUser.id, p_rpc:rpc||0, p_nyx:nyx||0, p_reason:reason||null
-  });
-  if(error) return false;
-  await walletLoad(); // resynchronise le cache local + l'affichage sur la vraie valeur en base
-  return true;
-}
-
 // Cadeau d'anniversaire (2026-08-11, demande explicite) : popup uniquement
 // le jour J (mois+jour de players.birth_date == aujourd'hui, heure Paris),
 // une seule fois par an -- players.birthday_gift_year mémorise l'année déjà
@@ -20183,15 +20165,16 @@ function renderLicenceBuyButtons(){
   });
 }
 
-// Créditer le wallet d'un AUTRE joueur (parrainage, courses admin...)
-// Atomique via credit_player — cf commentaire dans walletCredit ci-dessus pour le
-// pourquoi (même classe de bug, ici avec une fenêtre de course plus courte puisque
-// l'ancien code relisait le solde juste avant, mais toujours pas atomique).
-async function walletCreditOther(playerId, rpc, nyx, reason){
+// Crédit/débit d'un AUTRE joueur PENDANT LA ROTATION de fin de période (prize pools, buy-in league).
+// Passe par rotation_credit : le serveur n'accepte que ces motifs, des montants du bon signe et
+// seulement pour le compte qui détient le verrou period_rotations d'une rotation en cours (ou l'admin).
+// credit_player n'est plus appelable depuis le navigateur.
+async function rotationCredit(playerId, rpc, nyx, reason){
   if(!playerId) return false;
-  var {error}=await supabaseClient.rpc('credit_player',{
+  var {error}=await supabaseClient.rpc('rotation_credit',{
     p_player_id:playerId, p_rpc:rpc||0, p_nyx:nyx||0, p_reason:reason||null
   });
+  if(error) console.error('[rotation_credit]', error);
   return !error;
 }
 
@@ -29333,7 +29316,7 @@ let lbMode = 'month';            // classement affiché : 'month' | 'general'
 let lbPage = 1;                  // page courante du classement (1-based, CR_LB_PAGE_SIZE par page)
 const now = () => Date.now();
 const nowDate = () => new Date();
-// === Branché sur SPEEDIX : currentUser, supabaseClient/supabaseUrl/supabaseKey, walletCredit, isPremium, SPEEDIX_LANG ===
+// === Branché sur SPEEDIX : currentUser, supabaseClient/supabaseUrl/supabaseKey, isPremium, SPEEDIX_LANG ===
 const CU = () => (typeof currentUser!=='undefined' && currentUser) ? currentUser : {};
 const cooldownMs = () => ((typeof isPremium==='function' && isPremium())?CONFIG.cooldownPremiumHours:CONFIG.cooldownFreeHours)*3600000;
 function crMonthKey(){ const d=nowDate(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'); }
