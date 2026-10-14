@@ -2,16 +2,15 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<script>/* Accueil web : les visiteurs sans appli ni session voient la page de présentation (/presentation/). Applis natives, PWA installée, joueurs connectés et liens avec paramètres (retours Strava, parrainage…) gardent l'appli. ?app=1 = bouton « Connexion ». */(function(){try{
+<script>/* Accueil web : tous les visiteurs du navigateur voient la page de présentation (/presentation/). Applis natives, PWA installée et liens avec paramètres (retours Strava, parrainage…) gardent l'appli. ?app=1 = bouton « Connexion » (le joueur web repasse par la présentation à chaque visite). */(function(){try{
 var C=window.Capacitor;
 if(C&&typeof C.isNativePlatform==='function'&&C.isNativePlatform())return;
 if(window.androidBridge||(window.webkit&&window.webkit.messageHandlers&&window.webkit.messageHandlers.bridge))return;
 var q=location.search,h=location.hash;
-if(/[?&]app=1(&|$)/.test(q)){try{localStorage.setItem('speedix_skip_landing','1')}catch(e){}return}
+if(/[?&]app=1(&|$)/.test(q))return;
 if(q||h)return;
 if(location.pathname!=='/'&&location.pathname!=='/index.html')return;
 if((window.matchMedia&&(matchMedia('(display-mode: standalone)').matches||matchMedia('(display-mode: fullscreen)').matches))||navigator.standalone)return;
-try{if(localStorage.getItem('speedix_skip_landing'))return;for(var i=0;i<localStorage.length;i++){if(/^sb-.*-auth-token$/.test(localStorage.key(i)))return}}catch(e){}
 location.replace('/presentation/');
 }catch(e){}})();</script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
