@@ -6,12 +6,21 @@
 var C=window.Capacitor;
 if(C&&typeof C.isNativePlatform==='function'&&C.isNativePlatform())return;
 if(window.androidBridge||(window.webkit&&window.webkit.messageHandlers&&window.webkit.messageHandlers.bridge))return;
-var q=location.search,h=location.hash;
+var q=location.search.replace(/[?&](utm_[a-z_]+|fbclid|gclid|igshid)=[^&]*/g,'').replace(/^[?&]+$/,''),h=location.hash;
 if(/[?&]app=1(&|$)/.test(q))return;
 if(q||h)return;
 if(location.pathname!=='/'&&location.pathname!=='/index.html')return;
 if((window.matchMedia&&(matchMedia('(display-mode: standalone)').matches||matchMedia('(display-mode: fullscreen)').matches))||navigator.standalone)return;
-location.replace('/presentation/');
+window.__sxRedirect=1;location.replace('/presentation/'+location.search);
+}catch(e){}})();</script>
+<script>if(!window.__sxRedirect)(function(){try{
+var K=(window.Capacitor&&window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform())?'app':((window.matchMedia&&matchMedia('(display-mode: standalone)').matches)||navigator.standalone?'pwa':'web');
+if(sessionStorage.getItem('sx_v_'+K))return;sessionStorage.setItem('sx_v_'+K,'1');
+var C=window.Capacitor,ua=navigator.userAgent,pl=(C&&C.getPlatform&&C.isNativePlatform&&C.isNativePlatform())?C.getPlatform():(/iPhone|iPad|iPod/.test(ua)?'ios':/Android/.test(ua)?'android':'desktop');
+var src=new URLSearchParams(location.search).get('utm_source')||'';
+if(!src&&document.referrer){try{src=new URL(document.referrer).hostname.replace(/^www\./,'')}catch(e){}}
+if(src==='speedixleague.com')src='';
+fetch('https://eqzvptszeaumsbljwift.supabase.co/rest/v1/rpc/track_visit',{method:'POST',keepalive:true,headers:{'Content-Type':'application/json',apikey:'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVxenZwdHN6ZWF1bXNibGp3aWZ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU0MjM3MTcsImV4cCI6MjA5MDk5OTcxN30.wn2iJ3grAlLHTUZYiwlSBaCHvwCW86kTQ8eWNH484Lk',Authorization:'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVxenZwdHN6ZWF1bXNibGp3aWZ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU0MjM3MTcsImV4cCI6MjA5MDk5OTcxN30.wn2iJ3grAlLHTUZYiwlSBaCHvwCW86kTQ8eWNH484Lk'},body:JSON.stringify({p_kind:K,p_platform:pl,p_source:src})}).catch(function(){});
 }catch(e){}})();</script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
 <title>SPEEDIX LEAGUE</title>

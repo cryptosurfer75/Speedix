@@ -168,4 +168,13 @@ nav img{height:38px}
 <a href="https://www.tiktok.com/@speedix.league"><img src="img/tiktok.svg"><span>TikTok</span></a></div></div></div>
 <footer>© SPEEDIX League</footer>
 <script>try{var e=new Date('2026-10-18T20:00:00+02:00');if(new Date()>e){var p=document.getElementById('promo');if(p)p.remove()}}catch(x){}</script>
+<script>(function(){try{
+var K='landing';
+if(sessionStorage.getItem('sx_v_'+K))return;sessionStorage.setItem('sx_v_'+K,'1');
+var C=window.Capacitor,ua=navigator.userAgent,pl=(C&&C.getPlatform&&C.isNativePlatform&&C.isNativePlatform())?C.getPlatform():(/iPhone|iPad|iPod/.test(ua)?'ios':/Android/.test(ua)?'android':'desktop');
+var src=new URLSearchParams(location.search).get('utm_source')||'';
+if(!src&&document.referrer){try{src=new URL(document.referrer).hostname.replace(/^www\./,'')}catch(e){}}
+if(src==='speedixleague.com')src='';
+fetch('https://eqzvptszeaumsbljwift.supabase.co/rest/v1/rpc/track_visit',{method:'POST',keepalive:true,headers:{'Content-Type':'application/json',apikey:'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVxenZwdHN6ZWF1bXNibGp3aWZ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU0MjM3MTcsImV4cCI6MjA5MDk5OTcxN30.wn2iJ3grAlLHTUZYiwlSBaCHvwCW86kTQ8eWNH484Lk',Authorization:'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVxenZwdHN6ZWF1bXNibGp3aWZ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU0MjM3MTcsImV4cCI6MjA5MDk5OTcxN30.wn2iJ3grAlLHTUZYiwlSBaCHvwCW86kTQ8eWNH484Lk'},body:JSON.stringify({p_kind:K,p_platform:pl,p_source:src})}).catch(function(){});
+}catch(e){}})();</script>
 </body></html>
