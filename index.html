@@ -22637,13 +22637,13 @@ function _teamChallengeSquadBody(c){
   // ── Onglet « Règles » (défaut) ── (textes validés par l'user le 13/10 : pas de récompenses ici)
   var rules='<div style="padding:.6rem .55rem;border-radius:7px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.3);font-size:.64rem;color:var(--muted2);line-height:1.8;margin-bottom:.7rem">'
     +'<div style="text-align:center;font-family:\'Bebas Neue\',sans-serif;font-size:1.25rem;letter-spacing:3px;color:var(--text);margin-bottom:.2rem">OBJECTIF</div>'
-    +'<div style="white-space:nowrap">• Valider la distance du défi ('+minKm+' km minimum par RP).</div>'
-    +'<div style="white-space:nowrap">• Choisis ton groupe et la distance.</div>'
-    +'<div style="white-space:nowrap">• Pour débuter, le groupe doit être complet.</div>'
-    +'<div style="white-space:nowrap">• Classement par groupe et par défi.</div>'
-    +'<div style="white-space:nowrap">• Bonus pour le meilleur groupe en distance cumulée <b style="color:var(--green)">+5 NYX / RP</b></div>'
-    +'<div style="white-space:nowrap">• '+_squadEndText(ed)+'</div>'
-    +'<div style="white-space:nowrap">• Solidarité et cohésion à l\'intérieur de la team 🤜 🤛</div>'
+    +'<div>• Valider la distance du défi ('+minKm+' km minimum par RP).</div>'
+    +'<div>• Choisis ton groupe et la distance.</div>'
+    +'<div>• Pour débuter, le groupe doit être complet.</div>'
+    +'<div>• Classement par groupe et par défi.</div>'
+    +'<div>• Bonus au meilleur groupe en distance cumulée : <b style="color:var(--green);white-space:nowrap">+5 NYX / RP</b></div>'
+    +'<div>• '+_squadEndText(ed)+'</div>'
+    +'<div>• Solidarité et cohésion à l\'intérieur de la team 🤜 🤛</div>'
     +'<div style="text-align:center;color:var(--text);font-weight:700;margin-top:.35rem">Bon défi à tous et bonne stratégie de groupe 😉</div>'
   +'</div>';
   var cta='';
@@ -22948,8 +22948,8 @@ function _renderTeamChallengeModal(){
     var outerShadow=isOn?'box-shadow:0 0 10px rgba(45,219,128,.6);':'';
     var innerBg=isOn?'linear-gradient(135deg,#2ddb8033,#2ddb8008),#0c0f1a':'linear-gradient(135deg,#ffffff33,#ffffff08),#0c0f1a';
     var textColor=isOn?'#ffffff':'rgba(255,255,255,.65)';
-    return '<div style="background:'+outerBg+';clip-path:polygon(10px 0,calc(100% - 10px) 0,100% 10px,100% calc(100% - 10px),calc(100% - 10px) 100%,10px 100%,0 calc(100% - 10px),0 10px);padding:1.5px;'+outerShadow+'transition:all .18s;flex:1">'
-      +'<button onclick="switchTeamChallengeTab(\''+tab+'\')" style="width:100%;display:block;padding:.5rem .3rem;border:none;clip-path:polygon(9px 0,calc(100% - 9px) 0,100% 9px,100% calc(100% - 9px),calc(100% - 9px) 100%,9px 100%,0 calc(100% - 9px),0 9px);background:'+innerBg+';cursor:pointer;font-family:\'Bebas Neue\',sans-serif;font-size:.92rem;letter-spacing:1.5px;color:'+textColor+';text-transform:uppercase">'+label+(lockIcon?' 🔒':'')+'</button>'
+    return '<div style="background:'+outerBg+';clip-path:polygon(10px 0,calc(100% - 10px) 0,100% 10px,100% calc(100% - 10px),calc(100% - 10px) 100%,10px 100%,0 calc(100% - 10px),0 10px);padding:1.5px;'+outerShadow+'transition:all .18s;flex:1 1 0;min-width:0">'
+      +'<button onclick="switchTeamChallengeTab(\''+tab+'\')" style="width:100%;display:block;padding:.5rem .15rem;white-space:nowrap;border:none;clip-path:polygon(9px 0,calc(100% - 9px) 0,100% 9px,100% calc(100% - 9px),calc(100% - 9px) 100%,9px 100%,0 calc(100% - 9px),0 9px);background:'+innerBg+';cursor:pointer;font-family:\'Bebas Neue\',sans-serif;font-size:.92rem;letter-spacing:1.5px;color:'+textColor+';text-transform:uppercase">'+label+(lockIcon?' 🔒':'')+'</button>'
     +'</div>';
   }
   var _isPart=!!(edition && edition.metric==='participation');
