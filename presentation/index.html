@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SPEEDIX League – 1er championnat de running e.sport</title>
+<meta name="description" content="SPEEDIX transforme tes efforts en un jeu. Seul ou en équipe, viens te challenger grâce à tes courses et remporter le championnat.">
+<meta property="og:title" content="SPEEDIX League – 1er championnat de running e.sport">
+<meta property="og:description" content="Leagues, Challenges, Teams, Tour : synchronise tes courses et entre dans la compétition.">
+<meta property="og:image" content="https://speedixleague.com/presentation/img/app-dashboard.jpg">
+<meta name="theme-color" content="#060810">
+<style>
+@font-face{font-family:Bebas;src:url(img/bebas-neue-400-latin.woff2)}
+@font-face{font-family:Raj;src:url(img/rajdhani-600-latin.woff2);font-weight:600}
+:root{--bg:#060810;--bg2:#0c0f1a;--card:#141824;--gold:#f5c842;--green:#2ddb80;--violet:#8a4dff;--text:#e8eaf0;--muted:#8090b0}
+*{box-sizing:border-box;margin:0}
+body{background:var(--bg);color:var(--text);font-family:Raj,Arial,sans-serif;font-size:18px;line-height:1.5}
+.wrap{max-width:1080px;margin:0 auto;padding:0 24px}
+.promo{background:linear-gradient(90deg,#3a1a7a,#8a4dff);text-align:center;padding:.5rem;font-size:.95rem}
+.promo b{color:var(--gold)}
+nav{display:flex;align-items:center;justify-content:space-between;padding:14px 0}
+nav img{height:44px}nav span{color:var(--muted);margin-left:26px;font-size:.95rem}
+.btn{display:inline-block;padding:.7rem 1.6rem;border:2px solid var(--green);color:var(--green);border-radius:8px;font-family:Bebas;letter-spacing:2px;font-size:1.2rem;background:#0c0f1a;text-decoration:none}
+.btn.gold{border-color:var(--gold);color:var(--gold)}
+.hero{background:radial-gradient(ellipse at 70% 40%,#3a1a7a 0,#060810 65%);padding:56px 0}
+.hero .wrap{display:flex;align-items:center;gap:40px}
+.hero h1{font-family:Bebas;font-size:3.4rem;line-height:1.05;letter-spacing:1px}
+.hero h1 em{color:var(--gold);font-style:normal}
+.hero p{color:var(--muted);margin:14px 0 24px;font-size:1.2rem}
+.hero .img{flex:0 0 300px;height:420px;border-radius:18px;background:url(img/hero-cover-new.png) center 30%/cover;border:2px solid rgba(245,200,66,.5);box-shadow:0 0 40px rgba(138,77,255,.5)}
+.sec{padding:60px 0;border-top:1px solid #1a2030}
+.sec .wrap{display:flex;align-items:center;gap:50px}
+.sec.rev .wrap{flex-direction:row-reverse}
+.sec .txt{flex:1}
+.sur{color:var(--green);font-family:Bebas;letter-spacing:3px;font-size:1.1rem}
+.sec h2{font-family:Bebas;font-size:2.4rem;letter-spacing:1px;margin:2px 0 12px}
+.sec ul{list-style:none;padding:0;margin:0 0 14px}.sec li{padding:3px 0}
+.sec p b{color:var(--gold)}
+.ill{flex:0 0 400px}
+.phone{background:var(--bg2);border:1.5px solid rgba(255,255,255,.28);border-radius:16px;padding:16px;box-shadow:0 10px 40px rgba(0,0,0,.6)}
+.row{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;background:rgba(255,255,255,.04);border:1px solid #232a3c;margin-bottom:6px}
+.row .av{width:34px;height:34px;border-radius:50%;background-size:cover;flex:0 0 34px}
+.row .n{flex:1;font-size:.95rem}.row .p{font-family:monospace;color:var(--gold);font-size:.9rem}
+.rk{font-family:Bebas;font-size:1.3rem;width:22px;color:var(--muted)}
+.rk.g{color:var(--gold)}
+.bar{height:14px;border-radius:7px;background:rgba(255,255,255,.07);border:1px solid #232a3c;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--green);opacity:.85}
+.tt{font-family:Bebas;letter-spacing:2px;font-size:1.3rem;text-align:center}
+.small{font-size:.8rem;color:var(--muted);text-align:center}
+.chip{display:inline-block;padding:2px 10px;border-radius:20px;font-size:.8rem;border:1px solid}
+.gold{color:var(--gold)}.green{color:var(--green)}
+.q{background:#0c0f1a;border:1.5px solid rgba(255,255,255,.3);border-radius:10px;padding:10px 12px;margin:8px 0;font-size:.95rem}
+.ans{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.ans div{border:1.5px solid rgba(255,255,255,.28);border-radius:8px;padding:8px;text-align:center;font-size:.9rem}
+.ans div.ok{border-color:var(--green);color:var(--green)}
+.faq{padding:50px 0;border-top:1px solid #1a2030}
+.faq h2{font-family:Bebas;font-size:2.2rem;text-align:center;margin-bottom:18px}
+.faq .it{background:var(--card);border:1px solid #232a3c;border-radius:10px;padding:14px 18px;margin-bottom:8px;display:flex;justify-content:space-between}
+.cta{padding:60px 0;text-align:center;background:linear-gradient(180deg,#060810,#2a1260)}
+.cta h2{font-family:Bebas;font-size:2.6rem}.cta p{color:var(--muted);margin:8px 0 22px}
+.icons{display:flex;justify-content:center;gap:34px;font-size:2rem;margin-bottom:22px}
+footer{text-align:center;color:var(--muted);padding:26px;font-size:.9rem;border-top:1px solid #1a2030}
+
+
+.sec p.d{font-size:1.3rem;color:var(--text);margin:0;line-height:1.6}
+.sec p.d b{color:#fff;display:block;margin-top:18px}
+.ph{position:relative;border-radius:46px;padding:10px;background:linear-gradient(145deg,#3a3f55,#0b0d16 60%);box-shadow:0 0 0 1.5px rgba(255,255,255,.25),0 30px 70px rgba(0,0,0,.7),0 0 90px rgba(138,77,255,.35)}
+.ph img{display:block;width:100%;border-radius:37px}
+.ph:before{content:"";position:absolute;top:18px;left:50%;transform:translateX(-50%);width:28%;height:20px;background:#05060b;border-radius:12px;z-index:2}
+.fan{display:flex;justify-content:center;align-items:flex-end;margin-top:46px;padding-bottom:10px}
+.fan .ph{width:215px;flex:0 0 215px;margin:0 -22px;transform:translateY(var(--y,0)) rotate(var(--r,0deg))}
+.fan .c{width:268px;flex-basis:268px;z-index:3;--y:-14px}
+.fan .m{z-index:2;width:240px;flex-basis:240px}
+.sec .ill{flex:0 0 310px;display:flex;justify-content:center}
+.sec .ph{width:310px}
+.sec .txt h2{font-size:3rem}
+.sec{padding:80px 0;position:relative}
+.sec:before{content:"";position:absolute;inset:0;background:radial-gradient(ellipse at var(--gx,75%) 50%,rgba(138,77,255,.16),transparent 55%);pointer-events:none}
+.sec.rev{--gx:25%}
+.hero{padding:56px 0 30px;text-align:center}
+.hero .wrap{display:block}
+.hero p{margin-left:auto;margin-right:auto}
+.cta h2{font-size:3rem}
+.stores{display:flex;justify-content:center;gap:18px;flex-wrap:wrap}
+.sb{display:flex;align-items:center;gap:12px;background:#000;border:1.5px solid #a6a6a6;border-radius:12px;padding:10px 22px 10px 16px;color:#fff;text-decoration:none;min-width:200px;text-align:left}
+.sb img{height:34px;width:34px;filter:invert(1)}
+.sb small{display:block;font-size:.72rem;letter-spacing:.5px;line-height:1.1}
+.sb b{display:block;font-size:1.5rem;line-height:1.1;font-weight:600}
+.nr{display:flex;gap:12px}.btn.vi{border-color:var(--violet);color:#b58cff}
+.cx{color:var(--text);font-size:.95rem;text-decoration:underline;text-underline-offset:3px}
+.contact{padding:56px 0 44px;text-align:center;border-top:1px solid #1a2030}
+.contact .mail{display:block;font-family:Bebas;font-size:2.4rem;letter-spacing:1px;color:#fff;text-decoration:none;margin:6px 0 26px}
+.soc{display:flex;justify-content:center;gap:16px;flex-wrap:wrap}
+.soc a{display:flex;align-items:center;gap:10px;padding:10px 20px;border:1.5px solid rgba(255,255,255,.28);border-radius:10px;background:#0c0f1a;color:var(--text);text-decoration:none;font-size:1.05rem}
+.soc img{height:22px;width:22px;filter:invert(1)}
+html{scroll-behavior:smooth}
+nav a:not(.btn){color:var(--muted);margin-left:26px;font-size:.95rem;text-decoration:none}
+nav a:not(.btn):hover{color:#fff}
+@media(max-width:860px){
+body{font-size:16px}
+.wrap{padding:0 18px}
+nav{flex-wrap:wrap;gap:10px;justify-content:center}
+nav a:not(.btn){margin:0 10px;font-size:.9rem}
+nav>div{width:100%;justify-content:space-between}
+nav img{height:38px}
+.nr{width:100%;justify-content:center}
+.btn{padding:.55rem 1.1rem;font-size:1.05rem}
+.hero h1{white-space:normal!important;font-size:2.3rem!important}
+.hero p{font-size:1.1rem!important}
+.fan{margin-top:30px}
+.fan .ph{width:130px;flex-basis:130px;margin:0 -14px;border-radius:26px;padding:6px}
+.fan .ph img{border-radius:20px}
+.fan .ph:before{display:none}
+.fan .m{width:150px;flex-basis:150px}
+.fan .c{width:175px;flex-basis:175px}
+.fan .ph:first-child,.fan .ph:last-child{display:none}
+.sec{padding:50px 0}
+.sec .wrap,.sec.rev .wrap{flex-direction:column;gap:30px}
+.sec .txt h2{font-size:2.3rem}
+.sec p.d{font-size:1.15rem}
+.sec .ill{flex:none}
+.sec .ph{width:260px}
+.cta h2{font-size:2.2rem}
+.contact .mail{font-size:1.5rem;word-break:break-all}
+}
+</style></head><body>
+<div class="promo" id="promo">🏁 <b>Challenge Duo / Trio</b> ce week-end ! <a href="/?app=1" style="color:inherit"><u>Découvrir</u></a></div>
+<div class="wrap"><nav><div style="display:flex;align-items:center"><img src="img/logo-speedix-new.png"><a href="#leagues">Leagues</a><a href="#challenges">Challenges</a><a href="#teams">Teams</a><a href="#tour">Tour</a><a href="#contact">Contact</a></div><div class="nr"><a class="btn" href="#fin">Télécharger</a><a class="btn vi" href="/?app=1">Connexion</a></div></nav></div>
+
+<div class="hero"><div class="wrap">
+<h1 style="white-space:nowrap;font-size:3.4rem;color:#fff">1<sup style="font-size:.55em">er</sup> championnat de running <em>e.sport</em></h1>
+<p style="color:var(--text);font-size:1.3rem;max-width:640px;margin-top:18px">SPEEDIX transforme tes efforts en un jeu. Seul ou en équipe, viens te challenger grâce à tes courses et remporter le championnat !! 🏁</p>
+<p style="color:#fff;font-size:1.3rem;max-width:640px;margin-top:14px;font-weight:700">Que tu sois amateur ou confirmé, es-tu prêt à rejoindre la communauté ? 🔥</p>
+<div class="fan">
+<div class="ph" style="--r:-9deg;--y:30px"><img src="img/app-tour.jpg"></div>
+<div class="ph m" style="--r:-4deg;--y:8px"><img src="img/app-league.jpg"></div>
+<div class="ph c"><img src="img/app-dashboard.jpg"></div>
+<div class="ph m" style="--r:4deg;--y:8px"><img src="img/app-challenges.jpg"></div>
+<div class="ph" style="--r:9deg;--y:30px"><img src="img/app-team.jpg"></div>
+</div></div></div>
+
+<div class="sec" id="leagues"><div class="wrap">
+<div class="txt"><div class="sur">01</div><h2>Les Leagues</h2>
+<p class="d">Synchronise tes courses et entre dans la compétition.<br>Speed-10 leagues selon ton niveau 😉<br>Promotion, relégation, maintien en fin de chaque période.<b>Quelle league seras-tu capable d'atteindre ? 🚀</b></p></div>
+<div class="ill"><div class="ph"><img src="img/app-league.jpg"></div></div></div></div>
+
+<div class="sec rev" id="challenges"><div class="wrap">
+<div class="txt"><div class="sur">02</div><h2>Les Challenges</h2>
+<p class="d">Les plus grandes courses du monde t'attendent dans SPEEDIX.<br>Chaque week-end, un nouveau challenge pour te motiver et te faire voyager.<b>New York, Paris, Tokyo, Amsterdam : quelle sera ta destination pour gagner ta première médaille collector ? 🏅</b></p></div>
+<div class="ill"><div class="ph"><img src="img/app-challenges.jpg"></div></div></div></div>
+
+<div class="sec" id="teams"><div class="wrap">
+<div class="txt"><div class="sur">03</div><h2>Les Teams</h2>
+<p class="d">Rejoins ou crée ton équipe pour plus de motivation.<br>Seul on va vite, à plusieurs on va loin !<br>Esprit friendly et solidarité renforcée avec des défis collectifs.<b>Seras-tu un Toucan, une Queen ou un autre emblème pour participer avec tes coéquipiers ? 🤜 🤛</b></p></div>
+<div class="ill"><div class="ph"><img src="img/app-team.jpg"></div></div></div></div>
+
+<div class="sec rev" id="tour"><div class="wrap">
+<div class="txt"><div class="sur">04</div><h2>SPEEDIX Tour</h2>
+<p class="d">Véritable Tour de France virtuel à parcourir avec tes sorties.<br>Chaque case te réserve une surprise pour t'amuser en mode Monopoly.<b>Combien de tours penses-tu pouvoir effectuer avant d'être rattrapé ?</b></p></div>
+<div class="ill"><div class="ph"><img src="img/app-tour.jpg"></div></div></div></div>
+
+<div class="cta" id="fin"><div class="wrap"><h2>Prêt à prendre le départ ?</h2><p>Gratuit · disponible sur iPhone et Android</p><div class="stores">
+<a class="sb" href="https://apps.apple.com/app/speedix/id6763503175"><img src="img/apple.svg"><span><small>Télécharger dans l'</small><b>App Store</b></span></a>
+<a class="sb" href="https://play.google.com/store/apps/details?id=com.speedixleague.runner"><img src="img/gplay.svg"><span><small>DISPONIBLE SUR</small><b>Google Play</b></span></a></div></div></div>
+<div class="contact" id="contact"><div class="wrap"><div class="sur">CONTACT</div>
+<a class="mail" href="mailto:contact@speedixleague.com">contact@speedixleague.com</a>
+<div class="soc">
+<a href="https://www.facebook.com/profile.php?id=61560598576802"><img src="img/facebook.svg"><span>Facebook</span></a>
+<a href="https://www.strava.com/clubs/2101996"><img src="img/strava.svg"><span>Strava</span></a>
+<a href="https://www.instagram.com/speedixleague"><img src="img/instagram.svg"><span>Instagram</span></a>
+<a href="https://www.tiktok.com/@speedix.league"><img src="img/tiktok.svg"><span>TikTok</span></a></div></div></div>
+<footer>© SPEEDIX League</footer>
+<script>try{var e=new Date('2026-10-18T20:00:00+02:00');if(new Date()>e){var p=document.getElementById('promo');if(p)p.remove()}}catch(x){}</script>
+</body></html>
