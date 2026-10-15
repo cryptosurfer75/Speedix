@@ -1914,6 +1914,8 @@ body::after{
 /* Cadre jaune pour une redevance (case occupée, 2026-08-01) — ni gain ni
    perte à proprement parler, juste un prélèvement, donc pas vert/rouge. */
 .rm-reward-pill.rm-reward-gold{ color:var(--gold); border:1.5px solid rgba(245,200,66,.6); }
+/* Mention « cagnotte » à côté d'une perte RPC (2026-10-15) : petit, doré, façon étiquette. */
+.rm-jackpot-tag{ font-family:'Rajdhani',sans-serif; font-size:12px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:var(--gold); margin-left:4px; vertical-align:middle; }
 /* Éclairs violet/cyan esport derrière la modale (2026-08-01, cases bonus
    uniquement) — flashs brefs façon décharge électrique, générés/détruits en
    JS (launchLightning), même logique ponctuelle que les confettis. */
@@ -32973,7 +32975,8 @@ window.Tour.init = async function(){
         // un RP qui perd des RPC ferme juste avec la croix pour "l'éviter". La
         // croix ferme et applique EXACTEMENT pareil, rien à valider en plus.
         sub: `${land.bonusText}, ${gain?'gagne':'perds'} :`,
-        btns: `<div class="rm-reward-pill ${gain?'rm-reward-gain':'rm-reward-loss'}">${amountTxt}</div>`,
+        // Perte → versée dans la CAGNOTTE du Tour (cf tour_claim_bonus_card / tour_jackpot).
+        btns: `<div class="rm-reward-pill ${gain?'rm-reward-gain':'rm-reward-loss'}">${amountTxt}${gain?'':' <span class="rm-jackpot-tag">→ cagnotte</span>'}</div>`,
         frame: gain ? 'bonus-gain' : 'bonus-loss'
       };
     }
@@ -32999,6 +33002,7 @@ window.Tour.init = async function(){
     if(land.status==='event'){
       const ev = land.eventCard;
       let extra = '';
+      let stormPill = '';
       if(ev.type==='birthday'){
         const nbRp = TOUR_OTHERS_DIST.length;
         const total = nbRp * ev.perPlayer;
@@ -33008,6 +33012,8 @@ window.Tour.init = async function(){
         const nbLands = countMyLands();
         const total = nbLands * ev.perLand;
         extra = ` (${nbLands} Land${nbLands>1?'s':''} × ${ev.perLand} RPC = <b style="color:var(--red)">-${total} RPC</b>)`;
+        // Même mention que les cases bonus perdantes : la perte alimente la cagnotte.
+        if(total>0) stormPill = `<div class="rm-reward-pill rm-reward-loss">-${total} RPC <span class="rm-jackpot-tag">→ cagnotte</span></div>`;
       }
       // Anniversaire/ouragan : déjà appliqué (RPC bougé par revealLand()). Avance/
       // recule/sprint étape : PAS encore appliqué, se joue à la fermeture de la
@@ -33015,7 +33021,7 @@ window.Tour.init = async function(){
       return {
         title: `🎲 <span style="color:#fff">CASE</span> <span style="color:var(--orange)">ÉVÉNEMENT !</span>`,
         sub: `${ev.text}${extra}.`,
-        btns: '',
+        btns: stormPill,
         frame: 'event-frame'
       };
     }
