@@ -4278,6 +4278,17 @@ select option{background:#040c1c}
   <svg viewBox="0 0 32 32" style="position:absolute;bottom:0;right:0;width:26px;height:26px;z-index:2;pointer-events:none;transform:scale(-1,-1);filter:drop-shadow(0 0 4px rgba(228,84,255,.65))"><path d="M2,30 L2,14 L14,2 L30,2" fill="none" stroke="#e454ff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
   </div><!-- /cadre carte -->
 
+  <!-- TUILE CAGNOTTE (2026-10-15) : pertes RPC des cases spéciales (cf tour_jackpot).
+       Sous la carte, avant le panneau de données. Double-div biseauté, fond plein. -->
+  <div id="tour-jackpot-tile" style="margin-bottom:14px;filter:drop-shadow(0 0 8px rgba(245,200,66,.4))">
+  <div style="background:rgba(245,200,66,.7);clip-path:polygon(11px 0,calc(100% - 11px) 0,100% 11px,100% calc(100% - 11px),calc(100% - 11px) 100%,11px 100%,0 calc(100% - 11px),0 11px);padding:1.5px">
+  <div style="background:#0c0f1a;clip-path:polygon(10px 0,calc(100% - 10px) 0,100% 10px,100% calc(100% - 10px),calc(100% - 10px) 100%,10px 100%,0 calc(100% - 10px),0 10px);padding:6px 16px 7px;text-align:center">
+    <div style="font-family:'Bebas Neue',sans-serif;letter-spacing:3px;font-size:16px;line-height:1;color:#fff">CAGNOTTE</div>
+    <div id="tour-jackpot-val" style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:15px;line-height:1.1;margin-top:2px;color:var(--gold)">— RPC</div>
+  </div>
+  </div>
+  </div>
+
   <!-- CADRE 2 — Panneau de données : cadre normal, violet. -->
   <div id="tour-panel">
     <h2>🏃 <span style="color:#fff">Ma</span> Progression</h2>
@@ -31071,6 +31082,20 @@ window.Tour.init = async function(){
   
   // Tracé de fond
   L.polyline(LANDS.map(l=>[l.lat,l.lng]), {color:'#1e2535', weight:2, opacity:.6}).addTo(map);
+
+  // ── Cagnotte (2026-10-15) : toutes les pertes RPC des cases spéciales (cartes
+  // bonus/surprise négatives, ouragan) y sont versées côté serveur
+  // (tour_claim_bonus_card / tour_claim_storm_event → table tour_jackpot, 1 ligne).
+  // Affichage : tuile #tour-jackpot-tile sous la carte (sortie de la carte, 15/10). RPC uniquement. Comment la gagner :
+  // pas encore défini. 
+  async function _tourLoadJackpot(){
+    try{
+      const {data} = await supabaseClient.from('tour_jackpot').select('rpc').eq('id',1).maybeSingle();
+      const el = document.getElementById('tour-jackpot-val');
+      if(data && el) el.textContent = Number(data.rpc||0).toLocaleString(SPEEDIX_LANG)+' RPC';
+    }catch(e){}
+  }
+  _tourLoadJackpot();
   
   // ── Hexagones (même esprit visuel que la vraie carte des Lands, pas des points) ──
   // Chaque hexagone est tourné pour présenter une ARÊTE (pas un sommet) dans l'axe
@@ -32860,6 +32885,7 @@ window.Tour.init = async function(){
       if(_pd) ME.premium = !!_pd.premium;
     }
     updatePlayerStatusPanel();
+    _tourLoadJackpot();
   }
   // Message générique pour les erreurs serveur pas déjà gérées par une
   // sous-fenêtre dédiée ("pas assez de RPC/NYX" a sa propre modale ailleurs) —
