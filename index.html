@@ -4215,6 +4215,13 @@ select option{background:#040c1c}
   <div class="block" style="padding:0;overflow:hidden;border:1.5px solid rgba(74,144,255,.6)">
     <div id="team-chat-content">
       <div id="team-chat-messages" style="height:60vh;min-height:320px;overflow-y:auto;display:flex;flex-direction:column;gap:.4rem;padding:1rem;scrollbar-width:thin;scrollbar-color:rgba(74,144,255,.25) transparent"></div>
+      <div id="teamchat-reply-banner" style="display:none;align-items:center;gap:.5rem;padding:.4rem 1rem;border-top:1px solid rgba(74,144,255,.25);background:rgba(74,144,255,.06)">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:.7rem;font-weight:700;color:#4a90ff">↩ Réponse à <span id="teamchat-reply-name"></span></div>
+          <div id="teamchat-reply-snippet" style="font-size:.72rem;color:var(--muted2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
+        </div>
+        <span onclick="cancelTeamReply()" style="cursor:pointer;color:var(--muted2);font-size:.85rem;padding:0 .2rem" title="Annuler">✕</span>
+      </div>
       <div style="display:flex;gap:.5rem;padding:.75rem 1rem;border-top:1px solid rgba(74,144,255,.25)">
         <input id="team-chat-input" type="text" placeholder="Message…" data-i18n-placeholder="teams.chat.placeholder" maxlength="300" style="flex:1;min-width:0;padding:.7rem .8rem;border-radius:8px;border:1px solid rgba(74,144,255,.25);background:rgba(4,12,28,.5);color:var(--text);font-size:.95rem;outline:none" onkeydown="if(event.key==='Enter')sendTeamMessage()">
         <button onclick="sendTeamMessage()" style="flex-shrink:0;padding:.55rem 1.1rem;border-radius:8px;border:1.5px solid rgba(45,219,128,.6);background:linear-gradient(135deg,rgba(45,219,128,.28),rgba(45,219,128,.08));color:var(--green);font-size:.85rem;font-weight:700;cursor:pointer">→</button>
@@ -14931,7 +14938,7 @@ async function loadTeamChat(teamId){
   if(chatContent) chatContent.style.display='block';
   var el=document.getElementById('team-chat-messages');
   if(!el||!teamId) return;
-  var resp=await window.fetch(supabaseUrl+'/rest/v1/team_messages?team_id=eq.'+encodeURIComponent(teamId)+'&select=id,player_id,content,created_at&order=created_at.desc&limit=50',{
+  var resp=await window.fetch(supabaseUrl+'/rest/v1/team_messages?team_id=eq.'+encodeURIComponent(teamId)+'&select=id,player_id,content,created_at,reply_to_id&order=created_at.desc&limit=50',{
     headers:{'apikey':supabaseKey,'Authorization':'Bearer '+(window.__sessionToken||supabaseKey),'Accept':'application/json'}
   });
   var msgs=await resp.json();
@@ -14967,8 +14974,19 @@ async function loadTeamChat(teamId){
     el.innerHTML='<div style="text-align:center;padding:1.5rem;color:var(--muted2);font-size:.85rem">Aucun message. Sois le premier !</div>';
     return;
   }
+  // Messages cités (réponses) : requête par id (le message d'origine peut dater d'avant les 50 chargés).
+  // reply_to_id passe à null tout seul (ON DELETE SET NULL) si l'original est supprimé.
+  var replyIds=[...new Set(msgs.map(function(m){return m.reply_to_id;}).filter(Boolean))];
+  var replyMap={};
+  if(replyIds.length){
+    var replyResp=await window.fetch(supabaseUrl+'/rest/v1/team_messages?id=in.('+replyIds.join(',')+')&select=id,player_id,content',{
+      headers:{'apikey':supabaseKey,'Authorization':'Bearer '+(window.__sessionToken||supabaseKey),'Accept':'application/json'}
+    });
+    var replyRows=await replyResp.json().catch(function(){return [];});
+    (replyRows||[]).forEach(function(r){replyMap[r.id]=r;});
+  }
   // Charger les noms
-  var pids=[...new Set(msgs.map(function(m){return m.player_id;}))];
+  var pids=[...new Set(msgs.map(function(m){return m.player_id;}).concat(Object.values(replyMap).map(function(r){return r.player_id;})))];
   var {data:players}=await supabaseClient.from('players').select('id,username,avatar').in('id',pids);
   var pMap={};
   (players||[]).forEach(function(p){pMap[p.id]=p;});
@@ -14994,18 +15012,94 @@ async function loadTeamChat(teamId){
     var canDel=isMe||isAdmin();
     var time=m.created_at?new Date(m.created_at).toLocaleTimeString('fr',{hour:'2-digit',minute:'2-digit'}):'';
     var date=m.created_at?new Date(m.created_at).toLocaleDateString(SPEEDIX_LANG,{day:'2-digit',month:'2-digit'}):'';
-    return '<div style="display:flex;gap:.5rem;align-items:flex-start'+(isMe?';flex-direction:row-reverse':'')+'">'
+    var replyQuoteHtml='';
+    if(m.reply_to_id && replyMap[m.reply_to_id]){
+      var rq=replyMap[m.reply_to_id];
+      var rqUser=pMap[rq.player_id]?pMap[rq.player_id].username:'?';
+      replyQuoteHtml='<div onclick="scrollToTeamMessage(\''+m.reply_to_id+'\')" style="cursor:pointer;border-left:3px solid #4a90ff;padding:.2rem .5rem;margin-bottom:.3rem;background:rgba(255,255,255,.04);border-radius:4px">'
+        +'<div style="font-size:.65rem;font-weight:700;color:#4a90ff">'+escapeHtml(rqUser)+'</div>'
+        +'<div style="font-size:.68rem;color:var(--muted2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:220px">'+escapeHtml(rq.content)+'</div>'
+        +'</div>';
+    }
+    return '<div id="tm-msg-'+m.id+'" style="display:flex;gap:.5rem;align-items:flex-start'+(isMe?';flex-direction:row-reverse':'')+'">'
       +(p.avatar?'<img src="'+escapeHtml(p.avatar)+'" style="width:34px;height:34px;border-radius:8px;object-fit:cover;flex-shrink:0">':'<div style="width:34px;height:34px;border-radius:8px;background:rgba(74,144,255,.15);display:flex;align-items:center;justify-content:center;font-size:.8rem;font-weight:700;color:var(--muted2);flex-shrink:0">'+escapeHtml(p.username.charAt(0).toUpperCase())+'</div>')
       +'<div style="max-width:75%;padding:.5rem .75rem;border-radius:10px;background:'+(isMe?'rgba(74,144,255,.12)':'rgba(30,37,53,.6)')+';border:1px solid '+(isMe?'rgba(74,144,255,.2)':'rgba(30,37,53,.8)')+'">'
       +'<div style="display:flex;align-items:center;gap:.4rem;margin-bottom:.2rem">'
       +'<span style="font-size:.8rem;font-weight:700;color:'+(isMe?'#4a90ff':'var(--text)')+'">'+escapeHtml(p.username)+'</span>'
       +'<span style="font-size:.68rem;color:var(--muted)">'+date+' '+time+'</span>'
-      +(canDel?'<span onclick="deleteTeamMessage(\''+m.id+'\')" style="margin-left:auto;color:#ff4444;cursor:pointer;font-size:.8rem;padding:0 .2rem" title="Supprimer">✕</span>':'')
+      +'<span onclick="toggleTeamMsgMenu(\''+m.id+'\',event)" style="margin-left:auto;cursor:pointer;color:var(--muted2);font-size:.85rem;padding:0 .2rem;position:relative" title="Options">⌄'
+        +'<div id="tmsg-menu-'+m.id+'" style="display:none;position:absolute;top:100%;'+(isMe?'right:0':'left:0')+';margin-top:.2rem;background:var(--bg2);border:1px solid var(--border2);border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.4);z-index:25;min-width:130px;overflow:hidden;text-align:left">'
+          +'<div onclick="event.stopPropagation();startTeamReply(\''+m.id+'\');toggleTeamMsgMenu(\''+m.id+'\')" style="padding:.5rem .7rem;font-size:.75rem;font-weight:400;color:var(--text);cursor:pointer">↩ Répondre</div>'
+          +(canDel?'<div onclick="event.stopPropagation();toggleTeamMsgMenu(\''+m.id+'\');deleteTeamMessage(\''+m.id+'\')" style="padding:.5rem .7rem;font-size:.75rem;font-weight:400;color:#ff4444;cursor:pointer;border-top:1px solid var(--border2)">🗑 Supprimer</div>':'')
+        +'</div>'
+      +'</span>'
       +'</div>'
+      +replyQuoteHtml
       +'<div style="font-size:.95rem;color:var(--text);line-height:1.45;word-break:break-word">'+escapeHtml(m.content)+'</div>'
       +'</div></div>';
   }).join('');
+  if(_openTeamMsgMenuId){
+    var _tm=document.getElementById('tmsg-menu-'+_openTeamMsgMenuId);
+    if(_tm) _tm.style.display='block'; else _openTeamMsgMenuId=null;
+  }
   el.scrollTop=_wasAtBottom?el.scrollHeight:_prevScrollTop;
+}
+
+// Menu par message (⌄) du chat de team : Répondre pour tout le monde, Supprimer pour l'auteur ou l'admin.
+// Même principe que le chat global (14/10/2026, demande user : l'admin a supprimé un message en voulant répondre).
+var _openTeamMsgMenuId=null;
+function toggleTeamMsgMenu(msgId,evt){
+  if(evt) evt.stopPropagation();
+  document.querySelectorAll('[id^="tmsg-menu-"]').forEach(function(elx){
+    if(elx.id!=='tmsg-menu-'+msgId) elx.style.display='none';
+  });
+  var menu=document.getElementById('tmsg-menu-'+msgId);
+  if(!menu) return;
+  var opening=menu.style.display==='none'||!menu.style.display;
+  menu.style.display=opening?'block':'none';
+  _openTeamMsgMenuId=opening?msgId:null;
+  if(opening){
+    setTimeout(function(){
+      document.addEventListener('click',function _close(e){
+        var m=document.getElementById('tmsg-menu-'+msgId);
+        if(!m||!m.contains(e.target)){
+          if(m) m.style.display='none';
+          if(_openTeamMsgMenuId===msgId) _openTeamMsgMenuId=null;
+          document.removeEventListener('click',_close);
+        }
+      });
+    },0);
+  }
+}
+var _teamReplyingToId=null;
+function startTeamReply(msgId){
+  var bubble=document.getElementById('tm-msg-'+msgId);
+  if(!bubble) return;
+  var nameEl=bubble.querySelector('span[style*="font-weight:700"]');
+  var contentEl=bubble.querySelector('div[style*="line-height:1.45"]');
+  _teamReplyingToId=msgId;
+  document.getElementById('teamchat-reply-name').textContent=nameEl?nameEl.textContent:'';
+  document.getElementById('teamchat-reply-snippet').textContent=contentEl?contentEl.textContent:'';
+  document.getElementById('teamchat-reply-banner').style.display='flex';
+  var input=document.getElementById('team-chat-input');
+  if(input) input.focus();
+}
+function cancelTeamReply(){
+  _teamReplyingToId=null;
+  var b=document.getElementById('teamchat-reply-banner');
+  if(b) b.style.display='none';
+}
+function scrollToTeamMessage(msgId){
+  var bubble=document.getElementById('tm-msg-'+msgId);
+  if(!bubble) return;
+  bubble.scrollIntoView({behavior:'smooth',block:'center'});
+  var inner=bubble.querySelector('div[style*="border-radius:10px"]');
+  if(inner){
+    var prevBg=inner.style.background;
+    inner.style.transition='background .3s';
+    inner.style.background='rgba(245,200,66,.25)';
+    setTimeout(function(){ inner.style.background=prevBg; },900);
+  }
 }
 
 async function sendTeamMessage(){
@@ -15017,9 +15111,10 @@ async function sendTeamMessage(){
   await window.fetch(supabaseUrl+'/rest/v1/team_messages',{
     method:'POST',
     headers:{'apikey':supabaseKey,'Authorization':'Bearer '+(window.__sessionToken||supabaseKey),'Content-Type':'application/json','Prefer':'return=minimal'},
-    body:JSON.stringify({team_id:_teamChatId,player_id:currentUser.id,content:content})
+    body:JSON.stringify(_teamReplyingToId?{team_id:_teamChatId,player_id:currentUser.id,content:content,reply_to_id:_teamReplyingToId}:{team_id:_teamChatId,player_id:currentUser.id,content:content})
   });
   input.value='';
+  cancelTeamReply();
   loadTeamChat(_teamChatId);
 }
 
