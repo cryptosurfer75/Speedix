@@ -4297,6 +4297,7 @@ select option{background:#040c1c}
     <h2>🏃 <span style="color:#fff">Ma</span> Progression</h2>
     <div class="row">Case actuelle <b id="tour-p-idx">0 / 800</b></div>
     <div class="row">Tours effectués <b id="tour-p-laps">0</b></div>
+    <div class="row" id="tour-p-bench-row" style="display:none">🪑 Banc de touche <b id="tour-p-bench" style="color:var(--orange)"></b></div>
     <div class="row">Ta position <b id="tour-p-rank">— / —</b></div>
 
     <h2 style="margin-top:14px">🪪 <span style="color:#fff">Mon</span> Statut</h2>
@@ -19848,6 +19849,15 @@ async function _tourClaimAndAnimate(){
     var res = await supabaseClient.rpc('tour_advance_position', {p_player_id: currentUser.id});
     var d = res && res.data;
     if(d && d.ok && d.moved>0) Tour.applyServerMove(d);
+    // Banc de touche (2026-10-16) : courses « consommées » sur le banc, pion immobile.
+    if(d && d.ok && d.benched_runs>0){
+      if(d.moved<=0 && typeof Tour.noteBench==='function') Tour.noteBench(d);
+      if(typeof showToast==='function'){
+        showToast(d.bench_left>0
+          ? '🪑 Banc de touche : course comptée, il te reste '+d.bench_left+' course'+(d.bench_left>1?'s':'')+' sur le banc.'
+          : (d.moved>0 ? '🪑 Fin du banc de touche, ton pion repart !' : '🪑 Dernière course sur le banc : tu repars à la prochaine !'));
+      }
+    }
     return {status:'ok', data:d};
   } catch(e){
     console.warn('[tour-advance] claim failed:', e);
@@ -30902,6 +30912,22 @@ window.Tour.init = async function(){
     l.bonusText = c.text;
     l.bonusAmount = c.amount;
   });
+  // ── Cases « Banc de touche » (2026-10-16, demande explicite user) : atterrir
+  // dessus = soupçon de dopage, le pion reste immobile pendant 2 courses OU le RP
+  // paie Maître Filou (500 RPC → cagnotte) pour sortir tout de suite. SOURCE
+  // UNIQUE des idx = game_settings.tour_banc_cells (liste séparée par des
+  // virgules, VIDE = fonctionnalité éteinte) — lue aussi par le serveur
+  // (tour_bench_cells(), qui pose le banc à l'atterrissage dans
+  // tour_advance_position / tour_move_relative). Jamais codé en dur ici : client
+  // et serveur ne peuvent donc pas diverger sur l'emplacement des cases.
+  try{
+    const {data:_bancRow} = await supabaseClient.from('game_settings').select('value').eq('key','tour_banc_cells').maybeSingle();
+    String((_bancRow && _bancRow.value) || '').split(',').forEach(function(x){
+      const i = parseInt(x, 10);
+      const l = LANDS[i];
+      if(l && !['etape','bonus','event','extra','gift'].includes(l.status)) l.status = 'banc';
+    });
+  }catch(e){ console.warn('[Tour] tour_banc_cells:', e); }
   // ⚠️ Raccordé au vrai Wallet (2026-08-06, demande explicite — "tu peux déjà
   // brancher les Wallets dessus, il n'y a aucun risque puisque les Landes
   // classiques sont gelées en prod et ce Tour n'est déployé qu'en local") :
@@ -30921,7 +30947,7 @@ window.Tour.init = async function(){
   let _tourPlayerRow = null;
   if(currentUser && currentUser.id){
     const {data} = await supabaseClient.from('players')
-      .select('rpc_balance,nyx_balance,tour_acquisition_rights,premium,username,grade,tour_idx,tour_laps,tour_start_city,tour_start_idx,tour_forsale_seen_at,tour_friend_colors')
+      .select('rpc_balance,nyx_balance,tour_acquisition_rights,premium,username,grade,tour_idx,tour_laps,tour_start_city,tour_start_idx,tour_forsale_seen_at,tour_friend_colors,tour_bench_left')
       .eq('id', currentUser.id).single();
     _tourPlayerRow = data || null;
   }
@@ -30935,6 +30961,8 @@ window.Tour.init = async function(){
     nyx: _tourRealNyx,
     rpc: _tourRealRpc,
     acquisitionRights: !!(_tourPlayerRow && _tourPlayerRow.tour_acquisition_rights),
+    // Courses restantes sur le banc de touche (0 = libre). SOURCE UNIQUE = players.tour_bench_left (serveur).
+    benchLeft: (_tourPlayerRow && _tourPlayerRow.tour_bench_left) || 0,
     // Vrai grade (2026-08-06, branché en réel — cf players.grade, calculé par
     // updatePlayerGrade() ailleurs dans l'appli, SOURCE UNIQUE) : remplace
     // l'ancien recalcul local via computeGrade(periods,pts,tourLoc,tourProp)
@@ -31047,7 +31075,7 @@ window.Tour.init = async function(){
         // affichait « Land offerte » mais tour_claim_extra_land refusait, rien en base).
         // Chaque case extra n'est offerte qu'UNE fois : une fois réclamée, elle redevient
         // une Land classique (louée), donc on la charge depuis tour_lands comme les autres.
-        if(['bonus','event','extra','gift'].includes(l.status) && !(l.status==='extra' && row.holder_id)) return; // cases Chance, jamais dans tour_lands
+        if(['bonus','event','extra','gift','banc'].includes(l.status) && !(l.status==='extra' && row.holder_id)) return; // cases Chance, jamais dans tour_lands
         l.status = row.status || 'free';
         l.stars = row.stars||0;
         l.leaseMonths = row.lease_months||0;
@@ -31463,7 +31491,7 @@ window.Tour.init = async function(){
   // ligne de légende) est unifiée.
   // Couleurs inversées le 2026-08-08 (demande explicite user, cohérence avec les
   // cartes existantes : location=vert, achat=bleu — était l'inverse avant).
-  const STATUS_COLOR = {free:'#eef0f6', rented:'#2ddb80', owned:'#4a90ff', bonus:'#f5c842', event:'#f5c842', extra:'#f5c842', gift:'#f5c842'};
+  const STATUS_COLOR = {free:'#eef0f6', rented:'#2ddb80', owned:'#4a90ff', bonus:'#f5c842', event:'#f5c842', extra:'#f5c842', gift:'#f5c842', banc:'#f5c842'};
   // Contour électrique réservé aux Lands qui sont les TIENNES (location OU achat) —
   // 2026-08-08, demande explicite user : avant, chaque voisin réel avait sa propre
   // couleur de remplissage (palette OTHER_TOUR_COLORS), donnant un "patchwork"
@@ -31551,7 +31579,7 @@ window.Tour.init = async function(){
     // l'ancien prototype-tour.html (2026-08-02) — la fusion des 2 fichiers avait
     // laissé cette régression : l'ancienne version (ligne ci-dessus, appliquait
     // le gain/perte au survol) était revenue par erreur dans cette copie-ci.
-    if(['bonus','event','extra','gift'].includes(l.status)){
+    if(['bonus','event','extra','gift','banc'].includes(l.status)){
       l.layer.setStyle({fillColor: STATUS_COLOR.free, fillOpacity:.95});
       return;
     }
@@ -32659,6 +32687,7 @@ window.Tour.init = async function(){
     if(l.status==='event') return `<b>🎲 Case événement</b><br>${l.eventCard.text}`;
     if(l.status==='extra') return `<b>🎉 Land offerte</b><br>3 mois de loyer gratuit`;
     if(l.status==='gift') return `<b>🎁 Cadeau</b><br>Donne un droit d'acquisition`;
+    if(l.status==='banc') return `<b>🪑 Banc de touche</b><br>Soupçon de dopage : 2 courses sur le banc, ou Maître Filou pour 1500 RPC`;
     // Enlevé "si tu tombes ici" (2026-08-01, pas très friendly) : le prélèvement
     // n'est pas conditionnel dans ce popup, c'est le montant qu'il faudrait payer.
     // "X km parcourus → case n°Y" (2026-08-08, demande explicite user) : le numéro
@@ -33083,6 +33112,11 @@ window.Tour.init = async function(){
     document.getElementById('tour-p-acq').textContent = canBuyLands() ? 'Oui' : 'Non';
     document.getElementById('tour-p-grade').textContent = myGradeName();
     document.getElementById('tour-p-laps').textContent = ME.laps||0;
+    const _benchRow = document.getElementById('tour-p-bench-row');
+    if(_benchRow){
+      _benchRow.style.display = (ME.benchLeft>0) ? '' : 'none';
+      document.getElementById('tour-p-bench').textContent = ME.benchLeft+' course'+(ME.benchLeft>1?'s':'');
+    }
     updateMyRank();
     // Couleur des tuiles Mes Lands / Lands à vendre (2026-08-09, demande explicite) :
     // dérivée directement de LANDS (déjà en mémoire, aucun appel réseau) --
@@ -33199,6 +33233,37 @@ window.Tour.init = async function(){
   // sous-fenêtre dédiée ("pas assez de RPC/NYX" a sa propre modale ailleurs) —
   // couvre surtout les cas de concurrence réelle maintenant possibles (un autre
   // RP a été plus rapide) puisque tour_lands est une vraie table partagée.
+  // ── Banc de touche (2026-10-16) ──
+  // Paiement de Maître Filou : SEULE recette = tour_bench_pay (serveur : vérifie
+  // qu'on est bien au banc et le VRAI solde ≥ 500, débite, alimente la cagnotte).
+  async function payBench(){
+    const res = await _tourCall('tour_bench_pay');
+    if(res && res.ok){
+      ME.benchLeft = 0;
+      await _tourSyncWallet();
+      showCelebrationModal('⚖️ Affaire classée !', `<b>Maître Filou</b> a réglé ton affaire : <b class="rm-gold">1500 RPC</b> prélevés (versés à la cagnotte du Tour). Tu repars dès ta prochaine course ! 🏃`);
+      updatePlayerStatusPanel();
+      return;
+    }
+    if(res && res.error==='not_enough_rpc'){
+      await _tourSyncWallet();
+      if(typeof window.showToast==='function') window.showToast('⚠️ Solde insuffisant : il faut 1500 RPC pour payer Maître Filou, tu restes sur le banc.');
+      return;
+    }
+    if(res && res.error==='not_benched'){
+      ME.benchLeft = 0; updatePlayerStatusPanel();
+      if(typeof window.showToast==='function') window.showToast("✅ Tu n'es déjà plus sur le banc de touche.");
+      return;
+    }
+    _tourErrorToast(res && res.error);
+  }
+  // Mise à jour de l'état du banc depuis une réponse serveur (tour_advance_position
+  // même quand le pion n'a pas bougé : courses « consommées » sur le banc).
+  function noteBench(d){
+    if(!d || d.bench_left===undefined) return;
+    ME.benchLeft = d.bench_left||0;
+    updatePlayerStatusPanel();
+  }
   function _tourErrorToast(err){
     const MSG = {
       not_eligible:"Tu n'as pas encore les droits nécessaires pour ça.",
@@ -33295,6 +33360,28 @@ window.Tour.init = async function(){
         sub: `C'est ton jour de chance ! Tu viens de tomber sur une Land offerte — elle est maintenant à toi, gratuité du loyer pendant 3 mois. 🎉🎁`,
         btns: '',
         frame: 'extra-frame'
+      };
+    }
+    // Banc de touche (2026-10-16) : le banc est DÉJÀ posé par le serveur à
+    // l'atterrissage (ME.benchLeft vient de lui) — cette modale ne fait que
+    // proposer de payer Maître Filou (tour_bench_pay, seule recette du paiement).
+    if(land.status==='banc'){
+      const n = ME.benchLeft||0;
+      if(n<=0){
+        return {
+          title: `🪑 <span style="color:#fff">BANC</span> <span style="color:var(--orange)">DE TOUCHE</span>`,
+          sub: `Tu n'es plus sur le banc de touche : ton pion peut à nouveau avancer. Reste clean ! 😉`,
+          btns: '',
+          frame: 'event-frame'
+        };
+      }
+      const broke = ME.rpc < 1500;
+      return {
+        title: `🪑 <span style="color:#fff">BANC</span> <span style="color:var(--orange)">DE TOUCHE</span>`,
+        sub: `Soupçon de dopage sur ta dernière course ! Reste immobile sur le banc de touche pendant <b>${n} course${n>1?'s':''}</b> ou paie <b>Maître Filou</b> pour te sortir de cette mauvaise affaire : <b class="rm-gold">−1500 RPC</b>.`
+          + (broke ? `<br><b style="color:var(--red)">Solde insuffisant : tu restes sur le banc.</b>` : ''),
+        btns: `<button class="tour-btn" onclick="Tour.closeRentModal()">Rester sur le banc</button><button class="rm-btn-play pulse-cta" onclick="Tour.payBench()">Payer Maître Filou</button>`,
+        frame: 'event-frame'
       };
     }
     if(land.status==='gift'){
@@ -33456,7 +33543,7 @@ window.Tour.init = async function(){
           : ev.type==='retreat' ? 'retreat_'+ev.value
           : 'goto_next_etape';
         _tourCall('tour_move_relative', {p_move_type: _moveType}).then(function(res){
-          if(res && res.ok){ myIdx = res.from_idx; forceMove(res.to_idx - res.from_idx); }
+          if(res && res.ok){ myIdx = res.from_idx; if(res.bench_left!==undefined) ME.benchLeft = res.bench_left||0; forceMove(res.to_idx - res.from_idx); }
           else console.warn('[Tour] tour_move_relative:', res && res.error);
         });
         return;
@@ -34818,6 +34905,7 @@ window.Tour.init = async function(){
   function applyServerMove(d){
     if(!ME.startCity) return; // ne devrait pas arriver : le serveur refuse (not_started) tant que la ville de départ n'est pas choisie
     myIdx = d.from_idx;
+    if(d.bench_left!==undefined) ME.benchLeft = d.bench_left||0;
     forceMove(d.to_idx - d.from_idx);
   }
 
@@ -35254,7 +35342,7 @@ window.Tour.init = async function(){
     buyMyRentedLand, releaseLand, buyStarFromModal, openStarModal,
     openSellModal, confirmSellLand, cancelSale, focusLandOnMap,
     setRealFriendColor, attemptBuyEtape, attemptBuyLand, simulateGoPremium, goToNyxMarket,
-    updatePlayerStatusPanel, openStartCityModal, chooseStartCity, bumpParisStarts,
+    updatePlayerStatusPanel, payBench, noteBench, openStartCityModal, chooseStartCity, bumpParisStarts,
     hardResetTourDemo, showRentNotifications, claimTaxExemption, showTaxReleasePicker,
     showRentReleasePicker, releaseLandFromPicker, backFromReleasePicker, backToTaxModal,
     backToRentModal, payMonthlyRent, openRulesPage, closeRulesPage, toggleLegend,
