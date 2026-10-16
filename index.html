@@ -2911,6 +2911,7 @@ select option{background:#040c1c}
       <div onclick="event.stopPropagation();navMenu('economy')"    class="rtw-item">💰 Market</div>
       <div onclick="event.stopPropagation();navMenu('access')"     class="rtw-item">⭐ Premium</div>
       <div onclick="event.stopPropagation();navMenu('grades')"     class="rtw-item">🎖️ Grades</div>
+      <div id="rtw-menu-review" onclick="event.stopPropagation();SpeedixReview.openStore()" class="rtw-item" data-i18n="menu.review" style="display:none">💬 Avis</div>
       <div onclick="event.stopPropagation();navMenu('rules')"      class="rtw-item" data-i18n="menu.rules">📋 Règles</div>
       <div onclick="event.stopPropagation();navMenu('legal')"      class="rtw-item" data-i18n="menu.legal">⚖️ CGV / CGU</div>
       <div onclick="event.stopPropagation();navMenu('faq')" class="rtw-item" data-i18n="menu.faq">❓ Aide &amp; FAQ</div>
@@ -5131,10 +5132,28 @@ select option{background:#040c1c}
 var SpeedixReview=(function(){
   function get(k,d){try{var v=localStorage.getItem(k);return v==null?d:v}catch(e){return d}}
   function set(k,v){try{localStorage.setItem(k,String(v))}catch(e){}}
+  var _user=null, _elig=null, _done=(get('speedix_review_done','0')==='1');
   function plugin(){
     var c=window.Capacitor;
     return (c&&typeof c.isNativePlatform==='function'&&c.isNativePlatform()&&c.Plugins&&c.Plugins.InAppReview)||null;
   }
+  // Compte >= 7 jours ET >= 3 courses : un avis ne se demande qu'à un RP qui a eu le temps de tester.
+  async function eligible(user){
+    if(_elig!==null) return _elig;
+    if(!user||!user.created_at||Date.now()-new Date(user.created_at).getTime()<7*86400000) return false;
+    var r=await supabaseClient.from('runs').select('id',{count:'exact',head:true}).eq('player_id',user.id);
+    if(!r||r.error) return false;
+    _elig=((r.count||0)>=3); return _elig;
+  }
+  // iPhone : ouvre directement l'écran « Écrire un avis » de l'App Store (étoiles + commentaire).
+  // Android : fiche Play Store (Google n'offre pas de lien direct vers le formulaire d'avis).
+  function storeUrls(){
+    var c=window.Capacitor, pf=(c&&typeof c.getPlatform==='function')?c.getPlatform():'web';
+    var ios=(pf==='ios')||(pf==='web'&&/iPhone|iPad|iPod/.test(navigator.userAgent));
+    return ios?{native:'itms-apps://itunes.apple.com/app/id6763503175?action=write-review',web:'https://apps.apple.com/app/speedix/id6763503175?action=write-review'}
+              :{native:'market://details?id=com.speedixleague.runner',web:'https://play.google.com/store/apps/details?id=com.speedixleague.runner'};
+  }
+  function hideMenuLine(){ var el=document.getElementById('rtw-menu-review'); if(el) el.style.display='none'; }
   async function ask(){
     var P=plugin();
     if(!P){ console.log('[review] plugin natif absent : rien à afficher'); return; }
@@ -5143,25 +5162,54 @@ var SpeedixReview=(function(){
     try{ await P.requestReview(); }catch(e){ console.warn('[review]',e); }
   }
   return {
-    // Appelée au login (onLoginSuccess). Ne fait rien si les conditions ne sont pas réunies.
+    // Ligne « Avis » du menu déroulant : visible si le RP est éligible et n'a pas encore ouvert la page d'avis.
+    refreshMenu:async function(user){
+      try{
+        _user=user||_user; if(!_user) return;
+        if(_done){ hideMenuLine(); return; }
+        var me=await supabaseClient.from('players').select('review_done_at').eq('id',_user.id).maybeSingle();
+        if(me&&me.data&&me.data.review_done_at){ _done=true; set('speedix_review_done','1'); hideMenuLine(); return; }
+        var el=document.getElementById('rtw-menu-review');
+        if(el&&await eligible(_user)) el.style.display='';
+      }catch(e){console.warn('[review] menu',e);}
+    },
+    // Clic sur « Avis » : ouvre la page d'avis du store, mémorise (la ligne disparaît).
+    openStore:function(){
+      try{
+        var u=storeUrls(), AL=window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.AppLauncher;
+        var web=function(){ try{ window.open(u.web,'_blank'); }catch(e){} };
+        if(AL&&typeof AL.openUrl==='function'){ AL.openUrl({url:u.native}).then(function(r){ if(!r||r.completed===false) web(); },web); }
+        else web();
+      }catch(e){}
+      _done=true; set('speedix_review_done','1'); hideMenuLine();
+      var rm=document.getElementById('rtw-menu'); if(rm) rm.style.display='none';
+      try{ if(_user) supabaseClient.from('players').update({review_done_at:new Date().toISOString()}).eq('id',_user.id).then(function(){},function(){}); }catch(e){}
+      try{ showToast(SPEEDIX_LANG==='en'?'Thank you! 🙏':'Merci ! 🙏'); }catch(e){}
+    },
+    // Appelée au login : met à jour la ligne de menu (plus de fenêtre automatique à la connexion).
+    // ?reviewprompt=1 force l'appel de la fenêtre native (test).
     maybeShow:async function(user){
       try{
-        var force=/[?&]reviewprompt=1/.test(location.search);
-        if(!force){
-          if(!plugin()) return;
-          if(parseInt(get('speedix_review_count','0'),10)>=3) return;
-          // Délais entre deux demandes : 1re = tout de suite (conditions ci-dessus) ; 2e après 15 jours ; 3e après 30 jours.
-          var _n=parseInt(get('speedix_review_count','0'),10);
-          var _gapDays=(_n<=0)?0:(_n===1?15:30);
-          if(Date.now()-parseInt(get('speedix_review_last','0'),10)<_gapDays*86400000) return;
-          if(!user||!user.created_at||Date.now()-new Date(user.created_at).getTime()<7*86400000) return;
-          var r=await supabaseClient.from('runs').select('id',{count:'exact',head:true}).eq('player_id',user.id);
-          if(!r||r.error||(r.count||0)<3) return;
-        }
+        _user=user||_user;
+        this.refreshMenu(user);
+        if(/[?&]reviewprompt=1/.test(location.search)) setTimeout(function(){ if(!document.querySelector('.modal.open')) ask(); },1500);
+      }catch(e){console.warn('[review]',e);}
+    },
+    // Appelée quand une fenêtre de RÉCOMPENSE vient d'être fermée (file des célébrations vide) :
+    // moment de joie → fenêtre native d'avis, si les conditions sont réunies.
+    afterReward:async function(){
+      try{
+        if(!plugin()||_done||!_user) return;
+        var n=parseInt(get('speedix_review_count','0'),10);
+        if(n>=3) return;
+        // 1re fois : tout de suite ; 2e : 15 jours après la 1re ; 3e : 30 jours après la 2e
+        var gapDays=(n<=0)?0:(n===1?15:30);
+        if(Date.now()-parseInt(get('speedix_review_last','0'),10)<gapDays*86400000) return;
+        if(!await eligible(_user)) return;
         setTimeout(function(){
           if(document.querySelector('.modal.open')) return; // ne jamais couper une action en cours
           ask();
-        },force?1500:10000);
+        },1500);
       }catch(e){console.warn('[review]',e);}
     }
   };
@@ -7119,6 +7167,7 @@ const I18N = {
     'runs.sim.total'            : 'Total points',
     // — Navbar / menu (rtw-items)
     'menu.rules'                : '📋 Règles',
+    'menu.review'               : '💬 Avis',
     'menu.legal'                : '⚖️ CGV / CGU',
     'menu.faq'                  : '❓ Aide & FAQ',
     'menu.profile'              : '⚙️ Mon profil',
@@ -7883,6 +7932,7 @@ const I18N = {
     'runs.sim.total'            : 'Total points',
     // — Navbar / menu (rtw-items)
     'menu.rules'                : '📋 Rules',
+    'menu.review'               : '💬 Review',
     'menu.legal'                : '⚖️ Terms',
     'menu.faq'                  : '❓ Help & FAQ',
     'menu.profile'              : '⚙️ My profile',
@@ -27992,6 +28042,8 @@ function _processCelebQueue(){
     if((seenOpen||giveUpWaitingToOpen) && !open){
       clearInterval(check);
       setTimeout(_processCelebQueue,_CELEB_READ_GAP_MS);
+      // Récompense lue et fermée, plus rien en file : moment idéal pour la demande d'avis (si éligible)
+      if(seenOpen && _celebQueue.length===0 && window.SpeedixReview) setTimeout(function(){ SpeedixReview.afterReward(); },_CELEB_READ_GAP_MS+800);
     }
   },250);
 }
