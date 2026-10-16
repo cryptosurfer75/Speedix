@@ -5124,7 +5124,7 @@ select option{background:#040c1c}
      directement sur Google Play / App Store) via @capacitor-community/in-app-review.
      Règles : AUCUNE récompense, pas de tri selon la note (interdits par Google/Apple), jamais
      par-dessus une autre fenêtre. App native avec le plugin uniquement (sinon on ne fait rien).
-     Conditions : compte >= 7 jours et >= 3 courses ; 1 demande max / 90 jours ; 3 demandes max
+     Conditions : compte >= 7 jours et >= 3 courses ; délais : 2e demande 15 jours après la 1re, 3e demande 30 jours après la 2e (16/10/2026, avant : 90 j) ; 3 demandes max
      au total (Apple plafonne de toute façon à 3 affichages / an ; Google limite aussi).
      Test : ?reviewprompt=1 force l'appel (ignore les conditions) ; sans plugin, ne fait que loguer. -->
 <script>
@@ -5150,7 +5150,10 @@ var SpeedixReview=(function(){
         if(!force){
           if(!plugin()) return;
           if(parseInt(get('speedix_review_count','0'),10)>=3) return;
-          if(Date.now()-parseInt(get('speedix_review_last','0'),10)<90*86400000) return;
+          // Délais entre deux demandes : 1re = tout de suite (conditions ci-dessus) ; 2e après 15 jours ; 3e après 30 jours.
+          var _n=parseInt(get('speedix_review_count','0'),10);
+          var _gapDays=(_n<=0)?0:(_n===1?15:30);
+          if(Date.now()-parseInt(get('speedix_review_last','0'),10)<_gapDays*86400000) return;
           if(!user||!user.created_at||Date.now()-new Date(user.created_at).getTime()<7*86400000) return;
           var r=await supabaseClient.from('runs').select('id',{count:'exact',head:true}).eq('player_id',user.id);
           if(!r||r.error||(r.count||0)<3) return;
