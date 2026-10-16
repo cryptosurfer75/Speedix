@@ -9333,6 +9333,7 @@ async function loadPlayersFromSupabase(){
     .from('players')
     .select('id,username,league,nat,grade,trend,avatar,competitive,buyin_debt,frozen,rtw_id,premium,premium_until,premium_trial,premium_paid,infirmerie_until,is_visible,consecutive_zero_periods,pts_cumulated,boost_active_until,gel_active_until,league_ref_rank,league_ref_lg,birth_date,equipped_bg_c1,equipped_bg_c2,medal_bg_c1,medal_bg_c2,medal_bg_until,medal_bg_dist,medal_bg_dismissed_until');
 
+  premSetFrom(playersData);
   if(playersErr){
     if(panel) panel.innerHTML = '<div style="padding:1.5rem;text-align:center;color:var(--red);font-size:.8rem">⚠️ Erreur players : ' + playersErr.message + '</div>';
     renderLeagueNav(); renderLeaguePP(); renderLeaguePanel();
@@ -9528,6 +9529,7 @@ const AVAILABLE_TEAMS=[
   {idx:46,name:'Wolf',emoji:'🐺',color:'#3ec6e0'},
   {idx:47,name:'Cagou',emoji:'🦅',color:'#4a90ff'},
   {idx:48,name:'Ibex',emoji:'🐐',color:'#e8720c'},
+  {idx:49,name:'Chicken',emoji:'🐔',color:'#f08a1c'},
 ];
 // Small blasons
 var AVAIL_BLASON_SMALL=[
@@ -9579,7 +9581,8 @@ var AVAIL_BLASON_SMALL=[
 'blasons/45-sm.jpg',
 'blasons/46-sm.jpg',
 'blasons/47-sm.jpg',
-'blasons/48-sm.jpg'
+'blasons/48-sm.jpg',
+'blasons/49-sm.jpg'
 ];
 var AVAIL_BLASON_ZOOM=[
 'blasons/00-zoom.jpg',
@@ -9630,7 +9633,8 @@ var AVAIL_BLASON_ZOOM=[
 'blasons/45-zoom.jpg',
 'blasons/46-zoom.jpg',
 'blasons/47-zoom.jpg',
-'blasons/48-zoom.jpg'
+'blasons/48-zoom.jpg',
+'blasons/49-zoom.jpg'
 ];
 
 function showBlasonImg(src, name, city, rp){
@@ -10681,6 +10685,11 @@ var FLAG_FLAT_MAP={'🇫🇷':'fr','🇧🇪':'be','🇨🇦':'ca','🇩🇪':'d
 function natFlagHtml(v,sz){sz=sz||'1.15rem';var f=natFlag(v);var isSq=SQUARE_FLAGS.indexOf(f)>=0;var scale=isSq?'transform:scale(1.35);':'';return '<div style="width:1.4em;height:1.1em;overflow:hidden;display:inline-flex;align-items:center;justify-content:center;font-size:'+sz+';line-height:1;flex-shrink:0"><span style="'+scale+'">'+f+'</span></div>';}
 // Anti-XSS : à utiliser sur toute donnée saisie par un RP/admin avant injection en innerHTML
 // (usernames, team names, descriptions de course, commentaires, messages de chat, sponsor name/message…).
+// ★ Premium (2026-10-16) : set des pseudos Premium actifs, alimenté au chargement des joueurs ; sert aux classements qui n'ont pas le flag.
+window.__premUsers=window.__premUsers||{};
+function premSetFrom(list){var m={},now=Date.now();(list||[]).forEach(function(x){if(x&&x.premium&&x.username&&(!x.premium_until||new Date(x.premium_until).getTime()>now))m[String(x.username).toLowerCase()]=1;});window.__premUsers=m;}
+function premCol(name){return (name&&window.__premUsers[String(name).toLowerCase()])?'var(--gold)':'var(--text)';}
+function premStar(name){return (name&&window.__premUsers[String(name).toLowerCase()])?'<span title="Premium" style="margin-left:.15rem;color:var(--gold);font-size:.8rem;line-height:1;display:inline-block;transform:scaleY(.87)">★</span>':'';}
 function escapeHtml(s){if(s==null)return '';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
 
 // Generate large player pools per league
@@ -12377,6 +12386,10 @@ function renderLeaguePanel(){
     var crownBadge=(window.__crMonthChampUuid && p._uuid===window.__crMonthChampUuid)
       ?'<span title="'+t('league.badge.quizzchamp')+'" style="margin-left:.3rem;font-size:.85rem;flex-shrink:0;line-height:1">👑</span>'
       :'';
+    // ★ Premium actif : pseudo en doré + étoile au bout (2026-10-16, demande user).
+    var _isPremRow=!!(p.premium&&(!p.premiumUntil||new Date(p.premiumUntil)>new Date()));
+    var premNameStyle=_isPremRow?' style="color:var(--gold)"':'';
+    var premStar=_isPremRow?'<span title="Premium" style="margin-left:.1rem;color:var(--gold);font-size:.8rem;flex-shrink:0;line-height:1">★</span>':'';
     // Pastille distance (5/10/21/42…) : UNIQUEMENT pendant la fenêtre de 48h
     // du skin "gagnant de Challenge" (même condition que le bandeau bleu,
     // _rowMedalActive) — PAS à la simple inscription (1ère version, corrigée
@@ -12481,7 +12494,7 @@ function renderLeaguePanel(){
         +'<div style="flex:1;box-sizing:border-box;padding:.35rem .35rem .35rem .2rem;display:flex;align-items:center;gap:.55rem;min-width:0">'
         +natFlagHtml(p.nat)
         +avatarHtml
-        +'<div style="display:flex;align-items:center;gap:.2rem;min-width:0"><div class="runner-name">'+p.name+meBadge+'</div>'+crownBadge+eventDistBadge+infBadge+gelBadge+calibBadge+debtBadge+parrainBadge+'</div>'
+        +'<div style="display:flex;align-items:center;gap:.2rem;min-width:0"><div class="runner-name"'+premNameStyle+'>'+p.name+meBadge+'</div>'+premStar+crownBadge+eventDistBadge+infBadge+gelBadge+calibBadge+debtBadge+parrainBadge+'</div>'
         +'</div>'
         +(boostBadge?'<div style="display:flex;align-items:center;flex-shrink:0">'+boostBadge+'</div>':'')
         +'<div style="flex:0 0 100px;box-sizing:border-box;padding:.35rem .35rem;font-family:\'Rajdhani\',sans-serif;font-size:1.08rem;font-weight:700;white-space:nowrap;display:flex;align-items:center;justify-content:flex-end;gap:.3rem">'
@@ -12494,7 +12507,7 @@ function renderLeaguePanel(){
       +'<td><div style="display:flex;align-items:center;gap:.55rem">'
       +natFlagHtml(p.nat)
       +avatarHtml
-      +'<div style="display:flex;align-items:center;gap:.2rem"><div class="runner-name">'+p.name+meBadge+'</div>'+crownBadge+eventDistBadge+infBadge+boostBadge+gelBadge+calibBadge+debtBadge+parrainBadge+'</div>'
+      +'<div style="display:flex;align-items:center;gap:.2rem"><div class="runner-name"'+premNameStyle+'>'+p.name+meBadge+'</div>'+premStar+crownBadge+eventDistBadge+infBadge+boostBadge+gelBadge+calibBadge+debtBadge+parrainBadge+'</div>'
       +'</div></td>'
       +'<td style="font-family:\'Rajdhani\',sans-serif;font-size:1.08rem;font-weight:700">'
       +'<span style="display:inline-flex;align-items:center;justify-content:flex-end;gap:.3rem;width:100%">'
@@ -14939,6 +14952,7 @@ function _unlockAdminChatLength(){
   }catch(e){}
 }
 async function loadTeamChat(teamId){
+  if(teamId&&teamId===window.__myTeamId&&window.__myChatTeamId) teamId=window.__myChatTeamId;
   _teamChatId=teamId;
   _unlockAdminChatLength();
   // Guard : si plus de user connecté (logout / changement de session pendant un poll
@@ -20209,7 +20223,7 @@ function getTeamCapacity(team){
 async function buyLicence(qty,price){
   if(!currentUser){showToast('⚠️ Connecte-toi d\'abord');return;}
   if(window.__myTeamRole!=='capitaine'){showToast('⚠️ Seul le capitaine peut acheter des licences');return;}
-  var teamId=window.__myTeamId;
+  var teamId=window.__managedTeamId||window.__myTeamId;
   if(!teamId){showToast('⚠️ Tu n\'es dans aucune team');return;}
   var w=window.__wallet||{nyx:0};
   if(w.nyx<price){showToast('⚠️ Solde insuffisant ('+price+' NYX requis)');return;}
@@ -23446,7 +23460,13 @@ async function doJoinPrivateTeam(){
   var {count:nb}=await supabaseClient
     .from('team_members').select('id',{count:'exact',head:true}).eq('team_id',team.id);
   var cap=getTeamCapacity(team);
-  if(nb>=cap){ msg.style.color='#f66'; msg.textContent='Cette team est complète ('+nb+'/'+cap+').'; return; }
+  var joinTeam=team;
+  if(nb>=cap){
+    // Team complète : si elle a une extension (ex. Alligators 2) avec de la place, le nouveau RP y entre directement
+    var _free=await findFreeExtensionTeam(team.id);
+    if(!_free){ msg.style.color='#f66'; msg.textContent='Cette team est complète ('+nb+'/'+cap+').'; return; }
+    joinTeam=_free;
+  }
 
   if(await wasInTeamBefore(team.id,currentUser.id)){
     input.value=''; msg.textContent='';
@@ -23455,15 +23475,15 @@ async function doJoinPrivateTeam(){
   }
 
   var {error:errJ}=await supabaseClient.from('team_members').insert({
-    player_id:currentUser.id, team_id:team.id, role:'membre'
+    player_id:currentUser.id, team_id:joinTeam.id, role:'membre'
   });
   if(errJ){ msg.style.color='#f66'; msg.textContent='Erreur : '+errJ.message; return; }
 
   window.__myTeamId='member'; window.__myTeamRole='membre';
-  window.__myTeamId=team.id;
+  window.__myTeamId=joinTeam.id;
   input.value=''; msg.textContent='';
   closeModal('join-team-modal');
-  showToast('🎉 Tu as rejoint '+team.name+' !');
+  showToast('🎉 Tu as rejoint '+joinTeam.name+' !');
   // Vérifier récompense parrainage : filleul rejoint la team du parrain
   checkReferralSameTeam();
   renderTeams();
@@ -23619,8 +23639,11 @@ async function renderTeams(){
     });
 
     // 5. Nettoyer les teams privées vides (0 membre) et les retirer
+    // Exception : une extension de team (parent_team_id) vide reste connue du capitaine
+    // (_emptyExtTeams) — elle n'apparaît pas dans le classement tant qu'elle est vide.
+    var _emptyExtTeams=teams.filter(function(t){return t._nb===0 && t.parent_team_id;});
     var teamsToDelete=teams.filter(function(t){
-      return t._nb===0 && t.invite_code!==OPEN_TEAM_MARKER;
+      return t._nb===0 && t.invite_code!==OPEN_TEAM_MARKER && !t.parent_team_id;
     });
     teamsToDelete.forEach(function(t){
       supabaseClient.from('teams').delete().eq('id',t.id);
@@ -23645,6 +23668,9 @@ async function renderTeams(){
         var _msData = await _msResp.json();
         if(Array.isArray(_msData)&&_msData[0]){
           myTeamId=window.__myTeamId=_msData[0].team_id;
+          // Chat commun à la team et à son extension : la salle = la team racine
+          var _myT0=teams.find(function(t){return t.id===myTeamId;});
+          window.__myChatTeamId=(_myT0&&_myT0.parent_team_id)||myTeamId;
           window.__myTeamRole=_msData[0].role;
         } else {
           window.__myTeamId=null;
@@ -23692,7 +23718,7 @@ async function renderTeams(){
           ?' · <span style="color:'+(t._bonusPct>0?'var(--green)':'var(--muted2)')+'">+'+(t._bonusPct||0)+'%</span>'
           :'';
         var hasMyTeam=!!window.__myTeamId;
-        var requestBtn=(!isOpen&&t.private&&!hasMyTeam&&currentUser)?'<span onclick="event.stopPropagation();requestJoinTeam(\''+t.id+'\',\''+encodeURIComponent(t.name)+'\')" title="Demander à rejoindre" style="font-size:.75rem;margin-left:.3rem;cursor:pointer;opacity:.7;transition:opacity .15s" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.7">📩</span>':'';
+        var requestBtn=(!isOpen&&t.private&&!t.parent_team_id&&!hasMyTeam&&currentUser)?'<span onclick="event.stopPropagation();requestJoinTeam(\''+t.id+'\',\''+encodeURIComponent(t.name)+'\')" title="Demander à rejoindre" style="font-size:.75rem;margin-left:.3rem;cursor:pointer;opacity:.7;transition:opacity .15s" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.7">📩</span>':'';
         // Inversion 2026-05-01 : 99% des teams privées vont l'être par défaut (créées
         // par les RPs). Plutôt que de surcharger CHAQUE ligne avec un 🔒, on marque
         // au contraire les teams OUVERTES avec un 🔓 (cas minoritaire). Gain de place
@@ -23894,6 +23920,17 @@ async function renderTeams(){
         _myTeamData=null;
       }
     }
+    // Extension de team (ex. Alligators 2) : le capitaine bascule entre sa team et son
+    // extension via les pastilles ; il a les mêmes droits dans les deux (demandes, licences,
+    // expulsion, bascule de joueurs). Son appartenance (window.__myTeamId) reste la team 1.
+    window.__managedTeamId=null;
+    var _famTeams=[], _isExtMode=false;
+    if(!_isViewedTeamMode && window.__myTeamRole==='capitaine' && window.__myTeamId && teams){
+      _famTeams=teams.concat(_emptyExtTeams).filter(function(t){return t.id===window.__myTeamId||t.parent_team_id===window.__myTeamId;});
+      if(_famTeams.length<2) _famTeams=[];
+      var _extSel=window.__activeExtTeamId&&_famTeams.find(function(t){return t.id===window.__activeExtTeamId&&t.id!==window.__myTeamId;});
+      if(_extSel){ _myTeamData=_extSel; myTeamId=_extSel.id; _isExtMode=true; window.__managedTeamId=_extSel.id; }
+    }
     // Chat Team (2026-08-04) : cadre séparé de #myteam-panel, visible dès que JE
     // suis dans une team — jamais lié à _myTeamData/myTeamId qui, en mode
     // consultation, sont réécrits pour pointer vers l'équipe REGARDÉE (cf plus
@@ -23937,18 +23974,27 @@ async function renderTeams(){
           } else {
             var _isCap2=(window.__myTeamRole==='capitaine');
             var actHtml='';
+            if(_famTeams.length>1&&_isCap2){
+              _famTeams.forEach(function(ft){
+                var _on=(ft.id===myTeamId);
+                actHtml+='<button onclick="switchManagedTeam(\''+ft.id+'\')" style="padding:.3rem .7rem;border-radius:5px;border:1px solid '+(_on?'rgba(45,219,128,.6)':'rgba(255,255,255,.35)')+';background:'+(_on?'rgba(45,219,128,.15)':'rgba(255,255,255,.04)')+';color:'+(_on?'var(--green)':'#fff')+';font-size:.68rem;font-weight:700;cursor:pointer">'+escapeHtml(ft.name)+'</button>';
+              });
+            }
             if(!_isMyOpen && _isCap2){
-              actHtml+='<button onclick="showInviteCode(\''+myTeamId+'\',\''+encodeURIComponent(_myTeamData.name)+'\')" style="padding:.3rem .7rem;border-radius:5px;border:1px solid rgba(245,200,66,.4);background:rgba(245,200,66,.08);color:var(--gold);font-size:.7rem;font-weight:700;cursor:pointer">🔑 Code invitation</button>';
+              var _invT=_isExtMode?(_famTeams.find(function(t){return t.id===window.__myTeamId;})||_myTeamData):_myTeamData;
+              actHtml+='<button onclick="showInviteCode(\''+_invT.id+'\',\''+encodeURIComponent(_invT.name)+'\')" style="padding:.3rem .7rem;border-radius:5px;border:1px solid rgba(245,200,66,.4);background:rgba(245,200,66,.08);color:var(--gold);font-size:.7rem;font-weight:700;cursor:pointer">🔑 Code invitation</button>';
               actHtml+='<button onclick="openKickModal(\''+myTeamId+'\')" style="padding:.3rem .7rem;border-radius:5px;border:1px solid rgba(128,144,176,.4);background:rgba(128,144,176,.08);color:var(--muted2);font-size:.7rem;font-weight:700;cursor:pointer">List</button>';
               var _cap2=getTeamCapacity(_myTeamData);
               if(_cap2<TEAM_MAX_SLOTS) actHtml+='<button onclick="toggleLicencePanel()" style="padding:.3rem .7rem;border-radius:5px;border:1px solid rgba(45,219,128,.4);background:rgba(45,219,128,.08);color:var(--green);font-size:.7rem;font-weight:700;cursor:pointer">🪪 Licences ('+_cap2+'/'+TEAM_MAX_SLOTS+')</button>';
             }
-            actHtml+='<button onclick="leaveTeam(\''+myTeamId+'\',\''+encodeURIComponent(_myTeamData.name)+'\')" style="padding:.3rem .7rem;border-radius:5px;border:1px solid rgba(255,68,68,.4);background:rgba(255,68,68,.08);color:var(--red);font-size:.7rem;font-weight:700;cursor:pointer;margin-left:auto">🚪 Quitter</button>';
+            if(!_isExtMode) actHtml+='<button onclick="leaveTeam(\''+myTeamId+'\',\''+encodeURIComponent(_myTeamData.name)+'\')" style="padding:.3rem .7rem;border-radius:5px;border:1px solid rgba(255,68,68,.4);background:rgba(255,68,68,.08);color:var(--red);font-size:.7rem;font-weight:700;cursor:pointer;margin-left:auto">🚪 Quitter</button>';
             _mta.innerHTML=actHtml;
             _mta.style.display='flex';
           }
         }
         // Charger les demandes d'adhésion (capitaine uniquement — pas en consultation)
+        var _reqSecOld=document.getElementById('join-requests-section');
+        if(_reqSecOld) _reqSecOld.style.display=_isExtMode?'none':'';
         if(!_isViewedTeamMode && (window.__myTeamRole==='capitaine')){
           // Injecter le conteneur s'il n'existe pas
           if(!document.getElementById('join-requests-section')){
@@ -23958,7 +24004,8 @@ async function renderTeams(){
             reqSection.innerHTML='<div style="font-family:Bebas Neue,sans-serif;font-size:.8rem;letter-spacing:2px;color:var(--gold);margin-bottom:.3rem">📩 Demandes d\'adhésion</div><div id="join-requests-list"></div>';
             _mta.parentNode.insertBefore(reqSection,_mta.nextSibling);
           }
-          loadJoinRequests(myTeamId);
+          document.getElementById('join-requests-section').style.display=_isExtMode?'none':'';
+          if(!_isExtMode) loadJoinRequests(myTeamId);
           // Injecter le panneau licences (caché par défaut)
           if(!document.getElementById('licence-panel-section')){
             var licSection=document.createElement('div');
@@ -23998,6 +24045,12 @@ async function renderTeams(){
 
     // Utiliser les membres déjà chargés (avec points calculés)
     var members=(_myTeamData&&_myTeamData._members)||[];
+    // Extension : le capitaine de la team 1 est affiché (0 pt, non compté) pour que la team ne soit pas « sans capitaine »
+    if(_isExtMode){
+      var _parT=teams.find(function(t){return t.id===window.__myTeamId;});
+      var _capRow=_parT&&(_parT._members||[]).find(function(m){return m.role==='capitaine';});
+      if(_capRow) members=members.concat([Object.assign({},_capRow,{pts:0})]);
+    }
     // Stocker les IDs des membres pour les restrictions Free
     window._myTeamMemberIds=members.map(function(m){return m.player_id;});
     // Trier par pts desc (chacun à sa vraie place)
@@ -24017,7 +24070,7 @@ async function renderTeams(){
         +'<td style="padding-left:.2rem"><div style="display:flex;align-items:center;gap:.55rem">'
           +natFlagHtml(p.nat)
           +'<div '+clickPC+' style="cursor:pointer;width:28px;height:28px;border-radius:5px;border:2px solid '+gc+';overflow:hidden;flex-shrink:0;box-shadow:0 0 6px '+gc+'40;transition:transform .15s" onmouseover="this.style.transform=\'scale(1.15)\'" onmouseout="this.style.transform=\'scale(1)\'">'+(p.avatar?'<img src="'+escapeHtml(p.avatar)+'" style="width:28px;height:28px;object-fit:cover;display:block;pointer-events:none">':'<canvas id="'+avId+'" width="28" height="28" style="display:block;pointer-events:none"></canvas>')+'</div>'
-          +'<div class="runner-name" onclick="showPlayerCardByUuid(\''+m.player_id+'\')" style="cursor:pointer">'+escapeHtml(p.username||'—')+'</div>'
+          +'<div class="runner-name" onclick="showPlayerCardByUuid(\''+m.player_id+'\')" style="cursor:pointer;color:'+premCol(p.username)+'">'+escapeHtml(p.username||'—')+premStar(p.username)+'</div>'
           +(isCap?'<span style="font-size:.58rem;font-weight:700;padding:.1rem .4rem;border-radius:3px;background:rgba(245,200,66,.15);border:1px solid rgba(245,200,66,.4);color:var(--gold);letter-spacing:.5px">C</span>':'')
           +kickBtn
         +'</div></td>'
@@ -24064,6 +24117,10 @@ async function deleteTeamIfEmpty(teamId){
     // Vérifier que ce n'est pas une team open (on ne les supprime pas)
     var {data:team}=await supabaseClient.from('teams').select('invite_code').eq('id',teamId).single();
     if(team&&team.invite_code===OPEN_TEAM_MARKER) return;
+    // Une extension de team (ou la team parente d'une extension) reste, même vide
+    var {data:_fam}=await supabaseClient.from('teams').select('id').or('id.eq.'+teamId+',parent_team_id.eq.'+teamId).not('parent_team_id','is',null).limit(1);
+    var {data:_me}=await supabaseClient.from('teams').select('parent_team_id').eq('id',teamId).maybeSingle();
+    if((_fam&&_fam.length)||(_me&&_me.parent_team_id)) return;
     // Supprimer la team vide
     await supabaseClient.from('teams').delete().eq('id',teamId);
   }
@@ -24078,7 +24135,7 @@ async function checkTeamChatUnread(){
   var {data:me}=await supabaseClient.from('players').select('team_chat_last_read_at').eq('id',currentUser.id).single();
   var since=(me&&me.team_chat_last_read_at)||'1970-01-01T00:00:00Z';
   var {data:msgs}=await supabaseClient.from('team_messages').select('id')
-    .eq('team_id',window.__myTeamId).neq('player_id',currentUser.id).gt('created_at',since).limit(1);
+    .eq('team_id',window.__myChatTeamId||window.__myTeamId).neq('player_id',currentUser.id).gt('created_at',since).limit(1);
   window.__teamChatUnread=!!(msgs&&msgs.length>0);
   _setTeamChatBadges(window.__teamChatUnread);
 }
@@ -24137,12 +24194,53 @@ async function loadJoinRequests(teamId){
   }).join('');
 }
 
+// Extension (ex. Alligators 2) de la team avec au moins une place libre, sinon null
+async function findFreeExtensionTeam(parentId){
+  var {data:exts}=await supabaseClient.from('teams').select('id,name,extra_slots').eq('parent_team_id',parentId);
+  for(var i=0;i<(exts||[]).length;i++){
+    var {count:n}=await supabaseClient.from('team_members').select('id',{count:'exact',head:true}).eq('team_id',exts[i].id);
+    if(n<getTeamCapacity(exts[i])) return exts[i];
+  }
+  return null;
+}
+// Le capitaine choisit la team du nouveau RP (options : [{id,name,nb,cap}]) — retourne l'option ou null
+function askTeamChoice(opts){
+  return new Promise(function(resolve){
+    var html='<div style="display:flex;flex-direction:column;gap:.5rem">'+opts.map(function(o,i){
+      var full=o.nb>=o.cap;
+      var dflt=(i===0&&!full);
+      return '<button '+(full?'disabled ':'')+'onclick="window.__teamChoiceResolve('+i+')" style="display:flex;justify-content:space-between;align-items:center;padding:.6rem .8rem;border-radius:6px;border:1px solid '+(full?'rgba(128,144,176,.3)':dflt?'rgba(45,219,128,.5)':'rgba(255,255,255,.35)')+';background:'+(full?'rgba(128,144,176,.05)':dflt?'rgba(45,219,128,.1)':'rgba(255,255,255,.04)')+';color:'+(full?'var(--muted2)':dflt?'var(--green)':'#fff')+';font-size:.8rem;font-weight:700;cursor:'+(full?'not-allowed':'pointer')+'"><span>'+escapeHtml(o.name)+'</span><span style="font-size:.7rem;opacity:.8">'+o.nb+' / '+o.cap+' RP'+(full?' · complète':'')+'</span></button>';
+    }).join('')+'</div>';
+    document.getElementById('lm-title').textContent='Dans quelle team ?';
+    document.getElementById('lm-sub').textContent='Choisis la team du nouveau RP';
+    document.getElementById('lm-body').innerHTML=html;
+    window.__teamChoiceResolve=function(i){closeModal('land-modal');resolve(opts[i]);};
+    openModal('land-modal');
+  });
+}
+
 async function handleJoinRequest(requestId,playerId,teamId,accept){
+  var targetTeamId=teamId;
   if(accept){
-    var {data:teamData}=await supabaseClient.from('teams').select('extra_slots').eq('id',teamId).single();
+    var {data:teamData}=await supabaseClient.from('teams').select('name,extra_slots').eq('id',teamId).single();
     var cap=teamData?getTeamCapacity(teamData):TEAM_BASE_SLOTS;
     var {count:nb}=await supabaseClient.from('team_members').select('id',{count:'exact',head:true}).eq('team_id',teamId);
-    if(nb>=cap){showToast('⚠️ Team complète ('+nb+'/'+cap+') — clique 🪪 Licences pour agrandir');loadJoinRequests(teamId);return;}
+    var {data:_exts}=await supabaseClient.from('teams').select('id,name,extra_slots').eq('parent_team_id',teamId).order('name');
+    if(_exts&&_exts.length){
+      // Team avec extension : une seule porte d'entrée, le capitaine choisit la team (team 1 complète → extension d'office)
+      var opts=[{id:teamId,name:(teamData&&teamData.name)||'Team',nb:nb,cap:cap}];
+      for(var _i=0;_i<_exts.length;_i++){
+        var {count:_nx}=await supabaseClient.from('team_members').select('id',{count:'exact',head:true}).eq('team_id',_exts[_i].id);
+        opts.push({id:_exts[_i].id,name:_exts[_i].name,nb:_nx,cap:getTeamCapacity(_exts[_i])});
+      }
+      var open=opts.filter(function(o){return o.nb<o.cap;});
+      if(!open.length){showToast('⚠️ Teams complètes — clique 🪪 Licences pour agrandir');loadJoinRequests(teamId);return;}
+      var choice;
+      if(nb>=cap){ choice=open[0]; showToast('Team complète → '+choice.name); }
+      else { choice=await askTeamChoice(opts); }
+      if(!choice) return;
+      targetTeamId=choice.id;
+    } else if(nb>=cap){showToast('⚠️ Team complète ('+nb+'/'+cap+') — clique 🪪 Licences pour agrandir');loadJoinRequests(teamId);return;}
     // Ancien membre de cette team : le capitaine paie 10 NYX pour le réintégrer
     if(await wasInTeamBefore(teamId,playerId)){
       var {data:_rp}=await supabaseClient.from('players').select('username').eq('id',playerId).maybeSingle();
@@ -24155,7 +24253,7 @@ async function handleJoinRequest(requestId,playerId,teamId,accept){
     await window.fetch(supabaseUrl+'/rest/v1/team_members',{
       method:'POST',
       headers:{'apikey':supabaseKey,'Authorization':'Bearer '+(window.__sessionToken||supabaseKey),'Content-Type':'application/json','Prefer':'return=minimal'},
-      body:JSON.stringify({team_id:teamId,player_id:playerId,role:'membre'})
+      body:JSON.stringify({team_id:targetTeamId,player_id:playerId,role:'membre'})
     });
     showToast('✓ Joueur accepté dans la team');
   } else {
@@ -24175,6 +24273,31 @@ async function handleJoinRequest(requestId,playerId,teamId,accept){
     });
   }
   loadJoinRequests(teamId);
+  renderTeams();
+}
+
+// ── Extension de team : changer de team gérée / basculer un joueur ─────
+function switchManagedTeam(teamId){
+  window.__activeExtTeamId=(teamId===window.__myTeamId)?null:teamId;
+  renderTeams();
+}
+function teamMoveWindowOpen(){
+  // Bascule autorisée du 1er au 10 du mois (heure de Paris) — évite le transfert de points
+  var d=parseInt(new Intl.DateTimeFormat('fr-FR',{timeZone:'Europe/Paris',day:'numeric'}).format(new Date()),10);
+  return d>=1&&d<=10;
+}
+async function moveMemberTeam(playerId,toTeamId,toNameEnc){
+  if(!currentUser||window.__myTeamRole!=='capitaine') return;
+  if(!teamMoveWindowOpen()){showToast('⚠️ Bascule possible uniquement du 1er au 10 du mois');return;}
+  var toName=decodeURIComponent(toNameEnc);
+  if(!await askConfirm('Basculer ce joueur vers <strong>'+escapeHtml(toName)+'</strong> ?<br><span style="font-size:.8em;opacity:.8">Il repart de zéro dans la nouvelle team.<br>Bascule possible uniquement du 1er au 10 du mois.</span>',{title:'Changer de team',emoji:'🔁',okLabel:'BASCULER',cancelLabel:'ANNULER',success:true})) return;
+  var {data:res,error:err}=await supabaseClient.rpc('team_move_member',{p_player:playerId,p_to_team:toTeamId});
+  if(err||!res||!res.ok){
+    var e=res&&res.error;
+    showToast(e==='window_closed'?'⚠️ Bascule possible uniquement du 1er au 10 du mois':e==='full'?'⚠️ '+toName+' est complète ('+res.nb+'/'+res.cap+') — achète des licences':e==='is_captain'?'⚠️ Le capitaine ne peut pas être basculé':'⚠️ Bascule impossible');
+    return;
+  }
+  showToast('✓ Joueur basculé vers '+toName);
   renderTeams();
 }
 
@@ -24233,25 +24356,35 @@ async function leaveTeam(teamId, teamNameEnc){
 // ── Expulser un membre (capitaine only) ──────────────────────────────
 async function openKickModal(teamId){
   if(!currentUser||window.__myTeamRole!=='capitaine') return;
-  // Charger les membres de la team
+  // Une liste par team : 🔁 bascule un RP vers l'autre team de la famille (team + extension).
   var {data:members}=await supabaseClient.from('team_members')
     .select('player_id, role, players(username, nat)')
     .eq('team_id',teamId);
   if(!members||!members.length) return;
+  var _mvTarget=null;
+  var {data:_famRows}=await supabaseClient.from('teams').select('id,name,parent_team_id').or('id.eq.'+teamId+',parent_team_id.eq.'+teamId);
+  var _self=(_famRows||[]).find(function(t){return t.id===teamId;});
+  if(_self&&_self.parent_team_id){
+    var {data:_par}=await supabaseClient.from('teams').select('id,name').eq('id',_self.parent_team_id).maybeSingle();
+    _mvTarget=_par||null;
+  } else {
+    _mvTarget=(_famRows||[]).find(function(t){return t.parent_team_id===teamId;})||null;
+  }
   var html='<div style="display:flex;flex-direction:column;gap:.4rem">';
   members.forEach(function(m){
     var p=m.players||{};
     var isCap=(m.role==='capitaine');
+    var mvBtn=(!isCap&&_mvTarget)?'<button onclick="closeModal(\'land-modal\');moveMemberTeam(\''+m.player_id+'\',\''+_mvTarget.id+'\',\''+encodeURIComponent(_mvTarget.name)+'\')" title="Basculer vers '+escapeHtml(_mvTarget.name)+(teamMoveWindowOpen()?'':' — possible du 1er au 10 du mois')+'" style="padding:.2rem .5rem;border-radius:4px;border:1px solid rgba(45,219,128,.4);background:rgba(45,219,128,.08);color:var(--green);font-size:.75rem;cursor:pointer;'+(teamMoveWindowOpen()?'':'opacity:.4')+'">🔁</button>':'';
     html+='<div style="display:flex;align-items:center;gap:.5rem;padding:.35rem .5rem;border-radius:6px;border:1px solid var(--border);background:rgba(255,255,255,.03)">'
       +natFlagHtml(p.nat,'0.9rem')
       +'<span style="flex:1;font-family:\'Big Shoulders Display\',sans-serif;font-weight:900;font-style:italic;display:inline-block;transform:scaleY(1.15);font-size:.85rem;color:var(--text)">'+(p.username||'—')+'</span>'
       +(isCap?'<span style="font-size:.55rem;font-weight:700;padding:.1rem .3rem;border-radius:3px;background:rgba(245,200,66,.15);border:1px solid rgba(245,200,66,.4);color:var(--gold)">CAP</span>'
-        :'<button onclick="kickMember(\''+m.player_id+'\',\''+(p.username||'').replace(/'/g,"\\'")+'\',\''+teamId+'\');closeModal(\'land-modal\')" style="padding:.2rem .5rem;border-radius:4px;border:1px solid rgba(255,68,68,.4);background:rgba(255,68,68,.08);color:var(--red);font-size:.6rem;font-weight:700;cursor:pointer">✕</button>')
+        :mvBtn+'<button onclick="kickMember(\''+m.player_id+'\',\''+(p.username||'').replace(/'/g,"\\'")+'\',\''+teamId+'\');closeModal(\'land-modal\')" style="padding:.2rem .5rem;border-radius:4px;border:1px solid rgba(255,68,68,.4);background:rgba(255,68,68,.08);color:var(--red);font-size:.6rem;font-weight:700;cursor:pointer">✕</button>')
     +'</div>';
   });
   html+='</div>';
   document.getElementById('lm-title').textContent='Gérer les membres';
-  document.getElementById('lm-sub').textContent='Clique sur ✕ pour retirer un membre';
+  document.getElementById('lm-sub').textContent=_mvTarget?'🔁 pour basculer vers '+_mvTarget.name+' (uniquement du 1er au 10 du mois) · ✕ pour retirer un membre':'Clique sur ✕ pour retirer un membre';
   document.getElementById('lm-body').innerHTML=html;
   openModal('land-modal');
 }
@@ -27568,7 +27701,7 @@ function _renderEventRanking(){
       +'<div style="width:1.6rem;text-align:center;font-family:Bebas Neue,sans-serif;font-size:.9rem;color:'+(i<3?st.color:'var(--muted2)')+'">'+(i+1)+'</div>'
       +'<div style="width:1.8rem;height:1.8rem;border-radius:50%;background-image:url(\''+(r.avatar||'')+'\');background-size:cover;background-position:center;flex-shrink:0;background-color:rgba(255,255,255,.08)"></div>'
       +'<div style="flex:1;min-width:0;display:flex;align-items:center;gap:.35rem;overflow:hidden">'
-      +'<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.92rem;font-weight:600;color:var(--text)">'+escapeHtml(r.username||'?')+'</span>'
+      +'<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.92rem;font-weight:600;color:'+premCol(r.username)+'">'+escapeHtml(r.username||'?')+premStar(r.username)+'</span>'
       +(r.bib_number?'<span title="Dossard" style="flex-shrink:0;padding:.05rem .3rem;border:1px solid rgba(255,255,255,.25);border-radius:4px;font-family:Space Mono,monospace;font-size:.6rem;color:var(--muted2)">#'+escapeHtml(r.bib_number)+'</span>':'')
       +'</div>'
       +'<div style="text-align:right;flex-shrink:0;white-space:nowrap;font-family:Space Mono,monospace;font-size:.82rem;font-weight:700;color:'+st.color+'">'+_fmtRankTime(r.time_min)+'</div>'
@@ -28077,8 +28210,8 @@ async function loadTeamMembers(teamId, teamName){
       +'<td style="padding-left:.2rem"><div style="display:flex;align-items:center;gap:.35rem;min-width:0">'
         +natFlagHtml(p.nat,'.95rem')
         +(isPremium()
-          ? '<span onclick="closeModal(\'team-members-modal\');showPlayerCardByUuid(\''+m.player_id+'\')" style="font-family:\'Big Shoulders Display\',sans-serif;font-weight:900;font-style:italic;display:inline-block;transform:scaleY(1.15);font-size:.85rem;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;flex:1;cursor:pointer;text-decoration:underline;text-decoration-color:rgba(255,255,255,.3);text-underline-offset:3px" title="Voir la Player Card">'+(p.username||'—')+'</span>'
-          : '<span style="font-family:\'Big Shoulders Display\',sans-serif;font-weight:900;font-style:italic;display:inline-block;transform:scaleY(1.15);font-size:.85rem;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;flex:1">'+(p.username||'—')+'</span>')
+          ? '<span onclick="closeModal(\'team-members-modal\');showPlayerCardByUuid(\''+m.player_id+'\')" style="font-family:\'Big Shoulders Display\',sans-serif;font-weight:900;font-style:italic;display:inline-block;transform:scaleY(1.15);font-size:.85rem;color:'+premCol(p.username)+';overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;flex:1;cursor:pointer;text-decoration:underline;text-decoration-color:rgba(255,255,255,.3);text-underline-offset:3px" title="Voir la Player Card">'+(p.username||'—')+premStar(p.username)+'</span>'
+          : '<span style="font-family:\'Big Shoulders Display\',sans-serif;font-weight:900;font-style:italic;display:inline-block;transform:scaleY(1.15);font-size:.85rem;color:'+premCol(p.username)+';overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;flex:1">'+(p.username||'—')+premStar(p.username)+'</span>')
         +(isCap?'<span style="font-size:.55rem;font-weight:700;padding:.1rem .3rem;border-radius:3px;background:rgba(245,200,66,.15);border:1px solid rgba(245,200,66,.4);color:var(--gold);flex-shrink:0">CAP</span>':'')
         // Croix rouge discrète (2026-08-08, demande explicite, signalée par un RP) :
         // rejoint après le 10 du mois → ses points ne comptent pas dans la moyenne
@@ -28173,7 +28306,7 @@ function _rankRowHtml(p,i,valStr,valCol,modalId,opts){
   var letter=g.charAt(0).toUpperCase();
   if(isMe&&opts.frame){
     var _rk=((opts.medals&&i<3)?'':'<div class="rank-num '+(i===0?'rank-1':i===1?'rank-2':i===2?'rank-3':'')+'">'+(i+1)+'</div>');
-    var _nm='<span style="font-family:\'Big Shoulders Display\',sans-serif;font-weight:900;font-style:italic;display:inline-block;transform:scaleY(1.15);font-size:.85rem;padding-right:.2em;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0">'+escapeHtml(p.username||'—')+'</span>';
+    var _nm='<span style="font-family:\'Big Shoulders Display\',sans-serif;font-weight:900;font-style:italic;display:inline-block;transform:scaleY(1.15);font-size:.85rem;padding-right:.2em;color:'+premCol(p.username)+';overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0">'+escapeHtml(p.username||'—')+premStar(p.username)+'</span>';
     var _av=p.avatar?'<img src="'+escapeHtml(p.avatar)+'" style="width:26px;height:26px;border-radius:6px;object-fit:cover;flex-shrink:0;border:1.5px solid '+col+'">':'<div style="width:26px;height:26px;border-radius:6px;flex-shrink:0;border:1.5px solid '+col+';background:'+col+'22;display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:700;color:'+col+'">'+escapeHtml((p.username||'?').charAt(0).toUpperCase())+'</div>';
     return '<tr id="country-me-row"><td colspan="4" style="padding:.3rem 0;border-bottom:none">'
       +'<div class="my-row-tile" style="display:flex;align-items:center">'
@@ -28189,8 +28322,8 @@ function _rankRowHtml(p,i,valStr,valCol,modalId,opts){
     +'<td style="padding-left:.2rem"><div style="display:flex;align-items:center;gap:.35rem;min-width:0">'
       +(opts.avatar?(p.avatar?'<img src="'+escapeHtml(p.avatar)+'" style="width:26px;height:26px;border-radius:6px;object-fit:cover;flex-shrink:0;border:1.5px solid '+col+'">':'<div style="width:26px;height:26px;border-radius:6px;flex-shrink:0;border:1.5px solid '+col+';background:'+col+'22;display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:700;color:'+col+'">'+escapeHtml((p.username||'?').charAt(0).toUpperCase())+'</div>'):natFlagHtml(p.nat,'.95rem'))
       +(isPremium()
-        ? '<span onclick="closeModal(\''+modalId+'\');showPlayerCardByUuid(\''+p.id+'\')" style="font-family:\'Big Shoulders Display\',sans-serif;font-weight:900;font-style:italic;display:inline-block;transform:scaleY(1.15);font-size:.85rem;padding-right:.2em;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;flex:1;cursor:pointer;text-decoration:underline;text-decoration-color:rgba(255,255,255,.3);text-underline-offset:3px" title="Voir la Player Card">'+(p.username||'—')+'</span>'
-        : '<span style="font-family:\'Big Shoulders Display\',sans-serif;font-weight:900;font-style:italic;display:inline-block;transform:scaleY(1.15);font-size:.85rem;padding-right:.2em;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;flex:1;padding-right:.2em">'+(p.username||'—')+'</span>')
+        ? '<span onclick="closeModal(\''+modalId+'\');showPlayerCardByUuid(\''+p.id+'\')" style="font-family:\'Big Shoulders Display\',sans-serif;font-weight:900;font-style:italic;display:inline-block;transform:scaleY(1.15);font-size:.85rem;padding-right:.2em;color:'+premCol(p.username)+';overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;flex:1;cursor:pointer;text-decoration:underline;text-decoration-color:rgba(255,255,255,.3);text-underline-offset:3px" title="Voir la Player Card">'+(p.username||'—')+premStar(p.username)+'</span>'
+        : '<span style="font-family:\'Big Shoulders Display\',sans-serif;font-weight:900;font-style:italic;display:inline-block;transform:scaleY(1.15);font-size:.85rem;padding-right:.2em;color:'+premCol(p.username)+';overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;flex:1;padding-right:.2em">'+(p.username||'—')+premStar(p.username)+'</span>')
     +'</div></td>'
     +'<td><span title="'+g.charAt(0).toUpperCase()+g.slice(1)+'" style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:5px;background:'+col+'22;border:1.5px solid '+col+';color:'+col+';font-family:\'Bebas Neue\',sans-serif;font-size:.85rem;font-weight:700">'+letter+'</span></td>'
     +'<td style="text-align:right;white-space:nowrap;font-family:\'Rajdhani\',sans-serif;font-size:.95rem;font-weight:700;color:'+valCol+'">'+valStr+'</td>'
@@ -29985,7 +30118,7 @@ function crBuildRow(r,i,cascade){
   // League (2026-08-09, signalé par l'user sur SON propre score, plus resserré
   // que les autres) : on réutilise tabularPts() (cf plus haut dans le fichier),
   // qui force chaque chiffre dans une case de largeur identique.
-  row.innerHTML=`<span class="rk">${rk}</span><span class="nm">${r.name}</span><span class="gm">${fmt(r.games)}</span><span class="tr">${r.full}</span><span class="pts">${tabularPts(r.rpc)}</span><span class="tnd">${crTrendHtml(prev,i+1)}</span>`;
+  row.innerHTML=`<span class="rk">${rk}</span><span class="nm"${(typeof premCol==='function'&&premCol(r.name)!=='var(--text)')?' style="color:var(--gold)"':''}>${r.name}${typeof premStar==='function'?premStar(r.name):''}</span><span class="gm">${fmt(r.games)}</span><span class="tr">${r.full}</span><span class="pts">${tabularPts(r.rpc)}</span><span class="tnd">${crTrendHtml(prev,i+1)}</span>`;
   if(cascade){
     const _dyRows=Math.max(-15,Math.min(15,(prev!=null?prev:(i+1))-(i+1)));
     row.style.setProperty('--row-dy',(_dyRows*56)+'px');
