@@ -29361,6 +29361,56 @@ function openDeleteAccountModal(){
   openModal('delete-account-modal');
 }
 
+// Questionnaire de départ (facultatif, anonyme) : résout {action:'send',reason,comment} | {action:'skip'} | {action:'cancel'}
+function _askDeletionReason(){
+  return new Promise(function(resolve){
+    var _en=(SPEEDIX_LANG==='en');
+    var R=[['no_time',_en?'No time':'Pas le temps'],
+           ['no_runners',_en?'Not enough runners':'Pas assez de coureurs'],
+           ['too_complex',_en?'Too complicated':'Trop compliqué'],
+           ['strava',_en?'Strava problem':'Problème Strava'],
+           ['no_interest',_en?'Not interested':'Pas d\'intérêt'],
+           ['other',_en?'Other':'Autre']];
+    var picked=null;
+    var modal=document.createElement('div');
+    modal.className='modal open'; modal.style.zIndex=99999;
+    var btnBase='display:block;width:100%;text-align:left;padding:.55rem .8rem;border-radius:7px;font-size:.8rem;font-weight:600;cursor:pointer;margin-bottom:.4rem;';
+    modal.innerHTML='<div class="modal-box" style="max-width:420px;border:1.5px solid rgba(255,255,255,.2)">'
+      +'<div style="text-align:center">'
+        +'<div style="font-size:2.2rem;margin-bottom:.3rem">💬</div>'
+        +'<div class="modal-title">'+(_en?'Before you go…':'Avant de partir…')+'</div>'
+        +'<div style="font-size:.78rem;color:var(--muted2);line-height:1.5;margin:.6rem 0 .8rem">'+(_en?'What could we have done better? Optional and anonymous — it helps us improve SPEEDIX.':'Qu\'est-ce qu\'on aurait pu mieux faire ? Facultatif et anonyme — ça nous aide à améliorer SPEEDIX.')+'</div>'
+      +'</div>'
+      +'<div id="dr-list">'+R.map(function(r){return '<button data-r="'+r[0]+'" style="'+btnBase+'border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.04);color:#fff">'+r[1]+'</button>';}).join('')+'</div>'
+      +'<textarea id="dr-comment" maxlength="500" rows="3" placeholder="'+(_en?'Tell us more (optional)':'Dis-nous en plus (facultatif)')+'" style="width:100%;margin-top:.2rem;padding:.55rem .7rem;border-radius:7px;border:1px solid rgba(255,255,255,.25);background:rgba(4,12,28,.5);color:var(--text);font-size:.8rem;outline:none;resize:none"></textarea>'
+      +'<div style="display:flex;gap:.5rem;justify-content:center;margin-top:.9rem;flex-wrap:wrap">'
+        +'<button data-act="send" style="padding:.55rem 1rem;border-radius:7px;border:1.5px solid #ff4444;background:rgba(255,68,68,.1);color:#ff6060;font-weight:700;font-size:.78rem;cursor:pointer">'+(_en?'Send & request deletion':'Envoyer et demander la suppression')+'</button>'
+        +'<button data-act="skip" style="padding:.55rem 1rem;border-radius:7px;border:1px solid rgba(255,255,255,.35);background:transparent;color:#fff;font-weight:700;font-size:.78rem;cursor:pointer">'+(_en?'Skip & request deletion':'Passer et demander la suppression')+'</button>'
+      +'</div>'
+      +'<div style="text-align:center;margin-top:.7rem"><button data-act="cancel" style="background:none;border:none;color:var(--muted2);font-size:.74rem;cursor:pointer;text-decoration:underline">'+(_en?'Cancel — keep my account':'Annuler — garder mon compte')+'</button></div>'
+    +'</div>';
+    document.body.appendChild(modal);
+    function done(v){ modal.remove(); resolve(v); }
+    modal.querySelectorAll('#dr-list button').forEach(function(b){
+      b.onclick=function(){
+        picked=b.getAttribute('data-r');
+        modal.querySelectorAll('#dr-list button').forEach(function(x){
+          var on=(x===b);
+          x.style.borderColor=on?'rgba(45,219,128,.7)':'rgba(255,255,255,.35)';
+          x.style.background=on?'rgba(45,219,128,.15)':'rgba(255,255,255,.04)';
+          x.style.color=on?'var(--green)':'#fff';
+        });
+      };
+    });
+    modal.querySelector('[data-act="send"]').onclick=function(){
+      if(!picked){ showToast(_en?'⚠️ Pick a reason, or press Skip':'⚠️ Choisis une raison, ou clique sur Passer'); return; }
+      done({action:'send',reason:picked,comment:(modal.querySelector('#dr-comment').value||'').trim()});
+    };
+    modal.querySelector('[data-act="skip"]').onclick=function(){ done({action:'skip'}); };
+    modal.querySelector('[data-act="cancel"]').onclick=function(){ done({action:'cancel'}); };
+  });
+}
+
 async function confirmDeleteAccount(){
   var p=window.__settingsPlayer||window.__myPlayer||{};
   var typed=(document.getElementById('dam-confirm').value||'').trim();
@@ -29369,6 +29419,13 @@ async function confirmDeleteAccount(){
     return;
   }
   if(!currentUser){ showToast('⚠️ Pas connecté'); return; }
+  // Questionnaire facultatif (raison anonyme) avant la demande — ne bloque jamais la suppression
+  var _fb=await _askDeletionReason();
+  if(_fb.action==='cancel') return;
+  if(_fb.action==='send'){
+    try{ await supabaseClient.rpc('submit_deletion_feedback',{p_reason:_fb.reason,p_comment:_fb.comment||null}); }
+    catch(e){ console.warn('[delete-feedback]',e); }
+  }
   showToast('Demande en cours…');
   try{
     // On pose juste le drapeau "suppression demandée". La RLS filtre dès cet
