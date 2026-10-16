@@ -27590,6 +27590,10 @@ async function pickQuestDirect(badgeId){
       }
     }
     showToast(sameCategoryId!=null?'🎯 Objectif remplacé':'🎯 Objectif activé');
+    // Si la progression déjà acquise (courses d'avant le choix, ex. 250K à 513/250 km) atteint
+    // déjà la cible, on valide TOUT DE SUITE au lieu d'attendre la prochaine vérification
+    // (sinon la carte restait « en cours » avec 513/250 km pendant des heures, 16/10/2026).
+    try{ if(typeof triggerBadgeCheck==='function') await triggerBadgeCheck(); }catch(e){ console.warn('[pickQuest] check badges',e); }
     if(typeof renderChallenges==='function') renderChallenges();
   } catch(e){ console.warn('pickQuestDirect fail',e); showToast('⚠️ Erreur, réessaie'); }
 }
