@@ -13705,6 +13705,7 @@ async function loadParrainageData(playerId){
   // Compter les étapes par filleul
   var stepsMap={};
   rewards.forEach(function(r){
+    if(r.reward_type==='weekend_bonus') return; // bonus ponctuel, pas une étape (x/4)
     if(!stepsMap[r.filleul_id]) stepsMap[r.filleul_id]=0;
     stepsMap[r.filleul_id]++;
   });
@@ -20443,13 +20444,15 @@ var REWARD_LABELS={
   'first_run':'a fait sa première course',
   '3_periods':'a atteint 3 périodes complètes',
   '1000_pts':'a dépassé 1 000 points',
-  'same_team':'a rejoint une team'
+  'same_team':'a rejoint une team',
+  'weekend_bonus':'a fait sa première course : bonus parrainage week-end'
 };
 var REWARD_LABELS_EN={
   'first_run':'completed their first run',
   '3_periods':'reached 3 complete periods',
   '1000_pts':'passed 1,000 points',
-  'same_team':'joined a team'
+  'same_team':'joined a team',
+  'weekend_bonus':'completed their first run: weekend referral bonus'
 };
 
 // Vérifier les notifications de parrainage non lues à la connexion
