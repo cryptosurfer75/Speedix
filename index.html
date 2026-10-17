@@ -7354,7 +7354,7 @@ const I18N = {
     'wallet.line.rpc.badges'    : 'Défis perso',
     'wallet.line.rpc.collab'    : 'Défis entre voisins',
     'wallet.line.rpc.streak'    : 'Chaîne de connexion',
-    'wallet.line.rpc.lands'     : 'Passages Lands',
+    'wallet.line.rpc.lands'     : 'Speedix Tour',
     'wallet.line.rpc.cashrun'   : 'Cash Run',
     'wallet.line.rpc.referral'  : 'Parrainage',
     'wallet.line.rpc.bought'    : 'Achats',
@@ -8119,7 +8119,7 @@ const I18N = {
     'wallet.line.rpc.badges'    : 'Personal challenges',
     'wallet.line.rpc.collab'    : 'Neighbor challenges',
     'wallet.line.rpc.streak'    : 'Daily streak',
-    'wallet.line.rpc.lands'     : 'Land crossings',
+    'wallet.line.rpc.lands'     : 'Speedix Tour',
     'wallet.line.rpc.cashrun'   : 'Cash Run',
     'wallet.line.rpc.referral'  : 'Referrals',
     'wallet.line.rpc.bought'    : 'Purchased',
@@ -35171,9 +35171,40 @@ window.Tour.init = async function(){
   // (2026-08-04, corrigé — passait par showCelebrationModal en textContent, donc
   // hérité en or comme toutes les autres célébrations ; demande explicite d'un
   // titre blanc ici puisqu'il n'y a rien à célébrer côté RP qui subit une préemption).
+  // Total des redevances perçues depuis le début (2026-10-17, demande user) : affiché
+  // quand le RP clique sur « Mes redevances » sans aucun évènement en attente.
+  // Même source que la ligne « Passages Lands » du détail de la cagnotte RPC
+  // (wallet_tx « Redevance perçue Land n°X »).
+  async function _showRentTotal(){
+    if(!currentUser || !currentUser.id) return;
+    var total=0, from=0, pageSize=1000;
+    // Même total que la ligne « Speedix Tour » du détail de la cagnotte RPC :
+    // anciens passages (land_passages, V1) + redevances perçues (wallet_tx, V2).
+    var {data:myLands}=await supabaseClient.from('lands')
+      .select('id').or('owner_id.eq.'+currentUser.id+',tenant_id.eq.'+currentUser.id);
+    var myLandIds=(myLands||[]).map(function(l){return l.id;});
+    if(myLandIds.length){
+      var {data:passages}=await supabaseClient.from('land_passages')
+        .select('rpc_earned').in('land_id',myLandIds).limit(100000);
+      total=(passages||[]).reduce(function(s,p){return s+(p.rpc_earned||0);},0);
+    }
+    while(true){
+      var {data:page, error}=await supabaseClient.from('wallet_tx')
+        .select('rpc_delta').eq('player_id',currentUser.id).ilike('reason','Redevance per%')
+        .order('id').range(from, from+pageSize-1);
+      if(error || !page || !page.length) break;
+      page.forEach(function(r){ total += (r.rpc_delta||0); });
+      if(page.length<pageSize) break;
+      from+=pageSize;
+    }
+    var fmtN = total.toLocaleString(SPEEDIX_LANG);
+    showCelebrationModal(`<span style="color:#fff">💰 Mes redevances</span>`,
+      total>0 ? `Depuis le début du Tour, tes Lands t'ont rapporté <b class="rm-gold">${fmtN} RPC</b> de redevances.`
+              : `Tes Lands ne t'ont pas encore rapporté de redevances.`);
+  }
   function showRentNotifications(){
     const events = ME.pendingRentEvents || [];
-    if(!events.length) return;
+    if(!events.length){ _showRentTotal(); return; }
     var bodyHtml, title;
     if(events.length===1){
       const e = events[0];
