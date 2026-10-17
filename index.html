@@ -13844,7 +13844,7 @@ async function renderMyChallenges(){
       }
       return '<div onclick="event.stopPropagation();showBadgeDetail('+b.id+')" title="'+(b.name||'').replace(/"/g,'&quot;')+(isUnlocked?t('badge.validated'):t('badge.registered').replace('{n}',_getBibForBadge(b.id)||''))+'" style="cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:.2rem;position:relative;padding-top:'+(isUnlocked?'0':'.6rem')+'">'
         +badge
-        +'<div style="width:100%;aspect-ratio:1;">'+_renderBadgeHex(b,isUnlocked)+'</div>'
+        +'<div style="width:100%;aspect-ratio:1;">'+_renderBadgeHex(isPremLocked?_premLockedStub(b):b,isUnlocked)+'</div>'
         +'<div style="font-family:\'Bebas Neue\',sans-serif;font-size:.55rem;letter-spacing:.3px;color:'+(isUnlocked?color:'var(--muted2)')+';text-align:center;line-height:1.1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%">'+nameTxt+'</div>'
         +miniBib
         +'</div>';
@@ -24796,6 +24796,9 @@ var _CITY_CREST_OVERRIDES=[
   {match:/ESPACE/i, image:'ai-icons/defi-icons/espace-v1.webp', hexBadge:true},
   {match:/BUZZ/i, image:'ai-icons/defi-icons/buzz-v1.webp', hexBadge:true},
   {match:/100.?000 PTS/i, image:'ai-icons/defi-icons/pts100k-v1.webp', hexBadge:true},
+  {match:/^100 SORTIES$/i, image:'ai-icons/defi-icons/runs100-v1.webp', hexBadge:true},
+  {match:/^200 SORTIES$/i, image:'ai-icons/defi-icons/runs200-v1.webp', hexBadge:true},
+  {match:/^500 SORTIES$/i, image:'ai-icons/defi-icons/runs500-v1.webp', hexBadge:true},
   {match:/^S[ÉE]RIE 7$/i, image:'ai-icons/defi-icons/serie7-v1.webp', hexBadge:true},
   {match:/^S[ÉE]RIE 30$/i, image:'ai-icons/defi-icons/serie30-v1.webp', hexBadge:true},
   {match:/^S[ÉE]RIE 90$/i, image:'ai-icons/defi-icons/serie90-v1.webp', hexBadge:true},
@@ -25286,7 +25289,7 @@ var DEFI_CATEGORIES=[
   {key:'course', title:'UNE COURSE', icon:'🏃', accent:'#ff6b35', codes:['RUN_5K','RUN_10K','RUN_SEMI','RUN_MARATHON','RUN_100','PERF_ECLAIR']},
   {key:'distance', title:'DISTANCE PROGRESSIVE', icon:'📊', accent:'#4a90ff', codes:['CUM_20','CUM_50','CUM_100','CUM_250','CUM_500','CUM_1000','CUM_1500','CUM_CONTINENT','CUM_LUNAIRE','CUM_SOLAIRE','CUM_GALACTIQUE','CUM_ESPACE','CUM_BUZZ']},
   {key:'denivele', title:'DÉNIVELÉ', icon:'⛰️', accent:'#c8935a', codes:['ELV_1000','ELV_MB','ELV_EVEREST','ELV_KILIMANDJARO']},
-  {key:'regularite', title:'RÉGULARITÉ', icon:'🔥', accent:'#ff4040', codes:['STREAK_7','STREAK_30','STREAK_90','STREAK_180','STREAK_365']},
+  {key:'regularite', title:'RÉGULARITÉ', icon:'🔥', accent:'#ff4040', codes:['STREAK_7','STREAK_30','STREAK_90','STREAK_180','STREAK_365','RUNS_100','RUNS_200','RUNS_500']},
   {key:'horaires', title:'HORAIRES', icon:'🌙', accent:'#7c3aed', codes:['TIME_NIGHT','TIME_DAWN']},
   {key:'exploration', title:'EXPLORATION', icon:'🗺️', accent:'#20c060', codes:['LOC_NOMADE','LOC_CARTOGRAPHE','LOC_VOYAGEUR']},
   {key:'duree', title:'DURÉE', icon:'⏱️', accent:'#4dd9e8', codes:['DUREE_2H','DUREE_3H']},
@@ -25503,6 +25506,8 @@ async function renderChallenges(){
       single_run_duration_min:runsSince.reduce(function(m,r){return Math.max(m,r.time||0);},0),
       cumul_km:runsSince.reduce(function(s,r){return s+(r.distance||0);},0),
       cumul_elv_m:runsSince.reduce(function(s,r){return s+(r.elevation||0);},0),
+      // NOMBRE DE SORTIES (17/10/2026) — MIROIR de checkBadges.ts statsSince().
+      cumul_runs:runsSince.length,
       speed_over_5km:runsSince.filter(function(r){return (r.distance||0)>=5&&r.time>0;}).reduce(function(m,r){return Math.max(m,r.distance/(r.time/60));},0),
       streak_days:_currentStreak(runsSince),
       simultaneous_lands:landsSince.length,
@@ -25731,6 +25736,7 @@ async function renderChallenges(){
   function _fmtQuestProgress(b,cur,tgt){
     if(b.threshold_type==='cumul_km') return cur.toFixed(1)+' / '+tgt+' km';
     if(b.threshold_type==='cumul_elv_m') return Math.round(cur)+' / '+tgt+' m';
+    if(b.threshold_type==='cumul_runs') return Math.floor(cur)+' / '+tgt+' sorties';
     if(b.threshold_type==='streak_days') return Math.floor(cur)+' / '+tgt+' j';
     if(b.threshold_type==='account_age_days') return Math.floor(cur)+' / '+tgt+' j';
     if(b.threshold_type==='cumul_pts') return Math.round(cur).toLocaleString(SPEEDIX_LANG)+' / '+Number(tgt).toLocaleString(SPEEDIX_LANG)+' pts';
@@ -25773,6 +25779,8 @@ async function renderChallenges(){
     // refonte (cf NOMADE recalé sur le tracé virtuel Tour, mémoire
     // project_speedix_defis_voyageur_nomade_virtuel).
     var isComingSoon=(b.name==='VOYAGEUR');
+    // Badge réservé Premium (2026-10-17) : verrouillé SEULEMENT s'il n'a jamais été gagné ni choisi (jamais retiré à quelqu'un qui l'a ou le vise).
+    var isPremLocked=!!b.premium_only && !isPremium() && !isUnlocked && !isActiveQuest && !isPausedQuest;
     var progressTxt;
     var eventBanner='';
     var eventBtn='';
@@ -25918,7 +25926,9 @@ async function renderChallenges(){
     }
     // Bouton "Choisir comme objectif" pour un badge jamais choisi (jamais pour
     // les badges automatiques, cf. isAutoType — rien à choisir dessus).
-    var pickBtn=(!isUnlocked && !isEvent && !isActiveQuest && !isPausedQuest && isComingSoon)
+    var pickBtn=(!isUnlocked && !isEvent && !isActiveQuest && !isPausedQuest && isPremLocked)
+      ?'<button onclick="event.stopPropagation();showPremiumGate(\'Ce badge est réservé aux membres Premium.\')" style="margin-top:.35rem;padding:.25rem .5rem;border-radius:5px;border:1.5px solid rgba(245,200,66,.6);background:#0c0f1a;color:var(--gold);font-size:.55rem;font-weight:700;cursor:pointer;letter-spacing:.3px;width:100%">⭐ RÉSERVÉ PREMIUM</button>'
+      : (!isUnlocked && !isEvent && !isActiveQuest && !isPausedQuest && isComingSoon)
       ?'<div style="margin-top:.35rem;padding:.25rem .3rem;border-radius:5px;border:1px dashed rgba(255,255,255,.15);color:var(--muted2);font-size:.5rem;font-style:italic;letter-spacing:.2px">🔜 Prochainement</div>'
       : (!isUnlocked && !isEvent && !isActiveQuest && !isPausedQuest && !isAutoType)
         ?'<button onclick="event.stopPropagation();pickQuestDirect('+b.id+')" style="margin-top:.35rem;padding:.25rem .5rem;border-radius:5px;border:1.5px solid rgba(45,219,128,.6);background:linear-gradient(135deg,rgba(45,219,128,.22),rgba(45,219,128,.06));color:var(--green);font-size:.55rem;font-weight:700;cursor:pointer;letter-spacing:.3px;width:100%">🎯 CHOISIR</button>'
@@ -26031,7 +26041,7 @@ async function renderChallenges(){
     }
     return _cardOpen
       +eventBanner
-      +'<div style="width:'+(isEvent?'112px;height:129px':'126px;height:139px')+';margin:0 auto .4rem">'+_renderBadgeHex(b,isUnlocked)+'</div>'
+      +'<div style="width:'+(isEvent?'112px;height:129px':'126px;height:139px')+';margin:0 auto .4rem">'+_renderBadgeHex(isPremLocked?_premLockedStub(b):b,isUnlocked)+'</div>'
       +'<div style="font-family:Bebas Neue,sans-serif;font-size:.8rem;letter-spacing:1.3px;color:'+nameColor+';line-height:1.05;margin-bottom:.3rem;min-height:1.8em;display:flex;align-items:center;justify-content:center;padding:0 .1rem">'+(b.name||'—')+'</div>'
       +(showAsCompleted
           ?'<div style="font-size:.56rem;color:'+color+';font-family:Space Mono,monospace">'+progressTxt+'</div>'+unlockedBibBlock+replayBtn+equipBtn
@@ -27540,6 +27550,11 @@ async function pickQuestDirect(badgeId){
   if(!currentUser) return;
   var b=(_badgesCatalog||[]).find(function(x){return x.id===badgeId;});
   if(!b) return;
+  // Badge réservé Premium (2026-10-17) : refus propre ici ; le serveur (trigger guard_premium_quest) refuse aussi.
+  if(b.premium_only && !isPremium() && !(unlockedMapGlobal||{})[badgeId] && !(activeQuestsMapGlobal||{})[badgeId] && !(pausedQuestsMapGlobal||{})[badgeId]){
+    showPremiumGate('Ce badge est réservé aux membres Premium.');
+    return;
+  }
   var cap=_questPickerCap();
   var cat=_defiCategoryFor(b.code);
   try {
@@ -27703,6 +27718,7 @@ function _badgeChallengeDescription(b){
     case 'single_run_km':     return 'Parcourir <strong style="color:'+(b.color||'#f5c842')+'">'+fmt(v)+' km</strong> en une seule course';
     case 'cumul_km':          return 'Cumuler <strong style="color:'+(b.color||'#f5c842')+'">'+fmt(v)+' km</strong> au total';
     case 'single_run_elv_m':  return 'Faire <strong style="color:'+(b.color||'#f5c842')+'">+'+fmt(v)+' m</strong> de dénivelé en une seule course';
+    case 'cumul_runs':        return 'Faire <strong style="color:'+(b.color||'#f5c842')+'">'+fmt(v)+' sorties</strong> au total';
     case 'cumul_elv_m':       return 'Cumuler <strong style="color:'+(b.color||'#f5c842')+'">'+fmt(v)+' m</strong> de dénivelé au total';
     case 'speed_over_5km':    return 'Atteindre <strong style="color:'+(b.color||'#f5c842')+'">'+v+' km/h</strong> de moyenne sur ≥ 5 km';
     case 'single_run_duration_min': return 'Réalise <strong style="color:'+(b.color||'#f5c842')+'">'+(v/60)+'h</strong> d\'effort en continu pour obtenir ce badge';
@@ -27731,10 +27747,53 @@ function _badgeChallengeDescription(b){
   }
 }
 
+// Rareté des badges (2026-10-17) : % de joueurs actifs (≥1 course) qui ont chaque badge.
+// SOURCE UNIQUE = RPC base badge_rarity() ; mise en cache pour la session (une seule lecture).
+var _badgeRarity=null;
+async function loadBadgeRarity(){
+  if(_badgeRarity) return _badgeRarity;
+  var map={};
+  try{
+    var r=await callRpc('badge_rarity',{},{silent:true});
+    if(r.ok && r.data) r.data.forEach(function(x){ map[x.badge_id]={pct:Number(x.pct),earners:x.earners,total:x.total_players}; });
+    if(r.ok) _badgeRarity=map;
+  }catch(e){}
+  return map;
+}
+function _badgeRarityHtml(b,color){
+  var r=(_badgeRarity||{})[b.id];
+  if(!r) return '';
+  var en=(SPEEDIX_LANG==='en'), pct=r.pct;
+  // Toujours UNE étiquette (même hauteur de fenêtre pour tous les badges) :
+  // SOIS LE PREMIER (personne), RARE (< 15 % des joueurs), COMMUN (15 % et +).
+  var txt, tag;
+  if(r.earners===0){
+    txt=en?'Nobody has earned this badge yet':'Personne n\'a encore ce badge';
+    tag=en?'BE THE FIRST':'SOIS LE PREMIER';
+  } else {
+    var n=pct.toLocaleString(SPEEDIX_LANG,{minimumFractionDigits:(pct<10?1:0),maximumFractionDigits:1});
+    txt=en?('<strong>'+n+'%</strong> of players have earned this badge'):('<strong>'+n+' %</strong> des joueurs ont ce badge');
+    tag=(pct<15)?(en?'RARE':'RARE'):(en?'COMMON':'COMMUN');
+  }
+  return '<div style="margin:.1rem auto .7rem;display:inline-flex;flex-direction:column;align-items:center;gap:.25rem">'
+    +'<span style="font-family:Bebas Neue,sans-serif;letter-spacing:2px;font-size:.78rem;color:'+color+';border:1px solid '+color+';border-radius:999px;padding:.05rem .6rem;background:#0c0f1a">'+tag+'</span>'
+    +'<span style="font-family:Space Mono,monospace;font-size:.72rem;color:var(--muted2)">'+txt+'</span></div>';
+}
+// Badge réservé Premium (17/10/2026) : pour un RP non Premium, la tuile n'affiche JAMAIS la photo du badge
+// (silhouette générique ⭐) et un clic ouvre la fenêtre Premium habituelle, pas le détail du badge.
+function _premLockedStub(b){
+  return Object.assign({},b,{image:null,hexBadge:false,medal:false,ribbonColors:null,icon:'⭐'});
+}
+function _badgePremLockedForMe(b){
+  if(!b || !b.premium_only || isPremium()) return false;
+  if(window.__viewedPlayer) return false;
+  return !(unlockedMapGlobal||{})[b.id] && !(activeQuestsMapGlobal||{})[b.id] && !(pausedQuestsMapGlobal||{})[b.id];
+}
 async function showBadgeDetail(badgeId){
   if(!_badgesCatalog) return;
   var b=_badgesCatalog.find(function(x){return x.id===badgeId;});
   if(!b) return;
+  if(_badgePremLockedForMe(b)){ showPremiumGate('Ce badge est réservé aux membres Premium.'); return; }
   var color=b.color||'#f5c842';
   var rewards=[];
   if(b.reward_rpc) rewards.push('<span style="color:var(--gold)">+'+b.reward_rpc.toLocaleString(SPEEDIX_LANG)+' RPC</span>');
@@ -27749,11 +27808,13 @@ async function showBadgeDetail(badgeId){
       if(pb && pb.earned_at) earnedAt=pb.earned_at;
     } catch(e){}
   }
+  await loadBadgeRarity();
   document.getElementById('lm-title').textContent='🎖️ '+(b.name||'Badge');
   document.getElementById('lm-sub').textContent='';
   var bodyHtml=''
     +'<div style="text-align:center;padding:1rem .5rem">'
-    +'  <div style="width:126px;height:145px;margin:0 auto 1rem">'+_renderBadgeHex(b,!!earnedAt)+'</div>';
+    +'  <div style="width:126px;height:145px;margin:0 auto .6rem">'+_renderBadgeHex(b,!!earnedAt)+'</div>'
+    +_badgeRarityHtml(b,color)+'<br>';
   if(earnedAt){
     // BADGE DÉBLOQUÉ : version Félicitations
     var dateStr=new Date(earnedAt).toLocaleDateString(SPEEDIX_LANG,{day:'2-digit',month:'2-digit',year:'2-digit'});
