@@ -7157,6 +7157,9 @@ const I18N = {
     'runs.tab.voisins'          : 'Voisins',
     'runs.subtab.upcoming'      : '📅   À VENIR',
     'runs.subtab.history'       : '🏆   HISTORIQUE',
+    'medals.title'              : 'TABLEAU DES MÉDAILLES',
+    'medals.sub'                : 'Médailles de Challenge — une par événement',
+    'medals.unit'               : 'médailles',
     'runs.subtab.selection'     : '🎯   EN COURS',
     'runs.sim.title'            : 'Simulateur de <span class="hl">Course - Points</span>',
     'runs.sim.distance'         : 'Distance (km)',
@@ -7922,6 +7925,9 @@ const I18N = {
     'runs.tab.voisins'          : 'Neighbors',
     'runs.subtab.upcoming'      : '📅   UPCOMING',
     'runs.subtab.history'       : '🏆   HISTORY',
+    'medals.title'              : 'MEDAL TABLE',
+    'medals.sub'                : 'Challenge medals — one per event',
+    'medals.unit'               : 'medals',
     'runs.subtab.selection'     : '🎯   IN PROGRESS',
     'runs.sim.title'            : 'Race <span class="hl">simulator - Points</span>',
     'runs.sim.distance'         : 'Distance (km)',
@@ -25373,6 +25379,55 @@ function _renderEnCoursSlots(activeList,cap,buildCard){
     +'<div style="grid-column:1/-1;height:1px"></div>'; // séparateur visuel avant les catégories
 }
 
+// ── Bandeau « Tableau des médailles » (2026-10-18) ───────────────────────────
+// En tête du sous-onglet HISTORIQUE (Challenges > Events), replié par défaut : une ligne « 🏅 N médailles ·
+// 1er ▸ » qui se déplie sur le top 10. Une médaille = un événement (distances multiples = 1 seule).
+// Calcul = RPC base medal_table_top (source unique) ; ici affichage seul. HTML pur, testable sans réseau.
+// rows = {player_id, username, nat, league, events_count, rank, outside?} ; si la RPC échoue le bandeau n'apparaît pas.
+function _medalBannerHtml(rows, myUuid, open){
+  var esc=(typeof escapeHtml==='function')?escapeHtml:function(x){return String(x)};
+  var tone={1:'#f5c842',2:'#d4d8e0',3:'#cd8a4b'};
+  var top=rows.filter(function(r){return !r.outside;});
+  var mine=rows.filter(function(r){return myUuid&&r.player_id===myUuid;})[0];
+  var ord=function(n){return n===1?(SPEEDIX_LANG==='en'?'1st':'1er'):(SPEEDIX_LANG==='en'?n+'th':n+'e');};
+  var row=function(r){
+    var isMe=myUuid&&r.player_id===myUuid, c=tone[r.rank]||'#ffffff';
+    return '<div style="display:flex;align-items:center;gap:.55rem;padding:.4rem .6rem;border-radius:7px;border:1.5px solid '+(isMe?'#2ddb80':'rgba(255,255,255,.2)')+';background:#0c0f1a'+(isMe?';box-shadow:0 0 8px rgba(45,219,128,.35)':'')+'">'
+      +'<div style="width:1.6rem;text-align:center;font-family:\'Bebas Neue\',sans-serif;font-size:1.2rem;line-height:1;color:'+c+'">'+r.rank+'</div>'
+      +(typeof natFlagHtml==='function'?natFlagHtml(r.nat,'1rem'):'')
+      +'<div style="flex:1;min-width:0;font-weight:700;font-size:.85rem;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(r.username||'RP')+'</div>'
+      +'<div style="font-family:\'Rajdhani\',sans-serif;font-weight:700;font-size:1.05rem;color:'+c+';white-space:nowrap">'+r.events_count+' <span style="font-size:.85rem">🏅</span></div></div>';
+  };
+  var head=mine
+    ? '🏅 '+mine.events_count+' '+t('medals.unit')+' · '+ord(mine.rank)
+    : '🏅 '+t('medals.title');
+  return '<div style="border-radius:5px;border:1.5px solid rgba(255,255,255,.4);background:#0c0f1a;overflow:hidden">'
+    +'<div onclick="_toggleMedalBanner()" style="position:relative;display:flex;align-items:center;justify-content:center;padding:.42rem 2rem;cursor:pointer">'
+      +'<div style="text-align:center;font-family:\'Bebas Neue\',sans-serif;font-size:1.05rem;letter-spacing:1px;font-weight:700;line-height:normal;color:#fff">'+head+'</div>'
+      +'<div id="medal-banner-chev" style="position:absolute;right:.75rem;top:50%;margin-top:-.55rem;color:rgba(255,255,255,.65);font-size:.8rem;line-height:1.1rem;transition:transform .18s;'+(open?'transform:rotate(90deg)':'')+'">▸</div></div>'
+    +'<div id="medal-banner-body" style="display:'+(open?'flex':'none')+';flex-direction:column;gap:.35rem;padding:0 .6rem .6rem">'
+      +'<div style="text-align:center;font-size:.68rem;color:var(--muted2);margin-bottom:.1rem">'+t('medals.title')+' · '+t('medals.sub')+'</div>'
+      +top.map(row).join('')+'</div></div>';
+}
+function _toggleMedalBanner(){
+  var b=document.getElementById('medal-banner-body'), c=document.getElementById('medal-banner-chev');
+  if(!b) return;
+  var open=b.style.display==='none';
+  b.style.display=open?'flex':'none';
+  if(c) c.style.transform=open?'rotate(90deg)':'';
+}
+async function loadMedalBanner(){
+  var host=document.getElementById('medal-banner');
+  if(!host) return;
+  try{
+    var r=await supabaseClient.rpc('medal_table_top',{p_limit:10});
+    if(r.error) throw r.error;
+    host=document.getElementById('medal-banner');   // l'utilisateur a pu changer d'onglet pendant l'appel
+    if(!host||_EVENTS_SUBTAB!=='history') return;
+    host.innerHTML=_medalBannerHtml(r.data||[], currentUser?currentUser.id:null, false);
+  }catch(e){ console.error('[medals] medal_table_top', e); }   // pas de bandeau si indisponible
+}
+
 async function renderChallenges(){
   var grid=document.getElementById('challenges-grid');
   var summary=document.getElementById('challenges-summary');
@@ -26099,7 +26154,10 @@ async function renderChallenges(){
       grid.innerHTML=_renderDefisGrouped(list,buildCard);
     }
   } else {
-    grid.innerHTML=list.map(buildCard).join('');
+    // Events > HISTORIQUE : bandeau « tableau des médailles » (replié) en tête de liste
+    var _medalHost=(_CHALLENGES_TAB==='events'&&_EVENTS_SUBTAB==='history')?'<div id="medal-banner" style="grid-column:1/-1"></div>':'';
+    grid.innerHTML=_medalHost+list.map(buildCard).join('');
+    if(_medalHost) loadMedalBanner();
   }
 }
 
