@@ -14033,25 +14033,30 @@ function showCalibInfoModal(){
   var detEl=document.getElementById('calib-days-detail');
   var jw=function(n){return n+' '+(n>1?'jours':'jour');};
   if(detEl) detEl.textContent='';
-  if(daysEl){
-    if(!tl||tl.expired){ daysEl.textContent='Imminent'; }
-    else{ daysEl.textContent=jw(tl.days); }
-  }
+  // (2026-10-18) Plus de « 13 jours » affiché en attendant la base : le RP voyait d'abord la fin de
+  // la période en cours, puis le vrai total (ex. 43 jours) → incohérent. On affiche « … » jusqu'à
+  // connaître son calibration_period, puis UNE seule valeur. Joueur = celui dont la carte est
+  // ouverte (__viewedPlayer), pas forcément soi.
+  var _p=window.__viewedPlayer||window.__myPlayer||null;
+  var _uid=(_p&&_p._uuid)||(currentUser&&currentUser.id)||null;
+  var _fallback=function(){ if(daysEl) daysEl.textContent=(!tl||tl.expired)?'Imminent':jw(tl.days); };
+  if(daysEl) daysEl.textContent='…';
   openModal('calib-info-modal');
+  if(!tl||tl.expired||!_uid||!_periodData.end){ _fallback(); return; }
   // (2026-10-12) Un RP sorti de Starter EN COURS de période a calibration_period = période courante + 1 :
   // la fin de la période en cours ne compte pas, son calibrage complet est la période suivante, et la
   // compétition ne démarre qu'à la fin de celle-ci. On affiche donc : reste de la période en cours
   // + durée du mois suivant (périodes = mois civils, cf rotation).
-  if(!tl||tl.expired||!window.__myPlayer||!window.__myPlayer._uuid||!_periodData.end) return;
-  supabaseClient.from('players').select('calibration_period').eq('id',window.__myPlayer._uuid).single().then(function(r){
+  // MIROIR de la rotation (« 5b. Passage en compétition », processEndOfPeriod) : sortie de calibrage
+  // quand calibration_period <= période qui se ferme — garder synchro, NE PAS diverger.
+  supabaseClient.from('players').select('calibration_period').eq('id',_uid).single().then(function(r){
     var cp=r&&r.data?r.data.calibration_period:null;
-    if(typeof cp!=='number'||cp<=_periodData.period) return;
+    if(typeof cp!=='number'||cp<=_periodData.period){ _fallback(); return; }
     var e=new Date(_periodData.end), pm=new Date(e.getTime()+3*3600000); // fin de période (heure de Paris approx.)
     var nextLen=new Date(Date.UTC(pm.getUTCFullYear(),pm.getUTCMonth()+2,0)).getUTCDate();
     var total=tl.days+nextLen;
     if(daysEl) daysEl.textContent=jw(total);
-    if(detEl) detEl.textContent=jw(tl.days)+' de la période en cours + '+jw(nextLen)+' de ta période de calibrage';
-  }).catch(function(){});
+  }).catch(_fallback);
 }
 function startPeriodTimer(){
   if(_periodTimerInterval) clearInterval(_periodTimerInterval);
