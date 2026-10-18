@@ -19320,12 +19320,23 @@ function closeModal(id){document.getElementById(id).classList.remove('open');if(
 
 // Affiche la liste des RPs qui ont réagi à une course donnée. Données lues depuis
 // le cache module-scope rempli par renderFeed (évite de re-fetch Supabase à chaque clic).
-function showReactionsList(runId, type){
+async function showReactionsList(runId, type){
   var reacts = window._feedReactsCache && window._feedReactsCache[runId];
   if(!reacts) return;
   var ids = reacts[type] || [];
   if(!ids.length) return;
   var pMap = window._feedPlayersCache || {};
+  // (2026-10-18) pMap ne contient que les AUTEURS de courses et les commentateurs du fil : un RP
+  // (bot ou non) qui a seulement réagi n'y était pas → affiché « (inconnu) ». On charge ici, au clic,
+  // les profils manquants (par paquets, un seul aller-retour dans le cas courant).
+  var _missing = ids.filter(function(uid){ return !pMap[uid]; });
+  for(var _mi=0; _mi<_missing.length; _mi+=100){
+    try{
+      var {data:_rp} = await supabaseClient.from('players').select('id,username,avatar,nat,grade').in('id', _missing.slice(_mi,_mi+100));
+      (_rp||[]).forEach(function(p){ pMap[p.id]=p; });
+    }catch(e){ console.error('[reactions] players fetch', e); }
+  }
+  window._feedPlayersCache = pMap;
   var labels = {like:'👍 J\'aime', heart:'❤️ Cœur', flash:'⚡ Flash'};
   var titleEl = document.getElementById('reactions-list-title');
   var listEl = document.getElementById('reactions-list-content');
