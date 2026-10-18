@@ -25077,6 +25077,7 @@ function _badgeRibbonLabel(b){
     case 'cashrun_jackpots': return v+' 🎰';
     case 'collab_wins':      return v+' 🤝';
     case 'tour_laps':        return v+' 🏁';
+    case 'runs_total':       return v+' sorties';
     case 'cumul_pts':        return (v>=1000?(v/1000)+'K':v)+' pts';
     case 'account_age_days': return v+' j';
     default:                 return '';
@@ -25311,18 +25312,23 @@ var _COLLAB_SUBTAB='current'; // 'current' (à accepter/en attente/en cours) | '
 // (Jackpot/Esprit d'équipe/Fidèle, gagnés sans être choisis, cf. plus bas).
 // N'affecte QUE l'assemblage final du HTML (grid.innerHTML) — aucun impact sur
 // le filtre/tri existant (list reste calculée à l'identique, juste repartitionnée).
+// SORTIES (18/10/2026) : 100 → 200 → 500, tous automatiques, UNE carte à la fois dans Automatiques.
+// Le 500 est réservé Premium : un Premium le voit dans Automatiques (après le 200) ; un non-Premium le voit
+// verrouillé en permanence dans Régularité (teaser), hors escalier. Ne vaut que pour SA propre page.
+function _runs500InLadder(){ return !window.__viewedPlayer && isPremium(); }
+function _runsLadderFor(){ return _runs500InLadder() ? ['RUNS_100','RUNS_200','RUNS_500'] : ['RUNS_100','RUNS_200']; }
 var DEFI_CATEGORIES=[
   {key:'course', title:'UNE COURSE', icon:'🏃', accent:'#ff6b35', codes:['RUN_5K','RUN_10K','RUN_SEMI','RUN_MARATHON','RUN_100','PERF_ECLAIR']},
   {key:'distance', title:'DISTANCE PROGRESSIVE', icon:'📊', accent:'#4a90ff', codes:['CUM_20','CUM_50','CUM_100','CUM_250','CUM_500','CUM_1000','CUM_1500','CUM_CONTINENT','CUM_LUNAIRE','CUM_SOLAIRE','CUM_GALACTIQUE','CUM_ESPACE','CUM_BUZZ']},
   {key:'denivele', title:'DÉNIVELÉ', icon:'⛰️', accent:'#c8935a', codes:['ELV_1000','ELV_MB','ELV_EVEREST','ELV_KILIMANDJARO']},
   {key:'regularite', title:'RÉGULARITÉ', icon:'🔥', accent:'#ff4040', codes:['STREAK_7','STREAK_30','STREAK_90','STREAK_180','STREAK_365']},
-  {key:'sorties', title:'NOMBRE DE SORTIES', icon:'👟', accent:'#38bdf8', codes:['RUNS_100','RUNS_200','RUNS_500']},
   {key:'horaires', title:'HORAIRES', icon:'🌙', accent:'#7c3aed', codes:['TIME_NIGHT','TIME_DAWN']},
   {key:'exploration', title:'EXPLORATION', icon:'🗺️', accent:'#20c060', codes:['LOC_NOMADE','LOC_CARTOGRAPHE','LOC_VOYAGEUR']},
   {key:'duree', title:'DURÉE', icon:'⏱️', accent:'#4dd9e8', codes:['DUREE_2H','DUREE_3H']},
-  {key:'auto', title:'AUTOMATIQUES', icon:'✨', accent:'#8a92a8', codes:['CASHRUN_5','COLLAB_10','LOYALTY_1Y','LANDS_8','TOUR_COMPLET','PTS_100K']},
+  {key:'auto', title:'AUTOMATIQUES', icon:'✨', accent:'#8a92a8', codes:['CASHRUN_5','COLLAB_10','LOYALTY_1Y','LANDS_8','TOUR_COMPLET','PTS_100K','RUNS_100','RUNS_200']},
 ];
 function _defiCategoryFor(code){
+  if(code==='RUNS_500') return DEFI_CATEGORIES.filter(function(c){return c.key===(_runs500InLadder()?'auto':'regularite');})[0];
   for(var i=0;i<DEFI_CATEGORIES.length;i++){ if(DEFI_CATEGORIES[i].codes.indexOf(code)>=0) return DEFI_CATEGORIES[i]; }
   return null;
 }
@@ -25626,6 +25632,8 @@ async function renderChallenges(){
     if(b.threshold_type==='lands_owned') return landsOwned;
     if(b.threshold_type==='tour_laps') return tourLaps;
     if(b.threshold_type==='cumul_pts') return ptsCumul;
+    // SORTIES 100/200 (18/10/2026) : automatiques, TOUTES les courses de la vie du compte (= compteur « Courses » de la PC). MIROIR de checkBadges.ts.
+    if(b.threshold_type==='runs_total') return valid.length;
     var q=activeQuestsMap[b.id];
     if(q){
       var live=statsSince(q.since)[b.threshold_type]||0;
@@ -25710,6 +25718,16 @@ async function renderChallenges(){
       // pour que le RP sache qu'ils existent — seul l'onglet Historique reste
       // filtré aux badges réellement obtenus (cf. restingComplete ci-dessous).
       var hasReplayRow=!!activeQuestsMap[b.id]||!!pausedQuestsMap[b.id];
+      // NOMBRE DE SORTIES (18/10/2026) : en Sélection, UNE seule carte à la fois — le prochain palier non gagné
+      // (100 → 200). Les paliers gagnés vivent dans l'Historique.
+      if(_DEFIS_SUBTAB==='selection' && _runsLadderFor().indexOf(b.code)>=0){
+        var _nextRuns=null;
+        for(var _ri=0;_ri<_runsLadderFor().length;_ri++){
+          var _rb=_badgesCatalog.find(function(x){return x.code===_runsLadderFor()[_ri];});
+          if(_rb && !unlockedMap[_rb.id]){ _nextRuns=_rb.code; break; }
+        }
+        if(b.code!==_nextRuns) return false;
+      }
       var restingComplete=isUnlockedDf && !hasReplayRow;
       // "En cours" liste TOUS les défis (y compris déjà obtenus et au repos,
       // puisqu'ils sont rejouables) — seul l'onglet Historique reste filtré
@@ -25812,7 +25830,7 @@ async function renderChallenges(){
   function _fmtQuestProgress(b,cur,tgt){
     if(b.threshold_type==='cumul_km') return cur.toFixed(1)+' / '+tgt+' km';
     if(b.threshold_type==='cumul_elv_m') return Math.round(cur)+' / '+tgt+' m';
-    if(b.threshold_type==='cumul_runs') return Math.floor(cur)+' / '+tgt+' sorties';
+    if(b.threshold_type==='cumul_runs'||b.threshold_type==='runs_total') return Math.floor(cur)+' / '+tgt+' sorties';
     if(b.threshold_type==='streak_days') return Math.floor(cur)+' / '+tgt+' j';
     if(b.threshold_type==='account_age_days') return Math.floor(cur)+' / '+tgt+' j';
     if(b.threshold_type==='cumul_pts') return Math.round(cur).toLocaleString(SPEEDIX_LANG)+' / '+Number(tgt).toLocaleString(SPEEDIX_LANG)+' pts';
@@ -25847,7 +25865,7 @@ async function renderChallenges(){
     // Badges "automatiques" (Fidèle/Jackpot/Esprit d'équipe/Prospecteur) : pas
     // de bouton CHOISIR, ils se déclenchent tout seuls — visibles dans leur
     // catégorie même non gagnés, juste sans action possible dessus.
-    var isAutoType=(b.threshold_type==='account_age_days'||b.threshold_type==='cashrun_jackpots'||b.threshold_type==='collab_wins'||b.threshold_type==='lands_owned'||b.threshold_type==='tour_laps'||b.threshold_type==='cumul_pts');
+    var isAutoType=(b.threshold_type==='account_age_days'||b.threshold_type==='cashrun_jackpots'||b.threshold_type==='collab_wins'||b.threshold_type==='lands_owned'||b.threshold_type==='tour_laps'||b.threshold_type==='cumul_pts'||b.threshold_type==='runs_total');
     // VOYAGEUR (2026-08-05, demande explicite) : pas réalisable dans l'immédiat
     // (5 capitales européennes différentes réellement courues — quasi
     // impossible pour la majorité des joueurs), on ne le rend plus choisissable
@@ -27600,7 +27618,7 @@ function _questPickerCap(){
 // entière/état courant évalués en continu, cf. plus bas — pas de notion de "rejeu").
 // MIROIR : checkBadges.ts isReplayable() — garder synchro, NE PAS diverger.
 function _isQuestReplayable(b,timesEarned){
-  if(b.threshold_type==='event_run'||b.threshold_type==='account_age_days'||b.threshold_type==='cashrun_jackpots'||b.threshold_type==='collab_wins'||b.threshold_type==='lands_owned'||b.threshold_type==='tour_laps'||b.threshold_type==='cumul_pts') return false;
+  if(b.threshold_type==='event_run'||b.threshold_type==='account_age_days'||b.threshold_type==='cashrun_jackpots'||b.threshold_type==='collab_wins'||b.threshold_type==='lands_owned'||b.threshold_type==='tour_laps'||b.threshold_type==='cumul_pts'||b.threshold_type==='runs_total') return false;
   if(b.max_completions==null) return true;
   return (timesEarned||0)<b.max_completions;
 }
@@ -27768,7 +27786,7 @@ function showQuestValidatedModal(b){
   if(b.reward_rpc) rewards.push('+'+b.reward_rpc.toLocaleString(SPEEDIX_LANG)+' RPC');
   if(b.reward_nyx) rewards.push('+'+b.reward_nyx+' 💎 NYX');
   if(typeof _decorateBadgeWithCityCrest==='function') _decorateBadgeWithCityCrest(b);
-  var _autoQ=(b.threshold_type==='account_age_days'||b.threshold_type==='cashrun_jackpots'||b.threshold_type==='collab_wins'||b.threshold_type==='lands_owned'||b.threshold_type==='tour_laps'||b.threshold_type==='cumul_pts');
+  var _autoQ=(b.threshold_type==='account_age_days'||b.threshold_type==='cashrun_jackpots'||b.threshold_type==='collab_wins'||b.threshold_type==='lands_owned'||b.threshold_type==='tour_laps'||b.threshold_type==='cumul_pts'||b.threshold_type==='runs_total');
   document.getElementById('quest-modal-emoji').innerHTML=(b.image&&b.hexBadge)
     ? '<img src="'+b.image+'" style="width:130px;height:130px;max-width:none;margin:-6px 0;object-fit:contain;filter:drop-shadow(0 0 18px '+color+'80)">'
     : '<svg viewBox="0 0 100 115" style="width:100%;height:100%;filter:drop-shadow(0 0 18px '+color+'80)">'
@@ -27798,6 +27816,7 @@ function _badgeChallengeDescription(b){
     case 'cumul_km':          return 'Cumuler <strong style="color:'+(b.color||'#f5c842')+'">'+fmt(v)+' km</strong> au total';
     case 'single_run_elv_m':  return 'Faire <strong style="color:'+(b.color||'#f5c842')+'">+'+fmt(v)+' m</strong> de dénivelé en une seule course';
     case 'cumul_runs':        return 'Faire <strong style="color:'+(b.color||'#f5c842')+'">'+fmt(v)+' sorties</strong> au total';
+    case 'runs_total':        return 'Faire <strong style="color:'+(b.color||'#f5c842')+'">'+fmt(v)+' sorties</strong> au total — le badge se débloque tout seul';
     case 'cumul_elv_m':       return 'Cumuler <strong style="color:'+(b.color||'#f5c842')+'">'+fmt(v)+' m</strong> de dénivelé au total';
     case 'speed_over_5km':    return 'Atteindre <strong style="color:'+(b.color||'#f5c842')+'">'+v+' km/h</strong> de moyenne sur ≥ 5 km';
     case 'single_run_duration_min': return 'Réalise <strong style="color:'+(b.color||'#f5c842')+'">'+(v/60)+'h</strong> d\'effort en continu pour obtenir ce badge';
