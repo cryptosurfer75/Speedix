@@ -24838,12 +24838,14 @@ var _CITY_CREST_OVERRIDES=[
   {match:/^2 HEURES$/i, image:'ai-icons/defi-icons/duree2h-v1.webp', hexBadge:true},
   {match:/^3 HEURES$/i, image:'ai-icons/defi-icons/duree3h-v1.webp', hexBadge:true},
   {match:/^(1H NITRO|2H FURIOUS|3H ENDURANCE)$/i, image:'ai-icons/challenge-crests/arnos-v1.webp', medal:true, ribbonColors:['#fa2b9a','#8f0862'], ribbonFlat:true},
-  {match:/VERBANIA/i, image:'ai-icons/challenge-crests/verbania-v1.webp', medal:true, ribbonColors:['#dd0f2d','#7a0a1a'], ribbonFlat:true}
+  {match:/VERBANIA/i, image:'ai-icons/challenge-crests/verbania-v1.webp', medal:true, ribbonColors:['#dd0f2d','#7a0a1a'], ribbonFlat:true},
+  // ribbonBands (2026-10-18) : ruban en bandes verticales (ici couleurs de la Jamaïque : vert | noir | or) ; ribbonColors reste la paire c1/c2 du skin gagnant (doré → vert foncé).
+  {match:/KINGSTON/i, image:'ai-icons/challenge-crests/kingston-v1.webp', medal:true, ribbonColors:['#ffd100','#0b6b2b'], ribbonBands:['#0e9a3e','#111111','#ffd100'], ribbonFlat:true, ribbonHalf:16, yearDy:7}
 ];
 function _decorateBadgeWithCityCrest(b){
   if(!b || b.image) return b; // déjà décoré (ou pas de match nécessaire)
   var ov=_CITY_CREST_OVERRIDES.find(function(o){return o.match.test(b.name||'');});
-  if(ov){ b.image=ov.image; b.image_x=15; b.image_y=18; b.image_w=70; b.image_h=74; b.medal=!!ov.medal; b.ribbonColors=ov.ribbonColors; b.ribbonRise=ov.ribbonRise||0; b.ribbonLen=ov.ribbonLen; b.ribbonFlat=!!ov.ribbonFlat; b.medalImgY=ov.medalImgY; b.medalImgW=ov.medalImgW; b.medalImgH=ov.medalImgH; b.hexBadge=!!ov.hexBadge; b.glowAlpha=ov.glowAlpha; b.medalBackdrop=!!ov.medalBackdrop; b.ribbonPts=ov.ribbonPts; b.ribbonHalf=ov.ribbonHalf; b.yearDy=ov.yearDy; }
+  if(ov){ b.image=ov.image; b.image_x=15; b.image_y=18; b.image_w=70; b.image_h=74; b.medal=!!ov.medal; b.ribbonColors=ov.ribbonColors; b.ribbonRise=ov.ribbonRise||0; b.ribbonLen=ov.ribbonLen; b.ribbonFlat=!!ov.ribbonFlat; b.medalImgY=ov.medalImgY; b.medalImgW=ov.medalImgW; b.medalImgH=ov.medalImgH; b.hexBadge=!!ov.hexBadge; b.glowAlpha=ov.glowAlpha; b.medalBackdrop=!!ov.medalBackdrop; b.ribbonPts=ov.ribbonPts; b.ribbonBands=ov.ribbonBands; b.ribbonHalf=ov.ribbonHalf; b.yearDy=ov.yearDy; }
   return b;
 }
 
@@ -25190,6 +25192,8 @@ function _renderBadgeHex(b,isUnlocked){
         +'  <g opacity="'+ribbonOp+'" filter="url(#'+ribUid+'shadow)">'
         +'    <polygon points="'+ribPts+'" fill="url(#'+ribUid+')"/>'
         +'    <g clip-path="url(#'+ribUid+'clip)">'
+        // Ruban en bandes verticales (b.ribbonBands, 2026-10-18) : N bandes égales qui recouvrent le dégradé.
+        +(b.ribbonBands?b.ribbonBands.map(function(bc,bi,ba){var bw=(rx1-rx0)/ba.length;return '      <rect x="'+(rx0+bi*bw)+'" y="-2" width="'+(bw+0.2)+'" height="40" fill="'+bc+'"/>';}).join(''):'')
         +'      <rect x="'+(rx0+1.4)+'" y="-2" width="2.6" height="36" fill="'+rc[1]+'"/>'
         +'      <rect x="'+(rx0+4)+'" y="-2" width="2.6" height="36" fill="#ffffff" opacity="0.92"/>'
         +'      <rect x="'+(rx1-6.6)+'" y="-2" width="2.6" height="36" fill="#ffffff" opacity="0.92"/>'
