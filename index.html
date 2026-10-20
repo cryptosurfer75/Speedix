@@ -4288,10 +4288,10 @@ select option{background:#040c1c}
 
   <!-- TUILE CAGNOTTE (2026-10-15) : pertes RPC des cases spéciales (cf tour_jackpot).
        Sous la carte, avant le panneau de données. Double-div biseauté, fond plein. -->
-  <div id="tour-tiles-row" style="display:flex;gap:14px;justify-content:center;align-items:flex-start;flex-wrap:wrap">
-  <div id="tour-jackpot-tile" style="margin-bottom:14px;filter:drop-shadow(0 0 8px rgba(245,200,66,.4));width:190px">
+  <div id="tour-tiles-row" style="display:flex;gap:10px;justify-content:center;align-items:flex-start;flex-wrap:nowrap">
+  <div id="tour-jackpot-tile" style="margin-bottom:14px;filter:drop-shadow(0 0 8px rgba(245,200,66,.4));flex:1 1 0;min-width:0;max-width:190px">
   <div style="background:rgba(245,200,66,.7);clip-path:polygon(11px 0,calc(100% - 11px) 0,100% 11px,100% calc(100% - 11px),calc(100% - 11px) 100%,11px 100%,0 calc(100% - 11px),0 11px);padding:1.5px">
-  <div style="background:#0c0f1a;clip-path:polygon(10px 0,calc(100% - 10px) 0,100% 10px,100% calc(100% - 10px),calc(100% - 10px) 100%,10px 100%,0 calc(100% - 10px),0 10px);padding:6px 16px 7px;text-align:center">
+  <div style="background:#0c0f1a;clip-path:polygon(10px 0,calc(100% - 10px) 0,100% 10px,100% calc(100% - 10px),calc(100% - 10px) 100%,10px 100%,0 calc(100% - 10px),0 10px);padding:6px 8px 7px;text-align:center">
     <div style="font-family:'Bebas Neue',sans-serif;letter-spacing:3px;font-size:16px;line-height:1;color:#fff">CAGNOTTE</div>
     <div id="tour-jackpot-val" style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:15px;line-height:20px;height:20px;margin-top:2px;color:var(--gold)">— RPC</div>
   </div>
@@ -4299,10 +4299,10 @@ select option{background:#040c1c}
   </div>
   <!-- COMPTEUR « CASES À PARCOURIR » (2026-10-20) : même taille que la cagnotte ; visible seulement pendant le déplacement du pion
        (décompte case par case, façon dés du Monopoly). Piloté par _tourDiceShow/_tourDiceUpdate/_tourDiceHide dans forceMove(). -->
-  <div id="tour-dice-tile" style="display:none;margin-bottom:14px;filter:drop-shadow(0 0 8px rgba(200,208,222,.45));width:190px">
+  <div id="tour-dice-tile" style="display:none;margin-bottom:14px;filter:drop-shadow(0 0 8px rgba(200,208,222,.45));flex:1 1 0;min-width:0;max-width:190px">
   <div style="background:rgba(200,208,222,.8);clip-path:polygon(11px 0,calc(100% - 11px) 0,100% 11px,100% calc(100% - 11px),calc(100% - 11px) 100%,11px 100%,0 calc(100% - 11px),0 11px);padding:1.5px">
-  <div style="background:#0c0f1a;clip-path:polygon(10px 0,calc(100% - 10px) 0,100% 10px,100% calc(100% - 10px),calc(100% - 10px) 100%,10px 100%,0 calc(100% - 10px),0 10px);padding:6px 16px 7px;text-align:center">
-    <div style="font-family:'Bebas Neue',sans-serif;letter-spacing:2px;font-size:16px;line-height:1;color:#fff;white-space:nowrap">🎲 CASES À PARCOURIR</div>
+  <div style="background:#0c0f1a;clip-path:polygon(10px 0,calc(100% - 10px) 0,100% 10px,100% calc(100% - 10px),calc(100% - 10px) 100%,10px 100%,0 calc(100% - 10px),0 10px);padding:6px 8px 7px;text-align:center">
+    <div style="font-family:'Bebas Neue',sans-serif;letter-spacing:2px;font-size:16px;line-height:1;color:#fff;white-space:nowrap">🎲 À PARCOURIR</div>
     <div id="tour-dice-val" style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:19px;line-height:20px;height:20px;margin-top:2px;color:#e8edf5">0</div>
   </div>
   </div>
