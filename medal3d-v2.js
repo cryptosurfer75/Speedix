@@ -10,7 +10,10 @@
 function ribbonGeom(b){
   const rr=b.ribbonRise||0, rl=b.ribbonLen!=null?b.ribbonLen:29, rhw=b.ribbonHalf!=null?b.ribbonHalf:21, rx0=50-rhw, rx1=50+rhw;
   if (b.ribbonPts) return b.ribbonPts.trim().split(/\s+/).map(p => p.split(',').map(Number));
-  return b.ribbonFlat ? [[rx0,0-rr],[rx1,0-rr],[rx1,rl-rr],[rx0,rl-rr]] : [[rx0,0-rr],[rx1,0-rr],[rx1,29-rr],[50,21-rr],[rx0,29-rr]];
+  // En 3D le ruban ne dépasse jamais au-dessus du cadre (y < 0) : ribbonRise « remonte » le ruban pour qu'il touche le blason en 2D,
+  // mais ici son haut est ramené à y = 0 (comme les autres médailles) ; le point de contact avec le blason (le bas) ne bouge pas.
+  var top = Math.max(0 - rr, 0);
+  return b.ribbonFlat ? [[rx0,top],[rx1,top],[rx1,rl-rr],[rx0,rl-rr]] : [[rx0,top],[rx1,top],[rx1,29-rr],[50,21-rr],[rx0,29-rr]];
 }
 function ribbonSVG(b){
   const rc=b.ribbonColors, rhw=b.ribbonHalf!=null?b.ribbonHalf:21, rx0=50-rhw, rx1=50+rhw;
@@ -202,12 +205,24 @@ function buildMedal(canvas, tex, W, H, depth, opt) {
     var rotY = 0, rotX = 0, tY = 0, tX = 0, dragging = false, lx = 0, ly = 0, auto = true, revealing = !!opt.reveal, t0 = performance.now();
     var replay = function(){ t0 = performance.now(); revealing = true; auto = true; tY = tX = rotY = rotX = 0; };
     var el2 = renderer.domElement;
-    el2.addEventListener('pointerdown', function(e){ dragging = true; auto = false; lx = e.clientX; ly = e.clientY; el2.style.cursor = 'grabbing'; });
-    var up = function(){ dragging = false; el2.style.cursor = 'grab'; };
+    var flipTarget = 0, flipCur = 0, downX = 0, downY = 0, downT = 0, moved = false;
+    el2.addEventListener('pointerdown', function(e){ dragging = true; moved = false; downX = lx = e.clientX; downY = ly = e.clientY; downT = performance.now(); });
+    var up = function(){
+      if (dragging && !moved && performance.now() - downT < 400 && !revealing) {            // simple tape : on retourne la médaille
+        flipTarget = flipTarget ? 0 : Math.PI; tY = 0; tX = 0; auto = true;
+        if (hintEl) { hintEl.remove(); hintEl = null; }
+      }
+      dragging = false; el2.style.cursor = 'grab';
+    };
+    var hintEl = null;
+    if (opt.hint) { hintEl = document.createElement('div'); hintEl.textContent = opt.hint; hintEl.style.cssText = 'position:absolute;left:0;right:0;bottom:2px;text-align:center;font:11px/1 system-ui,sans-serif;letter-spacing:.06em;color:rgba(200,208,225,.55);pointer-events:none'; el.appendChild(hintEl); }
     window.addEventListener('pointerup', up);
     el2.addEventListener('pointermove', function(e){
       var r = el2.getBoundingClientRect(); glint.position.x = ((e.clientX - r.left) / r.width - .5) * 6; glint.position.y = -((e.clientY - r.top) / r.height - .5) * 6;
-      if (!dragging) return; tY += (e.clientX - lx) * 0.012; tX += (e.clientY - ly) * 0.008; lx = e.clientX; ly = e.clientY;
+      if (!dragging) return;
+      if (!moved && Math.hypot(e.clientX - downX, e.clientY - downY) > 7) { moved = true; auto = false; el2.style.cursor = 'grabbing'; }
+      if (!moved) return;
+      tY += (e.clientX - lx) * 0.012; tX += (e.clientY - ly) * 0.008; lx = e.clientX; ly = e.clientY;
       tX = Math.max(-0.8, Math.min(0.8, tX)); tY = Math.max(-0.9, Math.min(0.9, tY));
     });
     (function loop(now){
@@ -226,7 +241,8 @@ function buildMedal(canvas, tex, W, H, depth, opt) {
       } else { halo.material.opacity = 0.45 + 0.08 * Math.sin(now / 500); }
       if (auto && e > startSway) { tY = Math.sin((now - t0 - startSway * 1000) / 1000) * 0.5 * Math.min((e - startSway) / 1.2, 1); tX = Math.sin(now / 1700) * 0.12; }
       rotY += (tY - rotY) * 0.12; rotX += (tX - rotX) * 0.12;
-      group.rotation.y = rotY + spin; group.rotation.x = rotX; group.scale.setScalar(sc * fitK);
+      flipCur += (flipTarget - flipCur) * 0.14;
+      group.rotation.y = rotY + spin + flipCur; group.rotation.x = rotX; group.scale.setScalar(sc * fitK);
       renderer.render(scene, camera);
     })(performance.now());
     function dispose(){

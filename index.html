@@ -27907,7 +27907,7 @@ async function showBadgeDetail(badgeId){
   document.getElementById('lm-body').innerHTML=bodyHtml;
   _applyBadgeModalFrame(color);
   openModal('land-modal');
-  if(earnedAt) _med3dAttach('lm-badge-box',b,false);
+  if(earnedAt) _med3dAttach('lm-badge-box',b,false,new Date(earnedAt));
 }
 
 // ============================================================
@@ -28260,7 +28260,7 @@ var _collabSyncInFlight=false;
 
 // ============================================================
 // MÉDAILLES 3D (2026-10-20) — popup « Médaille gagnée ! » + fiche d'une médaille DÉJÀ GAGNÉE (jamais pour une médaille
-// non gagnée : son visuel doit rester une surprise). Module medal3d-v1.js + Three.js (vendor/) chargés À LA DEMANDE,
+// non gagnée : son visuel doit rester une surprise). Module medal3d-v2.js + Three.js (vendor/) chargés À LA DEMANDE,
 // jamais au démarrage. Repli automatique sur la médaille plate : WebGL absent, réglage « Effets 3D » coupé, mouvement
 // réduit demandé par l'appareil, ou toute erreur de chargement/rendu.
 // ============================================================
@@ -28295,7 +28295,7 @@ function _med3dLoad(){
   if(window.Medal3D) return Promise.resolve();
   if(!_med3d.scriptP){
     _med3d.scriptP=new Promise(function(ok,ko){
-      var s=document.createElement('script'); s.src='medal3d-v1.js';
+      var s=document.createElement('script'); s.src='medal3d-v2.js';
       s.onload=ok; s.onerror=function(){ _med3d.scriptP=null; ko(new Error('medal3d')); };
       document.head.appendChild(s);
     });
@@ -28304,7 +28304,14 @@ function _med3dLoad(){
 }
 // Remplace la médaille plate du conteneur #boxId par la version 3D (reveal=true : arrivée animée du popup de gain).
 // La médaille plate reste affichée, à sa place, jusqu'à ce que la 3D soit prête ; en cas d'échec elle est rétablie telle quelle.
-async function _med3dAttach(boxId,b,reveal){
+// Texte gravé au dos de la médaille : « RP <pseudo> » + nom de la médaille et date de gain (propre à chaque compte).
+function _med3dEngrave(b,d){
+  var city=(b.image||'').split('/').pop().replace(/\.\w+$/,'').replace(/-hd$/,'').replace(/-v\d+$/,'').replace(/-/g,' ');
+  var u=(typeof currentUser!=='undefined' && currentUser && currentUser.username)||'';
+  var dd=''; if(d && !isNaN(d)) dd=('0'+d.getDate()).slice(-2)+'/'+('0'+(d.getMonth()+1)).slice(-2)+'/'+String(d.getFullYear()).slice(-2);
+  return {rp:u||'RP', sub:city+(dd?' · '+dd:'')};
+}
+async function _med3dAttach(boxId,b,reveal,earnedDate){
   _med3dDispose(); var my=_med3d.seq;
   var box=document.getElementById(boxId);
   if(!box || !b || !b.medal || !_fx3dEnabled()) return;
@@ -28319,7 +28326,7 @@ async function _med3dAttach(boxId,b,reveal){
   try{
     await _med3dLoad();
     if(my!==_med3d.seq || !layer.isConnected) return;
-    var h=await Medal3D.mount(layer,b,{reveal:!!reveal});
+    var h=await Medal3D.mount(layer,b,{reveal:!!reveal, engrave:_med3dEngrave(b,earnedDate||new Date()), hint:(typeof SPEEDIX_LANG!=='undefined'&&SPEEDIX_LANG==='en')?'Tap to flip':'Touche pour retourner'});
     if(my!==_med3d.seq || !layer.isConnected){ if(h) h.dispose(); return; }
     if(!h) throw new Error('3d');
     _med3d.cur=h; layer.style.opacity='1';
@@ -28371,7 +28378,7 @@ function showBadgeUnlockModal(b){
     +'</div>'
     +'<style>@keyframes badgePop{0%{transform:scale(.3);opacity:0}60%{transform:scale(1.15);opacity:1}100%{transform:scale(1)}}</style>';
   openModal('land-modal');
-  _med3dAttach('lm-badge-box',b,true);
+  _med3dAttach('lm-badge-box',b,true,new Date());
   // Marquer ce badge comme déjà affiché pour ce RP → la recovery ne le re-jouera plus
   if(b&&b.id) _markBadgeShown(b.id,b.times_earned||1);
 }
