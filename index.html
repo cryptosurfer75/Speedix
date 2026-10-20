@@ -31528,7 +31528,6 @@ window.Tour.init = async function(){
       if(typeof p.tour_idx !== 'number') return;
       const pos = posAt(p.tour_idx);
       const isFriend = (_myFollowing||[]).indexOf(p.id) >= 0;
-      (window._friendPrevIdx = window._friendPrevIdx || {});
       let m;
       if(isFriend){
         const fc = _friendColorForId(p.id);
@@ -31540,9 +31539,9 @@ window.Tour.init = async function(){
           return '<span onclick="Tour.setRealFriendColor(\''+p.id+'\','+ci+')" style="display:inline-block;width:11px;height:11px;border-radius:50%;background:rgb('+c+');margin-right:5px;cursor:pointer;vertical-align:middle"></span>';
         }).join('');
         // Pion 3D de l'ami dans la couleur qu'on lui a choisie (2026-10-20, Tour 3D actif) ; sinon le point clignotant d'origine.
-        // Le pion de l'ami ne sort de terre que s'il a bougé depuis le dernier passage ; sinon, simple rond de sa couleur.
-        const _fMoved = (window._friendPrevIdx||{})[p.id] !== undefined && window._friendPrevIdx[p.id] !== p.tour_idx;
-        const _fIcon = (window.Tour3D && Tour3D.active && Tour3D.friendIcon) ? Tour3D.friendIcon(p.id, fc, _fMoved) : null;
+        // Pion 3D de l'ami : rond de sa couleur au repos ; tous les pions sortent (sur leur case à jour) quand MON pion se déplace,
+        // et rentrent 20 s après la fermeture de ma fenêtre de case (cf _friendsPop / interval plus bas). Le mien passe par-dessus (zIndexOffset 1000 > 900).
+        const _fIcon = (window.Tour3D && Tour3D.active && Tour3D.friendIcon) ? Tour3D.friendIcon(p.id, fc, _friendsOut) : null;
         m = L.marker([pos.lat,pos.lng], {
           icon: _fIcon || L.divIcon({className:'', html:`<div class="friend-marker" data-pid="${p.id}" style="--fc:${fc}"></div>`, iconSize:[14,14], iconAnchor:[7,7]}),
           zIndexOffset: 900
@@ -31571,9 +31570,31 @@ window.Tour.init = async function(){
         m.bindPopup(`${p.username||'RP'} — ${otherKm} km parcourus → case n°${pos.i}<br><span style="color:#5b2c8f;font-weight:600">${otherLandsCount} Land${otherLandsCount>1?'s':''}</span> active${otherLandsCount>1?'s':''} sur le tracé`);
       }
       realPlayerMarkers.push(m);
-      window._friendPrevIdx[p.id] = p.tour_idx;
     });
   }
+  // Pions d'amis sortis pendant MON déplacement : rentrent 20 s après la fermeture de ma fenêtre de case (aucun déplacement ni fenêtre ouverts),
+  // ou tout de suite si je quitte la carte.
+  let _friendsOut = false, _friendIdleSince = 0;
+  const FRIENDS_STAY_MS = 20000;   // durée pendant laquelle les pions d'amis restent debout une fois la fenêtre de case fermée
+  function _friendsSink(){
+    _friendsOut = false; _friendIdleSince = 0;
+    document.querySelectorAll('.friend-pawn.fp-on').forEach(function(el){ el.classList.remove('fp-on'); });
+  }
+  function _friendsPop(){
+    if(!(window.Tour3D && Tour3D.active)) return;
+    _friendsOut = true; _friendIdleSince = 0;
+    document.querySelectorAll('.friend-pawn').forEach(function(el){ el.classList.add('fp-on'); });
+    try{ _refreshTourOthersDist(); }catch(e){}   // positions des amis remises à jour (ils ont pu bouger depuis ma dernière visite)
+  }
+  setInterval(function(){
+    if(!_friendsOut) return;
+    let busy; try{ busy = _tourAnimating || document.querySelector('.modal.open'); }catch(e){ return; }
+    if(map && map.getContainer && map.getContainer().offsetParent === null){ _friendsSink(); return; }
+    if(busy){ _friendIdleSince = 0; return; }
+    if(!_friendIdleSince){ _friendIdleSince = Date.now(); return; }
+    if(Date.now() - _friendIdleSince < FRIENDS_STAY_MS) return;
+    _friendsSink();
+  }, 1000);
   // Nombre de Lands du RP (louées + possédées + étape achetée) — utilisé par les
   // cases événement dont le coût dépend du nombre de Lands (ex. "ouragan"), et
   // par la condition de grade CONFIRMÉ (ci-dessous).
@@ -33097,14 +33118,15 @@ window.Tour.init = async function(){
   function _tour3dInit(){
     window.__tour3dStatus = 'démarrage';
     try{ if(typeof _fx3dEnabled==='function' && !_fx3dEnabled()){ window.__tour3dStatus = 'désactivé : ' + (_med3d && _med3d.diag ? _med3d.diag : 'réglage « Effets 3D » coupé'); return; } }catch(e){ window.__tour3dStatus = 'erreur réglage : ' + e; return; }
-    var sc = document.createElement('script'); sc.src = 'tour3d-v11.js';
+    var sc = document.createElement('script'); sc.src = 'tour3d-v15.js';
     sc.onload = function(){ window.__tour3dStatus = 'module chargé'; if(window.Tour3D) Tour3D.init(map, playerMarker).then(function(ok){ window.__tour3dStatus = ok ? 'ACTIF' : 'échec init (WebGL/Three.js)'; if(ok && typeof _refreshTourOthersDist==='function'){ try{ _refreshTourOthersDist(); }catch(e){} } }); else window.__tour3dStatus = 'module sans Tour3D'; };
-    sc.onerror = function(){ window.__tour3dStatus = 'fichier tour3d-v11.js introuvable'; };
+    sc.onerror = function(){ window.__tour3dStatus = 'fichier tour3d-v15.js introuvable'; };
     document.head.appendChild(sc);
   }
   async function forceMove(delta){
     await _tourWaitClear();
     _tourAnimating = true;
+    _friendsPop();
     const cellsToMove = Math.round(delta) || (delta>0?1:-1);
     const fromIdx = myIdx, toIdx = myIdx + cellsToMove;
     myIdx = toIdx;
