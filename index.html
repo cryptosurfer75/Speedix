@@ -4137,6 +4137,7 @@ select option{background:#040c1c}
       <div id="challenges-events-subtabs" style="display:none;gap:.3rem;margin-bottom:.7rem">
         <button id="challenges-subtab-upcoming" onclick="switchEventsSubtab('upcoming')" data-i18n="runs.subtab.upcoming" style="flex:1;padding:.42rem .5rem;border-radius:5px;border:1.5px solid #9060f0;background:linear-gradient(135deg,#9060f033,#9060f008),#0c0f1a;color:#9060f0;font-family:'Bebas Neue',sans-serif;font-size:1.05rem;letter-spacing:1px;font-weight:700;cursor:pointer">📅   À VENIR</button>
         <button id="challenges-subtab-history" onclick="switchEventsSubtab('history')" data-i18n="runs.subtab.history" style="flex:1;padding:.42rem .5rem;border-radius:5px;border:1.5px solid rgba(255,255,255,.4);background:#0c0f1a;color:rgba(255,255,255,.65);font-family:'Bebas Neue',sans-serif;font-size:1.05rem;letter-spacing:1px;font-weight:700;cursor:pointer">🏆   HISTORIQUE</button>
+        <button id="challenges-3d-btn" onclick="_med3dOpenWall()" style="display:none;flex:0 0 auto;padding:.42rem .7rem;border-radius:5px;border:1.5px solid rgba(245,200,66,.55);background:#0c0f1a;color:var(--gold);font-weight:700;font-size:.72rem;cursor:pointer;letter-spacing:.5px">🏅 <span id="challenges-3d-btn-txt">Vue 3D</span></button>
       </div>
       <!-- Sous-onglets pour Défis (badges) : Sélection (à choisir) / Historique (obtenus) -->
       <div id="challenges-defis-subtabs" style="display:flex;gap:.3rem;margin-bottom:.7rem">
@@ -26252,6 +26253,8 @@ function switchEventsSubtab(sub){
   }
   setActive(up, sub==='upcoming');
   setActive(hi, sub==='history');
+  var _b3=document.getElementById('challenges-3d-btn');
+  if(_b3){ _b3.style.display=(sub==='history' && _med3dDesktop() && _fx3dEnabled())?'':'none'; var _t3=document.getElementById('challenges-3d-btn-txt'); if(_t3) _t3.textContent=(typeof SPEEDIX_LANG!=='undefined'&&SPEEDIX_LANG==='en')?'3D view':'Vue 3D'; }
   if(typeof renderChallenges==='function') renderChallenges();
 }
 
@@ -28260,11 +28263,11 @@ var _collabSyncInFlight=false;
 
 // ============================================================
 // MÉDAILLES 3D (2026-10-20) — popup « Médaille gagnée ! » + fiche d'une médaille DÉJÀ GAGNÉE (jamais pour une médaille
-// non gagnée : son visuel doit rester une surprise). Module medal3d-v2.js + Three.js (vendor/) chargés À LA DEMANDE,
+// non gagnée : son visuel doit rester une surprise). Module medal3d-v3.js + Three.js (vendor/) chargés À LA DEMANDE,
 // jamais au démarrage. Repli automatique sur la médaille plate : WebGL absent, réglage « Effets 3D » coupé, mouvement
 // réduit demandé par l'appareil, ou toute erreur de chargement/rendu.
 // ============================================================
-var _med3d={cur:null,seq:0,scriptP:null,gl:null};
+var _med3d={cur:null,seq:0,scriptP:null,gl:null,diag:''};
 function _med3dSupported(){
   if(_med3d.gl!==null) return _med3d.gl;
   var ok=false;
@@ -28277,11 +28280,17 @@ function _fx3dEnabled(){
   var v=null; try{ v=localStorage.getItem('speedix_fx3d'); }catch(e){}
   if(v==='off') return false;
   if(v!=='on'){
-    try{ if(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return false; }catch(e){}
-    if(navigator.deviceMemory && navigator.deviceMemory<2) return false;
+    if(navigator.deviceMemory && navigator.deviceMemory<2){ _med3dNote('3D désactivée (appareil à faible mémoire)'); return false; }
   }
-  return _med3dSupported();
+  if(!_med3dSupported()){ _med3dNote('3D indisponible (WebGL absent)'); return false; }
+  return true;
 }
+// « Réduire les animations » demandé à l'appareil (cas fréquent sur iPhone) : on garde la 3D mais sans arrivée animée ni balancement.
+function _med3dStill(){
+  try{ return !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches); }catch(e){ return false; }
+}
+// Dernier état/erreur de la 3D, affiché sous le réglage « Effets 3D » (Paramètres) pour comprendre un défaut sans console.
+function _med3dNote(msg){ _med3d.diag=String(msg||'').slice(0,140); }
 function toggleFx3d(){
   var on=_fx3dEnabled();
   try{ localStorage.setItem('speedix_fx3d', on?'off':'on'); }catch(e){}
@@ -28295,7 +28304,7 @@ function _med3dLoad(){
   if(window.Medal3D) return Promise.resolve();
   if(!_med3d.scriptP){
     _med3d.scriptP=new Promise(function(ok,ko){
-      var s=document.createElement('script'); s.src='medal3d-v2.js';
+      var s=document.createElement('script'); s.src='medal3d-v3.js';
       s.onload=ok; s.onerror=function(){ _med3d.scriptP=null; ko(new Error('medal3d')); };
       document.head.appendChild(s);
     });
@@ -28304,6 +28313,43 @@ function _med3dLoad(){
 }
 // Remplace la médaille plate du conteneur #boxId par la version 3D (reveal=true : arrivée animée du popup de gain).
 // La médaille plate reste affichée, à sa place, jusqu'à ce que la 3D soit prête ; en cas d'échec elle est rétablie telle quelle.
+// Mur 3D des médailles GAGNÉES : ORDINATEUR seulement (souris + écran large, pas l'appli native), bouton « Vue 3D » du sous-onglet
+// Historique des Challenges. Un seul moteur 3D partagé, rendu à la demande (cf. medal3d-wall-v1.js) ; clic sur une médaille = sa fiche 3D.
+function _med3dDesktop(){
+  try{
+    if(window.Capacitor && Capacitor.isNativePlatform && Capacitor.isNativePlatform()) return false;
+    return !!(window.matchMedia && matchMedia('(hover: hover) and (pointer: fine)').matches && window.innerWidth>=900);
+  }catch(e){ return false; }
+}
+function _med3dLoadWall(){
+  if(window.Medal3D && Medal3D.wall) return Promise.resolve();
+  if(!_med3d.wallP){
+    _med3d.wallP=new Promise(function(ok,ko){
+      var s=document.createElement('script'); s.src='medal3d-wall-v1.js';
+      s.onload=ok; s.onerror=function(){ _med3d.wallP=null; ko(new Error('wall')); };
+      document.head.appendChild(s);
+    });
+  }
+  return _med3d.wallP;
+}
+async function _med3dOpenWall(){
+  try{
+    if(!currentUser || !_badgesCatalog || !_med3dDesktop() || !_fx3dEnabled()) return;
+    var r=await supabaseClient.from('player_badges').select('badge_id').eq('player_id',currentUser.id);
+    var got={}; (r.data||[]).forEach(function(x){ got[x.badge_id]=1; });
+    var list=_badgesCatalog.filter(function(b){ return got[b.id]; });
+    list.forEach(_decorateBadgeWithCityCrest);
+    list=list.filter(function(b){ return b.medal; }).sort(function(a,z){ return (z.event_date||'').localeCompare(a.event_date||''); });
+    if(!list.length) return;
+    await _med3dLoad(); await Medal3D._int.loadThree(); await _med3dLoadWall();
+    var modal=document.getElementById('land-modal'), z0=modal?modal.style.zIndex:'';
+    Medal3D.wall.open(list,{
+      title:(typeof SPEEDIX_LANG!=='undefined'&&SPEEDIX_LANG==='en')?'MY MEDALS':'MES MÉDAILLES',
+      onPick:function(b){ if(modal) modal.style.zIndex=2147483200; showBadgeDetail(b.id); },
+      onClose:function(){ if(modal) modal.style.zIndex=z0; }
+    });
+  }catch(e){ console.warn('mur 3D indisponible',e); }
+}
 // Texte gravé au dos de la médaille : « RP <pseudo> » + nom de la médaille et date de gain (propre à chaque compte).
 function _med3dEngrave(b,d){
   var city=(b.image||'').split('/').pop().replace(/\.\w+$/,'').replace(/-hd$/,'').replace(/-v\d+$/,'').replace(/-/g,' ');
@@ -28326,12 +28372,13 @@ async function _med3dAttach(boxId,b,reveal,earnedDate){
   try{
     await _med3dLoad();
     if(my!==_med3d.seq || !layer.isConnected) return;
-    var h=await Medal3D.mount(layer,b,{reveal:!!reveal, engrave:_med3dEngrave(b,earnedDate||new Date()), hint:(typeof SPEEDIX_LANG!=='undefined'&&SPEEDIX_LANG==='en')?'Tap to flip':'Touche pour retourner'});
+    var h=await Medal3D.mount(layer,b,{reveal:!!reveal, still:_med3dStill(), engrave:_med3dEngrave(b,earnedDate||new Date()), hint:(typeof SPEEDIX_LANG!=='undefined'&&SPEEDIX_LANG==='en')?'Tap to flip':'Touche pour retourner'});
     if(my!==_med3d.seq || !layer.isConnected){ if(h) h.dispose(); return; }
     if(!h) throw new Error('3d');
     _med3d.cur=h; layer.style.opacity='1';
     setTimeout(function(){ if(flat && flat.isConnected) flat.style.display='none'; },260);
   }catch(e){
+    _med3dNote('erreur 3D : '+((e&&e.message)||e));
     if(my===_med3d.seq && box.isConnected){ box.style.cssText=prevStyle; box.innerHTML=flatHtml; }
   }
 }
@@ -29092,7 +29139,11 @@ function _renderSettingsPrefs(p){
     {label:t('settings.prefs.notifs'), html:pushSwitch},
   ];
   // Effets 3D des médailles (2026-10-20) : ligne affichée seulement si l'appareil sait faire de la 3D (WebGL).
-  if(typeof _med3dSupported==='function' && _med3dSupported()) _prefRows.push({label:t('settings.prefs.fx3d'), html:_settingsSwitch('fx3d',_fx3dEnabled(),'toggleFx3d')});
+  if(typeof _med3dSupported==='function' && _med3dSupported()){
+    _prefRows.push({label:t('settings.prefs.fx3d'), html:_settingsSwitch('fx3d',_fx3dEnabled(),'toggleFx3d')});
+    var _dg=(_med3d.diag||'')+(_med3dStill()?(_med3d.diag?' · ':'')+'mouvement réduit : 3D sans animation':'');
+    if(_dg) _prefRows.push({label:'', html:'<span style="font-size:.62rem;color:var(--muted2)">'+_dg.replace(/</g,'&lt;')+'</span>'});
+  }
   _setRowsHtml('settings-prefs',_prefRows);
 }
 
