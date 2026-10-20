@@ -23501,7 +23501,7 @@ async function loadOpenTeamsForJoin(){
     var cap=getTeamCapacity(t);
     var places=cap-nb;
     var pct=Math.round(nb/cap*100);
-    var barColor=nb>=OPEN_TEAM_THRESHOLD?'var(--cyan)':'var(--muted2)';
+    var barColor=nb>=16?'var(--cyan)':'var(--muted2)';
     return '<div style="display:flex;align-items:center;gap:.75rem;padding:.6rem .75rem;border-radius:8px;border:1px solid rgba(32,208,224,.15);background:rgba(32,208,224,.03)">'
       +'<div style="width:40px;height:40px;border-radius:7px;border:1.5px solid rgba(32,208,224,.35);flex-shrink:0;overflow:hidden"><img src="team-open-logo.webp" style="width:86%;height:86%;margin:7%;object-fit:contain;display:block;pointer-events:none"></div>'
       +'<div style="flex:1;min-width:0">'
@@ -24525,7 +24525,7 @@ var OPEN_TEAM_PREFIX='Team Open ';
 var OPEN_TEAM_MARKER='__OPEN__'; // invite_code utilisé comme marqueur
 var OPEN_TEAM_EMOJI='🌐';
 var OPEN_TEAM_COLOR='#20d0e0';
-var OPEN_TEAM_THRESHOLD=16; // seuil pour créer la suivante (12 -> 16 le 12/10/2026 : Open 5 créée alors que d'autres Open avaient encore des places)
+var OPEN_TEAM_MIN_FREE=8; // on crée une nouvelle Open quand le total de places libres (toutes Open) passe sous ce seuil (20/10/2026 ; avant : toutes les Open >= 16 RP)
 
 // Créer une Team Open (numéro auto)
 async function createOpenTeam(number){
@@ -24559,12 +24559,13 @@ async function ensureOpenTeamExists(){
 }
 
 // Vérifier si on doit créer une nouvelle Team Open.
-// Règle : créer la suivante seulement si TOUTES les teams open ont >= 16 RP (OPEN_TEAM_THRESHOLD).
-// Ménage préalable (B) : la création d'une Open est à sens unique (une Open ne
-// se supprime jamais toute seule, contrairement aux teams privées). Après des
-// vagues de départs, on peut donc se retrouver avec des Open VIDES en trop
-// (ex. Open 3 vide alors qu'Open 2 est redescendue à 7). On supprime ces Open
-// vides en surplus pour ne garder qu'UNE seule team d'accueil disponible.
+// Règle : créer la suivante quand le TOTAL de places libres sur les Open est
+// < OPEN_TEAM_MIN_FREE (8). Une Open vide compte 20 places, donc il n'y en a
+// jamais plus d'une en réserve.
+// Ménage : la création d'une Open est à sens unique, on supprime donc les Open
+// VIDES en surplus. Si les Open déjà entamées offrent >= 8 places, aucune Open
+// vide n'est utile → toutes supprimées ; sinon on en garde une seule (accueil).
+// On ne touche JAMAIS à une team qui a des membres.
 async function checkOpenTeamCreation(){
   var {data:openTeams}=await supabaseClient
     .from('teams').select('id,name,team_members(count)')
@@ -24577,27 +24578,22 @@ async function checkOpenTeamCreation(){
   });
 
   // ── Ménage : supprimer les Open VIDES en surplus ──────────────────────────
-  // Une Open « disponible » = avec de la place (nb < TEAM_MAX_SLOTS). On ne
-  // touche JAMAIS à une team qui a des membres. Si une team déjà entamée
-  // (nb>0) reste disponible, toutes les Open vides sont redondantes → on les
-  // supprime ; sinon on garde une seule team vide comme point d'accueil.
-  var available=list.filter(function(t){return t.nb<TEAM_MAX_SLOTS;});
-  if(available.length>1){
-    var hasPartial=available.some(function(t){return t.nb>0;});
-    var emptyAvail=available.filter(function(t){return t.nb===0;});
-    var toDelete=emptyAvail.slice(hasPartial?0:1);
-    for(var i=0;i<toDelete.length;i++){
-      await supabaseClient.from('teams').delete().eq('id',toDelete[i].id);
-    }
-    if(toDelete.length){
-      var del={}; toDelete.forEach(function(t){del[t.id]=1;});
-      list=list.filter(function(t){return !del[t.id];});
-    }
+  var usedFree=0;
+  list.forEach(function(t){ if(t.nb>0) usedFree+=Math.max(0,TEAM_MAX_SLOTS-t.nb); });
+  var empties=list.filter(function(t){return t.nb===0;});
+  var toDelete=empties.slice(usedFree>=OPEN_TEAM_MIN_FREE?0:1);
+  for(var i=0;i<toDelete.length;i++){
+    await supabaseClient.from('teams').delete().eq('id',toDelete[i].id);
+  }
+  if(toDelete.length){
+    var del={}; toDelete.forEach(function(t){del[t.id]=1;});
+    list=list.filter(function(t){return !del[t.id];});
   }
 
-  // ── Création : seulement si TOUTES les Open restantes ont >= 16 RP ─────────
-  var allAboveThreshold=list.every(function(t){return t.nb>=OPEN_TEAM_THRESHOLD;});
-  if(allAboveThreshold){
+  // ── Création : seulement si le total de places libres est < 8 ─────────────
+  var totalFree=0;
+  list.forEach(function(t){ totalFree+=Math.max(0,TEAM_MAX_SLOTS-t.nb); });
+  if(totalFree<OPEN_TEAM_MIN_FREE){
     // Numéro = max des numéros existants + 1 (robuste aux trous laissés par le
     // ménage : ne réutilise pas un numéro encore présent).
     var maxNum=0;
@@ -25081,6 +25077,8 @@ function _renderBadgeHex(b,isUnlocked){
     var rectTextCol=isUnlocked?'#000':'#9098a8';
     // b.yearDy (2026-10-12) : descend le rectangle année pour qu'il ne mange pas le bas du blason.
     var ydy=b.yearDy||0;
+    // Médaille (blason entier avec sa pointe) : l'année se place SOUS le bas du blason (imgY+imgH) au lieu de passer dessus (2026-10-20).
+    if(b.medal){ var _by=(b.medalImgY!=null?b.medalImgY:14)+(b.medalImgH!=null?b.medalImgH:94)+2; if(_by>100+ydy) ydy=_by-100; }
     yearRect=''
       +'  <rect x="35" y="'+(100+ydy)+'" width="30" height="12" rx="2" fill="'+rectFill+'" stroke="'+rectStroke+'" stroke-width="0.6"/>'
       +'  <text x="50" y="'+(109+ydy)+'" text-anchor="middle" font-family="Bebas Neue,sans-serif" font-size="8.5" font-weight="900" letter-spacing="1.5" fill="'+rectTextCol+'">'+year+'</text>';
