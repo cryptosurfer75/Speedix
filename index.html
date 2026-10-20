@@ -1268,6 +1268,8 @@ body::after{
   #cr-app .ans.wrong{border-color:var(--red);background:rgba(255,68,68,.12);box-shadow:0 0 16px rgba(255,68,68,.4)}
   #cr-app .ans.wrong .key{background:var(--red);color:#400;}
   #cr-app .ans.disabled{pointer-events:none;opacity:.55}
+  #cr-app .ans.disabled.picked{opacity:1;border-color:var(--cyan,#4cc9f0);background:rgba(76,201,240,.12)}   /* retour instantané au clic, avant le verdict serveur */
+  #cr-app .ans.disabled.correct,#cr-app .ans.disabled.wrong{opacity:1}
   #cr-app .ans.dim{opacity:.4}
 
   #cr-app /* ===== ÉCHELLE DE JETONS (entonnoir : large en haut, #cr-app étroit en bas) ===== */
@@ -4345,21 +4347,6 @@ select option{background:#040c1c}
          s'en servir que très très rarement") : la fenêtre automatique 1x/jour
          (checkPropertyTaxNotice, 15→25 du mois) suffit, plus besoin d'un bouton
          de vérification manuelle dédié. -->
-    <!-- Outils de test/démo, réservés à l'admin + comptes de test sans Strava
-         (2026-08-08, anomalie corrigée — ces boutons déplacent la VRAIE position
-         en base, players.tour_idx, donc peuvent capturer des Lands/gagner du RPC
-         réel : n'importe quel RP pouvait s'en servir pour tricher). Masqué par
-         défaut, ré-affiché par initAdminPanel() selon canUseTourSimulator(). -->
-    <div id="tour-admin-test-tools" style="display:none">
-    <div class="sub" style="margin-top:10px;margin-bottom:2px">👉 Simule une course terminée de :</div>
-    <div class="btnrow">
-      <input type="number" id="tour-run-km-input" min="0.1" step="0.1" placeholder="Ex : 12,2 km" onkeydown="if(event.key==='Enter') Tour.runKmFromInput()" style="flex:1;min-width:80px;background:var(--bg3);border:1px solid var(--border2);color:var(--text);padding:8px 6px;border-radius:8px;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px">
-      <button class="tour-btn gold" onclick="Tour.runKmFromInput()">🏃 Go</button>
-    </div>
-    <div class="btnrow">
-      <button class="tour-btn" onclick="Tour.hardResetTourDemo()">↺ Recommencer</button>
-    </div>
-    </div>
   </div>
 
   <!-- CADRE 3 — Légende : cadre normal, gris, largeur réduite au contenu (2026-08-05,
@@ -17242,20 +17229,6 @@ var ADMIN_UID='0cba7ec2-3d9d-4b08-9b51-280aa0c05a28';
 
 function isAdmin(){return currentUser&&currentUser.id===ADMIN_UID;}
 
-// Comptes de test SANS Strava (2026-08-08, demande explicite) : Laura Q-Runner,
-// Jordan Smith, Nakamoto-75 — ont besoin du simulateur de course du Tour pour
-// avancer, comme l'admin, faute de vraies courses Strava à synchroniser. Accès
-// UNIQUEMENT au panneau simulateur du Tour (cf canUseTourSimulator()), pas au
-// reste du panel admin.
-var TOUR_SIMULATOR_TEST_UIDS = [
-  'b8095b5b-3de3-42ba-97ed-d16f74977a82', // Laura Q-Runner
-  '19a0ace8-8205-424a-be88-d56073184ff0', // Jordan Smith
-  '1bc4d586-a4e8-411f-ad70-1f6bbb3fc430'  // Nakamoto-75
-];
-function canUseTourSimulator(){
-  return !!(currentUser && TOUR_SIMULATOR_TEST_UIDS.indexOf(currentUser.id)>=0);
-}
-
 // ── Présence live via Supabase Realtime ─────────────────────────────
 window.__onlineUsers=[];
 function initPresence(user){
@@ -17410,11 +17383,6 @@ async function initAdminPanel(){
     if(isAdmin()) mobileBtn.classList.add('is-admin');
     else mobileBtn.classList.remove('is-admin');
   }
-  // Outils de test Tour (simulateur de km, reset) : réservés à l'admin + aux
-  // comptes de test sans Strava (cf canUseTourSimulator()), pas au reste du
-  // panel admin. Voir aussi le commentaire au-dessus du bloc HTML (~3599).
-  var tourTestTools=document.getElementById('tour-admin-test-tools');
-  if(tourTestTools) tourTestTools.style.display=canUseTourSimulator()?'':'none';
   if(!isAdmin()) return;
   updateAdminOnlineCounter();
   // Le reste (listes de joueurs/teams, stats, historique, courses > 1000 pts, ticker, blocs repliables) n'est chargé qu'à
@@ -30271,6 +30239,8 @@ async function answer(btn,choice){
   S.locked=true;
   $('g-bank').disabled=true;
   document.querySelectorAll('#cr-app .ans').forEach(a=>a.classList.add('disabled'));
+  btn.classList.add('picked');             // retour visuel immédiat (le verdict serveur arrive ~100-400 ms après)
+  const tClick=performance.now();
   const q0=S.questions[S.qIndex];
   let r=null;
   try{
@@ -30281,11 +30251,15 @@ async function answer(btn,choice){
   }catch(e){
     console.warn('cashrun_answer fail', e);
     S.locked=false;                        // réseau coupé : on rend la main, le serveur ne comptera qu'une réponse
-    document.querySelectorAll('#cr-app .ans').forEach(a=>a.classList.remove('disabled'));
+    document.querySelectorAll('#cr-app .ans').forEach(a=>a.classList.remove('disabled','picked'));
     $('g-bank').disabled = pot()===0;
     $('g-hint').textContent = lang==='fr' ? "Connexion instable, réessaie." : "Unstable connection, try again.";
     return;
   }
+  btn.classList.remove('picked');
+  // le temps d'aller-retour réseau est déduit du délai d'affichage : l'enchaînement garde le rythme d'avant
+  const rtt=performance.now()-tClick;
+  const fbDelay=Math.max(350, CONFIG.feedbackMs-rtt);
   if(r.error){                             // manche close / chrono dépassé / réponse déjà comptée
     if(S.ended) return;
     if(r.error==='order'){                 // déjà comptée côté serveur : on se recale dessus et on passe à la suite
@@ -30310,7 +30284,7 @@ async function answer(btn,choice){
       }
       $('g-hint').innerHTML=T[lang].hintAfter(pot());
       nextQuestion();
-    },CONFIG.feedbackMs);
+    },fbDelay);
   }else{
     btn.classList.add('wrong');
     // révèle la bonne (renvoyée par le serveur seulement APRÈS la réponse)
@@ -30324,7 +30298,7 @@ async function answer(btn,choice){
     setTimeout(()=>{
       if(r.finished){ S.bank=r.bank; S.bankNyx=r.bank_nyx; endRound(r.reason, r.result); return; }
       nextQuestion();
-    },CONFIG.feedbackMs+300); // la manche continue jusqu'aux 12 questions / la minute
+    },fbDelay+300); // la manche continue jusqu'aux 12 questions / la minute
   }
 }
 // Passe à la question suivante ; clôt la manche seulement si toutes les questions sont posées
