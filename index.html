@@ -28312,9 +28312,9 @@ async function _med3dAttach(boxId,b,reveal){
   box.style.cssText='width:min(84vw,300px);height:340px;margin:0 auto .6rem;position:relative;display:flex;align-items:center;justify-content:center';
   box.innerHTML='<div style="width:126px;height:145px">'+flatHtml+'</div>';
   var flat=box.firstChild;
-  // Popup de gain (reveal) : pas de médaille plate immobile avant la 3D — la médaille doit surgir directement en mouvement.
-  // (la plate n'est gardée visible que pour la fiche, le temps du chargement ; elle est rétablie si la 3D échoue)
-  if(reveal) flat.style.visibility='hidden';
+  // Jamais de médaille plate immobile avant la 3D (popup de gain ET fiche) : la médaille apparaît directement en mouvement.
+  // La plate est rétablie telle quelle si la 3D échoue (cf. catch).
+  flat.style.visibility='hidden';
   var layer=document.createElement('div'); layer.style.cssText='position:absolute;inset:0;opacity:0;transition:opacity .2s'; box.appendChild(layer);
   try{
     await _med3dLoad();
