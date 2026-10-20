@@ -31497,7 +31497,7 @@ window.Tour.init = async function(){
     });
     if(!m) return;
     const dot = m.getElement().querySelector('.friend-marker, .friend-pawn');
-    if(dot && dot.classList.contains('friend-pawn')){ const _im = dot.querySelector('img'), _u = window.Tour3D && Tour3D.pawnImg(FRIEND_PALETTE[colorIdx]); if(_im && _u) _im.src = _u; }
+    if(dot && dot.classList.contains('friend-pawn')){ const _im = dot.querySelector('img'), _u = window.Tour3D && Tour3D.pawnImg(FRIEND_PALETTE[colorIdx]); if(_im && _u) _im.src = _u; dot.style.setProperty('--fc', FRIEND_PALETTE[colorIdx]); }
     else if(dot) dot.style.setProperty('--fc', FRIEND_PALETTE[colorIdx]);
   }
   async function _renderRealPlayerMarkers(others){
@@ -31523,6 +31523,7 @@ window.Tour.init = async function(){
       if(typeof p.tour_idx !== 'number') return;
       const pos = posAt(p.tour_idx);
       const isFriend = (_myFollowing||[]).indexOf(p.id) >= 0;
+      (window._friendPrevIdx = window._friendPrevIdx || {});
       let m;
       if(isFriend){
         const fc = _friendColorForId(p.id);
@@ -31534,7 +31535,9 @@ window.Tour.init = async function(){
           return '<span onclick="Tour.setRealFriendColor(\''+p.id+'\','+ci+')" style="display:inline-block;width:11px;height:11px;border-radius:50%;background:rgb('+c+');margin-right:5px;cursor:pointer;vertical-align:middle"></span>';
         }).join('');
         // Pion 3D de l'ami dans la couleur qu'on lui a choisie (2026-10-20, Tour 3D actif) ; sinon le point clignotant d'origine.
-        const _fIcon = (window.Tour3D && Tour3D.active && Tour3D.friendIcon) ? Tour3D.friendIcon(p.id, fc) : null;
+        // Le pion de l'ami ne sort de terre que s'il a bougé depuis le dernier passage ; sinon, simple rond de sa couleur.
+        const _fMoved = (window._friendPrevIdx||{})[p.id] !== undefined && window._friendPrevIdx[p.id] !== p.tour_idx;
+        const _fIcon = (window.Tour3D && Tour3D.active && Tour3D.friendIcon) ? Tour3D.friendIcon(p.id, fc, _fMoved) : null;
         m = L.marker([pos.lat,pos.lng], {
           icon: _fIcon || L.divIcon({className:'', html:`<div class="friend-marker" data-pid="${p.id}" style="--fc:${fc}"></div>`, iconSize:[14,14], iconAnchor:[7,7]}),
           zIndexOffset: 900
@@ -31563,6 +31566,7 @@ window.Tour.init = async function(){
         m.bindPopup(`${p.username||'RP'} — ${otherKm} km parcourus → case n°${pos.i}<br><span style="color:#5b2c8f;font-weight:600">${otherLandsCount} Land${otherLandsCount>1?'s':''}</span> active${otherLandsCount>1?'s':''} sur le tracé`);
       }
       realPlayerMarkers.push(m);
+      window._friendPrevIdx[p.id] = p.tour_idx;
     });
   }
   // Nombre de Lands du RP (louées + possédées + étape achetée) — utilisé par les
@@ -33088,9 +33092,9 @@ window.Tour.init = async function(){
   function _tour3dInit(){
     window.__tour3dStatus = 'démarrage';
     try{ if(typeof _fx3dEnabled==='function' && !_fx3dEnabled()){ window.__tour3dStatus = 'désactivé : ' + (_med3d && _med3d.diag ? _med3d.diag : 'réglage « Effets 3D » coupé'); return; } }catch(e){ window.__tour3dStatus = 'erreur réglage : ' + e; return; }
-    var sc = document.createElement('script'); sc.src = 'tour3d-v9.js';
+    var sc = document.createElement('script'); sc.src = 'tour3d-v11.js';
     sc.onload = function(){ window.__tour3dStatus = 'module chargé'; if(window.Tour3D) Tour3D.init(map, playerMarker).then(function(ok){ window.__tour3dStatus = ok ? 'ACTIF' : 'échec init (WebGL/Three.js)'; if(ok && typeof _refreshTourOthersDist==='function'){ try{ _refreshTourOthersDist(); }catch(e){} } }); else window.__tour3dStatus = 'module sans Tour3D'; };
-    sc.onerror = function(){ window.__tour3dStatus = 'fichier tour3d-v9.js introuvable'; };
+    sc.onerror = function(){ window.__tour3dStatus = 'fichier tour3d-v11.js introuvable'; };
     document.head.appendChild(sc);
   }
   async function forceMove(delta){
