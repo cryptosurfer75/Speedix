@@ -25119,7 +25119,6 @@ function _renderBadgeHex(b,isUnlocked){
       var rc=b.ribbonColors||['#5c1a2b','#5c1a2b'];
       // Même halo lumineux que ci-dessus (2026-08-06, redemandé) — couleur du
       // ruban (= couleur du cadre de cette médaille précise), pas b.color.
-      var medalFilter=(isUnlocked?('drop-shadow(0 0 9px '+rc[0]+'99) '):'grayscale(.85) ')+'drop-shadow(0 4px 8px rgba(0,0,0,.55))';
       var ribUid='rib'+b.id+(isUnlocked?'u':'l');
       // Remontée du ruban (2026-08-07) — b.ribbonRise, uniquement sur les
       // blasons qui n'ont pas de découpe/encoche en haut (contrairement à
@@ -25171,6 +25170,14 @@ function _renderBadgeHex(b,isUnlocked){
         // ruban visiblement désaxé). Filtre SVG natif (feDropShadow) fiable
         // partout, contrairement au CSS filter appliqué à du SVG brut.
         +'    <filter id="'+ribUid+'shadow" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="0" dy="2" stdDeviation="1.5" flood-color="#000000" flood-opacity="0.5"/></filter>'
+        // Filtre du blason en SVG natif (2026-10-20) : le blason était dans un foreignObject, que WebKit (iPhone/Safari) PEINT ~13 px trop à gauche
+        // du ruban alors que le DOM le place bien (défaut mesuré dans le moteur Safari, absent de Chrome). <image> + filtre SVG s'affiche pareil
+        // partout. Médaille gagnée = halo de la couleur du ruban + ombre ; non gagnée = grisé (équivalent de grayscale(.85)) + ombre.
+        +'    <filter id="'+ribUid+'img" x="-30%" y="-30%" width="160%" height="160%" color-interpolation-filters="sRGB">'
+        +(isUnlocked
+            ? '<feDropShadow dx="0" dy="0" stdDeviation="3.6" flood-color="'+rc[0]+'" flood-opacity="0.6"/>'
+            : '<feColorMatrix type="saturate" values="0.15"/>')
+        +'<feDropShadow dx="0" dy="3.3" stdDeviation="3.3" flood-color="#000000" flood-opacity="0.55"/></filter>'
         +'  </defs>'
         +'  <g opacity="'+ribbonOp+'" filter="url(#'+ribUid+'shadow)">'
         +'    <polygon points="'+ribPts+'" fill="url(#'+ribUid+')"/>'
@@ -25193,15 +25200,9 @@ function _renderBadgeHex(b,isUnlocked){
         // support sous la medaille, donnant l'illusion que le ruban vient
         // epouser pile le contour.
         +(b.medalBackdrop ? '  <rect x="'+imgX+'" y="'+(rl-rr)+'" width="'+imgW+'" height="'+(118-(rl-rr))+'" fill="#0a0a0a"/>' : '')
-        // CSS filter sur <image> SVG natif = pas fiable sur WKWebView iOS (le
-        // grisage ne s'applique pas, médaille "à venir" reste allumée — bug
-        // constaté 2026-08-21). foreignObject+<img> HTML applique le filter de
-        // façon fiable partout, comme le badge emoji plus bas qui grise bien.
-        // Marge de 9 autour de l'image (2026-09-29) : le halo (drop-shadow 9px) était
-        // coupé net au bord du foreignObject, visible sur les pointes du haut. Le
-        // padding redonne la place à la lueur SANS bouger le blason (mêmes x/y/w/h
-        // effectifs) ; svg en overflow:visible pour que la lueur passe hors du viewBox.
-        +'  <foreignObject x="'+(imgX-9)+'" y="'+(imgY-9)+'" width="'+(imgW+18)+'" height="'+(imgH+18)+'" style="overflow:visible"><div xmlns="http://www.w3.org/1999/xhtml" style="box-sizing:border-box;width:100%;height:100%;padding:9px;overflow:visible"><img src="'+b.image+'" style="width:100%;height:100%;object-fit:contain;object-position:50% 0%;filter:'+medalFilter+'"/></div></foreignObject>'
+        // Blason : <image> SVG + filtre SVG (cf. defs ci-dessus). Remplace l'ancien foreignObject+<img> (CSS filter), qui s'affichait décalé
+        // vers la gauche du ruban sur iPhone/WebKit (2026-10-20). Mêmes x/y/largeur/hauteur, même cadrage (contain, collé en haut).
+        +'  <image href="'+b.image+'" xlink:href="'+b.image+'" x="'+imgX+'" y="'+imgY+'" width="'+imgW+'" height="'+imgH+'" preserveAspectRatio="xMidYMin meet" filter="url(#'+ribUid+'img)"/>'
         +yearRect
         +'</svg>';
     }
