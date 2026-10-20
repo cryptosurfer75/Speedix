@@ -2448,6 +2448,7 @@ body::after{
   #tour-lands-map{height:320px;border-radius:8px}
 }
 
+@keyframes tourDicePop{0%{transform:scale(1.5)}100%{transform:scale(1)}}
 </style>
 </head>
 <body>
@@ -4287,11 +4288,23 @@ select option{background:#040c1c}
 
   <!-- TUILE CAGNOTTE (2026-10-15) : pertes RPC des cases spéciales (cf tour_jackpot).
        Sous la carte, avant le panneau de données. Double-div biseauté, fond plein. -->
-  <div id="tour-jackpot-tile" style="margin-bottom:14px;filter:drop-shadow(0 0 8px rgba(245,200,66,.4))">
+  <div id="tour-tiles-row" style="display:flex;gap:14px;justify-content:center;align-items:flex-start;flex-wrap:wrap">
+  <div id="tour-jackpot-tile" style="margin-bottom:14px;filter:drop-shadow(0 0 8px rgba(245,200,66,.4));width:190px">
   <div style="background:rgba(245,200,66,.7);clip-path:polygon(11px 0,calc(100% - 11px) 0,100% 11px,100% calc(100% - 11px),calc(100% - 11px) 100%,11px 100%,0 calc(100% - 11px),0 11px);padding:1.5px">
   <div style="background:#0c0f1a;clip-path:polygon(10px 0,calc(100% - 10px) 0,100% 10px,100% calc(100% - 10px),calc(100% - 10px) 100%,10px 100%,0 calc(100% - 10px),0 10px);padding:6px 16px 7px;text-align:center">
     <div style="font-family:'Bebas Neue',sans-serif;letter-spacing:3px;font-size:16px;line-height:1;color:#fff">CAGNOTTE</div>
-    <div id="tour-jackpot-val" style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:15px;line-height:1.1;margin-top:2px;color:var(--gold)">— RPC</div>
+    <div id="tour-jackpot-val" style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:15px;line-height:20px;height:20px;margin-top:2px;color:var(--gold)">— RPC</div>
+  </div>
+  </div>
+  </div>
+  <!-- COMPTEUR « CASES À PARCOURIR » (2026-10-20) : même taille que la cagnotte ; visible seulement pendant le déplacement du pion
+       (décompte case par case, façon dés du Monopoly). Piloté par _tourDiceShow/_tourDiceUpdate/_tourDiceHide dans forceMove(). -->
+  <div id="tour-dice-tile" style="display:none;margin-bottom:14px;filter:drop-shadow(0 0 8px rgba(200,208,222,.45));width:190px">
+  <div style="background:rgba(200,208,222,.8);clip-path:polygon(11px 0,calc(100% - 11px) 0,100% 11px,100% calc(100% - 11px),calc(100% - 11px) 100%,11px 100%,0 calc(100% - 11px),0 11px);padding:1.5px">
+  <div style="background:#0c0f1a;clip-path:polygon(10px 0,calc(100% - 10px) 0,100% 10px,100% calc(100% - 10px),calc(100% - 10px) 100%,10px 100%,0 calc(100% - 10px),0 10px);padding:6px 16px 7px;text-align:center">
+    <div style="font-family:'Bebas Neue',sans-serif;letter-spacing:2px;font-size:16px;line-height:1;color:#fff;white-space:nowrap">🎲 CASES À PARCOURIR</div>
+    <div id="tour-dice-val" style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:19px;line-height:20px;height:20px;margin-top:2px;color:#e8edf5">0</div>
+  </div>
   </div>
   </div>
   </div>
@@ -31479,12 +31492,13 @@ window.Tour.init = async function(){
     _setFriendColorOverride(playerId, colorIdx);
     const m = realPlayerMarkers.find(function(mk){
       const el = mk.getElement && mk.getElement();
-      const dot = el && el.querySelector('.friend-marker');
+      const dot = el && el.querySelector('.friend-marker, .friend-pawn');
       return dot && dot.getAttribute('data-pid')===playerId;
     });
     if(!m) return;
-    const dot = m.getElement().querySelector('.friend-marker');
-    if(dot) dot.style.setProperty('--fc', FRIEND_PALETTE[colorIdx]);
+    const dot = m.getElement().querySelector('.friend-marker, .friend-pawn');
+    if(dot && dot.classList.contains('friend-pawn')){ const _im = dot.querySelector('img'), _u = window.Tour3D && Tour3D.pawnImg(FRIEND_PALETTE[colorIdx]); if(_im && _u) _im.src = _u; }
+    else if(dot) dot.style.setProperty('--fc', FRIEND_PALETTE[colorIdx]);
   }
   async function _renderRealPlayerMarkers(others){
     if(!map) return;
@@ -31519,8 +31533,10 @@ window.Tour.init = async function(){
         const swatches = FRIEND_PALETTE.map(function(c,ci){
           return '<span onclick="Tour.setRealFriendColor(\''+p.id+'\','+ci+')" style="display:inline-block;width:11px;height:11px;border-radius:50%;background:rgb('+c+');margin-right:5px;cursor:pointer;vertical-align:middle"></span>';
         }).join('');
+        // Pion 3D de l'ami dans la couleur qu'on lui a choisie (2026-10-20, Tour 3D actif) ; sinon le point clignotant d'origine.
+        const _fIcon = (window.Tour3D && Tour3D.active && Tour3D.friendIcon) ? Tour3D.friendIcon(p.id, fc) : null;
         m = L.marker([pos.lat,pos.lng], {
-          icon: L.divIcon({className:'', html:`<div class="friend-marker" data-pid="${p.id}" style="--fc:${fc}"></div>`, iconSize:[14,14], iconAnchor:[7,7]}),
+          icon: _fIcon || L.divIcon({className:'', html:`<div class="friend-marker" data-pid="${p.id}" style="--fc:${fc}"></div>`, iconSize:[14,14], iconAnchor:[7,7]}),
           zIndexOffset: 900
         }).addTo(map);
         // "X km parcourus → case n°Y" (2026-08-08, demande explicite user, généralisé
@@ -31999,8 +32015,15 @@ window.Tour.init = async function(){
     const t0 = performance.now(), baseR = l.hexRadius;
     const totalMs = REVEAL_GROW_MS + REVEAL_HOLD_MS + REVEAL_SHRINK_MS;
     let colorApplied = false;
+    // Tour 3D actif (2026-10-20, demande explicite : « ça fait trop, garde juste la case en 3D qui monte ») : l'hexagone ne grossit plus ;
+    // la case prend simplement sa couleur pendant que la case 3D se soulève (cf Tour3D.landing dans onArrive).
+    const _use3dReveal = !!(window.Tour3D && Tour3D.active);
     function frame(now){
       const t = now - t0;
+      if(_use3dReveal){
+        if(t < 450){ requestAnimationFrame(frame); return; }
+        l.layer.setStyle({fillColor:fill, fillOpacity:.95}); l.layer.setLatLngs(hexVertices(l.lat,l.lng,baseR,l.bearing)); return;
+      }
       let scale;
       if(t < REVEAL_GROW_MS){
         scale = 1 + 1.4*(t/REVEAL_GROW_MS);
@@ -32993,6 +33016,7 @@ window.Tour.init = async function(){
     icon: L.divIcon({className:'', html:'<div class="player-marker"></div>', iconSize:[22,22], iconAnchor:[11,11]}),
     zIndexOffset: 1000
   }).addTo(map);
+  setTimeout(function(){ if(typeof _tour3dInit==='function') _tour3dInit(); }, 0);
   
   function posAt(idx){
     const i = ((idx % TOTAL_CELLS)+TOTAL_CELLS) % TOTAL_CELLS;
@@ -33046,6 +33070,29 @@ window.Tour.init = async function(){
   // Async depuis 2026-09-03 : attend qu'aucune fenêtre ne soit déjà ouverte
   // avant de faire partir le point (cf _tourWaitClear), pour ne jamais démarrer
   // le départ caché derrière une fenêtre déjà affichée.
+  // ── Compteur « cases à parcourir » + Tour 3D (2026-10-20) ──
+  var _tourDiceTimer = null, _tourDiceLast = -1;
+  function _tourDiceShow(n){
+    var t = document.getElementById('tour-dice-tile'), v = document.getElementById('tour-dice-val'); if(!t||!v) return;
+    clearTimeout(_tourDiceTimer); t.style.display = ''; v.textContent = n; _tourDiceLast = n;
+  }
+  function _tourDiceUpdate(n){
+    var v = document.getElementById('tour-dice-val'); if(!v || n===_tourDiceLast) return; _tourDiceLast = n;
+    v.textContent = n; v.style.animation = 'none'; void v.offsetWidth; v.style.animation = 'tourDicePop .22s ease-out';
+  }
+  function _tourDiceHide(){
+    clearTimeout(_tourDiceTimer);
+    _tourDiceTimer = setTimeout(function(){ var t = document.getElementById('tour-dice-tile'); if(t) t.style.display = 'none'; }, 1400);
+  }
+  // Pion 3D (module chargé à la demande, seulement si les effets 3D sont actifs ; sinon le pion plat d'origine reste en place).
+  function _tour3dInit(){
+    window.__tour3dStatus = 'démarrage';
+    try{ if(typeof _fx3dEnabled==='function' && !_fx3dEnabled()){ window.__tour3dStatus = 'désactivé : ' + (_med3d && _med3d.diag ? _med3d.diag : 'réglage « Effets 3D » coupé'); return; } }catch(e){ window.__tour3dStatus = 'erreur réglage : ' + e; return; }
+    var sc = document.createElement('script'); sc.src = 'tour3d-v9.js';
+    sc.onload = function(){ window.__tour3dStatus = 'module chargé'; if(window.Tour3D) Tour3D.init(map, playerMarker).then(function(ok){ window.__tour3dStatus = ok ? 'ACTIF' : 'échec init (WebGL/Three.js)'; if(ok && typeof _refreshTourOthersDist==='function'){ try{ _refreshTourOthersDist(); }catch(e){} } }); else window.__tour3dStatus = 'module sans Tour3D'; };
+    sc.onerror = function(){ window.__tour3dStatus = 'fichier tour3d-v9.js introuvable'; };
+    document.head.appendChild(sc);
+  }
   async function forceMove(delta){
     await _tourWaitClear();
     _tourAnimating = true;
@@ -33061,7 +33108,9 @@ window.Tour.init = async function(){
     // avoir ouvert l'appli, cf checkPendingTourAdvance) verrait son pion
     // avancer pendant plusieurs MINUTES (260ms × des centaines de cases) —
     // en dessous du plafond, le rythme "case par case" reste inchangé.
-    const dur = Math.min(8000, Math.max(1400, Math.abs(cellsToMove)*260));
+    // 370 ms par case depuis le 20/10/2026 (demande explicite : saut du pion 3D, plus lent qu'avant à 260 ms).
+    const dur = Math.min(8000, Math.max(1400, Math.abs(cellsToMove)*370));
+    _tourDiceShow(Math.abs(cellsToMove));
     // Zoom plus rapproché pendant le déplacement — sinon, vu de loin (zoom "vue
     // d'ensemble" du départ), l'avancée de quelques cases est à peine visible.
     // Recentré instantanément sur la position de départ pour éviter un conflit
@@ -33106,6 +33155,8 @@ window.Tour.init = async function(){
       const a = posAt(i0), b = posAt(i0+dir);
       const pos = {lat: a.lat + (b.lat-a.lat)*frac, lng: a.lng + (b.lng-a.lng)*frac};
       playerMarker.setLatLng([pos.lat,pos.lng]);
+      if(window.Tour3D && Tour3D.active) Tour3D.setHop(Math.sin(Math.PI*Math.min(1,Math.max(0,frac))));
+      _tourDiceUpdate(Math.max(0, Math.ceil(Math.abs(toIdx-cur)-1e-6)));
       if(idxEl){
         const dispIdx = ((Math.round(cur)%TOTAL_CELLS)+TOTAL_CELLS)%TOTAL_CELLS;
         if(dispIdx!==lastShownIdx){ lastShownIdx=dispIdx; idxEl.textContent=dispIdx+' / '+TOTAL_CELLS; }
@@ -33122,6 +33173,8 @@ window.Tour.init = async function(){
       map.setView([pos.lat,pos.lng], map.getZoom(), {animate:false});
       if(p<1) requestAnimationFrame(frame);
       else {
+        if(window.Tour3D && Tour3D.active) Tour3D.setHop(0);
+        _tourDiceUpdate(0); _tourDiceHide();
         // Toutes les cases traversées entre le départ et l'arrivée (hors case
         // d'arrivée, révélée séparément avec animation dans onArrive) gardent une
         // trace — c'est ce qui fait "noircir" le tracé au fil des courses.
@@ -33286,13 +33339,19 @@ window.Tour.init = async function(){
     // contenu (libre/bonus/occupée) — plus seulement via le bouton dédié
     // (2026-08-01, demande explicite : "à chaque fois qu'il y a un déplacement
     // et qu'on atterrit sur une case, le pop-up s'ouvre de la même manière").
+    // Tour 3D (2026-10-20) : la case se soulève en 3D (tour dorée + nom pour une ville-étape) AVANT l'ouverture de la fenêtre habituelle.
+    let _arrDelay = REVEAL_GROW_MS+400;
+    if(window.Tour3D && Tour3D.active){
+      const _d = Tour3D.landing(pos.lat, pos.lng, {big: land.type==='etape', name: land.name});
+      if(_d > _arrDelay) _arrDelay = _d;
+    }
     setTimeout(()=>{
       if(land.type==='etape'){
         if(!land.ownerEtape || land.ownerEtape===ME) openEtapeModal(land);
         else openOccupiedEtapeModal(land); // étape possédée par un autre RP (2026-08-22)
       }
       else openLandModal(land);
-    }, REVEAL_GROW_MS+400);
+    }, _arrDelay);
   }
   
   // ── Simulation "atterrissage sur case libre" ──
