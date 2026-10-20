@@ -28265,7 +28265,7 @@ var _collabSyncInFlight=false;
 
 // ============================================================
 // MÉDAILLES 3D (2026-10-20) — popup « Médaille gagnée ! » + fiche d'une médaille DÉJÀ GAGNÉE (jamais pour une médaille
-// non gagnée : son visuel doit rester une surprise). Module medal3d-v11.js + Three.js (vendor/) chargés À LA DEMANDE,
+// non gagnée : son visuel doit rester une surprise). Module medal3d-v12.js + Three.js (vendor/) chargés À LA DEMANDE,
 // jamais au démarrage. Repli automatique sur la médaille plate : WebGL absent, réglage « Effets 3D » coupé, mouvement
 // réduit demandé par l'appareil, ou toute erreur de chargement/rendu.
 // ============================================================
@@ -28306,7 +28306,7 @@ function _med3dLoad(){
   if(window.Medal3D) return Promise.resolve();
   if(!_med3d.scriptP){
     _med3d.scriptP=new Promise(function(ok,ko){
-      var s=document.createElement('script'); s.src='medal3d-v11.js';
+      var s=document.createElement('script'); s.src='medal3d-v12.js';
       s.onload=ok; s.onerror=function(){ _med3d.scriptP=null; ko(new Error('medal3d')); };
       document.head.appendChild(s);
     });
@@ -28352,6 +28352,10 @@ async function _med3dOpenWall(kind){
     });
   }catch(e){ console.warn('mur 3D indisponible',e); }
 }
+// Indication « Touche pour retourner » : affichée tant que le joueur n'a jamais retourné une médaille ; après son 1er retournement elle ne revient plus
+// (mémorisé sur l'appareil, localStorage).
+function _med3dHintSeen(){ try{ return localStorage.getItem('speedix_flip_hint')==='1'; }catch(e){ return false; } }
+function _med3dHintDone(){ try{ localStorage.setItem('speedix_flip_hint','1'); }catch(e){} }
 // Texte gravé au dos de la médaille : « RP <pseudo> » + nom de la médaille et date de gain (propre à chaque compte).
 function _med3dEngrave(b,d){
   var city=b.hexBadge ? String(b.name||'') : (b.image||'').split('/').pop().replace(/\.\w+$/,'').replace(/-hd$/,'').replace(/-v\d+$/,'').replace(/-/g,' ');
@@ -28375,7 +28379,7 @@ async function _med3dAttach(boxId,b,reveal,earnedDate){
     await _med3dLoad();
     if(my!==_med3d.seq || !layer.isConnected) return;
     // Médaille : dos gravé + tap pour retourner. Badge Défi (plaque hexagonale) : juste le relief 3D, ni gravure ni retournement.
-    var h=await Medal3D.mount(layer,b,b.hexBadge ? {reveal:!!reveal, still:_med3dStill(), noFlip:true} : {reveal:!!reveal, still:_med3dStill(), engrave:_med3dEngrave(b,earnedDate||new Date()), hint:(typeof SPEEDIX_LANG!=='undefined'&&SPEEDIX_LANG==='en')?'Tap to flip':'Touche pour retourner'});
+    var h=await Medal3D.mount(layer,b,b.hexBadge ? {reveal:!!reveal, still:_med3dStill(), noFlip:true} : {reveal:!!reveal, still:_med3dStill(), engrave:_med3dEngrave(b,earnedDate||new Date()), hint:_med3dHintSeen()?'':((typeof SPEEDIX_LANG!=='undefined'&&SPEEDIX_LANG==='en')?'Tap to flip':'Touche pour retourner'), onFlip:_med3dHintDone});
     if(my!==_med3d.seq || !layer.isConnected){ if(h) h.dispose(); return; }
     if(!h) throw new Error('3d');
     _med3d.cur=h; layer.style.opacity='1';
