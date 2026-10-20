@@ -6869,6 +6869,7 @@ const I18N = {
     'settings.prefs.lang'       : 'Langue',
     'settings.prefs.notifs'     : 'Notifications push',
     'settings.prefs.soon'       : '⏳ Bientôt',
+    'settings.prefs.fx3d'       : 'Effets 3D (médailles)',
     'settings.dangerzone.title' : 'Zone <span style="color:#d97070">rouge</span>',
     'settings.dangerzone.desc'  : 'Supprimer ton compte est <strong style="color:#d97070">définitif</strong>. Tu perdras l\'accès à l\'app, tes Lands seront libérées, et ton historique sera anonymisé.',
     'settings.dangerzone.delete': 'Supprimer mon compte',
@@ -7637,6 +7638,7 @@ const I18N = {
     'settings.prefs.lang'       : 'Language',
     'settings.prefs.notifs'     : 'Push notifications',
     'settings.prefs.soon'       : '⏳ Soon',
+    'settings.prefs.fx3d'       : '3D medal effects',
     'settings.dangerzone.title' : 'Danger <span style="color:#d97070">zone</span>',
     'settings.dangerzone.desc'  : 'Deleting your account is <strong style="color:#d97070">final</strong>. You\'ll lose access to the app, your Lands will be released, and your history will be anonymized.',
     'settings.dangerzone.delete': 'Delete my account',
@@ -24819,7 +24821,7 @@ var _CITY_CREST_OVERRIDES=[
   {match:/^(1H NITRO|2H FURIOUS|3H ENDURANCE)$/i, image:'ai-icons/challenge-crests/arnos-v1.webp', medal:true, ribbonColors:['#fa2b9a','#8f0862'], ribbonFlat:true},
   {match:/VERBANIA/i, image:'ai-icons/challenge-crests/verbania-v1.webp', medal:true, ribbonColors:['#dd0f2d','#7a0a1a'], ribbonFlat:true},
   // ribbonBands (2026-10-18) : ruban en bandes verticales (ici couleurs de la Jamaïque : vert | noir | or) ; ribbonColors reste la paire c1/c2 du skin gagnant (doré → vert foncé).
-  {match:/KINGSTON/i, image:'ai-icons/challenge-crests/kingston-v1.webp', medal:true, ribbonColors:['#ffd100','#0b6b2b'], ribbonBands:['#0e9a3e','#111111','#ffd100'], ribbonFlat:true, ribbonHalf:16, yearDy:7}
+  {match:/KINGSTON/i, image:'ai-icons/challenge-crests/kingston-v1.webp', medal:true, ribbonColors:['#ffd100','#0b6b2b'], ribbonBands:['#0e9a3e','#111111','#ffd100'], ribbonFlat:true, ribbonHalf:20, yearDy:7}
 ];
 function _decorateBadgeWithCityCrest(b){
   if(!b || b.image) return b; // déjà décoré (ou pas de match nécessaire)
@@ -27879,7 +27881,7 @@ async function showBadgeDetail(badgeId){
   document.getElementById('lm-sub').textContent='';
   var bodyHtml=''
     +'<div style="text-align:center;padding:1rem .5rem">'
-    +'  <div style="width:126px;height:145px;margin:0 auto .6rem">'+_renderBadgeHex(b,!!earnedAt)+'</div>'
+    +'  <div id="lm-badge-box" style="width:126px;height:145px;margin:0 auto .6rem">'+_renderBadgeHex(b,!!earnedAt)+'</div>'
     +_badgeRarityHtml(b,color)+'<br>';
   if(earnedAt){
     // BADGE DÉBLOQUÉ : version Félicitations
@@ -27905,6 +27907,7 @@ async function showBadgeDetail(badgeId){
   document.getElementById('lm-body').innerHTML=bodyHtml;
   _applyBadgeModalFrame(color);
   openModal('land-modal');
+  if(earnedAt) _med3dAttach('lm-badge-box',b,false);
 }
 
 // ============================================================
@@ -27978,6 +27981,7 @@ function _switchEventRankingTab(badgeId){
 // défaut. _resetBadgeModalFrame() est appelé par closeModal('land-modal') pour
 // ne jamais laisser ce style teinté "fuiter" sur le prochain contenu affiché.
 function _applyBadgeModalFrame(color){
+  _med3dDispose();
   var box=document.querySelector('#land-modal .modal-box');
   if(!box) return;
   _resetBadgeModalFrame();
@@ -28020,6 +28024,7 @@ function _applyBadgeModalFrame(color){
   box.scrollTop=0;
 }
 function _resetBadgeModalFrame(){
+  _med3dDispose();
   if(window._lmBevelRO){ try{window._lmBevelRO.disconnect();}catch(e){} window._lmBevelRO=null; }
   var box=document.querySelector('#land-modal .modal-box');
   if(!box) return;
@@ -28253,6 +28258,77 @@ async function triggerCollabProgressSync(){
 }
 var _collabSyncInFlight=false;
 
+// ============================================================
+// MÉDAILLES 3D (2026-10-20) — popup « Médaille gagnée ! » + fiche d'une médaille DÉJÀ GAGNÉE (jamais pour une médaille
+// non gagnée : son visuel doit rester une surprise). Module medal3d-v1.js + Three.js (vendor/) chargés À LA DEMANDE,
+// jamais au démarrage. Repli automatique sur la médaille plate : WebGL absent, réglage « Effets 3D » coupé, mouvement
+// réduit demandé par l'appareil, ou toute erreur de chargement/rendu.
+// ============================================================
+var _med3d={cur:null,seq:0,scriptP:null,gl:null};
+function _med3dSupported(){
+  if(_med3d.gl!==null) return _med3d.gl;
+  var ok=false;
+  try{ var c=document.createElement('canvas'); ok=!!(window.WebGLRenderingContext && (c.getContext('webgl')||c.getContext('experimental-webgl'))); }catch(e){}
+  _med3d.gl=ok; return ok;
+}
+// Réglage « Effets 3D » (Paramètres > Préférences) : choix explicite stocké sur l'appareil ; sans choix, défaut = ON sauf
+// appareil qui demande moins d'animations ou très peu de mémoire.
+function _fx3dEnabled(){
+  var v=null; try{ v=localStorage.getItem('speedix_fx3d'); }catch(e){}
+  if(v==='off') return false;
+  if(v!=='on'){
+    try{ if(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return false; }catch(e){}
+    if(navigator.deviceMemory && navigator.deviceMemory<2) return false;
+  }
+  return _med3dSupported();
+}
+function toggleFx3d(){
+  var on=_fx3dEnabled();
+  try{ localStorage.setItem('speedix_fx3d', on?'off':'on'); }catch(e){}
+  _renderSettingsPrefs(window.__settingsPlayer||{});
+}
+function _med3dDispose(){
+  _med3d.seq++;
+  if(_med3d.cur){ try{ _med3d.cur.dispose(); }catch(e){} _med3d.cur=null; }
+}
+function _med3dLoad(){
+  if(window.Medal3D) return Promise.resolve();
+  if(!_med3d.scriptP){
+    _med3d.scriptP=new Promise(function(ok,ko){
+      var s=document.createElement('script'); s.src='medal3d-v1.js';
+      s.onload=ok; s.onerror=function(){ _med3d.scriptP=null; ko(new Error('medal3d')); };
+      document.head.appendChild(s);
+    });
+  }
+  return _med3d.scriptP;
+}
+// Remplace la médaille plate du conteneur #boxId par la version 3D (reveal=true : arrivée animée du popup de gain).
+// La médaille plate reste affichée, à sa place, jusqu'à ce que la 3D soit prête ; en cas d'échec elle est rétablie telle quelle.
+async function _med3dAttach(boxId,b,reveal){
+  _med3dDispose(); var my=_med3d.seq;
+  var box=document.getElementById(boxId);
+  if(!box || !b || !b.medal || !_fx3dEnabled()) return;
+  var prevStyle=box.getAttribute('style')||'', flatHtml=box.innerHTML;
+  box.style.cssText='width:min(84vw,300px);height:340px;margin:0 auto .6rem;position:relative;display:flex;align-items:center;justify-content:center';
+  box.innerHTML='<div style="width:126px;height:145px">'+flatHtml+'</div>';
+  var flat=box.firstChild;
+  // Popup de gain (reveal) : pas de médaille plate immobile avant la 3D — la médaille doit surgir directement en mouvement.
+  // (la plate n'est gardée visible que pour la fiche, le temps du chargement ; elle est rétablie si la 3D échoue)
+  if(reveal) flat.style.visibility='hidden';
+  var layer=document.createElement('div'); layer.style.cssText='position:absolute;inset:0;opacity:0;transition:opacity .2s'; box.appendChild(layer);
+  try{
+    await _med3dLoad();
+    if(my!==_med3d.seq || !layer.isConnected) return;
+    var h=await Medal3D.mount(layer,b,{reveal:!!reveal});
+    if(my!==_med3d.seq || !layer.isConnected){ if(h) h.dispose(); return; }
+    if(!h) throw new Error('3d');
+    _med3d.cur=h; layer.style.opacity='1';
+    setTimeout(function(){ if(flat && flat.isConnected) flat.style.display='none'; },260);
+  }catch(e){
+    if(my===_med3d.seq && box.isConnected){ box.style.cssText=prevStyle; box.innerHTML=flatHtml; }
+  }
+}
+
 function showBadgeUnlockModal(b){
   // MIROIR de _renderBadgeHex (grille Défis) — sans ce décorateur, ce popup
   // affichait toujours le rond emoji générique et jamais le vrai blason/médaille
@@ -28284,7 +28360,7 @@ function showBadgeUnlockModal(b){
   document.getElementById('lm-sub').textContent='';
   document.getElementById('lm-body').innerHTML=''
     +'<div style="text-align:center;padding:1rem .5rem">'
-    +'  <div style="width:120px;height:138px;margin:0 auto 1rem;position:relative;display:flex;align-items:center;justify-content:center;animation:badgePop .6s ease-out">'
+    +'  <div id="lm-badge-box" style="width:120px;height:138px;margin:0 auto 1rem;position:relative;display:flex;align-items:center;justify-content:center;animation:badgePop .6s ease-out">'
     +     _renderBadgeHex(b,true)
     +     distPastille
     +'  </div>'
@@ -28295,6 +28371,7 @@ function showBadgeUnlockModal(b){
     +'</div>'
     +'<style>@keyframes badgePop{0%{transform:scale(.3);opacity:0}60%{transform:scale(1.15);opacity:1}100%{transform:scale(1)}}</style>';
   openModal('land-modal');
+  _med3dAttach('lm-badge-box',b,true);
   // Marquer ce badge comme déjà affiché pour ce RP → la recovery ne le re-jouera plus
   if(b&&b.id) _markBadgeShown(b.id,b.times_earned||1);
 }
@@ -29003,10 +29080,13 @@ function _renderSettingsPrefs(p){
   }
   var langToggle='<div style="display:inline-flex;gap:.35rem">'+_langBtn('fr','🇫🇷','FR')+_langBtn('en','🇬🇧','EN')+'</div>';
 
-  _setRowsHtml('settings-prefs',[
+  var _prefRows=[
     {label:t('settings.prefs.lang'),   html:langToggle},
     {label:t('settings.prefs.notifs'), html:pushSwitch},
-  ]);
+  ];
+  // Effets 3D des médailles (2026-10-20) : ligne affichée seulement si l'appareil sait faire de la 3D (WebGL).
+  if(typeof _med3dSupported==='function' && _med3dSupported()) _prefRows.push({label:t('settings.prefs.fx3d'), html:_settingsSwitch('fx3d',_fx3dEnabled(),'toggleFx3d')});
+  _setRowsHtml('settings-prefs',_prefRows);
 }
 
 function _settingsSwitch(id,on,fn){
