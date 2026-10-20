@@ -19301,7 +19301,7 @@ function landModalCross(){
   if(document.getElementById('tc-ranking-scroll') && typeof switchTeamChallengeTab==='function'){ switchTeamChallengeTab('mine'); return; }
   closeModal('land-modal');
 }
-function closeModal(id){document.getElementById(id).classList.remove('open');if(id==='land-modal'&&typeof _resetBadgeModalFrame==='function')_resetBadgeModalFrame();}
+function closeModal(id){document.getElementById(id).classList.remove('open');if(id==='quest-modal'&&typeof _med3dDispose==='function')_med3dDispose();if(id==='land-modal'&&typeof _resetBadgeModalFrame==='function')_resetBadgeModalFrame();}
 
 // Affiche la liste des RPs qui ont réagi à une course donnée. Données lues depuis
 // le cache module-scope rempli par renderFeed (évite de re-fetch Supabase à chaque clic).
@@ -27775,6 +27775,9 @@ function showQuestValidatedModal(b){
   if(b.reward_nyx) rewards.push('+'+b.reward_nyx+' 💎 NYX');
   if(typeof _decorateBadgeWithCityCrest==='function') _decorateBadgeWithCityCrest(b);
   var _autoQ=(b.threshold_type==='account_age_days'||b.threshold_type==='cashrun_jackpots'||b.threshold_type==='collab_wins'||b.threshold_type==='lands_owned'||b.threshold_type==='tour_laps'||b.threshold_type==='cumul_pts'||b.threshold_type==='runs_total');
+  // Cadre d'origine rétabli à chaque ouverture (la 3D le redimensionne, cf _med3dAttach plus bas).
+  if(typeof _med3dDispose==='function') _med3dDispose();
+  document.getElementById('quest-modal-emoji').style.cssText='width:110px;height:126px;margin:0 auto 1rem;position:relative;display:flex;align-items:center;justify-content:center;animation:blasonPop .5s cubic-bezier(.22,.68,0,1.2) both';
   document.getElementById('quest-modal-emoji').innerHTML=(b.image&&b.hexBadge)
     ? '<img src="'+b.image+'" style="width:130px;height:130px;max-width:none;margin:-6px 0;object-fit:contain;filter:drop-shadow(0 0 18px '+color+'80)">'
     : '<svg viewBox="0 0 100 115" style="width:100%;height:100%;filter:drop-shadow(0 0 18px '+color+'80)">'
@@ -27789,6 +27792,8 @@ function showQuestValidatedModal(b){
   var lbl=document.getElementById('quest-modal-label');
   if(lbl) lbl.textContent=(_autoQ?'🏁 BADGE DÉBLOQUÉ':'🎯 OBJECTIF VALIDÉ')+((b.times_earned||1)>1?' (×'+b.times_earned+')':'');
   openModal('quest-modal');
+  // Badge Défi illustré : même plaque hexagonale 3D que dans la fiche (si « Effets 3D » actif ; sinon le badge plat reste).
+  if(b.image && b.hexBadge && typeof _med3dAttach==='function') _med3dAttach('quest-modal-emoji',b,true,new Date());
   // Clé par occurrence (badge+nb de fois) : un rejeu réussi doit re-déclencher
   // le popup même si ce badge_id a déjà été montré une 1ère fois — 2026-07-21.
   if(b&&b.id) _markBadgeShown(b.id,b.times_earned||1);
@@ -28092,7 +28097,7 @@ function _markBadgeShown(badgeId,timesEarned){
   // _recoverMissedBadgePopups rejouait alors tous les popups des 7 derniers
   // jours. player_badges.popup_shown_times_earned est la source qui survit.
   try{
-    supabaseClient.rpc('mark_badge_popup_shown',{p_badge_id:badgeId,p_times_earned:timesEarned||1});
+    supabaseClient.rpc('mark_badge_popup_shown',{p_badge_id:badgeId,p_times_earned:timesEarned||1}).then(function(){},function(){});   // .then obligatoire : sans lui la requête ne part JAMAIS
   }catch(e){}
 }
 
