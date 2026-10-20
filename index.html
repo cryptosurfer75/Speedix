@@ -28267,7 +28267,7 @@ var _collabSyncInFlight=false;
 
 // ============================================================
 // MÉDAILLES 3D (2026-10-20) — popup « Médaille gagnée ! » + fiche d'une médaille DÉJÀ GAGNÉE (jamais pour une médaille
-// non gagnée : son visuel doit rester une surprise). Module medal3d-v5.js + Three.js (vendor/) chargés À LA DEMANDE,
+// non gagnée : son visuel doit rester une surprise). Module medal3d-v6.js + Three.js (vendor/) chargés À LA DEMANDE,
 // jamais au démarrage. Repli automatique sur la médaille plate : WebGL absent, réglage « Effets 3D » coupé, mouvement
 // réduit demandé par l'appareil, ou toute erreur de chargement/rendu.
 // ============================================================
@@ -28308,7 +28308,7 @@ function _med3dLoad(){
   if(window.Medal3D) return Promise.resolve();
   if(!_med3d.scriptP){
     _med3d.scriptP=new Promise(function(ok,ko){
-      var s=document.createElement('script'); s.src='medal3d-v5.js';
+      var s=document.createElement('script'); s.src='medal3d-v6.js';
       s.onload=ok; s.onerror=function(){ _med3d.scriptP=null; ko(new Error('medal3d')); };
       document.head.appendChild(s);
     });
@@ -28329,7 +28329,7 @@ function _med3dLoadWall(){
   if(window.Medal3D && Medal3D.wall) return Promise.resolve();
   if(!_med3d.wallP){
     _med3d.wallP=new Promise(function(ok,ko){
-      var s=document.createElement('script'); s.src='medal3d-wall-v2.js';
+      var s=document.createElement('script'); s.src='medal3d-wall-v3.js';
       s.onload=ok; s.onerror=function(){ _med3d.wallP=null; ko(new Error('wall')); };
       document.head.appendChild(s);
     });
