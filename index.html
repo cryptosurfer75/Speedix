@@ -4137,12 +4137,13 @@ select option{background:#040c1c}
       <div id="challenges-events-subtabs" style="display:none;gap:.3rem;margin-bottom:.7rem">
         <button id="challenges-subtab-upcoming" onclick="switchEventsSubtab('upcoming')" data-i18n="runs.subtab.upcoming" style="flex:1;padding:.42rem .5rem;border-radius:5px;border:1.5px solid #9060f0;background:linear-gradient(135deg,#9060f033,#9060f008),#0c0f1a;color:#9060f0;font-family:'Bebas Neue',sans-serif;font-size:1.05rem;letter-spacing:1px;font-weight:700;cursor:pointer">📅   À VENIR</button>
         <button id="challenges-subtab-history" onclick="switchEventsSubtab('history')" data-i18n="runs.subtab.history" style="flex:1;padding:.42rem .5rem;border-radius:5px;border:1.5px solid rgba(255,255,255,.4);background:#0c0f1a;color:rgba(255,255,255,.65);font-family:'Bebas Neue',sans-serif;font-size:1.05rem;letter-spacing:1px;font-weight:700;cursor:pointer">🏆   HISTORIQUE</button>
-        <button id="challenges-3d-btn" onclick="_med3dOpenWall()" style="display:none;flex:0 0 auto;padding:.42rem .7rem;border-radius:5px;border:1.5px solid rgba(245,200,66,.55);background:#0c0f1a;color:var(--gold);font-weight:700;font-size:.72rem;cursor:pointer;letter-spacing:.5px">🏅 <span id="challenges-3d-btn-txt">Vue 3D</span></button>
+        <button id="challenges-3d-btn" onclick="_med3dOpenWall('medal')" style="display:none;flex:0 0 auto;padding:.42rem .7rem;border-radius:5px;border:1.5px solid rgba(245,200,66,.55);background:#0c0f1a;color:var(--gold);font-weight:700;font-size:.72rem;cursor:pointer;letter-spacing:.5px">🏅 <span id="challenges-3d-btn-txt">Vue 3D</span></button>
       </div>
       <!-- Sous-onglets pour Défis (badges) : Sélection (à choisir) / Historique (obtenus) -->
       <div id="challenges-defis-subtabs" style="display:flex;gap:.3rem;margin-bottom:.7rem">
         <button id="challenges-subtab-defis-selection" onclick="switchDefisSubtab('selection')" data-i18n="runs.subtab.selection" style="flex:1;padding:.42rem .5rem;border-radius:5px;border:1.5px solid #9060f0;background:linear-gradient(135deg,#9060f033,#9060f008),#0c0f1a;color:#9060f0;font-family:'Bebas Neue',sans-serif;font-size:1.05rem;letter-spacing:1px;font-weight:700;cursor:pointer">🎯   EN COURS</button>
         <button id="challenges-subtab-defis-history" onclick="switchDefisSubtab('history')" data-i18n="runs.subtab.history" style="flex:1;padding:.42rem .5rem;border-radius:5px;border:1.5px solid rgba(255,255,255,.4);background:#0c0f1a;color:rgba(255,255,255,.65);font-family:'Bebas Neue',sans-serif;font-size:1.05rem;letter-spacing:1px;font-weight:700;cursor:pointer">🏆   HISTORIQUE</button>
+        <button id="defis-3d-btn" onclick="_med3dOpenWall('badge')" style="display:none;flex:0 0 auto;padding:.42rem .7rem;border-radius:5px;border:1.5px solid rgba(245,200,66,.55);background:#0c0f1a;color:var(--gold);font-weight:700;font-size:.72rem;cursor:pointer;letter-spacing:.5px">🏅 <span class="fx3d-btn-txt">Vue 3D</span></button>
       </div>
       <!-- Bandeau "choisis tes 4 premiers objectifs" — masqué dès que quests_onboarded_at
            est posé côté joueur (renderChallenges() gère l'affichage). -->
@@ -26278,6 +26279,8 @@ function switchDefisSubtab(sub){
   }
   setActive(sel, sub==='selection');
   setActive(hi, sub==='history');
+  var _bd=document.getElementById('defis-3d-btn');
+  if(_bd){ _bd.style.display=(sub==='history' && _med3dDesktop() && _fx3dEnabled())?'':'none'; var _td=_bd.querySelector('.fx3d-btn-txt'); if(_td) _td.textContent=(typeof SPEEDIX_LANG!=='undefined'&&SPEEDIX_LANG==='en')?'3D view':'Vue 3D'; }
   if(typeof renderChallenges==='function') renderChallenges();
 }
 
@@ -28264,7 +28267,7 @@ var _collabSyncInFlight=false;
 
 // ============================================================
 // MÉDAILLES 3D (2026-10-20) — popup « Médaille gagnée ! » + fiche d'une médaille DÉJÀ GAGNÉE (jamais pour une médaille
-// non gagnée : son visuel doit rester une surprise). Module medal3d-v3.js + Three.js (vendor/) chargés À LA DEMANDE,
+// non gagnée : son visuel doit rester une surprise). Module medal3d-v5.js + Three.js (vendor/) chargés À LA DEMANDE,
 // jamais au démarrage. Repli automatique sur la médaille plate : WebGL absent, réglage « Effets 3D » coupé, mouvement
 // réduit demandé par l'appareil, ou toute erreur de chargement/rendu.
 // ============================================================
@@ -28305,7 +28308,7 @@ function _med3dLoad(){
   if(window.Medal3D) return Promise.resolve();
   if(!_med3d.scriptP){
     _med3d.scriptP=new Promise(function(ok,ko){
-      var s=document.createElement('script'); s.src='medal3d-v3.js';
+      var s=document.createElement('script'); s.src='medal3d-v5.js';
       s.onload=ok; s.onerror=function(){ _med3d.scriptP=null; ko(new Error('medal3d')); };
       document.head.appendChild(s);
     });
@@ -28326,26 +28329,26 @@ function _med3dLoadWall(){
   if(window.Medal3D && Medal3D.wall) return Promise.resolve();
   if(!_med3d.wallP){
     _med3d.wallP=new Promise(function(ok,ko){
-      var s=document.createElement('script'); s.src='medal3d-wall-v1.js';
+      var s=document.createElement('script'); s.src='medal3d-wall-v2.js';
       s.onload=ok; s.onerror=function(){ _med3d.wallP=null; ko(new Error('wall')); };
       document.head.appendChild(s);
     });
   }
   return _med3d.wallP;
 }
-async function _med3dOpenWall(){
+async function _med3dOpenWall(kind){
   try{
     if(!currentUser || !_badgesCatalog || !_med3dDesktop() || !_fx3dEnabled()) return;
     var r=await supabaseClient.from('player_badges').select('badge_id').eq('player_id',currentUser.id);
     var got={}; (r.data||[]).forEach(function(x){ got[x.badge_id]=1; });
     var list=_badgesCatalog.filter(function(b){ return got[b.id]; });
     list.forEach(_decorateBadgeWithCityCrest);
-    list=list.filter(function(b){ return b.medal; }).sort(function(a,z){ return (z.event_date||'').localeCompare(a.event_date||''); });
+    list=list.filter(function(b){ return kind==='badge' ? !!b.hexBadge : !!b.medal; }).sort(function(a,z){ return (z.event_date||'').localeCompare(a.event_date||''); });
     if(!list.length) return;
     await _med3dLoad(); await Medal3D._int.loadThree(); await _med3dLoadWall();
     var modal=document.getElementById('land-modal'), z0=modal?modal.style.zIndex:'';
     Medal3D.wall.open(list,{
-      title:(typeof SPEEDIX_LANG!=='undefined'&&SPEEDIX_LANG==='en')?'MY MEDALS':'MES MÉDAILLES',
+      title:(typeof SPEEDIX_LANG!=='undefined'&&SPEEDIX_LANG==='en')?(kind==='badge'?'MY BADGES':'MY MEDALS'):(kind==='badge'?'MES BADGES':'MES MÉDAILLES'),
       onPick:function(b){ if(modal) modal.style.zIndex=2147483200; showBadgeDetail(b.id); },
       onClose:function(){ if(modal) modal.style.zIndex=z0; }
     });
@@ -28353,7 +28356,7 @@ async function _med3dOpenWall(){
 }
 // Texte gravé au dos de la médaille : « RP <pseudo> » + nom de la médaille et date de gain (propre à chaque compte).
 function _med3dEngrave(b,d){
-  var city=(b.image||'').split('/').pop().replace(/\.\w+$/,'').replace(/-hd$/,'').replace(/-v\d+$/,'').replace(/-/g,' ');
+  var city=b.hexBadge ? String(b.name||'') : (b.image||'').split('/').pop().replace(/\.\w+$/,'').replace(/-hd$/,'').replace(/-v\d+$/,'').replace(/-/g,' ');
   var u=(typeof currentUser!=='undefined' && currentUser && currentUser.username)||'';
   var dd=''; if(d && !isNaN(d)) dd=('0'+d.getDate()).slice(-2)+'/'+('0'+(d.getMonth()+1)).slice(-2)+'/'+String(d.getFullYear()).slice(-2);
   return {rp:u||'RP', sub:city+(dd?' · '+dd:'')};
@@ -28361,7 +28364,7 @@ function _med3dEngrave(b,d){
 async function _med3dAttach(boxId,b,reveal,earnedDate){
   _med3dDispose(); var my=_med3d.seq;
   var box=document.getElementById(boxId);
-  if(!box || !b || !b.medal || !_fx3dEnabled()) return;
+  if(!box || !b || !(b.medal||b.hexBadge) || !_fx3dEnabled()) return;   // médaille (ruban) ou badge Défi (plaque hexagonale)
   var prevStyle=box.getAttribute('style')||'', flatHtml=box.innerHTML;
   box.style.cssText='width:min(84vw,300px);height:340px;margin:0 auto .6rem;position:relative;display:flex;align-items:center;justify-content:center';
   box.innerHTML='<div style="width:126px;height:145px">'+flatHtml+'</div>';
@@ -28373,7 +28376,8 @@ async function _med3dAttach(boxId,b,reveal,earnedDate){
   try{
     await _med3dLoad();
     if(my!==_med3d.seq || !layer.isConnected) return;
-    var h=await Medal3D.mount(layer,b,{reveal:!!reveal, still:_med3dStill(), engrave:_med3dEngrave(b,earnedDate||new Date()), hint:(typeof SPEEDIX_LANG!=='undefined'&&SPEEDIX_LANG==='en')?'Tap to flip':'Touche pour retourner'});
+    // Médaille : dos gravé + tap pour retourner. Badge Défi (plaque hexagonale) : juste le relief 3D, ni gravure ni retournement.
+    var h=await Medal3D.mount(layer,b,b.hexBadge ? {reveal:!!reveal, still:_med3dStill(), noFlip:true} : {reveal:!!reveal, still:_med3dStill(), engrave:_med3dEngrave(b,earnedDate||new Date()), hint:(typeof SPEEDIX_LANG!=='undefined'&&SPEEDIX_LANG==='en')?'Tap to flip':'Touche pour retourner'});
     if(my!==_med3d.seq || !layer.isConnected){ if(h) h.dispose(); return; }
     if(!h) throw new Error('3d');
     _med3d.cur=h; layer.style.opacity='1';
@@ -28411,7 +28415,8 @@ function showBadgeUnlockModal(b){
   // palier event_run, seule dispo côté client (pas la distance exacte courue).
   var distKm=b.threshold_value!=null?Math.round(b.threshold_value):null;
   var distPastille=distKm!=null?('<div style="position:absolute;bottom:-2px;right:-6px;width:32px;height:32px;border-radius:50%;background:#0c0f1a;border:2px solid '+color+';display:flex;align-items:center;justify-content:center;font-family:\'Bebas Neue\',sans-serif;font-size:1rem;font-weight:900;color:'+color+';box-shadow:0 2px 6px rgba(0,0,0,.5)">'+distKm+'</div>'):'';
-  document.getElementById('lm-title').textContent='🎖️ Médaille gagnée !';
+  // Vocabulaire : Challenges = médailles (ruban), Défis = badges (plaque hexagonale).
+  document.getElementById('lm-title').textContent=b.hexBadge?'🎖️ Badge gagné !':'🎖️ Médaille gagnée !';
   document.getElementById('lm-sub').textContent='';
   document.getElementById('lm-body').innerHTML=''
     +'<div style="text-align:center;padding:1rem .5rem">'
