@@ -24834,12 +24834,12 @@ var _CITY_CREST_OVERRIDES=[
   // ribbonBands (2026-10-18) : ruban en bandes verticales (ici couleurs de la Jamaïque : vert | noir | or) ; ribbonColors reste la paire c1/c2 du skin gagnant (doré → vert foncé).
   {match:/KINGSTON/i, image:'ai-icons/challenge-crests/kingston-v1.webp', medal:true, ribbonColors:['#ffd100','#0b6b2b'], ribbonBands:['#0e9a3e','#111111','#ffd100'], ribbonFlat:true, ribbonHalf:20, yearDy:7},
   // Corrida du Gévaudan / Marvejols (13/12/2026, 6 km) : Père Noël + clocher, ruban de Noël 4 bandes rouge/vert alternées (choix user 23/10). ribbonColors = skin gagnant c1/c2 (rouge → vert).
-  {match:/MARVEJOLS|G[EÉ]VAUDAN/i, image:'ai-icons/challenge-crests/marvejols-v1.webp', medal:true, ribbonColors:['#e8353a','#1b7a3a'], ribbonBands:['#c1121f','#1b7a3a','#c1121f','#1b7a3a'], ribbonFlat:true, ribbonHalf:20, medalImgH:84}
+  {match:/MARVEJOLS|G[EÉ]VAUDAN/i, image:'ai-icons/challenge-crests/marvejols-v1.webp', medal:true, ribbonColors:['#e8353a','#1b7a3a'], ribbonBands:['#c1121f','#1b7a3a','#c1121f','#1b7a3a'], ribbonFlat:true, ribbonHalf:20, medalImgH:94, yearDy:7, frameBands:['#c1121f','#1b7a3a','#c1121f','#1b7a3a']}
 ];
 function _decorateBadgeWithCityCrest(b){
   if(!b || b.image) return b; // déjà décoré (ou pas de match nécessaire)
   var ov=_CITY_CREST_OVERRIDES.find(function(o){return o.match.test(b.name||'');});
-  if(ov){ b.image=ov.image; b.image_x=15; b.image_y=18; b.image_w=70; b.image_h=74; b.medal=!!ov.medal; b.ribbonColors=ov.ribbonColors; b.ribbonRise=ov.ribbonRise||0; b.ribbonLen=ov.ribbonLen; b.ribbonFlat=!!ov.ribbonFlat; b.medalImgY=ov.medalImgY; b.medalImgW=ov.medalImgW; b.medalImgH=ov.medalImgH; b.hexBadge=!!ov.hexBadge; b.glowAlpha=ov.glowAlpha; b.medalBackdrop=!!ov.medalBackdrop; b.ribbonPts=ov.ribbonPts; b.ribbonBands=ov.ribbonBands; b.ribbonHalf=ov.ribbonHalf; b.yearDy=ov.yearDy; b.pop=ov.pop; }
+  if(ov){ b.image=ov.image; b.image_x=15; b.image_y=18; b.image_w=70; b.image_h=74; b.medal=!!ov.medal; b.ribbonColors=ov.ribbonColors; b.ribbonRise=ov.ribbonRise||0; b.ribbonLen=ov.ribbonLen; b.ribbonFlat=!!ov.ribbonFlat; b.medalImgY=ov.medalImgY; b.medalImgW=ov.medalImgW; b.medalImgH=ov.medalImgH; b.hexBadge=!!ov.hexBadge; b.glowAlpha=ov.glowAlpha; b.medalBackdrop=!!ov.medalBackdrop; b.ribbonPts=ov.ribbonPts; b.ribbonBands=ov.ribbonBands; b.frameBands=ov.frameBands; b.ribbonHalf=ov.ribbonHalf; b.yearDy=ov.yearDy; b.pop=ov.pop; }
   return b;
 }
 
@@ -25031,6 +25031,8 @@ function _countTimeWindow(runs,from,to){
 }
 
 // ── Helpers de couleur (éclaircir / assombrir) ──
+// Cadre/bandeau en bandes de couleur à arêtes vives (b.frameBands, 23/10/2026 : Marvejols rouge/vert comme le ruban).
+function _bandGrad(cols,ang){var n=cols.length,st=[];cols.forEach(function(c,i){st.push(c+' '+(i*100/n)+'%',c+' '+((i+1)*100/n)+'%');});return 'linear-gradient('+ang+'deg,'+st.join(',')+')';}
 function _mixHex(hex,factor){
   var h=(hex||'#808080').replace('#','');
   if(h.length===3) h=h.split('').map(function(c){return c+c;}).join('');
@@ -25923,7 +25925,7 @@ async function renderChallenges(){
       var eventDate=startDay?new Date(startDay).toLocaleDateString(SPEEDIX_LANG,{day:'2-digit',month:'short'}):'—';
       var bannerColor=status==='today'?'#2ddb80':(status==='past'?'#5a6080':color);
       var bannerLabel=status==='today'?'🔥 AUJOURD\'HUI':(status==='past'?'⏱ PASSÉ':'📅 '+eventDate.toUpperCase());
-      eventBanner='<div style="position:absolute;top:0;left:0;right:0;background:'+bannerColor+';color:#000;font-family:Bebas Neue,sans-serif;font-size:.55rem;letter-spacing:1px;padding:.15rem 0;text-align:center;font-weight:900;border-top-left-radius:11px;border-top-right-radius:11px">'+bannerLabel+'</div>';
+      eventBanner='<div style="position:absolute;top:0;left:0;right:0;background:'+((b.frameBands&&bannerColor===color)?_bandGrad([b.frameBands[0],b.frameBands[1]],90):bannerColor)+';color:#000;font-family:Bebas Neue,sans-serif;font-size:.55rem;letter-spacing:1px;padding:.15rem 0;text-align:center;font-weight:900;border-top-left-radius:11px;border-top-right-radius:11px">'+bannerLabel+'</div>';
       // Carte de groupe pas encore choisie (2026-08-07, cf. openEventDistancePicker) :
       // juste le nombre de distances au choix (texte court, une ligne — même
       // gabarit que "X km requis" pour ne pas agrandir la carte).
@@ -26090,7 +26092,7 @@ async function renderChallenges(){
     // la position choisie.
     if(isEvent){
       var _bevelGlow=showAsCompleted?('0 0 18px '+color+'80,0 4px 14px rgba(0,0,0,.5)'):('0 0 14px '+color+'55,0 2px 10px rgba(0,0,0,.4)');
-      _cardOpen='<div style="position:relative;'+cardOpacity+'"><div onclick="showBadgeDetail('+b.id+')" class="badge-card'+breatheClass+'" style="cursor:pointer;background:'+color+';clip-path:polygon(10px 0,calc(100% - 10px) 0,100% 10px,100% calc(100% - 10px),calc(100% - 10px) 100%,10px 100%,0 calc(100% - 10px),0 10px);padding:1.5px;box-shadow:'+_bevelGlow+';transition:transform .15s ease">'
+      _cardOpen='<div style="position:relative;'+cardOpacity+'"><div onclick="showBadgeDetail('+b.id+')" class="badge-card'+breatheClass+'" style="cursor:pointer;background:'+(b.frameBands?(_bandGrad([b.frameBands[0],b.frameBands[1]],90)+' top/100% 55% no-repeat,'+_bandGrad([b.frameBands[1],b.frameBands[0]],90)):color)+';clip-path:polygon(10px 0,calc(100% - 10px) 0,100% 10px,100% calc(100% - 10px),calc(100% - 10px) 100%,10px 100%,0 calc(100% - 10px),0 10px);padding:1.5px;box-shadow:'+_bevelGlow+';transition:transform .15s ease">'
         // Essai (2026-08-06, demande explicite) : lueur radiale derrière la
         // médaille, même principe que le haut des cartes Land — couleur du
         // badge lui-même (déjà celle du cadre juste au-dessus), pas une teinte
