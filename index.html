@@ -30402,6 +30402,13 @@ function renderQuestion(){
 // SERVEUR-AUTORITAIRE : la bonne réponse n'est JAMAIS envoyée au client avant que le joueur ait
 // répondu, et c'est le serveur (cashrun_answer) qui tient l'échelle, la banque et le chrono.
 // Le client ne fait qu'afficher ce que le serveur renvoie.
+let _crTok=null, _crTokExp=0;
+supabaseClient.auth.onAuthStateChange((ev,s)=>{ _crTok=s?.access_token||null; _crTokExp=(s?.expires_at||0)*1000; });
+async function crToken(){
+  if(_crTok && Date.now()<_crTokExp-60000) return _crTok;
+  try{ const {data}=await supabaseClient.auth.getSession(); _crTok=data?.session?.access_token||null; _crTokExp=(data?.session?.expires_at||0)*1000; }catch(e){ _crTok=null; }
+  return _crTok;
+}
 async function answer(btn,choice){
   if(S.locked) return;
   S.locked=true;
@@ -30412,9 +30419,19 @@ async function answer(btn,choice){
   const q0=S.questions[S.qIndex];
   let r=null;
   try{
-    const {data,error}=await supabaseClient.rpc('cashrun_answer',{p_round_id:S.roundId,p_question_id:q0.id,p_choice:choice});
-    if(error) throw error;
-    r=data;
+    // voie rapide : appel direct avec le jeton déjà en mémoire (évite le verrou d'auth de supabase-js, ~0,5-1 s sur mobile) ; repli sur rpc()
+    const tok=await crToken();
+    if(tok){
+      const resp=await fetch(supabaseUrl+'/rest/v1/rpc/cashrun_answer',{method:'POST',keepalive:true,
+        headers:{'apikey':supabaseKey,'Authorization':'Bearer '+tok,'Content-Type':'application/json'},
+        body:JSON.stringify({p_round_id:S.roundId,p_question_id:q0.id,p_choice:choice})});
+      if(!resp.ok) throw new Error('http '+resp.status);
+      r=await resp.json();
+    } else {
+      const {data,error}=await supabaseClient.rpc('cashrun_answer',{p_round_id:S.roundId,p_question_id:q0.id,p_choice:choice});
+      if(error) throw error;
+      r=data;
+    }
     if(!r) throw new Error('no verdict');
   }catch(e){
     console.warn('cashrun_answer fail', e);
