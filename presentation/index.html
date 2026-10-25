@@ -175,4 +175,20 @@ if(!src&&document.referrer){try{src=new URL(document.referrer).hostname.replace(
 if(src==='speedixleague.com')src='';
 fetch('https://eqzvptszeaumsbljwift.supabase.co/rest/v1/rpc/track_visit',{method:'POST',keepalive:true,headers:{'Content-Type':'application/json',apikey:'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVxenZwdHN6ZWF1bXNibGp3aWZ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU0MjM3MTcsImV4cCI6MjA5MDk5OTcxN30.wn2iJ3grAlLHTUZYiwlSBaCHvwCW86kTQ8eWNH484Lk',Authorization:'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVxenZwdHN6ZWF1bXNibGp3aWZ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU0MjM3MTcsImV4cCI6MjA5MDk5OTcxN30.wn2iJ3grAlLHTUZYiwlSBaCHvwCW86kTQ8eWNH484Lk'},body:JSON.stringify({p_kind:K,p_platform:pl,p_source:src})}).catch(function(){});
 }catch(e){}})();</script>
+<script>
+/* Navigateur intégré (Instagram, Facebook, TikTok…) : l'appli Strava ne peut pas s'y ouvrir, les inscrits n'arrivent
+   pas à connecter Strava (vécu 25/10 : 0 sur 31). On les invite à ouvrir la page dans le vrai navigateur. */
+(function(){try{
+if(!/Instagram|FBAN|FBAV|FB_IAB|FBIOS|TikTok|musical_ly|BytedanceWebview|Snapchat|LinkedInApp|Pinterest/i.test(navigator.userAgent||''))return;
+var en=/^en/i.test(navigator.language||''),url=location.origin+'/?app=1',android=/Android/i.test(navigator.userAgent||'');
+var b=document.createElement('div');
+b.style.cssText='position:sticky;top:0;z-index:9999;background:linear-gradient(90deg,#3a1a7a,#8a4dff);color:#fff;padding:10px 14px;font-size:14px;line-height:1.4;text-align:center';
+b.innerHTML=(en?'📲 To sign up and connect Strava, open this page in <b>Chrome / Safari</b> (menu ⋮ or ··· → “Open in browser”).':'📲 Pour t\'inscrire et connecter Strava, ouvre cette page dans <b>Chrome / Safari</b> (menu ⋮ ou ··· → « Ouvrir dans le navigateur »).')
++'<div style="margin-top:8px"><button id="sxcp" style="background:#0c0f1a;color:#f5c842;border:2px solid #f5c842;border-radius:8px;padding:6px 14px;font-weight:700;cursor:pointer">'+(en?'Copy the link':'Copier le lien')+'</button>'
++(android?' <a href="intent://'+location.host+'/?app=1#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url='+encodeURIComponent(url)+';end" style="display:inline-block;background:#0c0f1a;color:#2ddb80;border:2px solid #2ddb80;border-radius:8px;padding:6px 14px;font-weight:700;text-decoration:none;margin-left:6px">'+(en?'Open in Chrome':'Ouvrir dans Chrome')+'</a>':'')+'</div>';
+document.body.insertBefore(b,document.body.firstChild);
+document.getElementById('sxcp').onclick=function(){var t=this,ok=function(){t.textContent=en?'Link copied ✓':'Lien copié ✓'};
+try{if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(url).then(ok,function(){var a=document.createElement('textarea');a.value=url;document.body.appendChild(a);a.select();document.execCommand('copy');a.remove();ok()});}else{var a=document.createElement('textarea');a.value=url;document.body.appendChild(a);a.select();document.execCommand('copy');a.remove();ok();}}catch(e){}};
+}catch(e){}})();
+</script>
 </body></html>

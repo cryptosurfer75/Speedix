@@ -21247,6 +21247,61 @@ var STRAVA_REDIRECT='https://speedixleague.com';
 // sync des activités, traitement des Lands traversées.
 // ████████████████████████████████████████████████████████████████████████████
 
+// Navigateur intégré d'un réseau social (Instagram, Facebook, TikTok…) : l'appli Strava ne
+// peut pas s'ouvrir depuis là, Strava affiche sa page web et demande un identifiant → la
+// plupart des nouveaux abandonnent (vécu 25/10 : 0 connexion Strava sur 31 inscrits venus
+// des publications). On leur propose d'ouvrir SPEEDIX dans le vrai navigateur.
+function _isInAppBrowser(){
+  try{
+    var C=window.Capacitor;
+    if(C&&typeof C.isNativePlatform==='function'&&C.isNativePlatform()) return false;
+    if(window.androidBridge||(window.webkit&&window.webkit.messageHandlers&&window.webkit.messageHandlers.bridge)) return false;
+    return /Instagram|FBAN|FBAV|FB_IAB|FBIOS|TikTok|musical_ly|BytedanceWebview|Snapchat|LinkedInApp|Pinterest|; wv\)/i.test(navigator.userAgent||'');
+  }catch(e){ return false; }
+}
+function _showInAppBrowserHelp(){
+  var old=document.getElementById('inapp-help'); if(old) old.remove();
+  var lang='fr'; try{ lang=localStorage.getItem('speedix_lang')||((navigator.language||'fr').slice(0,2)==='en'?'en':'fr'); }catch(e){}
+  var en=(lang==='en');
+  var android=/Android/i.test(navigator.userAgent||'');
+  var url=location.origin+'/?app=1';
+  var S={
+    title:en?'Open SPEEDIX in your browser':'Ouvre SPEEDIX dans ton navigateur',
+    body:en?'To connect Strava, this page must be opened in Chrome or Safari: Strava cannot open its app from inside Instagram/Facebook. Tap the menu (⋮ or ···) then “Open in browser”, or copy the link, then log in with the same account.'
+           :'Pour connecter Strava, SPEEDIX doit s\'ouvrir dans Chrome ou Safari : depuis Instagram/Facebook, l\'appli Strava ne peut pas s\'ouvrir. Touche le menu (⋮ ou ···) puis « Ouvrir dans le navigateur », ou copie le lien, puis connecte-toi avec le même compte.',
+    open:en?'Open in Chrome':'Ouvrir dans Chrome',
+    copy:en?'Copy the link':'Copier le lien',
+    copied:en?'Link copied ✓':'Lien copié ✓',
+    go:en?'Continue anyway':'Continuer quand même'
+  };
+  var box=document.createElement('div');
+  box.id='inapp-help';
+  box.style.cssText='position:fixed;inset:0;z-index:99999;background:rgba(2,4,8,.92);display:flex;align-items:center;justify-content:center;padding:20px;';
+  var btn='width:100%;padding:13px;border-radius:10px;font-family:inherit;font-size:15px;font-weight:700;letter-spacing:1px;cursor:pointer;margin-top:10px;';
+  box.innerHTML='<div style="max-width:360px;width:100%;background:#0c0f1a;border:1px solid #fc6c2c;border-radius:14px;padding:22px;color:#e8eaf0;text-align:center;">'
+    +'<div style="font-size:30px;">🔗</div>'
+    +'<div style="font-size:18px;font-weight:700;color:#f5c842;margin:6px 0 10px;">'+S.title+'</div>'
+    +'<div style="font-size:14px;line-height:1.5;color:#c8d0e0;">'+S.body+'</div>'
+    +(android?'<button id="inapp-open" style="'+btn+'background:#0c0f1a;border:2px solid #2ddb80;color:#2ddb80;">'+S.open+'</button>':'')
+    +'<button id="inapp-copy" style="'+btn+'background:#0c0f1a;border:2px solid #f5c842;color:#f5c842;">'+S.copy+'</button>'
+    +'<button id="inapp-go" style="'+btn+'background:#0c0f1a;border:1px solid #556;color:#8090b0;font-weight:400;">'+S.go+'</button>'
+    +'</div>';
+  document.body.appendChild(box);
+  var o=document.getElementById('inapp-open');
+  if(o) o.onclick=function(){ location.href='intent://'+location.host+'/?app=1#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url='+encodeURIComponent(url)+';end'; };
+  document.getElementById('inapp-copy').onclick=function(){
+    var b=this, done=function(){ b.textContent=S.copied; };
+    try{
+      if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(url).then(done,function(){ _inappCopyFallback(url); done(); }); }
+      else { _inappCopyFallback(url); done(); }
+    }catch(e){ _inappCopyFallback(url); done(); }
+  };
+  document.getElementById('inapp-go').onclick=function(){ window.__sxInAppAck=true; box.remove(); connectStrava(); };
+}
+function _inappCopyFallback(txt){
+  try{ var ta=document.createElement('textarea'); ta.value=txt; ta.style.cssText='position:fixed;opacity:0;'; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); }catch(e){}
+}
+
 function connectStrava(){
   if(!currentUser){showToast('⚠️ Connecte-toi d\'abord');return;}
   // Vérifier si déjà connecté
@@ -21254,6 +21309,7 @@ function connectStrava(){
     syncStravaActivities();
     return;
   }
+  if(!window.__sxInAppAck&&_isInAppBrowser()){ _showInAppBrowserHelp(); return; }
   // OAuth : rediriger vers Strava.
   // Sur mobile (Android/iOS), on utilise l'endpoint /oauth/mobile/authorize :
   // si l'app Strava est installée, elle s'ouvre directement, le RP autorise en 1 clic.
