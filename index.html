@@ -7468,7 +7468,7 @@ const I18N = {
     'r5.tile.fast'              : 'La plus rapide',
     'r5.tile.endu'              : 'La plus endurante',
     'r5.fast.none'              : 'Aucune team n\'est encore classée (il faut 60 % de la team).',
-    'r5.empty'                  : 'Aucune team n\'a encore couru de 5 km.',
+    'r5.empty'                  : 'Aucune team n\'a encore atteint 60 % d\'inscrits.',
     'r5.premium'                : 'Les classements de toutes les teams sont réservés au Premium.',
     'r5.history'                : '{n} × 5 km · {p} RP',
     'refnotif.bravo'            : 'Bravo !',
@@ -8265,7 +8265,7 @@ const I18N = {
     'r5.tile.fast'              : 'The fastest',
     'r5.tile.endu'              : 'The most enduring',
     'r5.fast.none'              : 'No team is ranked yet (60% of the team must run).',
-    'r5.empty'                  : 'No team has run a 5K yet.',
+    'r5.empty'                  : 'No team has reached 60% sign-ups yet.',
     'r5.premium'                : 'Rankings of all teams are reserved for Premium.',
     'r5.history'                : '{n} × 5K · {p} RPs',
     'refnotif.bravo'            : 'Well done!',
@@ -22930,8 +22930,8 @@ function _teamChallengeRelayBody(c){
   };
   // Le RANG de la team n'apparaît QUE dans l'onglet Classements (Premium) : ici on n'affiche que la valeur de la team.
   var tiles='<div style="display:flex;gap:.5rem;margin-bottom:.7rem">'
-    +tile('⚡ '+t('r5.tile.fast'),m.nRan?_r5Fmt(m.avgS):'—','','rgba(255,255,255,.3)')
-    +tile('🔥 '+t('r5.tile.endu'),m.nRan?(m.enduScore+' × 5 km'):'—','','rgba(255,255,255,.3)')
+    +tile('⚡ '+t('r5.tile.fast'),(m.nRan||m.fastRank!=null)?_r5Fmt(m.avgS):'—','','rgba(255,255,255,.3)')
+    +tile('🔥 '+t('r5.tile.endu'),(m.nRan||m.enduRank!=null)?(m.enduScore+' × 5 km'):'—','','rgba(255,255,255,.3)')
   +'</div>'
 ;
   // Tableau des PLACES de la team (r.places, lu dans la base) : les participants (les plus rapides d'abord), puis des « Place vide »
