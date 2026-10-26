@@ -22936,19 +22936,23 @@ function _teamChallengeRelayBody(c){
 ;
   // Tableau des PLACES de la team (r.places, lu dans la base) : les participants (les plus rapides d'abord), puis des « Place vide »
   // à 28'00 · 1 × 5 km (valeur VIRTUELLE de la base, jamais présentée comme un vrai RP : pas de nom, pas d'avatar). Dessous : les autres RP.
-  var rowStyle=function(isMe){ return 'display:flex;align-items:center;justify-content:space-between;gap:.5rem;padding:.4rem .55rem;border-radius:6px;border:1px solid '+(isMe?'rgba(255,255,255,.65)':'rgba(255,255,255,.28)')+';background:rgba(255,255,255,.03);margin-bottom:.3rem;font-size:.75rem'; };
+  var rowStyle=function(isMe,reg){ return 'display:flex;align-items:center;justify-content:space-between;gap:.5rem;padding:.4rem .55rem;border-radius:6px;border:1px solid '+(reg?'var(--green)':(isMe?'rgba(255,255,255,.65)':'rgba(255,255,255,.28)'))+';background:rgba(255,255,255,.03);margin-bottom:.3rem;font-size:.75rem'; };
   var rowRP=function(x){
     var isMe=x.pid===currentUser.id;
-    return '<div style="'+rowStyle(isMe)+'">'
+    return '<div style="'+rowStyle(isMe,x.n5k>0)+'">' // cadre VERT seulement une fois un 5 km couru (inscrit sans course = cadre blanc)
       +_teamChallengeNameHtml(x,isMe?'var(--gold)':'var(--text)')
       +'<span style="color:'+(x.n5k>0?'var(--green)':'var(--muted2)')+';font-weight:700;flex-shrink:0;font-size:.72rem;font-family:Space Mono,monospace">'+(x.n5k>0?(_r5Fmt(x.bestS)+' · ×'+x.n5k):(x.registered?t('r5.row.reg'):t('r5.row.notreg')))+'</span>'
     +'</div>';
   };
+  // Un RP INSCRIT prend une place du tableau dès son inscription (même sans course : libellé « Inscrit », place en attente de son 5 km) ;
+  // les « Autres RP » ne contiennent que ceux qui ne sont pas inscrits (ou au-delà de la 12e place).
   var parts=m.rows.filter(function(x){return x.n5k>0;});
-  var restRows=m.rows.filter(function(x){return !(x.n5k>0);});
-  var topRows=parts.slice(0,r.places), over=parts.slice(r.places);
+  var regNoRun=m.rows.filter(function(x){return !(x.n5k>0) && x.registered;});
+  var notReg=m.rows.filter(function(x){return !(x.n5k>0) && !x.registered;});
+  var filled=parts.concat(regNoRun);
+  var topRows=filled.slice(0,r.places), over=filled.slice(r.places);
   var nVacant=Math.max(0,r.places-topRows.length);
-  var others=over.concat(restRows.filter(function(x){return x.registered;}),restRows.filter(function(x){return !x.registered;}));
+  var others=over.concat(notReg);
   var vacantRow='<div style="'+rowStyle(false)+';opacity:.6">'
       +'<span style="color:var(--muted2);font-style:italic">'+t('r5.row.vacant')+'</span>'
       +'<span style="color:var(--muted2);flex-shrink:0;font-size:.72rem;font-family:Space Mono,monospace">'+_r5Fmt(r.dummyS)+' · ×1</span>'
