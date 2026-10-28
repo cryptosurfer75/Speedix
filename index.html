@@ -28271,6 +28271,23 @@ async function showBadgeDetail(badgeId){
   if(b.threshold_type==='event_run' && !b.event_by_duration){
     bodyHtml+='<button onclick="showEventRanking('+b.id+')" style="margin-top:.7rem;padding:.5rem 1.1rem;border-radius:8px;border:1.5px solid '+color+';background:rgba(255,255,255,.04);color:'+color+';font-family:Bebas Neue,sans-serif;font-size:.85rem;letter-spacing:1.5px;cursor:pointer">🏆 CLASSEMENT</button>';
   }
+  // CARTOGRAPHE : menu déroulant des villes étapes (✓ = déjà validée, même filtre de date que la progression).
+  // Liste en dur : le module Tour ne s'initialise qu'à l'ouverture de la page Tour. Même ordre/orthographe que ROUTE_SEGMENTS = valeurs de etape_name en base.
+  if(b.threshold_type==='tour_etapes' && b.threshold_value>=20 && currentUser){
+    try{
+      var {data:_eRows}=await supabaseClient.from('player_tour_etapes_landed').select('etape_name,landed_at').eq('player_id',currentUser.id);
+      var _eQ=(typeof activeQuestsMapGlobal!=='undefined' && activeQuestsMapGlobal && activeQuestsMapGlobal[b.id]) || null;
+      var _eCut=(_eQ&&_eQ.since)||'';
+      var _eDone={};
+      (_eRows||[]).forEach(function(e){ if(e.landed_at>=_eCut) _eDone[e.etape_name]=1; });
+      var _eNames=["Paris", "Beauvais", "Amiens", "Arras", "Lens", "Lille", "Valenciennes", "Saint-Quentin", "Soissons", "Reims", "Chalons-en-Champagne", "Verdun", "Metz", "Nancy", "Saverne", "Strasbourg", "Colmar", "Mulhouse", "Belfort", "Besancon", "Dijon", "Chalon-sur-Saone", "Macon", "Lyon", "Grenoble", "Gap", "Digne-les-Bains", "Nice", "Frejus", "Toulon", "Marseille", "Arles", "Nimes", "Montpellier", "Beziers", "Narbonne", "Carcassonne", "Toulouse", "Montauban", "Agen", "Bordeaux", "Angouleme", "Niort", "Poitiers", "Cholet", "Nantes", "Angers", "Le Mans", "Chartres", "Versailles"];
+      var _eN=_eNames.filter(function(n){return _eDone[n];}).length;
+      bodyHtml+='<details style="margin-top:.6rem;text-align:left"><summary style="cursor:pointer;display:block;width:fit-content;margin:0 auto;padding:.4rem .9rem;border-radius:6px;border:1.5px solid rgba(45,219,128,.6);background:#0c0f1a;color:var(--green);font-size:.8rem;font-weight:700;letter-spacing:.3px;font-family:Space Mono,monospace;text-align:center;list-style:none">'+(SPEEDIX_LANG==='en'?'Cities':'Villes')+' ('+_eN+'/'+_eNames.length+') ▾</summary>'
+        +'<div style="max-height:220px;overflow-y:auto;margin-top:.4rem;padding:.4rem .7rem;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:8px;font-size:.75rem;line-height:1.7;font-family:Space Mono,monospace">'
+        +_eNames.map(function(n){ return '<div style="color:'+(_eDone[n]?color:'var(--muted2)')+'">'+(_eDone[n]?'✓ ':'○ ')+n+'</div>'; }).join('')
+        +'</div></details>';
+    }catch(e){}
+  }
   bodyHtml+='</div>';
   document.getElementById('lm-body').innerHTML=bodyHtml;
   _applyBadgeModalFrame(color);
