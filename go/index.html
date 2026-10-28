@@ -5,6 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
 <title>SPEEDIX</title>
+<meta property="og:type" content="website">
+<meta property="og:title" content="SPEEDIX — 1er championnat de running">
+<meta property="og:description" content="Tu cours, tu marques des points, tu montes en league. Rejoins ton ami dans sa team.">
+<meta property="og:image" content="https://speedixleague.com/cover-speedix.jpg">
 <style>
   html,body{margin:0;height:100%;background:#0b0f14;color:#fff;
     font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
@@ -27,14 +31,11 @@
 
 <script>
 /* ============================================================
-   SEUL ENDROIT À MODIFIER LE JOUR DU LANCEMENT.
-   Tant qu'une adresse de store est vide (""), tout le monde
-   est envoyé vers l'app web. Le jour J : colle les 2 liens,
-   pousse le fichier, et toutes les cartes pointent vers les
-   bons stores automatiquement. Aucune carte à réécrire.
+   SEUL ENDROIT À MODIFIER si un lien de store change. Une adresse
+   vide ("") renverrait tout le monde vers l'app web.
    ============================================================ */
-var IOS_URL     = "";  // ex: https://apps.apple.com/app/idXXXXXXXXX
-var ANDROID_URL = "";  // ex: https://play.google.com/store/apps/details?id=com.speedixleague.runner
+var IOS_URL     = "https://apps.apple.com/app/speedix/id6763503175";
+var ANDROID_URL = "https://play.google.com/store/apps/details?id=com.speedixleague.runner";
 var WEB_URL     = "https://speedixleague.com/";
 
 (function () {
@@ -47,10 +48,14 @@ var WEB_URL     = "https://speedixleague.com/";
   if (isIOS && IOS_URL) dest = IOS_URL;
   else if (isAndroid && ANDROID_URL) dest = ANDROID_URL;
 
-  // On transmet le code parrain (?ref=SL-XXXXX) UNIQUEMENT vers l'app web.
-  // Les liens stores ne savent pas porter ce paramètre, on ne l'ajoute pas là.
-  if (dest === WEB_URL && location.search) dest = dest + location.search;
-
+  // Code parrain (?ref=SL-XXXXX) : l'app web le reçoit dans l'adresse ; un lien de store ne peut pas le
+  // porter, donc on le copie dans le presse-papier et l'inscription de l'app le relit (cf index.html,
+  // _autoFillReferralFromClipboard). Copie sans geste si le téléphone l'accepte (Android), sinon un seul
+  // bouton « Télécharger » (iPhone : la copie exige un tap).
+  var m = /[?&]ref=(SL-[A-Za-z0-9]{4,8})/.exec(location.search);
+  var code = m ? m[1].toUpperCase() : "";
+  var toStore = dest !== WEB_URL;
+  if (!toStore && location.search) dest = dest + location.search;
   // Téléphone en anglais → texte anglais (la destination, elle, reste la même).
   var nl = String((navigator.languages && navigator.languages[0]) || navigator.language || "").toLowerCase();
   if (nl.indexOf("en") === 0) {
@@ -59,8 +64,17 @@ var WEB_URL     = "https://speedixleague.com/";
     document.getElementById("manual").textContent = "Continue";
   }
 
-  document.getElementById("manual").href = dest;
-  location.replace(dest);
+  var btn = document.getElementById("manual");
+  btn.href = dest;
+  if (toStore && code) {
+    // Affiche le bouton tout de suite ; essaie la copie automatique, sinon attend le tap.
+    document.getElementById("msg").textContent = nl.indexOf("en") === 0 ? "Get the app" : "Télécharge l'app";
+    btn.textContent = nl.indexOf("en") === 0 ? "Download" : "Télécharger";
+    btn.onclick = function (ev) { ev.preventDefault(); try { navigator.clipboard.writeText(code); } catch (e) {} setTimeout(function () { location.href = dest; }, 150); };
+    try { navigator.clipboard.writeText(code).then(function () { location.replace(dest); }, function () {}); } catch (e) {}
+  } else {
+    location.replace(dest);
+  }
 })();
 </script>
 </body>

@@ -2817,7 +2817,7 @@ select option{background:#040c1c}
           <input id="reg-code" type="text" placeholder="SL-XXXXX" maxlength="10" style="flex:1;padding:9px 12px;border-radius:8px;background:rgba(4,12,28,.8);border:1.5px solid rgba(74,144,255,.5);color:#f5c842;font-family:'Space Mono',monospace;font-size:.78rem;outline:none;letter-spacing:2px" onfocus="this.style.borderColor='#f5c842'" onblur="this.style.borderColor='rgba(74,144,255,.5)';checkCode()">
           <button onclick="checkCode()" style="padding:8px 12px;border-radius:8px;border:1px solid rgba(245,200,66,.35);background:rgba(245,200,66,.07);color:#f5c842;cursor:pointer;font-size:.7rem;font-weight:700">OK</button>
         </div>
-        <div id="code-msg" data-i18n="reg.step3.referral.msg" style="font-size:.56rem;color:#8aaccc;margin-top:3px">Ton parrain reçoit 2 000 RPC + 5 💎 NYX</div>
+        <div id="code-msg" data-i18n="reg.step3.referral.msg" style="font-size:.56rem;color:#8aaccc;margin-top:3px">Tu reçois 2 000 RPC + 5 💎 NYX et tu rejoins la team de ton parrain</div>
       </div>
     </div>
     </div>
@@ -7576,7 +7576,7 @@ const I18N = {
     'sponsor.referrals'         : 'parrainages',
     'sponsor.needAmbassador'    : '10 requis pour Ambassadeur',
     'sponsor.yourCode'          : 'Ton code parrainage',
-    'sponsor.share'             : '📤 PARTAGER',
+    'sponsor.share'             : '📤 INVITER UN AMI',
     'sponsor.invitedBy'         : 'Invité par',
     // — Modale code d'invitation équipe (capitaine)
     'invite.modal.sub'          : 'Code d\'invitation privé — capitaine uniquement',
@@ -7597,7 +7597,7 @@ const I18N = {
     'sponsor.step.reward5'      : '→ +5 NYX',
     'sponsor.pcCard.title'      : 'Mon code parrainage',
     'sponsor.copyFail'          : '⚠️ Impossible de partager — copie ton code : {code}',
-    'sponsor.shareMsg'          : 'Salut ! Je participe à SPEEDIX League — un championnat de running gamifié : tu cours, tu marques des points, tu progresses dans la league et gagnes des récompenses. De nombreux défis sympas à accomplir. Fonctionne avec Strava.\n\nSi tu souhaites découvrir : c\'est fun, 100% motivant — 100% gratuit.\n\nClick sur le lien en dessous si tu aimes te challenger 💪\n\n{url}\n\nSportivement',
+    'sponsor.shareMsg'          : 'Rejoins-moi sur SPEEDIX 🏃🏻 1er CHAMPIONNAT DE RUNNING. Tu gagnes 2 000 RPC + 5 NYX et tu arrives direct dans ma team 💪\nCode parrainage {code}\n{url}',
     // — Prize pool (renderLeaguePP)
     'pp.starter.empty'          : 'Pas de récompenses en Starter Zone.<br>Fais au moins <strong style="color:var(--gold)">500 pts</strong> pour rejoindre une League.',
     'pp.buyin.rpcrp'            : '{n} RPC / RP',
@@ -7638,7 +7638,7 @@ const I18N = {
     'reg.step3.age'             : 'Je certifie avoir <strong style="color:#f5c842">18 ans ou plus</strong>.',
     'reg.step3.cgu'             : 'J\'accepte les <a href="#" onclick="event.preventDefault();nav(\'legal\');" style="color:#f5c842;text-decoration:underline">CGU, CGV</a> et la <a href="#" onclick="event.preventDefault();nav(\'legal\');" style="color:#f5c842;text-decoration:underline">Politique de confidentialité</a>.',
     'reg.step3.referral'        : 'Code parrainage <span style="color:#2a3550">(optionnel)</span>',
-    'reg.step3.referral.msg'    : 'Ton parrain reçoit 2 000 RPC + 5 💎 NYX',
+    'reg.step3.referral.msg'    : 'Tu reçois 2 000 RPC + 5 💎 NYX et tu rejoins la team de ton parrain',
     // — Tunnel inscription : étape 4/5 Strava (hs5)
     'reg.step4.title'           : 'ÉTAPE 4 / 5 — Synchro Strava',
     'reg.step4.desc'            : 'SPEEDIX partenaire de <strong style="color:#fc4c02">STRAVA</strong> pour valider tes efforts sportifs. Sans connexion, de nombreuses fonctions ne pourront s\'activer. Pour une expérience complète 👇',
@@ -8373,7 +8373,7 @@ const I18N = {
     'sponsor.referrals'         : 'referrals',
     'sponsor.needAmbassador'    : '10 required for Ambassador',
     'sponsor.yourCode'          : 'Your referral code',
-    'sponsor.share'             : '📤 SHARE',
+    'sponsor.share'             : '📤 INVITE A FRIEND',
     'sponsor.invitedBy'         : 'Invited by',
     // — Team invite code modal (captain)
     'invite.modal.sub'          : 'Private invite code — captain only',
@@ -8394,7 +8394,7 @@ const I18N = {
     'sponsor.step.reward5'      : '→ +5 NYX',
     'sponsor.pcCard.title'      : 'My referral code',
     'sponsor.copyFail'          : '⚠️ Could not share — copy your code: {code}',
-    'sponsor.shareMsg'          : 'Hi! I\'m playing SPEEDIX League — a gamified running championship: you run, you score points, you climb the league and earn rewards. Lots of fun challenges to complete. Works with Strava.\n\nWant to check it out? It\'s fun, 100% motivating — 100% free.\n\nClick the link below if you like a good challenge 💪\n\n{url}\n\nSee you out there',
+    'sponsor.shareMsg'          : 'Join me on SPEEDIX 🏃🏻 the 1st RUNNING CHAMPIONSHIP. You get 2,000 RPC + 5 NYX and land straight in my team 💪\nReferral code {code}\n{url}',
     // — Prize pool (renderLeaguePP)
     'pp.starter.empty'          : 'No rewards in Starter Zone.<br>Earn at least <strong style="color:var(--gold)">500 pts</strong> to join a League.',
     'pp.buyin.rpcrp'            : '{n} RPC / player',
@@ -8435,7 +8435,7 @@ const I18N = {
     'reg.step3.age'             : 'I confirm I am <strong style="color:#f5c842">18 years or older</strong>.',
     'reg.step3.cgu'             : 'I accept the <a href="#" onclick="event.preventDefault();nav(\'legal\');" style="color:#f5c842;text-decoration:underline">Terms of Use, Sale Terms</a> and the <a href="#" onclick="event.preventDefault();nav(\'legal\');" style="color:#f5c842;text-decoration:underline">Privacy Policy</a>.',
     'reg.step3.referral'        : 'Referral code <span style="color:#2a3550">(optional)</span>',
-    'reg.step3.referral.msg'    : 'Your sponsor receives 2,000 RPC + 5 💎 NYX',
+    'reg.step3.referral.msg'    : 'You get 2,000 RPC + 5 💎 NYX and join your sponsor\'s team',
     // — Sign-up funnel: step 4/5 Strava (hs5)
     'reg.step4.title'           : 'STEP 4 / 5 — Strava sync',
     'reg.step4.desc'            : 'SPEEDIX partners with <strong style="color:#fc4c02">STRAVA</strong> to validate your runs. Without it, many features won\'t activate. For the full experience 👇',
@@ -9044,6 +9044,17 @@ async function doRegister(){
     if(Object.keys(patchData).length){
       var {error:patchErr}=await supabaseClient.from('players').update(patchData).eq('id',playerId);
       if(patchErr) console.warn('[register] maj referred_by/avatar échouée',patchErr);
+    }
+    // Bienvenue parrainage (recette base apply_referral_welcome, déclenchée par referred_by) :
+    // on ne fait ici qu'ANNONCER le résultat au filleul, jamais le décider.
+    if(parrainUuid && !patchErr){
+      try{
+        var {data:_welTm}=await supabaseClient.from('team_members').select('teams(name)').eq('player_id',playerId).maybeSingle();
+        var _welTeam=_welTm&&_welTm.teams?_welTm.teams.name:null;
+        var _welEn=(SPEEDIX_LANG==='en');
+        if(_welTeam && typeof checkOpenTeamCreation==='function') checkOpenTeamCreation(); // si une Open vient d'être remplie
+        showToast('🎁 +2 000 RPC + 5 💎 NYX'+(_welTeam?(_welEn?' · you joined ':' · tu as rejoint ')+_welTeam:''));
+      }catch(e){}
     }
     // Vérifier que la fiche existe bien (créée par le trigger) avant de laisser
     // le RP entrer — filet de sécurité pour le cas rarissime où le trigger aurait
@@ -9850,6 +9861,11 @@ async function hgo(s){
       }
     },100);
   }
+  if(s===3){
+    setTimeout(_autoFillReferralFromClipboard,200);
+    var _rc=document.getElementById('reg-code');
+    if(_rc&&!_rc._clipHook){_rc._clipHook=1;_rc.addEventListener('focus',_autoFillReferralFromClipboard);}
+  }
   if(s===3 && hcur===2){
     // Validation username COMPLÈTE dès l'étape 1 (Identité) pour éviter au RP
     // de devoir revenir en arrière si rejet à l'inscription. doRegister conserve
@@ -10368,6 +10384,19 @@ function _autoFillReferralFromUrl(){
     }
   }catch(e){}
 }
+// Code parrain après installation depuis un store : la page go/ le copie dans le presse-papier avant
+// la redirection (un lien de store ne peut pas le porter). On le relit ici à l'étape inscription,
+// uniquement s'il a EXACTEMENT la forme SL-XXXXX (jamais un autre contenu du presse-papier).
+async function _autoFillReferralFromClipboard(){
+  try{
+    var input=document.getElementById('reg-code');
+    if(!input||input.value.trim()||!navigator.clipboard||!navigator.clipboard.readText) return;
+    var txt=(await navigator.clipboard.readText()||'').trim().toUpperCase();
+    if(!/^SL-[A-Z0-9]{4,8}$/.test(txt)||input.value.trim()) return;
+    input.value=txt;
+    if(typeof checkCode==='function') checkCode();
+  }catch(e){}
+}
 // Lance l'auto-fill au chargement de la page (DOMContentLoaded ou immédiat si déjà prêt).
 if(document.readyState==='loading'){
   document.addEventListener('DOMContentLoaded',_autoFillReferralFromUrl);
@@ -10378,7 +10407,7 @@ if(document.readyState==='loading'){
 async function checkCode(){
   var v=(document.getElementById('reg-code').value||'').toUpperCase().trim();
   var m=document.getElementById('code-msg');
-  if(!v){m.style.color='#8aaccc';m.textContent='Ton parrain reçoit 2 000 RPC + 5 💎 NYX';m.dataset.parrainUuid='';return;}
+  if(!v){m.style.color='#8aaccc';m.textContent=t('reg.step3.referral.msg');m.dataset.parrainUuid='';return;}
   // Normalisation tolérante (2026-09-03, bug récurrent signalé plusieurs fois :
   // le filet de sécurité au submit ne servait à rien si le code tapé ne matchait
   // simplement jamais — un RP qui partage son code à l'oral/SMS sans passer par
@@ -13723,37 +13752,32 @@ var _parrainageBadgeImg={
 // une 2e requête de comptage.
 var _PARRAINAGE_DEFAULT_ICON = 'ai-icons/icon-parrainage-flat-v1.webp';
 
-// Partage le code parrainage via la feuille système (SMS/WhatsApp/Mail/etc.)
-// Fallback desktop : copie dans le presse-papier + toast.
+// Invite un ami : feuille de partage système (WhatsApp/SMS/Mail…), WhatsApp direct sur ordinateur,
+// presse-papier seulement en dernier recours.
 async function shareReferralCode(code){
-  // URL avec ?ref= → l'app pré-remplit le code parrain à l'inscription (cf. _autoFillReferralFromUrl).
-  var url='https://speedixleague.com?ref='+encodeURIComponent(code);
-  var text=t('sponsor.shareMsg').replace('{url}',url);
-  // 1. Web Share API (mobile principalement)
-  if(navigator.share){
-    try{
-      await navigator.share({
-        text:text
-      });
-      return;
-    }catch(e){
-      // L'utilisateur a annulé OU navigateur refuse → fallback clipboard
-      if(e && e.name==='AbortError') return;
-    }
+  // Lien court /go?ref= (page go/index.html : aperçu WhatsApp + redirection vers l'app avec le code).
+  var url='https://speedixleague.com/go?ref='+encodeURIComponent(code);
+  var text=t('sponsor.shareMsg').replace('{code}',code).replace('{url}',url);
+  // 1. Appli native (Capacitor) : feuille de partage système (WhatsApp, Messages, etc.)
+  var capShare=window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.Share;
+  if(capShare){
+    try{ await capShare.share({text:text}); return; }
+    catch(e){ if(e && /cancel/i.test(String(e.message||e))) return; }
   }
-  // 2. Fallback clipboard (desktop ou WebView sans Web Share)
+  // 2. Web Share API (mobile)
+  if(navigator.share){
+    try{ await navigator.share({text:text}); return; }
+    catch(e){ if(e && e.name==='AbortError') return; }
+  }
+  // 3. Ordinateur : ouvre directement WhatsApp (le message est déjà dans la conversation)
   try{
-    if(navigator.clipboard && navigator.clipboard.writeText){
-      await navigator.clipboard.writeText(text);
-      showToast('✓ Message copié — colle-le dans WhatsApp/SMS/Mail');
-    } else {
-      // Très vieux navigateurs : textarea + execCommand
-      var ta=document.createElement('textarea');
-      ta.value=text; document.body.appendChild(ta); ta.select();
-      document.execCommand('copy');
-      document.body.removeChild(ta);
-      showToast('✓ Message copié — colle-le dans WhatsApp/SMS/Mail pour partager');
-    }
+    var w=window.open('https://wa.me/?text='+encodeURIComponent(text),'_blank','noopener');
+    if(w) return;
+  }catch(e){}
+  // 4. Dernier recours : presse-papier
+  try{
+    await navigator.clipboard.writeText(text);
+    showToast('✓ Message copié — colle-le dans WhatsApp/SMS/Mail');
   }catch(e){
     showToast(t('sponsor.copyFail').replace('{code}',code));
   }
@@ -13772,7 +13796,7 @@ async function loadParrainageData(playerId){
   // Compter les étapes par filleul
   var stepsMap={};
   rewards.forEach(function(r){
-    if(r.reward_type==='weekend_bonus') return; // bonus ponctuel, pas une étape (x/4)
+    if(r.reward_type==='weekend_bonus'||r.reward_type==='welcome_bonus') return; // bonus ponctuels, pas une étape (x/4)
     if(!stepsMap[r.filleul_id]) stepsMap[r.filleul_id]=0;
     stepsMap[r.filleul_id]++;
   });
