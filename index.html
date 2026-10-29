@@ -22859,7 +22859,7 @@ function _r5TeamRow(c,o,mode,idx,ddId){
   var col=o.team&&o.team.color?o.team.color:'var(--muted2)';
   var isMine=o.tid===c.myTeamId;
   var isOpen=o.tid===_teamChallengeOpenTeamId;
-  var main=(mode==='endu')?(o.enduScore+' × 5 km'):_r5Fmt(o.avgS);
+  var main=(mode==='endu')?((o.n5k||0)+' × 5 km'):_r5Fmt(o.avgS);
   var dd=!isOpen?'':(
     '<div id="'+ddId+'" style="background:#080e1e;border:1px solid rgba(255,255,255,.3);border-radius:10px;box-shadow:0 8px 30px rgba(0,0,0,.5);overflow:hidden;margin-top:6px">'
     +o.rows.map(function(r){
@@ -22955,7 +22955,7 @@ function _teamChallengeRelayBody(c){
   // Le RANG de la team n'apparaît QUE dans l'onglet Classements (Premium) : ici on n'affiche que la valeur de la team.
   var tiles='<div style="display:flex;gap:.5rem;margin-bottom:.7rem">'
     +tile('⚡ '+t('r5.tile.fast'),(m.nRan||m.fastRank!=null)?_r5Fmt(m.avgS):'—','','rgba(255,255,255,.3)')
-    +tile('🔥 '+t('r5.tile.endu'),(m.nRan||m.enduRank!=null)?(m.enduScore+' × 5 km'):'—','','rgba(255,255,255,.3)')
+    +tile('🔥 '+t('r5.tile.endu'),(m.nRan||m.enduRank!=null)?((m.n5k||0)+' × 5 km'):'—','','rgba(255,255,255,.3)')
   +'</div>'
 ;
   // Tableau des PLACES de la team (r.places, lu dans la base) : les participants (les plus rapides d'abord), puis des « Place vide »
