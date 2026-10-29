@@ -4472,7 +4472,7 @@ select option{background:#040c1c}
       </div>
       <div class="rules-section">
         <h3>🔑 Louer une Land</h3>
-        <p>Tombe sur une case libre pour la louer, pour un bail maximum de <b>6 mois</b>. Le loyer de <b style="color:var(--gold)">165 RPC/jour</b> est à payer tous les mois entre le <b>5</b> et le <b>10</b>. Après, tu dois en devenir <b>propriétaire</b> pour la conserver. Chaque RP qui atterrit dessus te paie une redevance.</p>
+        <p>Tombe sur une case libre pour la louer, pour un bail maximum de <b>4 mois</b>. Le loyer de <b style="color:var(--gold)">165 RPC/jour</b> est à payer tous les mois entre le <b>5</b> et le <b>10</b>. Après, tu dois en devenir <b>propriétaire</b> pour la conserver. Chaque RP qui atterrit dessus te paie une redevance.</p>
       </div>
       <div class="rules-section">
         <h3>🏠 Acheter une Land</h3>
@@ -4935,7 +4935,7 @@ select option{background:#040c1c}
       <div class="block-header"><div class="block-title" data-i18n-html="eco.lands.rent.title">🔑 Lands <span class="hl">Location</span></div></div>
       <div class="block-body-sm">
         <div class="eco-row"><span data-i18n="lands.rent.m13">Loyer journalier</span><span class="eco-price">165 RPC</span></div>
-        <div class="eco-row"><span data-i18n="lands.rent.max">Bail maximum</span><span class="eco-price">6 mois</span></div>
+        <div class="eco-row"><span data-i18n="lands.rent.max">Bail maximum</span><span class="eco-price">4 mois</span></div>
       </div>
     </div>
 
@@ -7114,7 +7114,7 @@ const I18N = {
     'lands.rent.title'          : 'Coûts <span class="hl">Location</span>',
     'lands.rent.m13'            : 'Loyer journalier',
     'lands.rent.max'            : 'Bail maximum',
-    'lands.rent.note'           : '1er mois au prorata (165 RPC/jour restant)<br>Loyer dû entre le 5 et le 10 du mois<br>Après 6 mois → acheter la Land ou elle repart dans le jeu',
+    'lands.rent.note'           : '1er mois au prorata (165 RPC/jour restant)<br>Loyer dû entre le 5 et le 10 du mois<br>Après 4 mois → acheter la Land (sous 48 h) ou elle repart dans le jeu',
     'lands.buy.title'           : 'Achat <span class="hl">NYX</span>',
     'lands.buy.p3'              : 'Prix unique',
     'lands.buy.right'           : 'Droit d\'acquisition',
@@ -7911,7 +7911,7 @@ const I18N = {
     'lands.rent.title'          : 'Rental <span class="hl">costs</span>',
     'lands.rent.m13'            : 'Daily rent',
     'lands.rent.max'            : 'Maximum lease',
-    'lands.rent.note'           : 'Month 1 pro-rated (165 RPC/day remaining)<br>Rent due between the 5th and 10th of the month<br>After 6 months → buy the Land or it goes back into play',
+    'lands.rent.note'           : 'Month 1 pro-rated (165 RPC/day remaining)<br>Rent due between the 5th and 10th of the month<br>After 4 months → buy the Land (within 48 h) or it goes back into play',
     'lands.buy.title'           : 'NYX <span class="hl">purchase</span>',
     'lands.buy.p3'              : 'Single price',
     'lands.buy.right'           : 'Acquisition right',
@@ -32010,6 +32010,8 @@ window.Tour.init = async function(){
   // Villes de départ (2026-08-02, rivalité Nord/Sud) : Paris ET Marseille
   // suivent la même règle — ni louables ni achetables, quel que soit le RP.
   const START_CITIES = new Set(['Paris','Marseille']);
+  // Bail de location = 4 périodes, la 4e incluse (2026-10-29). MIROIR de tour_lease_max_periods() en base — garder synchro, NE PAS diverger.
+  const TOUR_LEASE_MAX_PERIODS = 4;
   const LAND_PRICE_NYX = 80; // Land classique — prix UNIQUE, plus de palier par durée de location
   const ACQUISITION_RIGHT_PRICE_NYX = 20; // droit d'acquisition, achetable à part
   // MIRROR de tour_charge_property_tax()/tour_tax_status() en base — garder
@@ -34087,7 +34089,7 @@ window.Tour.init = async function(){
       const rentCost = proratedRent();
       return {
         title: 'Case libre — n°'+land.idx,
-        sub: `Cette Land est disponible. Chaque RP qui tombe dessus te rapporte ${BASE_REDEVANCE_RPC} RPC. La louer coûte <b class="rm-gold">${rentCost} RPC</b>, calculé au prorata du mois. Chaque mois, tu devras t'acquitter du loyer pour la conserver. Tu peux rester locataire 6 mois maximum, ensuite tu devras l'acheter (cf. conditions dans les règles du jeu).`,
+        sub: `Cette Land est disponible. Chaque RP qui tombe dessus te rapporte ${BASE_REDEVANCE_RPC} RPC. La louer coûte <b class="rm-gold">${rentCost} RPC</b>, calculé au prorata du mois. Chaque mois, tu devras t'acquitter du loyer pour la conserver. Tu peux rester locataire 4 mois maximum, ensuite tu devras l'acheter (cf. conditions dans les règles du jeu).`,
         btns: `<button class="tour-btn" onclick="Tour.closeRentModal()">Annuler</button><button class="rm-btn-play pulse-cta" onclick="Tour.confirmRent()">Louer</button>`
       };
     }
@@ -34189,7 +34191,7 @@ window.Tour.init = async function(){
         };
       }
       const lm = land.leaseMonths||0;
-      const leaseTxt = land.freeMonthsLeft>0 ? `encore ${land.freeMonthsLeft} mois gratuits` : `bail ${lm}/6 mois`;
+      const leaseTxt = land.freeMonthsLeft>0 ? `encore ${land.freeMonthsLeft} mois gratuits` : `bail ${lm}/${TOUR_LEASE_MAX_PERIODS} mois`;
       return {
         title: 'C\'est ta Land — n°'+land.idx,
         sub: `Tu loues déjà cette Land (${leaseTxt}). Tu peux l'acheter maintenant pour <b class="rm-green">${LAND_PRICE_NYX} NYX</b> pour ne plus payer de loyer dessus.`,
@@ -34451,7 +34453,7 @@ window.Tour.init = async function(){
     land.layer.setStyle({fillColor: ME.color, fillOpacity:.95});
     land.layer.unbindPopup(); // devient tienne : plus de popup Leaflet, direct vers "Mes Lands" au clic (cf hex.on('click',...))
     await _tourSyncWallet();
-    showCelebrationModal('🎉 Félicitations !', `Tu es à présent locataire de cette Land 🎉 — <b class="rm-gold">${res.cost} RPC</b> prélevés (loyer du mois en cours, au prorata). Tu as 6 mois pour l'acheter, retrouve le compte à rebours dans "Mes Lands". Bon SPEEDIX Tour !`);
+    showCelebrationModal('🎉 Félicitations !', `Tu es à présent locataire de cette Land 🎉 — <b class="rm-gold">${res.cost} RPC</b> prélevés (loyer du mois en cours, au prorata). Tu as 4 mois de bail pour l'acheter, retrouve le compte à rebours dans "Mes Lands". Bon SPEEDIX Tour !`);
   }
   // Sous-fenêtre "pas assez de RPC pour louer" (2026-08-04) — même mécanique que
   // showPreemptNotEnoughNyxModal côté NYX : remplace le contenu de la modale déjà
@@ -34668,8 +34670,8 @@ window.Tour.init = async function(){
     renderMyLandsPage();
   }
 
-  // ── Bail 6 mois (2026-08-01, règle reprise de la Land actuelle en prod) : un
-  // locataire a 6 mois pour acheter sa Land, sinon elle repart en jeu (redevient
+  // ── Bail (2026-08-01 ; passé de 6 à 4 périodes le 2026-10-29, cf tour_lease_max_periods) : un
+  // locataire a 4 mois pour acheter sa Land, sinon elle repart en jeu (redevient
   // libre, plus personne dessus). Le prélèvement mensuel est réel (cron
   // tour_charge_rent) et la LIBÉRATION elle-même (bouton "Libérer") est réelle
   // depuis le 2026-08-06 — cf tour_release_land.
@@ -34687,20 +34689,6 @@ window.Tour.init = async function(){
     renderMyLandsPage();
     if(!p_keepOpen) closeRentModal();
     return true;
-  }
-  function openLeaseDeadlineModal(land){
-    const bevel = document.getElementById('tour-rm-bevel');
-    bevel.classList.remove('celebrate','etape-glow','pulse-on','bonus-gain','bonus-loss','extra-frame','gift-frame');
-    bevel.classList.add('event-frame');
-    document.getElementById('tour-rm-inner').classList.remove('celebrate');
-    document.getElementById('tour-rm-title').innerHTML = `⏳ <span style="color:#fff">FIN DE</span> <span style="color:var(--orange)">BAIL !</span>`;
-    document.getElementById('tour-rm-sub').innerHTML = `Ça fait 6 mois que tu loues cette Land n°${land.idx} sans l'acheter. Achète-la maintenant pour <b class="rm-green">${LAND_PRICE_NYX} NYX</b>, sinon elle sera remise en jeu. Un autre RP pourra alors la louer à ta place.`;
-    // Bouton "Acheter" TOUJOURS affiché (2026-08-04, demande explicite, cf
-    // attemptBuyLand plus bas) — même sans les conditions réunies, guidé au clic.
-    document.getElementById('tour-rm-btns').innerHTML = `<button class="tour-btn" onclick="Tour.releaseLand(window._rentModalLand)">Libérer</button><button class="rm-btn-play pulse-cta" onclick="Tour.attemptBuyLand(window._rentModalLand)">Acheter</button>`;
-    document.getElementById('tour-rent-modal').classList.add('open');
-    document.getElementById('tour-rm-status-strip').innerHTML = renderModalStatusStrip();
-    window._rentModalLand = land;
   }
   // Achat d'une étoile (2026-08-01) — permanent, jamais reprise. Fonctionne sur
   // une Land possédée classique (status='owned') ou une ville étape achetée
@@ -35131,7 +35119,7 @@ window.Tour.init = async function(){
         rows.push(mlcRow('🎉','Gratuité', `<span class="mlc-lease-free">Encore ${l.freeMonthsLeft} mois</span>`));
       } else {
         const lm = l.leaseMonths||0;
-        rows.push(mlcRow('⏳','Bail de location', `<span class="${lm>=5?'mlc-lease-warn':''}">${lm}/6 mois</span>`));
+        rows.push(mlcRow('⏳','Bail de location', `<span class="${lm>=TOUR_LEASE_MAX_PERIODS-1?'mlc-lease-warn':''}">${lm}/${TOUR_LEASE_MAX_PERIODS} mois</span>`));
       }
       // Prix fixe pour racheter la Land et ne plus payer de bail (2026-08-04,
       // demande explicite — "tous les prix dans les boutons" déplacés ici).
@@ -36081,7 +36069,7 @@ window.Tour.init = async function(){
     // forceMove. "Vu" n'est marqué qu'une fois la voie libre : si l'appli ferme
     // pendant l'attente, ce rappel se représente à la prochaine ouverture.
     await _tourWaitClear();
-    showRentDueModal(res.amount, res.lands_count, res.days_left, res.per_land);
+    showRentDueModal(res.amount, res.lands_count, res.days_left, res.per_land, res.expiring_count);
     } finally { _rentNoticeBusy = false; }
   }
   // ── Dette du pion (2026-10-29, règle validée avec l'user) : redevance / carte perte / tempête que le RP ne
@@ -36104,14 +36092,17 @@ window.Tour.init = async function(){
       document.getElementById('tour-rm-status-strip').innerHTML = renderModalStatusStrip();
     } finally { _debtModalBusy = false; }
   }
-  function showRentDueModal(amount, landsCount, daysLeft, perLand){
+  function showRentDueModal(amount, landsCount, daysLeft, perLand, expiringCount){
     const bevel = document.getElementById('tour-rm-bevel');
     bevel.classList.remove('celebrate','pulse-on','bonus-gain','bonus-loss','extra-frame','gift-frame','etape-glow');
     bevel.classList.add('event-frame');
     document.getElementById('tour-rm-inner').classList.remove('celebrate');
     document.getElementById('tour-rm-title').innerHTML = `🏠 <span style="color:#fff">LOYER</span> <span style="color:var(--gold)">À PAYER</span>`;
-    document.getElementById('tour-rm-sub').innerHTML = `Tu loues <b>${landsCount}</b> Land${landsCount>1?'s':''} — <b>${perLand.toLocaleString(SPEEDIX_LANG)} RPC/Land = <span class="rm-gold">${amount.toLocaleString(SPEEDIX_LANG)} RPC</span></b> seront prélevés dans <b>${daysLeft}</b> jour${daysLeft>1?'s':''} si tu ne fais rien. Si ton solde ne couvre pas tout, les Lands que tu ne peux pas payer seront libérées.<br><br>Tu peux acheter des RPC dans la marketplace, ou gérer tes Lands en sélectionnant celles que tu souhaites garder ou libérer.`;
-    document.getElementById('tour-rm-btns').innerHTML = `<button class="tour-btn" onclick="Tour.showRentReleasePicker()">GÉRER</button><button class="tour-btn" onclick="Tour.closeRentModal()">PASSER</button><button class="rm-btn-play pulse-cta" onclick="Tour.payMonthlyRent()">PAYER</button>`;
+    const _exp = expiringCount||0;
+    const _expTxt = _exp>0 ? `<b class="rm-gold">${_exp}</b> de tes Lands arrive${_exp>1?'nt':''} au terme de leur bail (${TOUR_LEASE_MAX_PERIODS}/${TOUR_LEASE_MAX_PERIODS}) : deviens propriétaire dans les <b>48 h</b> sinon elle${_exp>1?'s seront remises':' sera remise'} en jeu.` : '';
+    const _rentTxt = landsCount>0 ? `Tu loues <b>${landsCount}</b> Land${landsCount>1?'s':''} — <b>${perLand.toLocaleString(SPEEDIX_LANG)} RPC/Land = <span class="rm-gold">${amount.toLocaleString(SPEEDIX_LANG)} RPC</span></b> seront prélevés dans <b>${daysLeft}</b> jour${daysLeft>1?'s':''} si tu ne fais rien. Si ton solde ne couvre pas tout, les Lands que tu ne peux pas payer seront libérées.<br><br>Tu peux acheter des RPC dans la marketplace, ou gérer tes Lands en sélectionnant celles que tu souhaites garder ou libérer.` : '';
+    document.getElementById('tour-rm-sub').innerHTML = [_expTxt, _rentTxt].filter(Boolean).join('<br><br>');
+    document.getElementById('tour-rm-btns').innerHTML = `${landsCount>0 ? `<button class="tour-btn" onclick="Tour.showRentReleasePicker()">GÉRER</button>` : `<button class="tour-btn" onclick="Tour.openMyLandsPage()">MES LANDS</button>`}<button class="tour-btn" onclick="Tour.closeRentModal()">PASSER</button>${landsCount>0 ? `<button class="rm-btn-play pulse-cta" onclick="Tour.payMonthlyRent()">PAYER</button>` : ''}`;
     document.getElementById('tour-rent-modal').classList.add('open');
     document.getElementById('tour-rm-status-strip').innerHTML = renderModalStatusStrip();
   }
@@ -36122,7 +36113,7 @@ window.Tour.init = async function(){
       if(typeof window.showToast==='function') window.showToast('✅ Plus aucun loyer en attente.');
       return;
     }
-    showRentDueModal(res.amount, res.lands_count, res.days_left, res.per_land);
+    showRentDueModal(res.amount, res.lands_count, res.days_left, res.per_land, res.expiring_count);
   }
   async function payMonthlyRent(){
     const res = await _tourCall('tour_pay_monthly_rent', {});
@@ -36152,7 +36143,7 @@ window.Tour.init = async function(){
     updatePlayerStatusPanel, payBench, noteBench, openStartCityModal, chooseStartCity, bumpParisStarts,
     hardResetTourDemo, showRentNotifications, claimTaxExemption, showTaxReleasePicker,
     showRentReleasePicker, releaseLandFromPicker, backFromReleasePicker, backToTaxModal,
-    backToRentModal, payMonthlyRent, showDebtModal, openRulesPage, closeRulesPage, toggleLegend,
+    backToRentModal, payMonthlyRent, showDebtModal, showRentDueModal, openRulesPage, closeRulesPage, toggleLegend,
     showLegend, hideLegendAuto,
     openForSalePage, closeForSalePage, buyFromMarketplace, openHistoryReplay, updateTourNotifBadge,
     onShow: async function(){
