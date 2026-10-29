@@ -24752,20 +24752,14 @@ function switchManagedTeam(teamId){
   window.__activeExtTeamId=(teamId===window.__myTeamId)?null:teamId;
   renderTeams();
 }
-function teamMoveWindowOpen(){
-  // Bascule autorisée du 1er au 10 du mois (heure de Paris) — évite le transfert de points
-  var d=parseInt(new Intl.DateTimeFormat('fr-FR',{timeZone:'Europe/Paris',day:'numeric'}).format(new Date()),10);
-  return d>=1&&d<=10;
-}
 async function moveMemberTeam(playerId,toTeamId,toNameEnc){
   if(!currentUser||window.__myTeamRole!=='capitaine') return;
-  if(!teamMoveWindowOpen()){showToast('⚠️ Bascule possible uniquement du 1er au 10 du mois');return;}
   var toName=decodeURIComponent(toNameEnc);
-  if(!await askConfirm('Basculer ce joueur vers <strong>'+escapeHtml(toName)+'</strong> ?<br><span style="font-size:.8em;opacity:.8">Il repart de zéro dans la nouvelle team.<br>Bascule possible uniquement du 1er au 10 du mois.</span>',{title:'Changer de team',emoji:'🔁',okLabel:'BASCULER',cancelLabel:'ANNULER',success:true})) return;
+  if(!await askConfirm('Basculer ce joueur vers <strong>'+escapeHtml(toName)+'</strong> ?<br><span style="font-size:.8em;opacity:.8">Il quitte sa team (qui perd ses points) et repart de zéro dans la nouvelle.<br>S\'il arrive après le 10 du mois, ses points ne comptent pas pour sa nouvelle team.</span>',{title:'Changer de team',emoji:'🔁',okLabel:'BASCULER',cancelLabel:'ANNULER',success:true})) return;
   var {data:res,error:err}=await supabaseClient.rpc('team_move_member',{p_player:playerId,p_to_team:toTeamId});
   if(err||!res||!res.ok){
     var e=res&&res.error;
-    showToast(e==='window_closed'?'⚠️ Bascule possible uniquement du 1er au 10 du mois':e==='full'?'⚠️ '+toName+' est complète ('+res.nb+'/'+res.cap+') — achète des licences':e==='is_captain'?'⚠️ Le capitaine ne peut pas être basculé':'⚠️ Bascule impossible');
+    showToast(e==='full'?'⚠️ '+toName+' est complète ('+res.nb+'/'+res.cap+') — achète des licences':e==='is_captain'?'⚠️ Le capitaine ne peut pas être basculé':'⚠️ Bascule impossible');
     return;
   }
   showToast('✓ Joueur basculé vers '+toName);
@@ -24845,7 +24839,7 @@ async function openKickModal(teamId){
   members.forEach(function(m){
     var p=m.players||{};
     var isCap=(m.role==='capitaine');
-    var mvBtn=(!isCap&&_mvTarget)?'<button onclick="closeModal(\'land-modal\');moveMemberTeam(\''+m.player_id+'\',\''+_mvTarget.id+'\',\''+encodeURIComponent(_mvTarget.name)+'\')" title="Basculer vers '+escapeHtml(_mvTarget.name)+(teamMoveWindowOpen()?'':' — possible du 1er au 10 du mois')+'" style="padding:.2rem .5rem;border-radius:4px;border:1px solid rgba(45,219,128,.4);background:rgba(45,219,128,.08);color:var(--green);font-size:.75rem;cursor:pointer;'+(teamMoveWindowOpen()?'':'opacity:.4')+'">🔁</button>':'';
+    var mvBtn=(!isCap&&_mvTarget)?'<button onclick="closeModal(\'land-modal\');moveMemberTeam(\''+m.player_id+'\',\''+_mvTarget.id+'\',\''+encodeURIComponent(_mvTarget.name)+'\')" title="Basculer vers '+escapeHtml(_mvTarget.name)+'" style="padding:.2rem .5rem;border-radius:4px;border:1px solid rgba(45,219,128,.4);background:rgba(45,219,128,.08);color:var(--green);font-size:.75rem;cursor:pointer;'+'">🔁</button>':'';
     html+='<div style="display:flex;align-items:center;gap:.5rem;padding:.35rem .5rem;border-radius:6px;border:1px solid var(--border);background:rgba(255,255,255,.03)">'
       +natFlagHtml(p.nat,'0.9rem')
       +'<span style="flex:1;font-family:\'Big Shoulders Display\',sans-serif;font-weight:900;font-style:italic;display:inline-block;transform:scaleY(1.15);font-size:.85rem;color:var(--text)">'+(p.username||'—')+'</span>'
@@ -24855,7 +24849,7 @@ async function openKickModal(teamId){
   });
   html+='</div>';
   document.getElementById('lm-title').textContent='Gérer les membres';
-  document.getElementById('lm-sub').textContent=_mvTarget?'🔁 pour basculer vers '+_mvTarget.name+' (uniquement du 1er au 10 du mois) · ✕ pour retirer un membre':'Clique sur ✕ pour retirer un membre';
+  document.getElementById('lm-sub').textContent=_mvTarget?'🔁 pour basculer vers '+_mvTarget.name+' · ✕ pour retirer un membre':'Clique sur ✕ pour retirer un membre';
   document.getElementById('lm-body').innerHTML=html;
   openModal('land-modal');
 }
