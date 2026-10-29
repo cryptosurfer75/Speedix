@@ -21805,36 +21805,12 @@ async function syncStravaActivities(silent){
         resultsHtml+='<div style="padding:.35rem .3rem;font-size:.72rem;color:var(--red);border-bottom:1px solid rgba(30,37,53,.6)">🚫 '+a.name+' — Vitesse trop élevée ('+Math.round(spd)+' km/h)</div>';
         continue;
       }
-      // 5. Accélération GPS : vérifier les segments (en ignorant les bords imprécis)
-      // V2 : on exige 3 segments suspects CONSÉCUTIFS pour flag (avant : 1 seul suffisait).
-      // Un saut GPS isolé crée au max 2 segments rapides consécutifs (jump + retour) → ignoré.
-      // Une vraie anomalie (déplacement en véhicule sur plusieurs dizaines de mètres) crée
-      // une série continue de segments rapides → toujours détectée.
-      var gpsRejected=false;
-      if(polyline&&typeof decodePolyline==='function'){
-        var gpsPoints=decodePolyline(polyline);
-        // Skip 5 premiers/derniers points (GPS imprécis démarrage/arrêt)
-        var gStart=Math.min(5,Math.floor(gpsPoints.length/4));
-        var gEnd=Math.max(gpsPoints.length-5,gpsPoints.length-Math.floor(gpsPoints.length/4));
-        var consecBad=0;
-        for(var g=Math.max(1,gStart);g<gEnd;g++){
-          var dLat=gpsPoints[g][0]-gpsPoints[g-1][0];
-          var dLng=gpsPoints[g][1]-gpsPoints[g-1][1];
-          var distKm=Math.sqrt(Math.pow(dLat*111,2)+Math.pow(dLng*111*Math.cos(gpsPoints[g][0]*Math.PI/180),2));
-          var segTime=timeMin/gpsPoints.length;
-          if(segTime>0){
-            var segSpd=distKm/(segTime/60);
-            if(segSpd>35){
-              consecBad++;
-              if(consecBad>=3){gpsRejected=true;break;}
-            } else {
-              consecBad=0;
-            }
-          }
-        }
-      }
-      // Si accélération suspecte (3 segments consécutifs > 35 km/h) : on importe mais on flag
-      var _accelFlag=gpsRejected;
+      // Accélération GPS : plus de test côté appli (2026-10-29). Il découpait le temps total en parts ÉGALES
+      // entre les points du tracé simplifié de Strava (sans horodatage) : une ligne droite = peu de points =
+      // « tronçon à plus de 35 km/h » → fausses alertes (145 courses à allure normale en 30 jours). Le seul test
+      // fiable est côté serveur (_shared/runIngest.ts, flux Strava complet) ; ici, rejet seulement sur la
+      // vitesse moyenne (> 20 km/h, plus haut). NE PAS le réintroduire sans horodatage réel des points.
+      var _accelFlag=false;
       // ── FIN ANTI-TRICHE ──────────────────────────
 
       // Vérifier si déjà importée — 2 niveaux de dédup :
