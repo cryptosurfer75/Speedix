@@ -4488,7 +4488,7 @@ select option{background:#040c1c}
       </div>
       <div class="rules-section">
         <h3>💰 Redevance & étoiles</h3>
-        <p>Une Land <b>nue</b> rapporte <b style="color:var(--gold)">250 RPC</b> quand un RP tombe dessus. Sur une propriété, tu peux ajouter jusqu'à 3 étoiles, chacune ajoutant +50 RPC de redevance (<b style="color:var(--gold)">300-350-400 RPC</b>). Prix des étoiles progressif = <b style="color:var(--gold)">1 000 - 2 000 - 3 000 RPC</b> la 3e.</p>
+        <p>Une Land <b>nue</b> rapporte <b style="color:var(--gold)">250 RPC</b> quand un RP tombe dessus. Sur une propriété, tu peux ajouter jusqu'à 3 étoiles, chacune augmentant fortement la redevance (<b style="color:var(--gold)">400 - 600 - 800 RPC</b>). Prix des étoiles progressif = <b style="color:var(--gold)">1 000 - 2 000 - 3 000 RPC</b> la 3e.</p>
       </div>
       <div class="rules-section">
         <h3>⚔️ Préemption</h3>
@@ -4955,10 +4955,9 @@ select option{background:#040c1c}
         <div class="eco-row"><span data-i18n="eco.stars.s3">★★★ Étoile ×3</span><span class="eco-price">3 000 RPC</span></div>
         <div data-i18n="eco.stars.passage" style="margin-top:.6rem;border-top:1px solid var(--border);padding-top:.5rem;font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--muted2);margin-bottom:.4rem">Passage</div>
         <div class="eco-row"><span data-i18n="eco.stars.s0">Sans étoile</span><span class="eco-price">250 RPC</span></div>
-        <div class="eco-row"><span data-i18n="eco.stars.s1">★ Étoile ×1</span><span class="eco-price">300 RPC</span></div>
-        <div class="eco-row"><span data-i18n="eco.stars.s2">★★ Étoile ×2</span><span class="eco-price">350 RPC</span></div>
-        <div class="eco-row"><span data-i18n="eco.stars.s3">★★★ Étoile ×3</span><span class="eco-price">400 RPC</span></div>
-        <div data-i18n="eco.stars.roi" style="font-size:.6rem;color:var(--muted2);margin-top:.35rem">ROI : 20–60 passages</div>
+        <div class="eco-row"><span data-i18n="eco.stars.s1">★ Étoile ×1</span><span class="eco-price">400 RPC</span></div>
+        <div class="eco-row"><span data-i18n="eco.stars.s2">★★ Étoile ×2</span><span class="eco-price">600 RPC</span></div>
+        <div class="eco-row"><span data-i18n="eco.stars.s3">★★★ Étoile ×3</span><span class="eco-price">800 RPC</span></div>
       </div>
     </div>
 
@@ -7262,7 +7261,6 @@ const I18N = {
     'eco.stars.s3'              : '★★★ Étoile ×3',
     'eco.stars.passage'         : 'Passage',
     'eco.stars.s0'              : 'Sans étoile',
-    'eco.stars.roi'             : 'ROI : 20–60 passages',
     // — Page Premium (page-access)
     'prem.page.title'           : 'Free <span style="color:var(--gold)">vs Premium</span>',
     'prem.page.subtitle'        : '5,99€ / mois · ou 59,99€ / an',
@@ -8059,7 +8057,6 @@ const I18N = {
     'eco.stars.s3'              : '★★★ Star ×3',
     'eco.stars.passage'         : 'Crossing',
     'eco.stars.s0'              : 'No star',
-    'eco.stars.roi'             : 'ROI: 20–60 crossings',
     // — Premium page (page-access)
     'prem.page.title'           : 'Free <span style="color:var(--gold)">vs</span> Premium',
     'prem.page.subtitle'        : '€5.99 / month · or €59.99 / year',
@@ -25877,6 +25874,11 @@ async function renderChallenges(){
     pausedQuestsMapGlobal=pausedQuestsMap;
     unlockedMapGlobal=unlockedMap;
   }
+  // Défis « vitesse sur 5 km » : jugés sur le MEILLEUR 5 km de la course (SOURCE UNIQUE en base : best_5k_speeds).
+  // MIROIR de checkBadges.ts statsSince() — garder synchro, NE PAS diverger.
+  var {data:_best5k}=await supabaseClient.rpc('best_5k_speeds',{p_player_id:targetUuid});
+  var _best5kByRun={};
+  (_best5k||[]).forEach(function(x){_best5kByRun[x.run_id]=Number(x.kmh);});
   var _statsSinceCache={};
   function statsSince(cutoffISO){
     if(_statsSinceCache[cutoffISO]) return _statsSinceCache[cutoffISO];
@@ -25893,7 +25895,7 @@ async function renderChallenges(){
       cumul_elv_m:runsSince.reduce(function(s,r){return s+(r.elevation||0);},0),
       // NOMBRE DE SORTIES (17/10/2026) — MIROIR de checkBadges.ts statsSince().
       cumul_runs:runsSince.length,
-      speed_over_5km:runsSince.filter(function(r){return (r.distance||0)>=5&&r.time>0;}).reduce(function(m,r){return Math.max(m,r.distance/(r.time/60));},0),
+      speed_over_5km:runsSince.filter(function(r){return (r.distance||0)>=5&&r.time>0;}).reduce(function(m,r){return Math.max(m,_best5kByRun[r.id]!==undefined?_best5kByRun[r.id]:r.distance/(r.time/60));},0),
       streak_days:_currentStreak(runsSince),
       simultaneous_lands:landsSince.length,
       capitals_fr:_countCapitals(runsSince,FR_CAPITALS_CLIENT),
@@ -28130,7 +28132,7 @@ function _badgeChallengeDescription(b){
     case 'cumul_runs':        return 'Faire <strong style="color:'+(b.color||'#f5c842')+'">'+fmt(v)+' sorties</strong> au total';
     case 'runs_total':        return 'Faire <strong style="color:'+(b.color||'#f5c842')+'">'+fmt(v)+' sorties</strong> au total — le badge se débloque tout seul';
     case 'cumul_elv_m':       return 'Cumuler <strong style="color:'+(b.color||'#f5c842')+'">'+fmt(v)+' m</strong> de dénivelé au total';
-    case 'speed_over_5km':    return 'Atteindre <strong style="color:'+(b.color||'#f5c842')+'">'+v+' km/h</strong> de moyenne sur ≥ 5 km';
+    case 'speed_over_5km':    return 'Atteindre <strong style="color:'+(b.color||'#f5c842')+'">'+v+' km/h</strong> de moyenne sur ton meilleur 5 km (course de 5 km ou plus)';
     case 'single_run_duration_min': return 'Réalise <strong style="color:'+(b.color||'#f5c842')+'">'+(v/60)+'h</strong> d\'effort en continu pour obtenir ce badge';
     case 'streak_days':       return 'Courir <strong style="color:'+(b.color||'#f5c842')+'">'+v+' jours</strong> consécutifs';
     case 'simultaneous_lands':return 'Posséder <strong style="color:'+(b.color||'#f5c842')+'">'+v+' Lands</strong> simultanément (loc/prop) en moins de 60 min';
@@ -32005,20 +32007,20 @@ window.Tour.init = async function(){
   const STAR_PRICES_RPC = [1000, 2000, 3000];
   const STAR_MAX = 3;
   const BASE_REDEVANCE_RPC = 250;
-  const STAR_REDEVANCE_BONUS_RPC = 50;
   // Redevance perçue par le propriétaire quand un RP tombe sur sa Land. Une Land
   // LOUÉE ou POSSÉDÉE SANS étoile rapporte 250 RPC/passage — acheter la Land
   // n'augmente rien en soi. Ce que ça ouvre, c'est le DROIT de poser des étoiles
   // (comme au Monopoly, réservé aux Lands possédées) : chaque étoile ajoute
-  // +50 RPC/passage (1★→300, 2★→350, 3★→400). Marche pour les 2 cas (louée ET
+  // 400 / 600 / 800 RPC/passage (1★ / 2★ / 3★, barème du 2026-10-29). Marche pour les 2 cas (louée ET
   // possédée) sans branchement : une Land louée n'a jamais de champ `stars`,
   // donc (l.stars||0) vaut 0 et retombe sur 250.
-  // Villes étapes (prestige, 2026-10-04) : 400 sans étoile puis 500/600/800.
-  // DOIT rester identique à tour_pay_toll côté serveur.
-  const ETAPE_REDEVANCE_RPC = [400,500,600,800];
+  // Villes étapes : 400 sans étoile puis 600 / 800 / 1 200 (barème du 2026-10-29).
+  // MIROIR de tour_land_toll() en base — garder synchro, NE PAS diverger.
+  const LAND_REDEVANCE_RPC = [250,400,600,800];
+  const ETAPE_REDEVANCE_RPC = [400,600,800,1200];
   function landRedevance(l){
-    if(l.type==='etape') return ETAPE_REDEVANCE_RPC[Math.min(l.stars||0,3)];
-    return BASE_REDEVANCE_RPC + STAR_REDEVANCE_BONUS_RPC * (l.stars||0);
+    const i = Math.min(l.stars||0,3);
+    return (l.type==='etape' ? ETAPE_REDEVANCE_RPC : LAND_REDEVANCE_RPC)[i];
   }
   // Grade CONFIRMÉ ou plus (seule condition Free pour pouvoir acheter des Lands,
   // sans le droit d'acquisition ni le Premium) — 2026-08-06, branché en réel :
@@ -34727,7 +34729,7 @@ window.Tour.init = async function(){
     // ligne (.rm-row, même technique que le reste des modales) plutôt qu'une
     // phrase dense — barème final 2026-08-03 (+50 RPC/passage par étoile, 250
     // de base → 300 → 350 → 400), prix d'achat progressif, cf STAR_PRICES_RPC/
-    // BASE_REDEVANCE_RPC/STAR_REDEVANCE_BONUS_RPC (SOURCE UNIQUE, jamais réécrit).
+    // LAND_REDEVANCE_RPC/ETAPE_REDEVANCE_RPC (SOURCE UNIQUE, jamais réécrit).
     const tiersHtml = STAR_PRICES_RPC.map(function(price, i){
       const red = landRedevance({type:land.type, stars:i+1});
       return `<div class="rm-star-tier"><span class="stars">${'⭐'.repeat(i+1)}</span><span class="price">${price} RPC</span><span class="arrow">→</span><span class="result">${red} RPC</span><span class="suffix">/passage</span></div>`;
