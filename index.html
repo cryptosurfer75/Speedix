@@ -4472,7 +4472,7 @@ select option{background:#040c1c}
       </div>
       <div class="rules-section">
         <h3>🔑 Louer une Land</h3>
-        <p>Tombe sur une case libre pour la louer, pour un bail maximum de <b>4 mois</b>. Le loyer de <b style="color:var(--gold)">165 RPC/jour</b> est à payer tous les mois entre le <b>5</b> et le <b>10</b>. Après, tu dois en devenir <b>propriétaire</b> pour la conserver. Chaque RP qui atterrit dessus te paie une redevance.</p>
+        <p>Tombe sur une case libre pour la louer, pour un bail maximum de <b>4 mois</b>. Le loyer de <b style="color:var(--gold)">165 RPC/jour</b> tombe le <b>5</b> de chaque mois : tu as ensuite <b>48 h</b> pour décider (payer, acheter ou libérer tes Lands), sinon les Lands que tu ne peux pas payer sont libérées. Après 4 mois, tu dois en devenir <b>propriétaire</b> pour la conserver. Chaque RP qui atterrit dessus te paie une redevance.</p>
       </div>
       <div class="rules-section">
         <h3>🏠 Acheter une Land</h3>
@@ -4489,6 +4489,7 @@ select option{background:#040c1c}
       <div class="rules-section">
         <h3>💰 Redevance & étoiles</h3>
         <p>Une Land <b>nue</b> rapporte <b style="color:var(--gold)">250 RPC</b> quand un RP tombe dessus. Sur une propriété, tu peux ajouter jusqu'à 3 étoiles, chacune augmentant fortement la redevance (<b style="color:var(--gold)">400 - 600 - 800 RPC</b>). Prix des étoiles progressif = <b style="color:var(--gold)">1 000 - 2 000 - 3 000 RPC</b> la 3e.</p>
+        <p>Une <b>ville étape</b> rapporte <b style="color:var(--gold)">400 RPC</b> sans étoile, puis <b style="color:var(--gold)">600 - 800 - 1 200 RPC</b> avec 1, 2 ou 3 étoiles.</p>
       </div>
       <div class="rules-section">
         <h3>⚔️ Préemption</h3>
@@ -7113,7 +7114,7 @@ const I18N = {
     'lands.rent.title'          : 'Coûts <span class="hl">Location</span>',
     'lands.rent.m13'            : 'Loyer journalier',
     'lands.rent.max'            : 'Bail maximum',
-    'lands.rent.note'           : '1er mois au prorata (165 RPC/jour restant)<br>Loyer dû entre le 5 et le 10 du mois<br>Après 4 mois → acheter la Land (sous 48 h) ou elle repart dans le jeu',
+    'lands.rent.note'           : '1er mois au prorata (165 RPC/jour restant)<br>Loyer dû le 5 du mois, 48 h pour décider<br>Après 4 mois → acheter la Land (sous 48 h) ou elle repart dans le jeu',
     'lands.buy.title'           : 'Achat <span class="hl">NYX</span>',
     'lands.buy.p3'              : 'Prix unique',
     'lands.buy.right'           : 'Droit d\'acquisition',
@@ -7392,7 +7393,7 @@ const I18N = {
     'streakpause.btn'                : 'INVITER UN AMI',
     // — Modal Rent validation
     'rent.title'                : '🏠 Loyer mensuel',
-    'rent.sub'                  : 'Prélèvement entre le 5 et le 10 — valide pour continuer à louer tes Lands',
+    'rent.sub'                  : 'Avis le 5, prélèvement 48 h plus tard — valide pour continuer à louer tes Lands',
     'rent.total'                : 'Total à prélever',
     'rent.warn'                 : '⚠️ Passé le <strong style="color:var(--red)">10 du mois</strong>, les Lands non payées seront automatiquement remises en jeu.',
     'rent.btn.manage'           : 'Gérer mes Lands',
@@ -7909,7 +7910,7 @@ const I18N = {
     'lands.rent.title'          : 'Rental <span class="hl">costs</span>',
     'lands.rent.m13'            : 'Daily rent',
     'lands.rent.max'            : 'Maximum lease',
-    'lands.rent.note'           : 'Month 1 pro-rated (165 RPC/day remaining)<br>Rent due between the 5th and 10th of the month<br>After 4 months → buy the Land (within 48 h) or it goes back into play',
+    'lands.rent.note'           : 'Month 1 pro-rated (165 RPC/day remaining)<br>Rent due on the 5th of the month, 48 h to decide<br>After 4 months → buy the Land (within 48 h) or it goes back into play',
     'lands.buy.title'           : 'NYX <span class="hl">purchase</span>',
     'lands.buy.p3'              : 'Single price',
     'lands.buy.right'           : 'Acquisition right',
@@ -8188,7 +8189,7 @@ const I18N = {
     'streakpause.btn'                : 'INVITE A FRIEND',
     // — Rent validation modal
     'rent.title'                : '🏠 Monthly rent',
-    'rent.sub'                  : 'Charged between the 5th and 10th — confirm to keep renting your Lands',
+    'rent.sub'                  : 'Notice on the 5th, charged 48 h later — confirm to keep renting your Lands',
     'rent.total'                : 'Total to charge',
     'rent.warn'                 : '⚠️ After the <strong style="color:var(--red)">10th of the month</strong>, any unpaid Lands will automatically return to the game.',
     'rent.btn.manage'           : 'Manage my Lands',
@@ -36015,7 +36016,7 @@ window.Tour.init = async function(){
 
   // ── Loyer mensuel Tour (2026-08-06/07, demande explicite) : contrairement à
   // la taxe foncière (RP propriétaires), ce rappel concerne les Lands encore EN
-  // LOCATION (pas achetées). Appelé du 5 au 10 du mois (popup quotidienne tant
+  // LOCATION (pas achetées). Appelé dès le 5 du mois, 48 h avant le prélèvement (popup tant
   // que rien n'est fait, cf tour_rent_status en base) — passé le 10, le cron
   // tour_charge_rent prend la main : prélèvement auto si le solde suffit,
   // sinon libération d'une Land. Exclut les Lands encore sous gratuité ("Land
