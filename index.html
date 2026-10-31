@@ -35424,7 +35424,11 @@ window.Tour.init = async function(){
       document.getElementById('tour-rm-status-strip').innerHTML = renderModalStatusStrip();
       return;
     }
-    buyMyRentedLand(land);
+    // Confirmation avant débit (2026-10-31, un mis-clic a acheté une Land à
+    // 80 NYX sans filet — l'achat est irréversible).
+    askConfirm('Tu vas acheter cette Land pour <strong style="color:var(--green)">'+LAND_PRICE_NYX+' NYX</strong>.\nElle sera à toi définitivement, plus de loyer à payer.',{title:'Acheter cette Land ?',emoji:'🏠',success:true,okLabel:'Acheter',cancelLabel:'Annuler'}).then(function(ok){
+      if(ok) buyMyRentedLand(land);
+    });
   }
   // Rebranché sur le vrai achat Premium (2026-08-09, même correction que
   // preemptGoPremium ci-dessus) : ouvre la vraie modale Premium au lieu de
