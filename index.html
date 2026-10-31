@@ -27973,7 +27973,22 @@ async function pickQuestDirect(badgeId){
   }
   var cap=_questPickerCap();
   var cat=_defiCategoryFor(b.code);
+  // Anti double-choix (2026-10-31, cas Natchaan/Clem_sports/Xelirium : 5K et 10K
+  // actifs en même temps) : 2 clics rapprochés lisaient le cache global pas
+  // encore rafraîchi et ne voyaient pas le premier choix. Verrou + relecture
+  // des objectifs actifs EN BASE avant de décider.
+  if(window._pickQuestBusy) return;
+  window._pickQuestBusy=true;
   try {
+    var {data:_freshQ}=await supabaseClient.from('player_active_quests').select('badge_id,picked_at,progress_since,active,banked_progress').eq('player_id',currentUser.id);
+    if(_freshQ){
+      var _fa={}, _fp={};
+      _freshQ.forEach(function(q){
+        if(q.active) _fa[q.badge_id]={pickedAt:q.picked_at,since:q.progress_since,banked:q.banked_progress||0};
+        else _fp[q.badge_id]={pickedAt:q.picked_at,banked:q.banked_progress||0};
+      });
+      activeQuestsMapGlobal=_fa; pausedQuestsMapGlobal=_fp;
+    }
     var activeIds=Object.keys(activeQuestsMapGlobal||{}).map(Number).filter(function(id){return id!==badgeId;});
     var sameCategoryId=activeIds.find(function(id){
       var ob=(_badgesCatalog||[]).find(function(x){return x.id===id;});
@@ -28041,6 +28056,7 @@ async function pickQuestDirect(badgeId){
     try{ if(typeof triggerBadgeCheck==='function') await triggerBadgeCheck(); }catch(e){ console.warn('[pickQuest] check badges',e); }
     if(typeof renderChallenges==='function') renderChallenges();
   } catch(e){ console.warn('pickQuestDirect fail',e); showToast('⚠️ Erreur, réessaie'); }
+  finally { window._pickQuestBusy=false; }
 }
 
 // Met un objectif en pause depuis sa carte (bouton 🔄) : la progression est
