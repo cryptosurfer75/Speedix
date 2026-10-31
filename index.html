@@ -4633,7 +4633,7 @@ select option{background:#040c1c}
       <div class="block" style="background:var(--card-grad);border:none;border-radius:0;clip-path:polygon(10px 0,calc(100% - 10px) 0,100% 10px,100% calc(100% - 10px),calc(100% - 10px) 100%,10px 100%,0 calc(100% - 10px),0 10px)">
         <div class="block-header">
           <div class="block-title" data-i18n-html="teams.rank.title">Classement <span class="hl">Général</span></div>
-          <div data-i18n="teams.rank.subtitle" style="font-size:.65rem;color:var(--muted2)">Moy. des 6 meilleurs RP + bonus</div>
+          <div data-i18n="teams.rank.subtitle" style="font-size:.65rem;color:var(--muted2)">Points × coefficient, ramenés à 6 RP</div>
         </div>
         <div id="teams-list"></div>
       </div>
@@ -4672,8 +4672,8 @@ select option{background:#040c1c}
           <div data-i18n-html="teams.rules.body" style="font-size:.78rem;color:var(--muted2);line-height:2">
             Base : <strong style="color:var(--text)">6 RP</strong><br>
             Max : <strong style="color:var(--text)">20 RP</strong><br>
-            Score = moy. 6 meilleurs RP<br>
-            Bonus : <strong style="color:var(--green)">+2%</strong> par RP supplémentaire<br>
+            Score = points × coefficient ÷ 6<br>
+            Coef : <strong style="color:var(--gold)">×1</strong> (1-6) · <strong style="color:var(--green)">×0,6</strong> (7-13) · <strong style="color:#4a90ff">×0,4</strong> (14-20)<br>
             League unique · Période d'un mois
           </div>
         </div>
@@ -6254,7 +6254,7 @@ function askConfirm(message, opts){
     <div style="background:#0c0f1a;clip-path:polygon(10px 0,calc(100% - 10px) 0,100% 10px,100% calc(100% - 10px),calc(100% - 10px) 100%,10px 100%,0 calc(100% - 10px),0 10px)">
       <div class="block-header" style="border-color:rgba(74,144,255,.2)"><div class="block-title" data-i18n-html="rules.releg.title">📉 <span class="hl">Activité &amp; relégation</span></div></div>
       <div class="block-body-sm" data-i18n-html="rules.releg.body" style="font-size:.8rem;color:var(--muted2);line-height:1.9">
-        <strong style="color:var(--gold)">🏆 40 pts minimum / période</strong> — Pour rester actif sportivement et faire profiter ta team de ton bonus de 2%, fait au moins 40 pts par période.<br><br>
+        <strong style="color:var(--gold)">🏆 40 pts minimum / période</strong> — Pour rester actif sportivement, fais au moins 40 pts par période.<br><br>
         <strong style="color:var(--gold)">Descente protégée :</strong> au rollover, un RP ne peut descendre que d'<strong style="color:var(--text)">une league</strong> par période.<br><br>
         <strong style="color:var(--gold)">RP fantôme (0 pt) :</strong> descente 1 league + devient <strong style="color:var(--text)">invisible</strong> dans le classement. 2ème période consécutive à 0 pt → retour au <strong style="color:var(--text)">départ du jeu, Zone Starter et calibrage</strong>.
       </div>
@@ -6287,8 +6287,8 @@ function askConfirm(message, opts){
       <div class="block-header" style="border-color:rgba(45,219,128,.2)"><div class="block-title" data-i18n-html="rules.teams.title">🦁 Les <span class="hl">Teams</span></div></div>
       <div class="block-body-sm" data-i18n-html="rules.teams.body" style="font-size:.8rem;color:var(--muted2);line-height:1.9">
         Crée ou rejoins une Team de <strong style="color:var(--text)">6 à 20 RP</strong>.<br>
-        Score Team = moyenne des <strong style="color:var(--text)">6 meilleurs</strong> + bonus par RP supp.<br>
-        Bonus = <strong style="color:var(--green)">+2%</strong> par RP au-delà des 6 meilleurs, à condition d'avoir <strong style="color:var(--text)">≥ 40 pts</strong> sur la période.<br>
+        Score Team = points de tous les RP × leur <strong style="color:var(--text)">coefficient</strong>, ramenés à 6 RP (équipe de base).<br>
+        Coefficient selon ta place dans la team : <strong style="color:var(--gold)">×1</strong> rangs 1 à 6 · <strong style="color:var(--green)">×0,6</strong> rangs 7 à 13 · <strong style="color:#4a90ff">×0,4</strong> rangs 14 à 20.<br>
         ⚠️ Un RP qui rejoint une team <strong style="color:var(--text)">après le 10 du mois</strong> ne contribue au score qu'à partir de la <strong style="color:var(--text)">période suivante</strong>.<br>
         Podium récompensé en <strong style="color:var(--gold)">RPC</strong> + <strong style="color:var(--green)">NYX</strong> + médaille permanente sur la PC.
       </div>
@@ -7210,7 +7210,7 @@ const I18N = {
     'rules.inf.body'            : 'En cas de blessure ou indisponibilité, déclare-toi en infirmerie depuis ton profil.<br>Tu en sors quand tu veux, dès que tu te sens prêt à reprendre la course.<br><br><strong style="color:var(--gold)">Pendant l\'infirmerie :</strong><br>• Aucune course ne peut être enregistrée<br>• <strong style="color:var(--text)">Immunité totale au Gel</strong> dès le 1er jour<br>• À partir de <strong style="color:var(--text)">10 jours</strong> : ta position de ligue est protégée, pas de descente possible<br>• En dessous de 10 jours : classement normal, descente possible si le compte n\'y est pas<br>• Tu gardes tes récompenses<br><br><strong style="color:var(--gold)">Sortie :</strong> à la fin de l\'infirmerie, tu retrouves directement ta ligue actuelle en évaluation normale.<br><br><strong style="color:var(--gold)">Plafond :</strong> 2 activations max par période de 12 mois.',
     // — Bloc Activité & relégation
     'rules.releg.title'         : '📉 <span class="hl">Activité &amp; relégation</span>',
-    'rules.releg.body'          : '<strong style="color:var(--gold)">🏆 40 pts minimum / période</strong> — Pour rester actif sportivement et faire profiter ta team de ton bonus de 2%, fait au moins 40 pts par période.<br><br><strong style="color:var(--gold)">Descente protégée :</strong> au rollover, un RP ne peut descendre que d\'<strong style="color:var(--text)">une league</strong> par période.<br><br><strong style="color:var(--gold)">RP fantôme (0 pt) :</strong> descente 1 league + devient <strong style="color:var(--text)">invisible</strong> dans le classement. 2ème période consécutive à 0 pt → retour au <strong style="color:var(--text)">départ du jeu, Zone Starter et calibrage</strong>.',
+    'rules.releg.body'          : '<strong style="color:var(--gold)">🏆 40 pts minimum / période</strong> — Pour rester actif sportivement, fais au moins 40 pts par période.<br><br><strong style="color:var(--gold)">Descente protégée :</strong> au rollover, un RP ne peut descendre que d\'<strong style="color:var(--text)">une league</strong> par période.<br><br><strong style="color:var(--gold)">RP fantôme (0 pt) :</strong> descente 1 league + devient <strong style="color:var(--text)">invisible</strong> dans le classement. 2ème période consécutive à 0 pt → retour au <strong style="color:var(--text)">départ du jeu, Zone Starter et calibrage</strong>.',
     // — Bloc Monnaies
     'rules.coins.title'         : '💰 Les <span class="hl">Monnaies</span>',
     'rules.coins.body'          : '<strong style="color:var(--gold)">💰 RPC</strong> — gagnés en courant, grâce au Speedix Tour, les défis, les challenges. Utilisés pour le buy-in, les Étoiles, les locations, les loyers.<br><br><strong style="color:var(--green)">💎 NYX</strong> — monnaie Premium. Utilisée pour les Lands, les Boosts et les Licences Team.',
@@ -7219,7 +7219,7 @@ const I18N = {
     'rules.grades.body'         : 'Ton grade reflète ton engagement global — points cumulés, Lands, ancienneté.<br>6 niveaux : <strong style="color:#8090b0">Starter</strong> · <strong style="color:#4a90ff">Débutant</strong> · <strong style="color:#2ddb80">Confirmé</strong> · <strong style="color:#f5c842">Expert</strong> · <strong style="color:#ff6020">Pro</strong> · <strong style="color:#9060f0">Elite</strong>.<br>Il détermine la couleur de ton <strong style="color:var(--text)">avatar dans le classement</strong>.',
     // — Bloc Teams
     'rules.teams.title'         : '🦁 Les <span class="hl">Teams</span>',
-    'rules.teams.body'          : 'Crée ou rejoins une Team de <strong style="color:var(--text)">6 à 20 RP</strong>.<br>Score Team = moyenne des <strong style="color:var(--text)">6 meilleurs</strong> + bonus par RP supp.<br>Bonus = <strong style="color:var(--green)">+2%</strong> par RP au-delà des 6 meilleurs, à condition d\'avoir <strong style="color:var(--text)">≥ 40 pts</strong> sur la période.<br>⚠️ Un RP qui rejoint une team <strong style="color:var(--text)">après le 10 du mois</strong> ne contribue au score qu\'à partir de la <strong style="color:var(--text)">période suivante</strong>.<br>Podium récompensé en <strong style="color:var(--gold)">RPC</strong> + <strong style="color:var(--green)">NYX</strong> + médaille permanente sur la PC.',
+    'rules.teams.body'          : 'Crée ou rejoins une Team de <strong style="color:var(--text)">6 à 20 RP</strong>.<br>Score Team = points de tous les RP × leur <strong style="color:var(--text)">coefficient</strong>, ramenés à 6 RP (équipe de base).<br>Coefficient selon ta place dans la team : <strong style="color:var(--gold)">×1</strong> rangs 1 à 6 · <strong style="color:var(--green)">×0,6</strong> rangs 7 à 13 · <strong style="color:#4a90ff">×0,4</strong> rangs 14 à 20.<br>⚠️ Un RP qui rejoint une team <strong style="color:var(--text)">après le 10 du mois</strong> ne contribue au score qu\'à partir de la <strong style="color:var(--text)">période suivante</strong>.<br>Podium récompensé en <strong style="color:var(--gold)">RPC</strong> + <strong style="color:var(--green)">NYX</strong> + médaille permanente sur la PC.',
     // — Bloc Bonus & Connexion
     'rules.bonus.title'         : '⚡ Bonus & <span class="hl">Connexion</span>',
     'rules.bonus.body'          : '<strong style="color:var(--text)">Chaîne de connexion</strong> — connecte-toi chaque jour pour maintenir ta chaîne et réclamer un bonus RPC. Un jour raté remet la chaîne à zéro avec une baisse des récompenses. 5 échecs et la chaîne est définitivement terminée.<br><br><strong style="color:var(--text)">Boost</strong> — <strong style="color:var(--green)">+10%</strong> de points sur les 24h suivantes.<br><strong style="color:var(--text)">Gel</strong> — <strong style="color:#4ac8ff">-5%</strong> de points sur les 24h suivantes.',
@@ -7307,12 +7307,12 @@ const I18N = {
     'teams.btn.join'            : 'Rejoindre une Team',
     'teams.btn.join.short'      : 'Rejoindre',
     'teams.rank.title'          : 'Classement <span class="hl">Général</span>',
-    'teams.rank.subtitle'       : 'Moy. des 6 meilleurs RP + bonus',
+    'teams.rank.subtitle'       : 'Points × coefficient, ramenés à 6 RP',
     'teams.loading'             : 'Chargement…',
     'teams.chat.title'          : '💬 Chat Team',
     'teams.chat.placeholder'    : 'Message…',
     'teams.rules.title'         : 'Règles',
-    'teams.rules.body'          : 'Base : <strong style="color:var(--text)">6 RP</strong><br>Max : <strong style="color:var(--text)">20 RP</strong><br>Score = moy. 6 meilleurs RP<br>Bonus : <strong style="color:var(--green)">+2%</strong> par RP supplémentaire<br>League unique · Période d\'un mois',
+    'teams.rules.body'          : 'Base : <strong style="color:var(--text)">6 RP</strong><br>Max : <strong style="color:var(--text)">20 RP</strong><br>Score = points × coefficient ÷ 6<br>Coef : <strong style="color:var(--gold)">×1</strong> (1-6) · <strong style="color:var(--green)">×0,6</strong> (7-13) · <strong style="color:#4a90ff">×0,4</strong> (14-20)<br>League unique · Période d\'un mois',
     'teams.rewards.title'       : '🏆 Récompenses <span class="hl">Team</span>',
     'teams.rewards.note'        : 'RPC partagés équitablement entre les membres de la team · Badges conservés définitivement sur la Player Card',
     'teams.licences.title'      : 'Licences',
@@ -8006,7 +8006,7 @@ const I18N = {
     'rules.inf.body'            : 'If you\'re injured or unavailable, check into the infirmary from your profile.<br>You leave whenever you want, as soon as you feel ready to run again.<br><br><strong style="color:var(--gold)">While in the infirmary:</strong><br>• No runs can be recorded<br>• <strong style="color:var(--text)">Total Gel immunity</strong> from day 1<br>• From <strong style="color:var(--text)">10 days</strong> onward: your league position is protected, no relegation possible<br>• Below 10 days: normal ranking rules apply, relegation possible if you fall short<br>• You keep your rewards<br><br><strong style="color:var(--gold)">Return:</strong> once you leave the infirmary, you go straight back to normal evaluation in your current league.<br><br><strong style="color:var(--gold)">Cap:</strong> 2 activations max per 12-month period.',
     // — Relegation block
     'rules.releg.title'         : '📉 <span class="hl">Activity &amp; relegation</span>',
-    'rules.releg.body'          : '<strong style="color:var(--gold)">🏆 40 pts minimum / period</strong> — To stay sportively active and let your team benefit from your 2% bonus, earn at least 40 pts per period.<br><br><strong style="color:var(--gold)">Protected drop:</strong> at rollover, an RP can only drop <strong style="color:var(--text)">one league</strong> per period.<br><br><strong style="color:var(--gold)">Ghost RP (0 pt):</strong> 1-league drop + becomes <strong style="color:var(--text)">invisible</strong> in the ranking. 2nd consecutive period at 0 pt → back to <strong style="color:var(--text)">game start, Starter Zone and calibration</strong>.',
+    'rules.releg.body'          : '<strong style="color:var(--gold)">🏆 40 pts minimum / period</strong> — To stay sportively active, earn at least 40 pts per period.<br><br><strong style="color:var(--gold)">Protected drop:</strong> at rollover, an RP can only drop <strong style="color:var(--text)">one league</strong> per period.<br><br><strong style="color:var(--gold)">Ghost RP (0 pt):</strong> 1-league drop + becomes <strong style="color:var(--text)">invisible</strong> in the ranking. 2nd consecutive period at 0 pt → back to <strong style="color:var(--text)">game start, Starter Zone and calibration</strong>.',
     // — Currencies block
     'rules.coins.title'         : '💰 The <span class="hl">currencies</span>',
     'rules.coins.body'          : '<strong style="color:var(--gold)">💰 RPC</strong> — earned by running, through the Speedix Tour, challenges and events. Used for buy-in, Stars, rentals, rent.<br><br><strong style="color:var(--green)">💎 NYX</strong> — Premium currency. Used for Lands, Boosts and Team Licenses.',
@@ -8015,7 +8015,7 @@ const I18N = {
     'rules.grades.body'         : 'Your grade reflects your overall commitment — total points, Lands, seniority.<br>6 tiers: <strong style="color:#8090b0">Starter</strong> · <strong style="color:#4a90ff">Beginner</strong> · <strong style="color:#2ddb80">Confirmed</strong> · <strong style="color:#f5c842">Expert</strong> · <strong style="color:#ff6020">Pro</strong> · <strong style="color:#9060f0">Elite</strong>.<br>It sets the color of your <strong style="color:var(--text)">avatar in the rankings</strong>.',
     // — Teams block
     'rules.teams.title'         : '🦁 The <span class="hl">Teams</span>',
-    'rules.teams.body'          : 'Create or join a Team of <strong style="color:var(--text)">6 to 20 RPs</strong>.<br>Team score = average of the <strong style="color:var(--text)">top 6</strong> + bonus per extra RP.<br>Bonus = <strong style="color:var(--green)">+2%</strong> per RP beyond the top 6, provided they have <strong style="color:var(--text)">≥ 40 pts</strong> in the period.<br>⚠️ An RP who joins a team <strong style="color:var(--text)">after the 10th of the month</strong> only contributes to the score starting from the <strong style="color:var(--text)">next period</strong>.<br>Podium rewarded in <strong style="color:var(--gold)">RPC</strong> + <strong style="color:var(--green)">NYX</strong> + permanent medal on the PC.',
+    'rules.teams.body'          : 'Create or join a Team of <strong style="color:var(--text)">6 to 20 RPs</strong>.<br>Team score = points of all RPs × their <strong style="color:var(--text)">coefficient</strong>, scaled to 6 RPs (base team).<br>Coefficient by rank in the team: <strong style="color:var(--gold)">×1</strong> ranks 1-6 · <strong style="color:var(--green)">×0.6</strong> ranks 7-13 · <strong style="color:#4a90ff">×0.4</strong> ranks 14-20.<br>⚠️ An RP who joins a team <strong style="color:var(--text)">after the 10th of the month</strong> only contributes to the score starting from the <strong style="color:var(--text)">next period</strong>.<br>Podium rewarded in <strong style="color:var(--gold)">RPC</strong> + <strong style="color:var(--green)">NYX</strong> + permanent medal on the PC.',
     // — Bonus & Login block
     'rules.bonus.title'         : '⚡ Bonus & <span class="hl">login</span>',
     'rules.bonus.body'          : '<strong style="color:var(--text)">Login streak</strong> — log in every day to keep your streak and claim an RPC bonus. A missed day resets the streak to zero with a drop in rewards. 5 failures and the streak is definitively over.<br><br><strong style="color:var(--text)">Boost</strong> — <strong style="color:var(--green)">+10%</strong> points over the next 24h.<br><strong style="color:var(--text)">Freeze</strong> — <strong style="color:#4ac8ff">-5%</strong> points over the next 24h.',
@@ -8103,12 +8103,12 @@ const I18N = {
     'teams.btn.join'            : 'Join a Team',
     'teams.btn.join.short'      : 'Join',
     'teams.rank.title'          : '<span class="hl">Overall</span> ranking',
-    'teams.rank.subtitle'       : 'Avg. of top 6 RPs + bonus',
+    'teams.rank.subtitle'       : 'Points × coefficient, scaled to 6 RPs',
     'teams.loading'             : 'Loading…',
     'teams.chat.title'          : '💬 Team Chat',
     'teams.chat.placeholder'    : 'Message…',
     'teams.rules.title'         : 'Rules',
-    'teams.rules.body'          : 'Base: <strong style="color:var(--text)">6 RPs</strong><br>Max: <strong style="color:var(--text)">20 RPs</strong><br>Score = avg. of top 6 RPs<br>Bonus: <strong style="color:var(--green)">+2%</strong> per extra RP<br>Single league · 1-month period',
+    'teams.rules.body'          : 'Base: <strong style="color:var(--text)">6 RPs</strong><br>Max: <strong style="color:var(--text)">20 RPs</strong><br>Score = points × coefficient ÷ 6<br>Coef: <strong style="color:var(--gold)">×1</strong> (1-6) · <strong style="color:var(--green)">×0.6</strong> (7-13) · <strong style="color:#4a90ff">×0.4</strong> (14-20)<br>Single league · 1-month period',
     'teams.rewards.title'       : '🏆 Team <span class="hl">rewards</span>',
     'teams.rewards.note'        : 'RPC split equally among team members · Badges kept forever on the Player Card',
     'teams.licences.title'      : 'Licenses',
@@ -14436,14 +14436,8 @@ async function _processEndOfPeriodInner(){
         }
         return computeTeamMemberPtsForTeam(pts, m.role, joinedBefore, ptsBeforeJoin);
       }).sort(function(a,b){return b-a;});
-      var top6=memberPts.slice(0,6);
-      // Toujours diviser par 6 : les places manquantes comptent 0. Pénalise les teams incomplètes.
-      var base=top6.length>0?Math.round(top6.reduce(function(s,v){return s+v;},0)/6):0;
-      // Bonus 2% par RP supplémentaire au-delà des 6 meilleurs, MAIS uniquement
-      // si ce RP a fait au moins 40 pts dans la période (sinon les inactifs
-      // gonfleraient artificiellement le score sans contribution réelle).
-      var extra=memberPts.slice(6).filter(function(p){return p>=40;}).length;
-      return {id:t.id,name:t.name,score:Math.round(base*(1+extra*2/100))};
+      // Même calcul que renderTeams (teamScoreFromPts, source unique) : le podium ne doit jamais diverger de l'affichage.
+      return {id:t.id,name:t.name,score:teamScoreFromPts(memberPts).score};
     }).filter(function(t){return t.score>0;}).sort(function(a,b){return b.score-a.score;});
 
     // Médailles d'équipe distribuées SEULEMENT quand le volet compétition PAR
@@ -24019,6 +24013,24 @@ function teamJoinGraceCutoff(){
 // alors normalement). Réutilisée par renderTeams(), loadTeamMembers() ET
 // _processEndOfPeriodInner() (calcul officiel des médailles/podium) — l'affichage
 // en cours de période et le classement réel ne doivent JAMAIS diverger.
+// SCORE TEAM (règle novembre 2026, validée user le 06/10 puis 31/10) — SOURCE UNIQUE côté app :
+// renderTeams(), loadTeamMembers() et _processEndOfPeriodInner() l'appellent, jamais de copie du calcul.
+// Chaque RP rapporte ses points × un coefficient selon son rang DANS la team (classé par points
+// comptés) : rangs 1-6 ×1 · 7-13 ×0,6 · 14-20 ×0,4. Score = Σ(points × coef) ÷ 6 (équipe de base :
+// une team de moins de 6 RP reste pénalisée). Plus de seuil 40 pts ni de +2 %.
+var TEAM_COEF_BANDS=[[6,1],[13,0.6],[20,0.4]];
+function teamCoefForRank(rank){
+  for(var i=0;i<TEAM_COEF_BANDS.length;i++){ if(rank<=TEAM_COEF_BANDS[i][0]) return TEAM_COEF_BANDS[i][1]; }
+  return TEAM_COEF_BANDS[TEAM_COEF_BANDS.length-1][1];
+}
+// ptsDesc = points comptés de chaque RP, triés du plus grand au plus petit.
+// base = les 6 premiers (coef 1) ÷ 6 ; bonus = ce que rapportent les RP au-delà du 6e ; score = base + bonus.
+function teamScoreFromPts(ptsDesc){
+  var sum=0, sum6=0;
+  ptsDesc.forEach(function(p,i){ sum+=p*teamCoefForRank(i+1); if(i<6) sum6+=p; });
+  var score=Math.round(sum/6), base=Math.round(sum6/6);
+  return {score:score, base:base, bonus:score-base};
+}
 function computeTeamMemberPtsForTeam(pts, role, joinedBefore, ptsBeforeJoin){
   if(joinedBefore || role==='capitaine') return pts;
   if(ptsBeforeJoin===0) return pts;
@@ -24082,16 +24094,12 @@ async function renderTeams(){
       var members=membersByTeam[t.id]||[];
       var nb=(t.team_members&&t.team_members[0])?t.team_members[0].count:0;
       var sorted=members.slice().sort(function(a,b){return b.ptsForTeam-a.ptsForTeam;});
-      var top6=sorted.slice(0,6);
-      // Toujours diviser par 6 : les places manquantes comptent 0. Pénalise les teams incomplètes.
-      var base=top6.length>0?Math.round(top6.reduce(function(s,m){return s+m.ptsForTeam;},0)/6):0;
-      // Bonus 2% par RP supp au-delà des 6 meilleurs, MAIS uniquement si ≥ 40 pts
-      // dans la période (cohérent avec le calcul rotation processEndOfPeriod).
-      var extraMembersActive=sorted.slice(6).filter(function(m){return m.ptsForTeam>=40;}).length;
-      var bonusPct=extraMembersActive*2;
-      t._score=Math.round(base*(1+bonusPct/100));
-      t._base=base;
-      t._bonusPct=bonusPct;
+      // Score Team = Σ(points × coefficient de rang) ÷ 6 (cf teamScoreFromPts, source unique).
+      var _sc=teamScoreFromPts(sorted.map(function(m){return m.ptsForTeam;}));
+      sorted.forEach(function(m,i){ m.coef=teamCoefForRank(i+1); });
+      t._score=_sc.score;
+      t._base=_sc.base;
+      t._bonus=_sc.bonus;
       t._members=members;
       t._nb=nb;
     });
@@ -24173,7 +24181,7 @@ async function renderTeams(){
         // Bonus team : affiché dès qu'il y a >6 RP (vert si actif, gris si 0%)
         // pour donner la visibilité du potentiel même quand les extras sont inactifs.
         var bonusLabel=nb>6
-          ?' · <span style="color:'+(t._bonusPct>0?'var(--green)':'var(--muted2)')+'">+'+(t._bonusPct||0)+'%</span>'
+          ?' · <span style="color:'+(t._bonus>0?'var(--green)':'var(--muted2)')+'">+ '+tabularPts(t._bonus||0)+' pts</span>'
           :'';
         var hasMyTeam=!!window.__myTeamId;
         var requestBtn=(!isOpen&&t.private&&!t.parent_team_id&&!hasMyTeam&&currentUser)?'<span onclick="event.stopPropagation();requestJoinTeam(\''+t.id+'\',\''+encodeURIComponent(t.name)+'\')" title="Demander à rejoindre" style="font-size:.75rem;margin-left:.3rem;cursor:pointer;opacity:.7;transition:opacity .15s" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.7">📩</span>':'';
@@ -24207,7 +24215,7 @@ async function renderTeams(){
             // est en Rajdhani, qui n'a pas de chiffres à largeur fixe -- sans ça, le score
             // d'une team paraît plus ou moins "resserré" qu'une autre selon ses chiffres.
             +'<div class="team-pts-val" style="font-size:1.1rem;color:var(--gold)">'+tabularPts(t._score||0)+'</div>'
-            +'<div style="font-size:.6rem;color:var(--muted2);margin-top:1px">pts · base '+tabularPts(t._base||0)+'</div>'
+            +'<div style="font-size:.6rem;color:var(--text);margin-top:1px">pts · base '+tabularPts(t._base||0)+'</div>'
           +'</div>'
         +'</div>';
       }).join('');
@@ -24257,7 +24265,7 @@ async function renderTeams(){
       if(teams){var _ri=teams.findIndex(function(t){return t.id===myTeamId;});if(_ri>=0)_rank=_ri+1;}
       var _role=window.__myTeamRole||'membre';
       var _rl=_role==='capitaine'?'Capitaine':'Membre';
-      var _bl=_myTeamData._bonusPct>0?' · Bonus +'+_myTeamData._bonusPct+'%':'';
+      var _bl=_myTeamData._bonus>0?' · +'+_myTeamData._bonus.toLocaleString(SPEEDIX_LANG)+' pts':'';
       var _ne=document.getElementById('dash-team-name');
       var _se=document.getElementById('dash-team-sub');
       var _pe=document.getElementById('dash-team-pts');
@@ -24412,7 +24420,7 @@ async function renderTeams(){
               +'<div>'
                 +'<div style="font-family:Bebas Neue,sans-serif;font-size:1.2rem;letter-spacing:2px;color:var(--text)">'+(_myTeamData.name||'—')+'</div>'
                 +'<div style="font-size:.68rem;color:var(--muted2)">📍 '+(_myTeamData.city||'—')+' · '+(_myTeamData._nb||0)+' RP / '+getTeamCapacity(_myTeamData)
-                  +(_myTeamData._bonusPct>0?' · <span style="color:var(--green)">+'+_myTeamData._bonusPct+'%</span>':'')
+                  +(_myTeamData._bonus>0?' · <span style="color:var(--green)">+ '+_myTeamData._bonus.toLocaleString(SPEEDIX_LANG)+' pts</span>':'')
                 +'</div>'
               +'</div>'
             +'</div>'
@@ -24507,23 +24515,32 @@ async function renderTeams(){
     if(_isExtMode){
       var _parT=teams.find(function(t){return t.id===window.__myTeamId;});
       var _capRow=_parT&&(_parT._members||[]).find(function(m){return m.role==='capitaine';});
-      if(_capRow) members=members.concat([Object.assign({},_capRow,{pts:0})]);
+      if(_capRow) members=members.concat([Object.assign({},_capRow,{pts:0,coef:0.4})]);
     }
     // Stocker les IDs des membres pour les restrictions Free
     window._myTeamMemberIds=members.map(function(m){return m.player_id;});
-    // Trier par pts desc (chacun à sa vraie place)
-    members.sort(function(a,b){ return (b.pts||0)-(a.pts||0); });
+    // Trier par bande de coefficient puis pts desc (chacun à sa vraie place ; un RP dont les points ne comptent pas finit en bas)
+    members.sort(function(a,b){ return ((b.coef||0.4)-(a.coef||0.4)) || ((b.pts||0)-(a.pts||0)); });
 
     var isCaptain=(window.__myTeamRole==='capitaine');
+    var _prevC=1;
     tbody.innerHTML=members.map(function(m,i){
       var p=m.players||{};
+      // Trait de coefficient (comme la ligne de descente du classement de league) : « ×0,6 » puis « ×0,4 ».
+      var _cm=m.coef||0.4, _sepM='';
+      if(i>0 && _cm<_prevC){
+        var _ccm=_cm>=0.6?'var(--green)':'#4a90ff';
+        _sepM='<tr><td colspan="3" style="padding:6px 0"><div style="height:2px;background:linear-gradient(90deg,transparent,'+_ccm+',transparent);position:relative">'
+          +'<span style="position:absolute;top:-9px;left:50%;transform:translateX(-50%);font-family:\'Bebas Neue\',sans-serif;font-size:.8rem;font-weight:700;white-space:nowrap;color:'+_ccm+';background:var(--card);padding:0 .55rem;letter-spacing:.6px;border-radius:2px">×'+_cm.toLocaleString(SPEEDIX_LANG)+'</span></div></td></tr>';
+      }
+      _prevC=_cm;
       var gc=GRADE_COLORS[p.grade]||'#8090b0';
       var rc=i===0?'rank-1':i===1?'rank-2':i===2?'rank-3':'';
       var isCap=m.role==='capitaine';
       var avId='tav-'+i;
       var kickBtn='';
       var clickPC='onclick="showPlayerCardByUuid(\''+m.player_id+'\')" style="cursor:pointer" title="Voir la Player Card"';
-      return '<tr>'
+      return _sepM+'<tr>'
         +'<td style="padding-left:0;padding-right:.15rem">'+(i<3?'<div class="rank-num" style="line-height:1;display:flex;align-items:center;justify-content:center"><img src="ai-icons/medal-'+(i+1)+'-'+(i===0?'gold':i===1?'silver':'bronze')+'.webp" style="width:22px;height:22px;object-fit:contain"></div>':'<div class="rank-num '+rc+'">'+(i+1)+'</div>')+'</td>'
         +'<td style="padding-left:.2rem"><div style="display:flex;align-items:center;gap:.55rem">'
           +natFlagHtml(p.nat)
@@ -28964,26 +28981,30 @@ async function loadTeamMembers(teamId, teamName){
     return (b._pts||0)-(a._pts||0);
   });
   var totalPts=data.reduce(function(s,m){return s+m._pts;},0);
-  // Bonus team : 2% par RP supp au-delà des 6 meilleurs avec ptsForTeam ≥ 40
-  // (même règle exacte que renderTeams).
-  var _bonusPct=0;
-  if(data.length>6){
-    var _extras=data.slice(6).filter(function(m){return (m._ptsForTeam||0)>=40;}).length;
-    _bonusPct=_extras*2;
-  }
-  // Bonus affiché dès >6 RP (vert si >0, gris si 0%) pour cohérence avec le classement
+  // Score Team (cf teamScoreFromPts, source unique) : `data` est ici trié par ptsForTeam desc, donc le rang = l'index.
+  var _scM=teamScoreFromPts(data.map(function(m){return m._ptsForTeam||0;}));
+  data.forEach(function(m,i){ m._coef=teamCoefForRank(i+1); });
   var _bonusHtml=data.length>6
-    ?' · <span style="color:'+(_bonusPct>0?'var(--green)':'var(--muted2)')+';font-weight:700">+'+_bonusPct+'%</span>'
+    ?' · <span style="color:'+(_scM.bonus>0?'var(--green)':'var(--muted2)')+';font-weight:700">+ '+_scM.bonus.toLocaleString(SPEEDIX_LANG)+' pts</span>'
     :'';
   if(sub) sub.innerHTML=data.length+' membre'+(data.length>1?'s':'')+' · '+totalPts.toLocaleString(SPEEDIX_LANG)+' pts total'+_bonusHtml;
   // Affichage : on classe les RP sur leurs POINTS RÉELS (la colonne affichée),
   // pas sur _ptsForTeam (qui sert UNIQUEMENT au calcul du bonus ci-dessus et vaut
   // 0 pour un RP arrivé en cours de période → ordre incohérent sinon).
-  data.sort(function(a,b){return (b._pts||0)-(a._pts||0);});
+  data.sort(function(a,b){return ((b._coef||0)-(a._coef||0)) || ((b._pts||0)-(a._pts||0));});
+  // Trait de séparation à chaque changement de coefficient (comme la ligne de descente du classement de league) : « ×0,6 » puis « ×0,4 », rien pour les 6 premiers (×1).
+  var _prevCoef=1;
   tbody.innerHTML=data.map(function(m,i){
     var p=m.players||{};
     var isCap=m.role==='capitaine';
-    return '<tr>'
+    var _c=m._coef||0.4, _sep='';
+    if(i>0 && _c<_prevCoef){
+      var _cc=_c>=0.6?'var(--green)':'#4a90ff';
+      _sep='<tr><td colspan="4" style="padding:6px 0"><div style="height:2px;background:linear-gradient(90deg,transparent,'+_cc+',transparent);position:relative">'
+        +'<span style="position:absolute;top:-9px;left:50%;transform:translateX(-50%);font-family:\'Bebas Neue\',sans-serif;font-size:.8rem;font-weight:700;white-space:nowrap;color:'+_cc+';background:var(--card);padding:0 .55rem;letter-spacing:.6px;border-radius:2px">×'+_c.toLocaleString(SPEEDIX_LANG)+'</span></div></td></tr>';
+    }
+    _prevCoef=_c;
+    return _sep+'<tr>'
       +'<td style="padding-left:0;padding-right:.15rem">'+(i<3?'<div class="rank-num" style="line-height:1;display:flex;align-items:center;justify-content:center"><img src="ai-icons/medal-'+(i+1)+'-'+(i===0?'gold':i===1?'silver':'bronze')+'.webp" style="width:22px;height:22px;object-fit:contain"></div>':'<div class="rank-num">'+(i+1)+'</div>')+'</td>'
       +'<td style="padding-left:.2rem"><div style="display:flex;align-items:center;gap:.35rem;min-width:0">'
         +natFlagHtml(p.nat,'.95rem')
