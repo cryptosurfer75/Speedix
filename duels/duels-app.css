@@ -1,0 +1,64 @@
+/* Duels de Land — habillage de l'écran (préfixé dz-, isolé du reste du jeu) */
+#dz-app{position:fixed;inset:0;z-index:2200;background:#0c0f1a;color:#fff;display:none;flex-direction:column;font-family:'Space Grotesk',system-ui,sans-serif;overflow:hidden}
+#dz-app.on{display:flex}
+#dz-app *{box-sizing:border-box}
+#dz-app::before{content:'';position:absolute;inset:0;pointer-events:none;z-index:0;background:url('/bg-app-neon.webp') center/cover no-repeat;mix-blend-mode:screen;opacity:.75}
+#dz-app > *{position:relative;z-index:1}
+.dz-head{padding:calc(env(safe-area-inset-top) + 14px) 12px 6px}
+.dz-head-row{display:flex;align-items:center}
+.dz-head-title{flex:1;min-width:0;display:flex;align-items:center;justify-content:center;gap:.35rem}
+.dz-head-title img{height:30px;width:auto;max-width:25vw;object-fit:contain;flex-shrink:0;pointer-events:none;user-select:none}
+.dz-ttl{font-family:'Big Shoulders Display',sans-serif;font-weight:900;font-style:italic;text-transform:uppercase;font-size:clamp(1.25rem,6vw,2.4rem);line-height:1;transform:scaleY(1.15);white-space:nowrap;color:#fff}
+.dz-closex{width:40px;height:40px;border:none;padding:0;cursor:pointer;flex-shrink:0;background:url('/icon-close-x.webp') center/contain no-repeat}
+.dz-head-line{height:1px;width:100%;margin:.4rem auto 0;background:linear-gradient(90deg,transparent,#fff 15%,#f5c842 50%,#fff 85%,transparent)}
+.dz-tabs{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:8px}
+.dz-tabs .tour-tile-btn{min-width:0;font-size:14px;text-transform:uppercase;letter-spacing:.3px}
+.dz-tabs .tour-tile-btn b{background:#ff4d4d;color:#fff;border-radius:10px;padding:0 6px;margin-left:auto;font-size:11px}
+.dz-body{flex:1;overflow:auto;position:relative}
+.dz-pane{display:none}.dz-pane.on{display:block}
+.dz-list{padding:12px;max-width:760px;margin:0 auto;display:flex;flex-direction:column;gap:10px}
+.dz-card{background:#000;border:1px solid #3a3470;border-radius:12px;padding:12px}
+.dz-card.mine{border-color:#f5c842}
+.dz-card h3{margin:0 0 6px;font:700 17px 'Rajdhani',sans-serif;letter-spacing:1px}
+.dz-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.dz-vs{display:flex;align-items:center;gap:10px}
+.dz-vs img,.dz-vs u{width:38px;height:38px;border-radius:50%;object-fit:cover;border:2px solid #fff;background:#334;text-decoration:none}
+.dz-vs .mid{flex:1;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px;font:700 13px 'Space Mono',monospace}
+.dz-vs .mid .l{text-align:right}.dz-vs .mid .r{text-align:left}.dz-vs .mid .x{font-size:18px}
+.dz-bar{height:10px;border-radius:6px;background:#1c1c1c;overflow:hidden;display:flex;margin:8px 0 4px;position:relative}
+.dz-bar::after{content:'';position:absolute;left:50%;top:0;bottom:0;width:2px;margin-left:-1px;background:#fff}
+.dz-bar i{display:block;height:100%}
+.dz-sc{display:flex;justify-content:space-between;font:700 22px 'Rajdhani',sans-serif;color:#f5c842}
+.dz-members{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:6px;font-size:12px;color:#b3a3dd}
+.dz-members > div{background:#000;border:1px solid #2a2a2a;border-radius:8px;padding:6px 8px}
+.dz-mrow{display:flex;justify-content:space-between;gap:10px}.dz-mrow b{white-space:nowrap;color:#fff}
+.dz-tag{display:inline-block;font:700 10px 'Space Mono',monospace;letter-spacing:1px;padding:2px 8px;border-radius:10px;background:#33205e;color:#c3a2ff}
+.dz-tag.fight{background:#7a1f1f;color:#ffb3b3}.dz-tag.done{background:#14432b;color:#9dffcc}
+.dz-btn{border:0;border-radius:8px;padding:8px 14px;cursor:pointer;background:#2b3050;color:#fff;font-weight:700}
+.dz-btn[disabled]{opacity:.4;cursor:not-allowed}
+#dz-app .dz-btn.green{font-family:'Bebas Neue','Rajdhani',sans-serif;font-size:15px;font-weight:400;letter-spacing:1.5px;text-transform:uppercase;color:#2ddb80;background:linear-gradient(135deg,rgba(45,219,128,.28),rgba(45,219,128,.08));border:1.5px solid rgba(45,219,128,.6);border-radius:10px}
+.dz-muted{color:#8f86b8;font-size:12px}.dz-yel{color:#f5c842}
+.dz-losses{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:6px}
+.dz-loss{border-radius:8px;padding:8px;font-size:12px;background:#000;border:1px solid rgba(255,77,77,.45);color:#fff}
+.dz-loss-t{font:700 14px 'Rajdhani',sans-serif;letter-spacing:.5px}
+.dz-joincell{display:flex;align-items:flex-start}.dz-joincell .dz-btn{width:100%;padding:8px 6px}
+.dz-notif{background:#241a46;border-left:4px solid #8a4fff;border-radius:8px;padding:8px 10px;font-size:13px}
+.dz-notif.victoire{border-color:#2fdb8a}.dz-notif.defaite{border-color:#f5c842}.dz-notif.defi{border-color:#ff4d4d}
+.dz-notif small{color:#8f86b8;display:block;margin-top:2px}
+.rules-section h3{font-family:inherit}
+.dz-rules{margin:0;padding-left:18px;font-size:13px;color:var(--muted2,#8f86b8);line-height:1.55}.dz-rules li{margin-bottom:4px}
+#dz-modal{position:fixed;inset:0;z-index:2300;background:#000a;display:flex;align-items:center;justify-content:center;padding:16px}
+.dz-modal-box{background:#1b1f38;border:2px solid #f5c842;border-radius:14px;padding:18px;max-width:420px;width:100%}
+.dz-modal-t{font:700 18px 'Rajdhani',sans-serif;letter-spacing:.5px;margin-bottom:6px}
+.dz-toast{position:fixed;left:50%;bottom:70px;transform:translateX(-50%);background:#12162a;border:1px solid #f5c842;border-radius:10px;padding:10px 16px;z-index:2400;max-width:90%;font-size:14px}
+.dz-toast.bad{border-color:#ff4d4d}
+/* ligne cagnotte + bouton DUEL dans Ma Team */
+#myteam-duel-row{display:flex;gap:8px;padding:.5rem 1rem;align-items:stretch}
+#myteam-duel-row .dz-pot{flex:1;border:1.5px solid #f5c842;border-radius:10px;background:#0c0f1a;padding:6px 10px;display:flex;flex-direction:column;justify-content:center}
+#myteam-duel-row .dz-pot small{font:700 10px 'Space Mono',monospace;color:#b3a3dd;letter-spacing:1px}
+#myteam-duel-row .dz-pot b{font:700 18px 'Rajdhani',sans-serif;color:#f5c842}
+#myteam-duel-row .tour-tile-btn{flex:1;min-width:0}
+#myteam-duel-row .tour-tile-btn[disabled]{opacity:.4;cursor:not-allowed}
+/* outils de test admin */
+.dz-dev{background:#12162a;border:1px dashed #4a3380;border-radius:10px;padding:10px;font-size:12px;color:#b3a3dd;display:flex;flex-direction:column;gap:8px}
+.dz-dev select,.dz-dev input{background:#1b1f38;color:#fff;border:1px solid #4a3380;border-radius:6px;padding:5px 7px}

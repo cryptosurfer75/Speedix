@@ -2450,6 +2450,7 @@ body::after{
 
 @keyframes tourDicePop{0%{transform:scale(1.5)}100%{transform:scale(1)}}
 </style>
+<link rel="stylesheet" href="duels/duels-app.css?v=2">
 </head>
 <body>
 
@@ -4652,6 +4653,7 @@ select option{background:#040c1c}
           <div id="myteam-header-content" data-i18n="teams.loading" style="text-align:center;padding:.5rem;color:var(--muted2);font-size:.82rem">Chargement…</div>
         </div>
         <!-- Actions Ma Team (quitter, gérer) -->
+        <div id="myteam-duel-row" style="display:none"></div>
         <div id="myteam-actions" style="padding:.4rem 1rem;border-bottom:1px solid rgba(30,37,53,.6);display:none;gap:.5rem;flex-wrap:wrap"></div>
         <div style="overflow-x:auto">
           <table class="tbl">
@@ -9366,6 +9368,8 @@ async function onLoginSuccess(user, isNew){
   if(typeof refreshTeamChallengeBadge==='function'){
     setTimeout(function(){ refreshTeamChallengeBadge(); }, 2400);
   }
+  // Duels de Land (livrés éteints : bouton grisé tant que game_settings.duels_mode ne l'ouvre pas pour ce RP)
+  if(window.Duels){ setTimeout(function(){ Duels.init(); }, 2600); }
   // Cadeau d'anniversaire — popup si le RP se connecte le jour J (une seule
   // fois par an, cf birthday_gift_year, MIROIR : la vérité vient du clic
   // ACCEPTER qui pose la colonne, ce check ne fait qu'ouvrir la popup).
@@ -24434,6 +24438,7 @@ async function renderTeams(){
               +'<div style="font-family:\'Rajdhani\',sans-serif;font-size:.9rem;font-weight:700;color:var(--gold);margin-top:.1rem">'+(_myTeamData._score||0).toLocaleString(SPEEDIX_LANG)+' pts</div>'
             +'</div>'
           +'</div>';
+        if(window.Duels&&Duels.renderTeamRow) Duels.renderTeamRow();
         // Actions (quitter + gestion capitaine — pas pour les teams open sauf quitter)
         // En mode consultation, pas d'actions (read-only)
         if(_mta){
@@ -34265,6 +34270,9 @@ window.Tour.init = async function(){
         extra = ` Tu peux cependant préempter cette Land car ${land.owner.name} n'en est pas encore propriétaire. Veux-tu acheter cette Land ?`;
         rentPrefix = 'Sinon, prélèvement';
       }
+      if(land.status==='rented' && land.owner!==ME && window.Duels && Duels.enabled()){
+        btns += `<button class="tour-btn" onclick="Duels.launch(${land.idx})">⚔️ Lancer un duel</button>`;
+      }
       return {
         title: 'Case occupée — n°'+land.idx,
         sub: `Désolé, cette Land appartient déjà à ${land.owner.name}${stars}.${extra} ${rentPrefix} automatique d'une redevance de : <b class="rm-gold">${amount} RPC</b>.`,
@@ -36259,5 +36267,6 @@ window.Tour.init = async function(){
 })();
 
 </script>
+<script src="duels/duels-app.js?v=3"></script>
 </body>
 </html>
