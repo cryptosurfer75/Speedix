@@ -14077,9 +14077,12 @@ var _periodTimerInterval=null;
 // internes/cumuls/archivage restent inchangés, ceci ne sert qu'à l'affichage.
 // Source unique (2026-09-01) : réutilisée par loadPeriodSettings (badge League)
 // ET par le Cash Run (CONFIG.period étant figé en dur — cf son commentaire).
-function displayPeriodNum(){
+function displayPeriodNumOf(n){
   var LAUNCH_PERIOD=4;
-  return (_periodData.period>=LAUNCH_PERIOD) ? (_periodData.period-LAUNCH_PERIOD+1) : _periodData.period;
+  return (n>=LAUNCH_PERIOD) ? (n-LAUNCH_PERIOD+1) : n;
+}
+function displayPeriodNum(){
+  return displayPeriodNumOf(_periodData.period);
 }
 
 async function loadPeriodSettings(){
@@ -14480,7 +14483,7 @@ async function _processEndOfPeriodInner(){
           for(var mi=0; mi<teamMembers.length; mi++){
             var tmm=teamMembers[mi];
             try {
-              var _pptOk=await rotationCredit(tmm.player_id, rpcPerMember, nyxPerMember, 'Prize pool team #'+(pi+1)+' P'+_periodData.period+' — '+winnerTeam.name);
+              var _pptOk=await rotationCredit(tmm.player_id, rpcPerMember, nyxPerMember, 'Prize pool team #'+(pi+1)+' P'+displayPeriodNum()+' — '+winnerTeam.name);
               if(!_pptOk) console.error('[rotation] ÉCHEC crédit prize pool team, joueur '+tmm.player_id+' — non versé');
             } catch(eppt){ console.warn('[rotation] prize pool team RP '+tmm.player_id+' :', eppt); }
           }
@@ -14680,7 +14683,7 @@ async function _processEndOfPeriodInner(){
       for(var ri=startR-1;ri<Math.min(endR,ppPlayers.length);ri++){
         var winner=ppPlayers[ri];
         if(winner){
-          var _ppOk=await rotationCredit(winner.id, perPlayer, 0, 'Prize pool P'+_periodData.period+' '+ppLk+' #'+(ri+1));
+          var _ppOk=await rotationCredit(winner.id, perPlayer, 0, 'Prize pool P'+displayPeriodNum()+' '+ppLk+' #'+(ri+1));
           if(!_ppOk) console.error('[rotation] ÉCHEC crédit prize pool, joueur '+winner.id+' — non versé');
         }
       }
@@ -28857,7 +28860,7 @@ function showPalmares(rank, type){
       var _palLg=LEAGUES.find(function(l){return l.key===p.league_key;});
       var _palLgColor=_palLg?_palLg.color:c[0];
       return '<div style="display:flex;align-items:center;gap:.65rem;padding:.6rem .8rem;background:'+c[1]+'.06);border:1px solid '+c[1]+'.18);border-radius:7px">'
-        +'<div style="flex:1;font-family:Bebas Neue,sans-serif;font-size:1.1rem;letter-spacing:1px;display:flex;align-items:center;gap:1.1rem"><span style="color:'+c[0]+'">#'+rank+(p.nb_players?' / '+p.nb_players+' RP':'')+'</span><span style="color:var(--muted2)">—</span><span style="color:var(--muted2)">P'+p.period+'</span><span style="color:var(--muted2)">—</span><span style="color:'+_palLgColor+'">'+leagueName+'</span></div>'
+        +'<div style="flex:1;font-family:Bebas Neue,sans-serif;font-size:1.1rem;letter-spacing:1px;display:flex;align-items:center;gap:1.1rem"><span style="color:'+c[0]+'">#'+rank+(p.nb_players?' / '+p.nb_players+' RP':'')+'</span><span style="color:var(--muted2)">—</span><span style="color:var(--muted2)">P'+displayPeriodNumOf(p.period)+'</span><span style="color:var(--muted2)">—</span><span style="color:'+_palLgColor+'">'+leagueName+'</span></div>'
         +'<span style="font-family:\'Rajdhani\',sans-serif;font-size:.88rem;font-weight:700;color:'+c[0]+'">'+(p.pts||0).toLocaleString(SPEEDIX_LANG)+' pts</span>'
       +'</div>';
     }).join('');
