@@ -248,7 +248,7 @@
     var head = '<div class="dz-side-h" data-toggle="1">' + (selTeam ? logo(selTeam) + '<span>' + esc(teamName(selTeam)) + '</span>' : '<span>🗺️ Teams</span>') + '<b>' + (sideOpen ? '▴' : '▾') + '</b></div>';
     $('dz-side').innerHTML = head + (sideOpen ? '<div class="dz-t' + (selTeam === null ? ' on' : '') + '" data-t="">Toutes les teams</div>' + Object.keys(byTeam).sort(function (a, b) { return byTeam[b].length - byTeam[a].length; }).map(function (id) {
       var cc = c[id] || { own: 0, loc: 0 };
-      return '<div class="dz-t' + (selTeam === id ? ' on' : '') + '" data-t="' + id + '">' + logo(id) + '<span>' + esc(teamName(id)) + '</span><small>' + cc.own + ' prop<br>' + cc.loc + ' loc</small></div>';
+      return '<div class="dz-t' + (selTeam === id ? ' on' : '') + '" data-t="' + id + '">' + logo(id) + '<span>' + esc(teamName(id)) + '</span><small>' + fmt(cc.n) + '</small></div>';
     }).join('') : '');
     $('dz-side').querySelector('.dz-side-h').onclick = function () { sideOpen = !sideOpen; drawMap(); };
     [].forEach.call($('dz-side').querySelectorAll('.dz-t'), function (n) { n.onclick = function () { selTeam = n.dataset.t && selTeam !== n.dataset.t ? n.dataset.t : null; sideOpen = false; drawMap(); }; });
@@ -296,5 +296,5 @@
     if (!bound) { bindMap(); bound = true; }
     drawMap();
   }
-  window.DuelsMap = { draw: draw, reset: function () { view = null; selTeam = null; sideOpen = false; } };
+  window.DuelsMap = { draw: draw, reset: function () { view = null; selTeam = null; sideOpen = false; }, select: function (id) { selTeam = id || null; sideOpen = false; } };
 })();

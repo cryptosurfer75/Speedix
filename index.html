@@ -2041,6 +2041,9 @@ body::after{
 }
 .rm-btn-play:hover{ background:linear-gradient(135deg,rgba(45,219,128,.4),rgba(45,219,128,.14)); transform:translateY(-1px); }
 .rm-btn-play:active{ transform:translateY(0); }
+/* Bouton « Lancer un duel » : même gabarit que Préempter, en violet (couleur des duels) */
+.rm-btn-duel{ color:#e454ff; background:linear-gradient(135deg,rgba(228,84,255,.28),rgba(228,84,255,.08)); border-color:rgba(228,84,255,.6); }
+.rm-btn-duel:hover{ background:linear-gradient(135deg,rgba(228,84,255,.4),rgba(228,84,255,.14)); }
 /* Rivalité Nord/Sud (2026-08-02, demande explicite, "on essaie comme ça") —
    Paris en bleu marine, Marseille en cyan électrique. Classe couleur posée
    PAR-DESSUS .rm-btn-play (garde sa mise en page/pulse-cta), ne change que
@@ -2450,7 +2453,7 @@ body::after{
 
 @keyframes tourDicePop{0%{transform:scale(1.5)}100%{transform:scale(1)}}
 </style>
-<link rel="stylesheet" href="duels/duels-app.css?v=11">
+<link rel="stylesheet" href="duels/duels-app.css?v=12">
 </head>
 <body>
 
@@ -34313,13 +34316,15 @@ window.Tour.init = async function(){
       // avec l'option de préemption qui vient d'être proposée juste avant — sans
       // ça (RP pas éligible), la phrase démarrait sur rien ("Sinon, prélèvement…").
       let rentPrefix = 'Prélèvement';
+      // Deux choix possibles (préempter OU lancer un duel) : on les laisse NEUTRES, plus de battement sur « Préempter » (demande 01/11).
+      const duelOn = land.status==='rented' && land.owner!==ME && !!(window.Duels && Duels.enabled());
       if(canPreempt){
-        btns = `<button class="rm-btn-play pulse-cta" onclick="Tour.preemptLand()">Préempter</button>`;
+        btns = `<button class="rm-btn-play${duelOn?'':' pulse-cta'}" onclick="Tour.preemptLand()">Préempter</button>`;
         extra = ` Tu peux cependant préempter cette Land car ${land.owner.name} n'en est pas encore propriétaire. Veux-tu acheter cette Land ?`;
         rentPrefix = 'Sinon, prélèvement';
       }
-      if(land.status==='rented' && land.owner!==ME && window.Duels && Duels.enabled()){
-        btns += `<button class="tour-btn" onclick="Duels.launch(${land.idx})">⚔️ Lancer un duel</button>`;
+      if(duelOn){
+        btns += `<button class="rm-btn-play rm-btn-duel" onclick="Duels.launch(${land.idx})">⚔️ Lancer un duel</button>`;
       }
       return {
         title: 'Case occupée — n°'+land.idx,
@@ -36315,7 +36320,7 @@ window.Tour.init = async function(){
 })();
 
 </script>
-<script src="duels/duels-map.js?v=2"></script>
-<script src="duels/duels-app.js?v=14"></script>
+<script src="duels/duels-map.js?v=3"></script>
+<script src="duels/duels-app.js?v=15"></script>
 </body>
 </html>

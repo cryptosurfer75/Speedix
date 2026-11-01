@@ -43,7 +43,7 @@
     var r = await supabaseClient.rpc('duel_my_state');
     if (r.error || !r.data) { S = { enabled: false }; renderTeamRow(); updateBadge(); return S; }
     S = r.data; if (S.now) NOW_SKEW = Date.parse(S.now) - Date.now();
-    if (tab === 'map' && $('dz-app') && $('dz-app').classList.contains('on')) { var mr = await supabaseClient.rpc('duel_map_data'); if (mr.data && mr.data.enabled) { MAPDATA = mr.data; await loadTeams(MAPDATA.teams.map(function (t) { return t.id; })); } }
+    if ((tab === 'map' || tab === 'rank') && $('dz-app') && $('dz-app').classList.contains('on')) { var mr = await supabaseClient.rpc('duel_map_data'); if (mr.data && mr.data.enabled) { MAPDATA = mr.data; await loadTeams(MAPDATA.teams.map(function (t) { return t.id; })); } }
     var ids = []; (S.duels || []).forEach(function (d) { ids.push(d.attacker_team, d.defender_team); }); ids.push(S.team_id);
     await loadTeams(ids);
     renderTeamRow(); updateBadge();
@@ -99,14 +99,23 @@
     if ($('dz-app')) return;
     var el = document.createElement('div'); el.id = 'dz-app';
     el.innerHTML = '<div class="dz-head"><div class="dz-head-row"><div style="width:40px;flex-shrink:0"></div><div class="dz-head-title"><img src="league-title-chevron-left.webp" alt=""><div class="dz-ttl">DUEL <span style="color:#f5c842">TEAM</span></div><img src="league-title-chevron-right.webp" alt=""></div><button class="dz-closex" id="dz-close" title="Fermer"></button></div><div class="dz-head-line"></div></div>' +
-      '<div class="dz-tabs" id="dz-tabs"></div><div id="dz-pot-row"></div><div class="dz-body"><div class="dz-pane" id="p-map"><div id="dz-mapframe"><svg id="dz-map"></svg><div id="dz-mappot"></div><div id="dz-zoom"><button data-z="in" aria-label="Zoom avant">+</button><button data-z="out" aria-label="Zoom arrière">−</button></div></div><div id="dz-side"></div></div><div class="dz-pane" id="p-duels"></div><div class="dz-pane" id="p-notifs"></div><div class="dz-pane" id="p-hist"></div><div class="dz-pane" id="p-rules"></div><div class="dz-pane" id="p-dev"></div></div>';
+      '<div class="dz-tabs" id="dz-tabs"></div><div id="dz-pot-row"></div><div class="dz-body"><div class="dz-pane" id="p-map"><div id="dz-mapframe"><svg id="dz-map"></svg><div id="dz-mappot"></div><div id="dz-zoom"><button data-z="in" aria-label="Zoom avant">+</button><button data-z="out" aria-label="Zoom arrière">−</button></div></div><div id="dz-side"></div></div><div class="dz-pane" id="p-rank"></div><div class="dz-pane" id="p-duels"></div><div class="dz-pane" id="p-notifs"></div><div class="dz-pane" id="p-hist"></div><div class="dz-pane" id="p-rules"></div><div class="dz-pane" id="p-dev"></div></div>';
     document.body.appendChild(el);
     $('dz-close').onclick = close;
-    $('dz-tabs').onclick = function (e) { var b = e.target.closest('[data-tab]'); if (b) { tab = b.dataset.tab; if (tab === 'map') MAPDATA = null; if (tab === 'duels') markSeen(); if (tab === 'notifs') supabaseClient.rpc('duel_mark_notifications_read'); render(); } };
+    $('dz-tabs').onclick = function (e) { var b = e.target.closest('[data-tab]'); if (b) { tab = b.dataset.tab; if (tab === 'map' || tab === 'rank') MAPDATA = null; if (tab === 'duels') markSeen(); if (tab === 'notifs') supabaseClient.rpc('duel_mark_notifications_read'); render(); } };
     el.addEventListener('click', onAction);
   }
   function open() { shell(); $('dz-app').classList.add('on'); tab = 'duels'; markSeen(); refresh().then(render); render(); }
   function close() { var e = $('dz-app'); if (e) e.classList.remove('on'); }
+
+  // Classement des teams par nombre de Lands (propriétés + locations réunies : un seul total)
+  async function paneRank() {
+    if (!MAPDATA) { var mr = await supabaseClient.rpc('duel_map_data'); if (!mr.data || !mr.data.enabled) return; MAPDATA = mr.data; await loadTeams(MAPDATA.teams.map(function (t) { return t.id; })); }
+    var T = (MAPDATA.teams || []).slice().sort(function (x, y) { return (y.n - x.n) || (x.id < y.id ? -1 : 1); });
+    $('p-rank').innerHTML = '<div class="dz-list">' + (T.length ? T.map(function (t, i) {
+      return '<div class="dz-rank-row' + (t.id === S.team_id ? ' me' : '') + '" data-rank-team="' + esc(t.id) + '"><b class="dz-rk">' + (i + 1) + '</b>' + logo(t.id) + '<span class="nm" style="color:' + esc(team(t.id).color) + '">' + esc(team(t.id).name) + '</span><b class="n">' + fmt(t.n) + '</b></div>';
+    }).join('') : '<div class="dz-card dz-muted">Aucune team pour l\'instant.</div>') + '</div>';
+  }
 
   // Carte des teams : données = duel_map_data ; dessin = duels-map.js (disposition calculée côté appli, affichage seulement)
   async function drawTeamMap() {
@@ -121,13 +130,13 @@
   async function render() {
     if (!$('dz-app') || !S) return;
     var notifN = window.__duelUnread || 0;
-    var tiles = [['map', '🗺️', 'Carte', 0], ['duels', '⚔️', 'Duels', ((S.duels || []).filter(function (d) { return d.status === 'active'; })).length], ['notifs', '🔔', 'Notifs', notifN], ['hist', '🕓', 'Historique', 0]];
-    if (me() === ADMIN_UID) tiles.push(['dev', '🧪', 'Test', 0]);   // Test à gauche, Règles toujours à droite
-    tiles.push(['rules', '📜', 'Règles', 0]);
+    var tiles = [['map', '🗺️', 'Carte', 0], ['duels', '⚔️', 'Duels', ((S.duels || []).filter(function (d) { return d.status === 'active'; })).length], ['notifs', '🔔', 'Notifs', notifN], ['hist', '🕓', 'Historique', 0], ['rank', '🏆', 'Classement', 0], ['rules', '📜', 'Règles', 0]];
+    if (me() === ADMIN_UID) tiles.push(['dev', '🧪', 'Test', 0]);   // Classement à gauche, Règles à droite ; Test (admin) en dessous
     $('dz-tabs').innerHTML = tiles.map(function (t) { var cls = t[0] === 'rules' ? 'glass-gold' : tab === t[0] ? 'solid-green' : 'white'; return '<button class="tour-tile-btn ' + cls + '" data-tab="' + t[0] + '"><span class="tour-tile-border"></span><span class="tour-tile-fill"></span><span class="tour-tile-emoji">' + t[1] + '</span>' + t[2] + (t[3] ? '<b>' + t[3] + '</b>' : '') + '</button>'; }).join('');
-    ['map', 'duels', 'notifs', 'hist', 'rules', 'dev'].forEach(function (t) { $('p-' + t).classList.toggle('on', t === tab); });
+    ['map', 'rank', 'duels', 'notifs', 'hist', 'rules', 'dev'].forEach(function (t) { $('p-' + t).classList.toggle('on', t === tab); });
     renderPotRow();
     if (tab === 'map') await drawTeamMap();
+    else if (tab === 'rank') await paneRank();
     else if (tab === 'duels') $('p-duels').innerHTML = paneDuels();
     else if (tab === 'hist') $('p-hist').innerHTML = paneHist();
     else if (tab === 'rules') $('p-rules').innerHTML = paneRules();
@@ -224,6 +233,8 @@
     $('dz-app').appendChild(m);
   }
   async function onAction(e) {
+    var rk = e.target.closest('[data-rank-team]');
+    if (rk) { tab = 'map'; if (window.DuelsMap) DuelsMap.select(rk.dataset.rankTeam); render(); return; }   // clic sur une team du classement = on la montre sur la carte
     var b = e.target.closest('button'); if (!b) return; var r;
     if (b.dataset.cancel) { var m = $('dz-modal'); if (m) m.remove(); return; }
     if (b.dataset.join) r = await supabaseClient.rpc('duel_join', { p_duel: +b.dataset.join });
