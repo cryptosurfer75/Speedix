@@ -19,7 +19,7 @@
     aucune_location_a_miser: 'Il te faut au moins une Land en location à miser.', plafond_locations_atteint: 'Tu as atteint ta limite de locations (8 en Free).',
     cagnotte_insuffisante_pour_lancer: 'La cagnotte de ta team doit couvrir au moins le prix du Joker pour lancer un duel.',
     team_au_max_en_attaque: 'Ta team a déjà atteint son maximum de duels en attaque.', team_adverse_au_max_en_defense: 'Cette team défend déjà le maximum de duels.',
-    mode_test_cibles_bots: 'Mode test : seules les Lands de bots peuvent être visées.', camp_complet: 'Ce camp est complet (3 RP maximum).', pas_de_ta_team: 'Ce duel ne concerne pas ta team.',
+    mode_test_cibles_bots: 'Mode test : seules les Lands de bots peuvent être visées.', camp_complet: 'Ce camp est complet (3 RP maximum).', camp_complet_premium: 'Ce camp est complet (4 RP, le maximum avec un Premium).', pas_de_ta_team: 'Ce duel ne concerne pas ta team.',
     duel_termine: 'Le duel est terminé : les points sont figés.', duel_introuvable: 'Duel introuvable.', joker_pas_encore: 'Le Joker se joue à la fin du duel, dans l\'heure qui suit.',
     pas_capitaine: 'Seul le capitaine de la team peut jouer le Joker.', joker_deja_joue: 'Le Joker est déjà joué sur ce duel.', rien_a_eviter: 'Ton équipe n\'a pas de burn à éviter.',
     cagnotte_insuffisante: 'La cagnotte de la team est insuffisante pour ce Joker.', ne_peut_pas_quitter: 'Tu ne peux pas quitter ce duel (ta Land est en jeu).', pas_en_duel: 'Tu n\'es pas dans ce duel.', interdit: 'Action réservée.'
@@ -30,6 +30,8 @@
   function cdown(ms) { ms = Math.max(0, ms); var h = Math.floor(ms / 3600000), m = Math.floor((ms % 3600000) / 60000); return h + ' h ' + (m < 10 ? '0' : '') + m + ' min'; }
   function fmtDate(t) { return new Date(t).toLocaleString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }); }
   function me() { return currentUser && currentUser.id; }
+  // MIROIR de _duel_side_cap (base) : 3 RP par camp, 4 si le camp compte un Premium (ou si moi, qui rejoins, je le suis)
+  function sideCap(members) { return (typeof isPremium === 'function' && isPremium()) || members.some(function (m) { return m.premium; }) ? 4 : 3; }
   function team(id) { return TEAMS[id] || { name: '—', color: '#f5c842', blason_index: null }; }
 
   async function loadTeams(ids) {
@@ -131,7 +133,7 @@
     var meId = me(), mine = (d.members || []).filter(function (m) { return m.player_id === meId; })[0], myTeam = S.team_id;
     var cd = ph === 'fight' ? '⏳ ' + cdown(Date.parse(d.end_at) - now()) : ph === 'decision' ? '🏳️ Joker possible : ' + cdown(Date.parse(d.resolve_at) - now()) : '';
     var attMembers = (d.members || []).filter(function (m) { return m.side === 'att'; }), defMembers = (d.members || []).filter(function (m) { return m.side === 'def'; });
-    var canJoin = ph === 'fight' && !mine && ((myTeam === d.attacker_team && attMembers.length < 3) || (myTeam === d.defender_team && defMembers.length < 3)) && !(S.duels || []).some(function (x) { return x.status === 'active' && (x.members || []).some(function (m) { return m.player_id === meId; }); });
+    var canJoin = ph === 'fight' && !mine && ((myTeam === d.attacker_team && attMembers.length < sideCap(attMembers)) || (myTeam === d.defender_team && defMembers.length < sideCap(defMembers))) && !(S.duels || []).some(function (x) { return x.status === 'active' && (x.members || []).some(function (m) { return m.player_id === meId; }); });
     var canLeave = ph === 'fight' && mine && mine.role === 'helper';
     var h = '<div class="dz-card' + (mine ? ' mine' : '') + '"><div class="dz-row"><span class="dz-tag ' + (ph === 'fight' || ph === 'decision' ? 'fight' : 'done') + '">' + (ph === 'fight' ? 'EN COURS' : ph === 'decision' ? 'SCORE FINAL' : 'TERMINÉ') + '</span><span class="dz-muted">Land n°' + d.stake_idx + ' vs n°' + d.target_idx + '</span></div>' +
       '<div class="dz-vs" style="margin-top:8px">' + logo(d.attacker_team) + '<div class="mid"><span class="l" style="color:' + esc(team(d.attacker_team).color) + '">' + esc(team(d.attacker_team).name) + '</span><span class="x">⚔️</span><span class="r" style="color:' + esc(team(d.defender_team).color) + '">' + esc(team(d.defender_team).name) + '</span></div>' + logo(d.defender_team) + '</div>' +
@@ -180,7 +182,7 @@
     var R = [
       ['⚔️ Tu peux lancer un duel si :', ['Tu tombes sur la Land d\'une autre team', 'Tu as au moins une Land en location', 'Tu n\'as pas atteint ta limite de locations (8 en Free)', 'La cagnotte couvre au moins le prix du Joker']],
       ['⏱️ Déroulé', ['72 h pour gagner le duel.', 'Seuls les points gagnés au départ du duel comptent.', 'Les 2 Lands mises en jeu sont verrouillées.', 'Une Land ne peut être attaquée à nouveau qu\'après une pause de 48 h.', 'Pas de duel sur les Lands en propriété.']],
-      ['👥 Les équipes', ['3 RP maximum par duel.', 'Un RP ne peut jouer qu\'un duel à la fois.', 'Un RP libre peut rejoindre un duel comme renfort.', 'Un RP peut quitter le duel mais il abandonne ses points.', 'Dans une team, les duels sont limités par trios de RP disponibles.']],
+      ['👥 Les équipes', ['3 RP maximum par camp. Un camp qui compte un Premium peut aller jusqu\'à 4 RP.', 'Un RP ne peut jouer qu\'un duel à la fois.', 'Un RP libre peut rejoindre un duel comme renfort.', 'Un RP peut quitter le duel mais il abandonne ses points.', 'Dans une team, les duels sont limités par trios de RP disponibles.']],
       ['🏆 Résultat', ['Attaque gagnante : la Land attaquée va au RP qui a lancé le duel.', 'Défense gagnante : le RP gagne la Land du RP adverse. S\'il a atteint sa limite de locations (8 en Free) elle va à un RP Premium de sa team.<br>Si personne ne peut la recevoir, elle est remise en jeu.', 'Égalité : le défenseur gagne.']],
       ['💰 Cagnotte de la team', ['La cagnotte est alimentée par 20 % des RPC des RP qui composent la team.', 'Elle paie les défaites et le Joker.']],
       ['💸 Défaite', ['La Land mise en jeu change de team.', '20 RPC par point d\'écart sont brûlés dans la cagnotte de la team perdante.', 'Le burn ne peut pas dépasser 15 % de la cagnotte totale.']],
