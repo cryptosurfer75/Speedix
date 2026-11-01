@@ -207,11 +207,11 @@
     var R = [
       ['⚔️ Tu peux lancer un duel si :', ['Tu tombes sur la Land d\'une autre team', 'Tu as au moins une Land en location', 'Tu n\'as pas atteint ta limite de locations (8 en Free)', 'La cagnotte couvre au moins le prix du Joker']],
       ['⏱️ Déroulé', ['72 h pour gagner le duel.', 'Seuls les points gagnés au départ du duel comptent.', 'Les 2 Lands mises en jeu sont verrouillées.', 'Une Land ne peut être attaquée à nouveau qu\'après une pause de 48 h.', 'Pas de duel sur les Lands en propriété.']],
-      ['👥 Les équipes', ['3 RP maximum par duel + 1 Premium.', 'Un RP ne peut jouer qu\'un duel à la fois.', 'Un RP libre peut rejoindre un duel comme renfort.', 'Un RP peut quitter le duel mais il abandonne ses points.', 'Dans une team, les duels sont limités par trios de RP disponibles.']],
+      ['👥 Les équipes', ['3 RP maximum par duel + 1 Premium.', 'Un RP ne peut jouer qu\'un duel à la fois.', 'Un RP libre peut rejoindre un duel comme renfort.', 'Un RP peut quitter le duel mais il abandonne ses points.', 'Dans une team, les duels sont limités par trios de RP disponibles, 7 duels maximum en même temps.', 'Une équipe et son extension (T1 + T2) jouent ensemble : même territoire, même cagnotte, même Joker.']],
       ['🏆 Résultat', ['Attaque gagnante : la Land attaquée va au RP qui a lancé le duel.', 'Défense gagnante : le RP gagne la Land du RP adverse. S\'il a atteint sa limite de locations (8 en Free) elle va à un RP Premium de sa team.<br>Si personne ne peut la recevoir, elle est remise en jeu.', 'Égalité : le défenseur gagne.']],
       ['💰 Cagnotte de la team', ['La cagnotte est alimentée par 20 % des RPC des RP qui composent la team.', 'Elle paie les défaites et le Joker.']],
       ['💸 Défaite', ['La Land mise en jeu change de team.', '20 RPC par point d\'écart sont brûlés dans la cagnotte de la team perdante.', 'Le burn ne peut pas dépasser 15 % de la cagnotte totale.']],
-      ['🏳️ Joker', ['Pour éviter le burn, le capitaine peut poser un Joker.', 'Prix progressif du Joker : 1 000, 1 500 puis 2 000 RPC × nombre de RP.', 'En compensation, les RP du duel gagnant reçoivent des NYX en proportion de l\'écart de points.', '300 pts minimum / RP dans le duel pour les gagner.']]
+      ['🏳️ Joker', ['Pour éviter le burn, le capitaine peut poser un Joker.', 'Prix progressif du Joker : 1 000, 1 500 puis 2 000 RPC × nombre de RP (20 RP maximum dans le calcul).', 'En compensation, les RP du duel gagnant reçoivent des NYX en proportion de l\'écart de points.', '300 pts minimum / RP dans le duel pour les gagner.']]
     ];
     return '<div class="dz-list dz-rules-page">' + R.map(function (r) { return '<div class="rules-section"><h3>' + r[0] + '</h3><ul class="dz-rules">' + r[1].map(function (x) { return '<li>' + x + '</li>'; }).join('') + '</ul></div>'; }).join('') + '</div>';
   }
@@ -252,7 +252,7 @@
 
   /* ---------- journal de la cagnotte : uniquement les défaites (burn), les Jokers et les versements mensuels ---------- */
   async function openPot(pot) {
-    var tid = window.__myTeamId; if (!tid) return;
+    var tid = S && S.team_id; if (!tid) return;   // cagnotte de la FAMILLE de team (T1 + T2)
     var old = $('dz-pot-modal'); if (old) old.remove();
     var m = document.createElement('div'); m.id = 'dz-pot-modal';
     m.innerHTML = '<div class="dz-modal-box dz-pot-box"><button class="dz-closex" id="dz-pot-x" title="Fermer" style="position:absolute;top:8px;right:8px;width:32px;height:32px"></button><div class="dz-modal-t">💰 Cagnotte de la team</div><div class="dz-pot-total">' + fmt(pot) + ' RPC</div><div id="dz-pot-list" class="dz-muted">Chargement…</div></div>';
