@@ -2574,7 +2574,9 @@ body::after{
     }).catch(function(){/* silent : si Supabase down on n'aggrave pas */});
   }
   checkMaintenance();
-  setInterval(checkMaintenance, 60000);
+  // 01/11/2026 (allègement base) : 1 requête par minute et par onglet OUVERT, même en arrière-plan → seulement onglet visible, toutes les 2 min, + 1 contrôle au retour.
+  setInterval(function(){ if(!document.hidden) checkMaintenance(); }, 120000);
+  document.addEventListener('visibilitychange', function(){ if(!document.hidden) checkMaintenance(); });
 })();
 </script>
 
@@ -9416,11 +9418,12 @@ async function onLoginSuccess(user, isNew){
   }
   if(typeof checkTeamRequests==='function'){
     setTimeout(function(){ checkTeamRequests(); }, 3000);
-    if(!window._teamReqPoll) window._teamReqPoll=setInterval(function(){ checkTeamRequests(); }, 30000);
+    if(!window._teamReqPoll) window._teamReqPoll=setInterval(function(){ if(!document.hidden) checkTeamRequests(); }, 30000);
   }
   if(typeof checkTeamChatUnread==='function'){
     setTimeout(function(){ checkTeamChatUnread(); }, 3000);
-    if(!window._teamChatUnreadPoll) window._teamChatUnreadPoll=setInterval(function(){ checkTeamChatUnread(); }, 30000);
+    if(!window._teamChatUnreadPoll) window._teamChatUnreadPoll=setInterval(function(){ if(!document.hidden) checkTeamChatUnread(); }, 30000);
+    document.addEventListener('visibilitychange', function(){ if(!document.hidden) { checkTeamChatUnread(); if(typeof checkTeamRequests==='function') checkTeamRequests(); } });
   }
   if(isNew){
     setTimeout(function(){if(typeof nav==='function') nav('dashboard');},300);
@@ -15169,6 +15172,7 @@ function startChatPoll(teamId){
   if(_chatPollInterval) clearInterval(_chatPollInterval);
   if(teamId){
     _chatPollInterval=setInterval(function(){
+      if(document.hidden) return;
       if(_teamChatId) loadTeamChat(_teamChatId);
     },3000);
   }
@@ -15463,6 +15467,7 @@ async function checkLeagueChatNotifs(){
 function startLeagueChatPoll(key){
   if(_leagueChatPollInterval) clearInterval(_leagueChatPollInterval);
   _leagueChatPollInterval=setInterval(function(){
+    if(document.hidden) return;
     if(_leagueChatKey) loadLeagueChat(_leagueChatKey);
   },3000);
 }
@@ -32160,7 +32165,13 @@ window.Tour.init = async function(){
   // — jamais plus par un minuteur ou un event générique.
   // Classement réel : 1er chargement + rafraîchi toutes les 20s (pas besoin de
   // temps réel seconde par seconde pour un classement de progression sur des km).
-  setInterval(_refreshTourOthersDist, 20000);
+  // 01/11/2026 (allègement base) : cette requête ramène ~400 joueurs ; elle partait toutes les 20 s depuis TOUS les onglets ouverts, quelle que soit la page.
+  // Maintenant : seulement quand la page Tour est affichée et l'onglet visible, toutes les 60 s (le classement bouge en km, pas à la seconde).
+  setInterval(function(){
+    if(document.hidden) return;
+    var _pl=document.getElementById('page-lands'); if(!_pl || !_pl.classList.contains('active')) return;
+    _refreshTourOthersDist();
+  }, 60000);
   // Reset complet à la demande (bouton "↺ Recommencer") : remet la ligne en
   // base à zéro (case, tours, ville de départ) et recharge — Lands/RPC/NYX
   // (tour_lands/players.rpc_balance) restent intacts, seule la position bouge.
