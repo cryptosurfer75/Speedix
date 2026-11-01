@@ -142,7 +142,7 @@
       if (delta > 0) {
         var loserIsAtt = L.loser_team === d.attacker_team; burnCol = loserIsAtt ? 1 : 2;
         var jk = '';
-        if (ph === 'decision' && S.is_captain && L.loser_team === myTeam && !L.joker) jk = '<button class="dz-btn green" style="margin-top:8px;width:100%" data-joker="' + d.id + '">🏳️ Jouer le Joker · ' + fmt(S.joker_price) + ' RPC</button>';
+        if (ph === 'decision' && S.is_captain && L.loser_team === myTeam && !L.joker) jk = '<button class="dz-btn green" style="margin-top:8px;width:100%" data-joker="' + d.id + '">Joker · ' + fmt(S.joker_price) + ' RPC</button>';
         var body = L.joker ? '<div class="dz-loss-t">🏳️ Joker joué</div><div class="dz-muted">0 RPC brûlé (' + fmt(d.joker_price) + ' RPC dépensés)</div>'
           : '<div class="dz-loss-t">🔥 burn <span class="dz-yel">' + fmt(L.raw) + ' RPC</span></div><div class="dz-muted">' + fmt(delta) + ' pts × 20 RPC</div>';
         cells += '<div class="dz-loss" style="grid-column:' + burnCol + '">' + body + jk + '</div>';
@@ -199,8 +199,9 @@
 
   /* ---------- actions ---------- */
   function askJoker(id) {
+    var d = (S.duels || []).filter(function (x) { return x.id === +id; })[0], burn = d && d.loss ? d.loss.paid : 0;
     var m = document.createElement('div'); m.id = 'dz-modal';
-    m.innerHTML = '<div class="dz-modal-box"><div class="dz-modal-t">Jouer le Joker ?</div><div class="dz-muted">Ta team paie <b>' + fmt(S.joker_price) + ' RPC</b> sur sa cagnotte. La Land change de team, mais la cagnotte ne paie aucune pénalité.</div><div class="dz-row" style="margin-top:14px;justify-content:flex-end"><button class="dz-btn" data-cancel="1">Annuler</button><button class="dz-btn green" data-confirmjoker="' + id + '">Jouer le Joker</button></div></div>';
+    m.innerHTML = '<div class="dz-modal-box"><div style="font-size:15px;line-height:1.5">Joue ton Joker (<b class="dz-yel">' + fmt(S.joker_price) + ' RPC</b>) pour éviter le burn de ta cagnotte (<b class="dz-yel">− ' + fmt(burn) + ' RPC</b>).</div><div class="dz-row" style="margin-top:16px;gap:10px"><button class="dz-btn" style="flex:1;text-transform:uppercase" data-cancel="1">Annuler</button><button class="dz-btn green" style="flex:1" data-confirmjoker="' + id + '">Jouer</button></div></div>';
     $('dz-app').appendChild(m);
   }
   async function onAction(e) {
