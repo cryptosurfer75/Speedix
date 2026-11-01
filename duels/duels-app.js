@@ -58,19 +58,21 @@
     timer = setInterval(function () { if (document.visibilityState !== 'hidden') refresh(); }, 60000);
   }
 
-  /* ---------- ligne « cagnotte + bouton DUEL » de Ma Team ---------- */
-  async function renderTeamRow() {
-    var host = $('myteam-duel-row'); if (!host) return;
+  /* ---------- tuile DUEL de la page SPEEDIX Tour (à côté de la CAGNOTTE du Tour) ---------- */
+  function renderTeamRow() {
+    var host = $('tour-duel-tile'); if (!host) return;
     var tid = window.__myTeamId;
     if (!tid) { host.style.display = 'none'; return; }
-    host.style.display = 'flex';
-    var pot = S && S.team_id === tid && S.pot != null ? S.pot : null;
-    if (pot == null) { var r = await supabaseClient.from('team_pots').select('balance').eq('team_id', tid).maybeSingle(); pot = r.data ? Number(r.data.balance) : 0; }
     var on = !!(S && S.enabled);
-    host.innerHTML = '<div class="dz-pot" id="myteam-pot-tile" style="cursor:pointer" title="Voir les mouvements"><small>💰 CAGNOTTE DE LA TEAM</small><b>' + fmt(pot) + ' RPC</b></div>' +
-      '<button class="tour-tile-btn white" id="myteam-duel-btn"' + (on ? '' : ' disabled title="Bientôt disponible"') + '><span class="tour-tile-border"></span><span class="tour-tile-fill"></span><span class="tour-tile-emoji">⚔️</span>DUEL</button>';
-    var b = $('myteam-duel-btn'); if (b && on) b.onclick = function () { open(); };
-    var pt = $('myteam-pot-tile'); if (pt) pt.onclick = function () { openPot(pot); };
+    host.style.display = ''; host.style.opacity = on ? '1' : '.4'; host.style.cursor = on ? 'pointer' : 'not-allowed';
+    host.title = on ? '' : 'Bientôt disponible';
+    host.onclick = on ? function () { open(); } : null;
+  }
+  // cagnotte de la team : affichée dans l'écran Duel (clic = journal des mouvements)
+  function renderPotRow() {
+    var host = $('dz-pot-row'); if (!host || !S) return;
+    host.innerHTML = '<div class="dz-pot" id="dz-pot-tile" title="Voir les mouvements"><small>💰 CAGNOTTE DE LA TEAM</small><b>' + fmt(S.pot) + ' RPC</b></div>';
+    var t = $('dz-pot-tile'); if (t) t.onclick = function () { openPot(S.pot); };
   }
 
   /* ---------- pastille rouge sur la tuile SPEEDIX TOUR de la Player Card (un duel lancé sur MA Land, pas encore vu) ---------- */
@@ -97,7 +99,7 @@
     if ($('dz-app')) return;
     var el = document.createElement('div'); el.id = 'dz-app';
     el.innerHTML = '<div class="dz-head"><div class="dz-head-row"><div style="width:40px;flex-shrink:0"></div><div class="dz-head-title"><img src="league-title-chevron-left.webp" alt=""><div class="dz-ttl">DUEL <span style="color:#f5c842">TEAM</span></div><img src="league-title-chevron-right.webp" alt=""></div><button class="dz-closex" id="dz-close" title="Fermer"></button></div><div class="dz-head-line"></div></div>' +
-      '<div class="dz-tabs" id="dz-tabs"></div><div class="dz-body"><div class="dz-pane" id="p-map"><svg id="dz-map"></svg><div id="dz-side"></div><div id="dz-mappot"></div><div id="dz-zoom"><button data-z="in" aria-label="Zoom avant">+</button><button data-z="out" aria-label="Zoom arrière">−</button></div></div><div class="dz-pane" id="p-duels"></div><div class="dz-pane" id="p-notifs"></div><div class="dz-pane" id="p-hist"></div><div class="dz-pane" id="p-rules"></div><div class="dz-pane" id="p-dev"></div></div>';
+      '<div class="dz-tabs" id="dz-tabs"></div><div id="dz-pot-row"></div><div class="dz-body"><div class="dz-pane" id="p-map"><svg id="dz-map"></svg><div id="dz-side"></div><div id="dz-mappot"></div><div id="dz-zoom"><button data-z="in" aria-label="Zoom avant">+</button><button data-z="out" aria-label="Zoom arrière">−</button></div></div><div class="dz-pane" id="p-duels"></div><div class="dz-pane" id="p-notifs"></div><div class="dz-pane" id="p-hist"></div><div class="dz-pane" id="p-rules"></div><div class="dz-pane" id="p-dev"></div></div>';
     document.body.appendChild(el);
     $('dz-close').onclick = close;
     $('dz-tabs').onclick = function (e) { var b = e.target.closest('[data-tab]'); if (b) { tab = b.dataset.tab; if (tab === 'map') MAPDATA = null; if (tab === 'duels') markSeen(); if (tab === 'notifs') supabaseClient.rpc('duel_mark_notifications_read'); render(); } };
@@ -123,6 +125,7 @@
     if (me() === ADMIN_UID) tiles.push(['dev', '🧪', 'Test', 0]);
     $('dz-tabs').innerHTML = tiles.map(function (t) { var cls = t[0] === 'rules' ? 'glass-gold' : tab === t[0] ? 'solid-green' : 'white'; return '<button class="tour-tile-btn ' + cls + '" data-tab="' + t[0] + '"><span class="tour-tile-border"></span><span class="tour-tile-fill"></span><span class="tour-tile-emoji">' + t[1] + '</span>' + t[2] + (t[3] ? '<b>' + t[3] + '</b>' : '') + '</button>'; }).join('');
     ['map', 'duels', 'notifs', 'hist', 'rules', 'dev'].forEach(function (t) { $('p-' + t).classList.toggle('on', t === tab); });
+    renderPotRow();
     if (tab === 'map') await drawTeamMap();
     else if (tab === 'duels') $('p-duels').innerHTML = paneDuels();
     else if (tab === 'hist') $('p-hist').innerHTML = paneHist();

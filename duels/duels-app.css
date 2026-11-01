@@ -95,3 +95,10 @@
 }
 #dz-zoom{position:absolute;z-index:2;right:10px;bottom:12px;display:flex;flex-direction:column;gap:6px}
 #dz-zoom button{width:38px;height:38px;border-radius:10px;border:1.5px solid #f5c842;background:#0c0f1af0;color:#f5c842;font:700 22px 'Rajdhani',sans-serif;line-height:1;cursor:pointer;padding:0}
+
+/* cagnotte de la team dans l'écran Duel (sous les tuiles) ; la pastille de la carte devient redondante */
+#dz-pot-row{padding:0 10px 4px}
+#dz-pot-row .dz-pot{border:1.5px solid #f5c842;border-radius:10px;background:#0c0f1a;padding:6px 10px;display:flex;flex-direction:column;justify-content:center;cursor:pointer}
+#dz-pot-row .dz-pot small{font:700 10px 'Space Mono',monospace;letter-spacing:1px;color:#b3a3dd}
+#dz-pot-row .dz-pot b{font:700 22px 'Rajdhani',sans-serif;color:#f5c842;line-height:1.1}
+#dz-mappot{display:none}

@@ -2450,7 +2450,7 @@ body::after{
 
 @keyframes tourDicePop{0%{transform:scale(1.5)}100%{transform:scale(1)}}
 </style>
-<link rel="stylesheet" href="duels/duels-app.css?v=6">
+<link rel="stylesheet" href="duels/duels-app.css?v=7">
 </head>
 <body>
 
@@ -4300,6 +4300,16 @@ select option{background:#040c1c}
   </div>
   </div>
   </div>
+  <!-- TUILE DUEL (01/11/2026) : à côté de la CAGNOTTE du Tour (même gabarit biseauté). Grisée tant que les duels ne sont pas ouverts pour ce RP ; masquée sans team.
+       Câblée par duels/duels-app.js (renderTeamRow). -->
+  <div id="tour-duel-tile" style="display:none;margin-bottom:14px;filter:drop-shadow(0 0 8px rgba(228,84,255,.4));flex:1 1 0;min-width:0;max-width:190px;cursor:pointer">
+  <div style="background:rgba(228,84,255,.75);clip-path:polygon(11px 0,calc(100% - 11px) 0,100% 11px,100% calc(100% - 11px),calc(100% - 11px) 100%,11px 100%,0 calc(100% - 11px),0 11px);padding:1.5px">
+  <div style="background:#0c0f1a;clip-path:polygon(10px 0,calc(100% - 10px) 0,100% 10px,100% calc(100% - 10px),calc(100% - 10px) 100%,10px 100%,0 calc(100% - 10px),0 10px);padding:6px 8px 7px;text-align:center">
+    <div style="font-family:'Bebas Neue',sans-serif;letter-spacing:3px;font-size:16px;line-height:1;color:#fff">DUEL</div>
+    <div style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:15px;line-height:20px;height:20px;margin-top:2px;color:#e454ff">⚔️ TEAM</div>
+  </div>
+  </div>
+  </div>
   <!-- COMPTEUR « CASES À PARCOURIR » (2026-10-20) : même taille que la cagnotte ; visible seulement pendant le déplacement du pion
        (décompte case par case, façon dés du Monopoly). Piloté par _tourDiceShow/_tourDiceUpdate/_tourDiceHide dans forceMove(). -->
   <div id="tour-dice-tile" style="display:none;margin-bottom:14px;filter:drop-shadow(0 0 8px rgba(200,208,222,.45));flex:1 1 0;min-width:0;max-width:190px">
@@ -4655,7 +4665,6 @@ select option{background:#040c1c}
           <div id="myteam-header-content" data-i18n="teams.loading" style="text-align:center;padding:.5rem;color:var(--muted2);font-size:.82rem">Chargement…</div>
         </div>
         <!-- Actions Ma Team (quitter, gérer) -->
-        <div id="myteam-duel-row" style="display:none"></div>
         <div id="myteam-actions" style="padding:.4rem 1rem;border-bottom:1px solid rgba(30,37,53,.6);display:none;gap:.5rem;flex-wrap:wrap"></div>
         <div style="overflow-x:auto">
           <table class="tbl">
@@ -36307,6 +36316,6 @@ window.Tour.init = async function(){
 
 </script>
 <script src="duels/duels-map.js?v=2"></script>
-<script src="duels/duels-app.js?v=11"></script>
+<script src="duels/duels-app.js?v=12"></script>
 </body>
 </html>
