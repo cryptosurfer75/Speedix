@@ -2450,7 +2450,7 @@ body::after{
 
 @keyframes tourDicePop{0%{transform:scale(1.5)}100%{transform:scale(1)}}
 </style>
-<link rel="stylesheet" href="duels/duels-app.css?v=5">
+<link rel="stylesheet" href="duels/duels-app.css?v=6">
 </head>
 <body>
 
@@ -33512,8 +33512,13 @@ window.Tour.init = async function(){
   }
   function _tourWaitClear(){
     return new Promise(function(resolve){
+      var t0=Date.now();
       (function poll(){
-        if(!_tourAnimating && !_tourModalOpen() && !_celebPipelineBusy()) resolve(); else setTimeout(poll, 250);
+        if(!_tourAnimating && !_tourModalOpen() && !_celebPipelineBusy()) resolve();
+        // Garde-fou (01/11/2026, compte de test Jordan Smith : le serveur avait déjà avancé le pion mais l'animation n'a jamais démarré, ni
+        // l'atterrissage) : si une fenêtre reste ouverte plus de 25 s, on lance quand même le déplacement plutôt que d'attendre indéfiniment.
+        else if(!_tourAnimating && Date.now()-t0>25000){ console.warn('[tour] attente des fenêtres > 25 s : départ forcé', {rent:_tourModalOpen(), celeb:_celebPipelineBusy()}); resolve(); }
+        else setTimeout(poll, 250);
       })();
     });
   }
@@ -36273,7 +36278,7 @@ window.Tour.init = async function(){
 })();
 
 </script>
-<script src="duels/duels-map.js?v=1"></script>
-<script src="duels/duels-app.js?v=10"></script>
+<script src="duels/duels-map.js?v=2"></script>
+<script src="duels/duels-app.js?v=11"></script>
 </body>
 </html>

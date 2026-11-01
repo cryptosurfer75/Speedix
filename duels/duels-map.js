@@ -254,13 +254,30 @@
     [].forEach.call($('dz-side').querySelectorAll('.dz-t'), function (n) { n.onclick = function () { selTeam = n.dataset.t && selTeam !== n.dataset.t ? n.dataset.t : null; sideOpen = false; drawMap(); }; });
   }
   function bindMap() {
-    var svg = $('dz-map'), dr = null;
-    svg.addEventListener('wheel', function (e) { e.preventDefault(); var f = e.deltaY > 0 ? 1.12 : 1 / 1.12, r = svg.getBoundingClientRect(), mx = view[0] + (e.clientX - r.left) / r.width * view[2], my = view[1] + (e.clientY - r.top) / r.height * view[3]; view = [mx - (mx - view[0]) * f, my - (my - view[1]) * f, view[2] * f, view[3] * f]; svg.setAttribute('viewBox', view.join(' ')); }, { passive: false });
-    svg.addEventListener('pointerdown', function (e) { dr = [e.clientX, e.clientY, view[0], view[1]]; });
-    addEventListener('pointerup', function () { dr = null; });
-    addEventListener('pointermove', function (e) { if (!dr) return; var r = svg.getBoundingClientRect(); view[0] = dr[2] - (e.clientX - dr[0]) / r.width * view[2]; view[1] = dr[3] - (e.clientY - dr[1]) / r.height * view[3]; svg.setAttribute('viewBox', view.join(' ')); });
+    var svg = $('dz-map'), ptrs = {}, dr = null, pinch = null;
+    // zoom autour d'un point de l'écran (f < 1 = on se rapproche)
+    var zoomAt = function (f, cx, cy) {
+      var r = svg.getBoundingClientRect(), mx = view[0] + (cx - r.left) / r.width * view[2], my = view[1] + (cy - r.top) / r.height * view[3];
+      view = [mx - (mx - view[0]) * f, my - (my - view[1]) * f, view[2] * f, view[3] * f]; svg.setAttribute('viewBox', view.join(' '));
+    };
+    var dist = function () { var k = Object.keys(ptrs); return Math.hypot(ptrs[k[0]][0] - ptrs[k[1]][0], ptrs[k[0]][1] - ptrs[k[1]][1]); };
+    var mid = function () { var k = Object.keys(ptrs); return [(ptrs[k[0]][0] + ptrs[k[1]][0]) / 2, (ptrs[k[0]][1] + ptrs[k[1]][1]) / 2]; };
+    svg.addEventListener('wheel', function (e) { e.preventDefault(); zoomAt(e.deltaY > 0 ? 1.12 : 1 / 1.12, e.clientX, e.clientY); }, { passive: false });
+    svg.addEventListener('pointerdown', function (e) {
+      ptrs[e.pointerId] = [e.clientX, e.clientY];
+      if (Object.keys(ptrs).length === 2) { pinch = dist(); dr = null; } else dr = [e.clientX, e.clientY, view[0], view[1]];
+    });
+    addEventListener('pointerup', function (e) { delete ptrs[e.pointerId]; pinch = null; dr = null; var k = Object.keys(ptrs); if (k.length === 1) dr = [ptrs[k[0]][0], ptrs[k[0]][1], view[0], view[1]]; });
+    addEventListener('pointercancel', function (e) { delete ptrs[e.pointerId]; pinch = null; dr = null; });
+    addEventListener('pointermove', function (e) {
+      if (!ptrs[e.pointerId]) return; ptrs[e.pointerId] = [e.clientX, e.clientY];
+      if (pinch && Object.keys(ptrs).length === 2) { var d = dist(), m2 = mid(); if (d > 4 && pinch > 4) zoomAt(pinch / d, m2[0], m2[1]); pinch = d; return; }
+      if (!dr) return; var r = svg.getBoundingClientRect(); view[0] = dr[2] - (e.clientX - dr[0]) / r.width * view[2]; view[1] = dr[3] - (e.clientY - dr[1]) / r.height * view[3]; svg.setAttribute('viewBox', view.join(' '));
+    });
+    // boutons + / − (au cas où le pincement ou la molette ne sont pas disponibles)
+    var zb = $('dz-zoom');
+    if (zb) zb.onclick = function (e) { var b = e.target.closest('[data-z]'); if (!b) return; var r = svg.getBoundingClientRect(); zoomAt(b.dataset.z === 'in' ? 1 / 1.4 : 1.4, r.left + r.width / 2, r.top + r.height / 2); };
   }
-
 
   function draw(c) {
     ctx = c; me = c.me; MD = c.mapData || { teams: [], mine: null };
