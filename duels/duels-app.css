@@ -4,13 +4,15 @@
 #dz-app *{box-sizing:border-box}
 #dz-app::before{content:'';position:absolute;inset:0;pointer-events:none;z-index:0;background:url('/bg-app-neon.webp') center/cover no-repeat;mix-blend-mode:screen;opacity:.75}
 #dz-app > *{position:relative;z-index:1}
-.dz-head{padding:calc(env(safe-area-inset-top) + 14px) 12px 6px}
+/* en-tête HARMONISÉ avec les autres pages (Ma Team, League…) : même hauteur de titre = barre de nav (52 px + zone sûre) + marge de page (1,5 rem, .85 rem en dessous de 1024 px) */
+.dz-head{padding:calc(env(safe-area-inset-top) + 52px + 1.5rem) 1.5rem 0;margin-bottom:.6rem}
+@media (max-width:1024px){.dz-head{padding:calc(env(safe-area-inset-top) + 52px + .85rem) .85rem 0}}
 .dz-head-row{display:flex;align-items:center}
 .dz-head-title{flex:1;min-width:0;display:flex;align-items:center;justify-content:center;gap:.35rem}
 .dz-head-title img{height:30px;width:auto;max-width:25vw;object-fit:contain;flex-shrink:0;pointer-events:none;user-select:none}
 .dz-ttl{font-family:'Big Shoulders Display',sans-serif;font-weight:900;font-style:italic;text-transform:uppercase;font-size:clamp(1.25rem,6vw,2.4rem);line-height:1;transform:scaleY(1.15);white-space:nowrap;color:#fff}
-.dz-closex{width:40px;height:40px;border:none;padding:0;cursor:pointer;flex-shrink:0;background:url('/icon-close-x.webp') center/30px 30px no-repeat}
-.dz-head-line{height:1px;width:100%;margin:.4rem auto 0;background:linear-gradient(90deg,transparent,#fff 15%,#f5c842 50%,#fff 85%,transparent)}
+.dz-closex{width:40px;height:40px;border:none;padding:0;cursor:pointer;flex-shrink:0;background:url('/icon-close-x.webp') center/30px 30px no-repeat;transform:translate(8px,-34px)}
+.dz-head-line{height:1px;width:100%;margin:.15rem auto 0;background:linear-gradient(90deg,transparent,#fff 15%,#f5c842 50%,#fff 85%,transparent)}
 .dz-tabs{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:8px}
 .dz-tabs .tour-tile-btn{min-width:0;font-size:14px;text-transform:uppercase;letter-spacing:.3px}
 .dz-tabs .tour-tile-btn b{background:#ff4d4d;color:#fff;border-radius:10px;padding:0 6px;margin-left:auto;font-size:11px}
