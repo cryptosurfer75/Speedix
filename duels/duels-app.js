@@ -5,7 +5,6 @@
 (function () {
   'use strict';
   var NOW_SKEW = 0, S = null, MAPDATA = null, TEAMS = {}, tab = 'duels', timer = null, inited = false, initing = false;
-  var ADMIN_UID = '0cba7ec2-3d9d-4b08-9b51-280aa0c05a28';
   var $ = function (id) { return document.getElementById(id); };
   var esc = function (x) { return typeof escapeHtml === 'function' ? escapeHtml(String(x == null ? '' : x)) : String(x == null ? '' : x).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
   var fmt = function (n) { return Math.round(n || 0).toLocaleString('fr-FR'); };
@@ -99,7 +98,7 @@
     if ($('dz-app')) return;
     var el = document.createElement('div'); el.id = 'dz-app';
     el.innerHTML = '<div class="dz-head"><div class="dz-head-row"><div style="width:40px;flex-shrink:0"></div><div class="dz-head-title"><img src="league-title-chevron-left.webp" alt=""><div class="dz-ttl">DUEL <span style="color:#f5c842">TEAM</span></div><img src="league-title-chevron-right.webp" alt=""></div><button class="dz-closex" id="dz-close" title="Fermer"></button></div><div class="dz-head-line"></div></div>' +
-      '<div class="dz-tabs" id="dz-tabs"></div><div id="dz-pot-row"></div><div class="dz-body"><div class="dz-pane" id="p-map"><div id="dz-mapframe"><svg id="dz-map"></svg><div id="dz-mappot"></div><div id="dz-selchip"></div></div><div id="dz-side"></div></div><div class="dz-pane" id="p-rank"></div><div class="dz-pane" id="p-duels"></div><div class="dz-pane" id="p-notifs"></div><div class="dz-pane" id="p-hist"></div><div class="dz-pane" id="p-rules"></div><div class="dz-pane" id="p-dev"></div></div>';
+      '<div class="dz-tabs" id="dz-tabs"></div><div id="dz-pot-row"></div><div class="dz-body"><div class="dz-pane" id="p-map"><div id="dz-mapframe"><svg id="dz-map"></svg><div id="dz-mappot"></div><div id="dz-selchip"></div></div><div id="dz-side"></div></div><div class="dz-pane" id="p-rank"></div><div class="dz-pane" id="p-duels"></div><div class="dz-pane" id="p-notifs"></div><div class="dz-pane" id="p-hist"></div><div class="dz-pane" id="p-rules"></div></div>';
     document.body.appendChild(el);
     $('dz-close').onclick = close;
     $('dz-tabs').onclick = function (e) { var b = e.target.closest('[data-tab]'); if (b) { tab = b.dataset.tab; if (tab === 'map' || tab === 'rank') MAPDATA = null; if (tab === 'duels') markSeen(); if (tab === 'notifs') supabaseClient.rpc('duel_mark_notifications_read'); render(); } };
@@ -131,16 +130,14 @@
     if (!$('dz-app') || !S) return;
     var notifN = window.__duelUnread || 0;
     var tiles = [['map', '🗺️', 'Carte', 0], ['duels', '⚔️', 'Duels', ((S.duels || []).filter(function (d) { return d.status === 'active'; })).length], ['notifs', '🔔', 'Notifs', notifN], ['hist', '🕓', 'Historique', 0], ['rank', '🏆', 'Classement', 0], ['rules', '📜', 'Règles', 0]];
-    if (me() === ADMIN_UID) tiles.push(['dev', '🧪', 'Test', 0]);   // Classement à gauche, Règles à droite ; Test (admin) en dessous
     $('dz-tabs').innerHTML = tiles.map(function (t) { var cls = t[0] === 'rules' ? 'glass-gold' : tab === t[0] ? 'solid-green' : 'white'; return '<button class="tour-tile-btn ' + cls + '" data-tab="' + t[0] + '"><span class="tour-tile-border"></span><span class="tour-tile-fill"></span><span class="tour-tile-emoji">' + t[1] + '</span>' + t[2] + (t[3] ? '<b>' + t[3] + '</b>' : '') + '</button>'; }).join('');
-    ['map', 'rank', 'duels', 'notifs', 'hist', 'rules', 'dev'].forEach(function (t) { $('p-' + t).classList.toggle('on', t === tab); });
+    ['map', 'rank', 'duels', 'notifs', 'hist', 'rules'].forEach(function (t) { $('p-' + t).classList.toggle('on', t === tab); });
     renderPotRow();
     if (tab === 'map') await drawTeamMap();
     else if (tab === 'rank') await paneRank();
     else if (tab === 'duels') $('p-duels').innerHTML = paneDuels();
     else if (tab === 'hist') $('p-hist').innerHTML = paneHist();
     else if (tab === 'rules') $('p-rules').innerHTML = paneRules();
-    else if (tab === 'dev') $('p-dev').innerHTML = paneDev();
     else if (tab === 'notifs') { $('p-notifs').innerHTML = await paneNotifs(); }
   }
 
@@ -215,16 +212,6 @@
     ];
     return '<div class="dz-list dz-rules-page">' + R.map(function (r) { return '<div class="rules-section"><h3>' + r[0] + '</h3><ul class="dz-rules">' + r[1].map(function (x) { return '<li>' + x + '</li>'; }).join('') + '</ul></div>'; }).join('') + '</div>';
   }
-  function paneDev() {
-    var mine = (S.duels || []).filter(function (d) { return d.status === 'active'; });
-    var opts = []; mine.forEach(function (d) { (d.members || []).forEach(function (m) { opts.push('<option value="' + d.id + '|' + m.player_id + '">' + esc(m.username) + ' (duel n°' + d.id + ')</option>'); }); });
-    return '<div class="dz-list"><div class="dz-dev"><b>🧪 Outils de test (mode admin)</b><div class="dz-muted">Tout est simulé : rien n\'est écrit dans les courses ni dans les portefeuilles.</div>' +
-      '<div>Lancer un duel sur la Land n° <input id="dev-land" type="number" value="8" style="width:80px"> <button class="dz-btn" data-testlaunch="1">Lancer</button> <span class="dz-muted">(Land d\'un bot Rhinos pour le test)</span></div>' +
-      '<div>Alimenter la cagnotte de ma team : <input id="dev-fund" type="number" value="100000" style="width:110px"> <button class="dz-btn" data-fund="1">Ajouter</button></div>' +
-      '<div>Points simulés : <select id="dev-who">' + opts.join('') + '</select> <input id="dev-pts" type="number" value="300" style="width:80px"> <button class="dz-btn" data-addpts="1">Ajouter</button></div>' +
-      '<div class="dz-muted">Mode : ' + (S.enabled ? 'ouvert pour toi' : 'fermé') + ' · durée du duel en mode test : 60 min.</div></div></div>';
-  }
-
   /* ---------- actions ---------- */
   function askJoker(id) {
     var d = (S.duels || []).filter(function (x) { return x.id === +id; })[0], burn = d && d.loss ? d.loss.paid : 0;
@@ -241,9 +228,6 @@
     else if (b.dataset.leave) r = await supabaseClient.rpc('duel_leave', { p_duel: +b.dataset.leave });
     else if (b.dataset.joker) { askJoker(b.dataset.joker); return; }
     else if (b.dataset.confirmjoker) { var m2 = $('dz-modal'); if (m2) m2.remove(); r = await supabaseClient.rpc('duel_play_joker', { p_duel: +b.dataset.confirmjoker }); }
-    else if (b.dataset.testlaunch) r = await supabaseClient.rpc('duel_launch', { p_idx: +($('dev-land').value || 0) });
-    else if (b.dataset.fund) r = await supabaseClient.rpc('duel_admin_fund_pot', { p_amount: +($('dev-fund').value || 0) });
-    else if (b.dataset.addpts) { var v = $('dev-who').value.split('|'); r = await supabaseClient.rpc('duel_admin_add_points', { p_duel: +v[0], p_player: v[1], p_pts: +($('dev-pts').value || 0) }); }
     else return;
     var res = r && r.data; if (r && r.error) { toast('Erreur, réessaie.', true); return; }
     if (res && res.ok === false) toast(REASONS[res.error] || res.error, true); else toast('C\'est fait !');
