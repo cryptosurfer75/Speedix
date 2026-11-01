@@ -71,10 +71,11 @@
 .dz-pot-row b{font-family:'Rajdhani',sans-serif;white-space:nowrap}
 
 /* carte des teams (onglet Carte) */
-#p-map{margin:8px 10px 10px;border:1.5px solid rgba(228,84,255,.5);border-radius:12px;background:#0c0f1a;overflow:hidden;position:relative}
-#p-map.on{display:block;height:calc(100% - 18px);min-height:380px}
+#p-map{margin:8px 10px 10px}
+#p-map.on{display:flex;flex-direction:column;gap:8px;height:calc(100% - 18px);min-height:380px}
+#dz-mapframe{position:relative;flex:1;min-height:300px;border:1.5px solid rgba(228,84,255,.5);border-radius:12px;background:#0c0f1a;overflow:hidden}
 #dz-map{position:absolute;inset:0;width:100%;height:100%;touch-action:none;cursor:grab}
-#dz-side{position:absolute;z-index:2;top:8px;left:8px;width:210px;max-height:calc(100% - 16px);overflow:auto;background:#0c0f1af0;border:1px solid #334;border-radius:8px;padding:6px;font-size:12px;color:#fff}
+#dz-side{flex:none;max-height:42%;overflow:auto;background:#0c0f1a;border:1.5px solid rgba(228,84,255,.5);border-radius:12px;padding:6px 8px;font-size:13px;color:#fff}
 .dz-t{display:flex;align-items:center;gap:6px;padding:3px 5px;border-radius:5px;cursor:pointer}
 .dz-t:hover{background:#1c2236}.dz-t.on{background:#26304d;outline:1px solid #8af}
 .dz-t img,.dz-t u,.dz-side-h img,.dz-side-h u{width:20px;height:20px;border-radius:50%;object-fit:cover;flex:none;background:#334;text-decoration:none}
@@ -87,7 +88,6 @@
 @keyframes dzblink{0%,100%{opacity:.15}50%{opacity:1}}
 .dz-blink{animation:dzblink 1.8s infinite}
 @media (max-width:600px){
-  #dz-side{width:calc(50% - 12px)}
   #dz-mappot{width:calc(50% - 12px);max-width:none;padding:6px 8px}
   .dz-pot-t{font-size:9px;letter-spacing:.5px;line-height:1.3}
   .dz-pot-v{font-size:18px}
