@@ -239,8 +239,8 @@
       var x0 = mnx - 90, x1 = mxx + 90, y0 = mny - 90, y1 = mxy + 90, mc = myT && byTeam[myT] ? shown(myT) : null;
       if (mc && mc.length) { var mcx = mc.reduce(function (a, q) { return a + q[0]; }, 0) / mc.length, mcy = mc.reduce(function (a, q) { return a + q[1]; }, 0) / mc.length, hx = Math.max(mcx - x0, x1 - mcx), hy = Math.max(mcy - y0, y1 - mcy); x0 = mcx - hx; x1 = mcx + hx; y0 = mcy - hy; y1 = mcy + hy; }
       var w = x1 - x0, h = y1 - y0, ar = Math.max(.5, svg.clientWidth / Math.max(1, svg.clientHeight)); view = ar > w / h ? [x0 - (h * ar - w) / 2, y0, h * ar, h] : [x0, y0 - (w / ar - h) / 2, w, w / ar];
-      // zoom par défaut un peu plus rapproché (≈ 3 crans de molette, x1,4) autour du centre : la team du RP reste au milieu
-      var ZD = 1.4; view = [view[0] + view[2] * (1 - 1 / ZD) / 2, view[1] + view[3] * (1 - 1 / ZD) / 2, view[2] / ZD, view[3] / ZD]; }
+      // zoom par défaut un peu plus rapproché (x1,8) autour du centre : la team du RP reste au milieu
+      var ZD = 1.8; view = [view[0] + view[2] * (1 - 1 / ZD) / 2, view[1] + view[3] * (1 - 1 / ZD) / 2, view[2] / ZD, view[3] / ZD]; }
     svg.setAttribute('viewBox', view.join(' '));
     // surbrillance d'une team
     Object.keys(els).forEach(function (id) { els[id].forEach(function (e) { e.style.opacity = (selTeam === null || selTeam === id) ? 1 : .12; }); });
