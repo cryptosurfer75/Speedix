@@ -109,7 +109,7 @@
 /* classement des teams (nombre de Lands) */
 .dz-rank-row{display:flex;align-items:center;gap:10px;background:#000;border:1px solid #2a2a2a;border-radius:10px;padding:8px 12px;cursor:pointer}
 .dz-rank-row.me{border-color:#f5c842}
-.dz-rank-row .dz-rk{width:28px;font:700 20px 'Rajdhani',sans-serif;color:#f5c842;text-align:center}
+.dz-rank-row .dz-rk{width:28px;font:700 20px 'Rajdhani',sans-serif;color:#fff;text-align:center}
 .dz-rank-row img,.dz-rank-row u{width:28px;height:28px;border-radius:50%;object-fit:cover;flex:none}
 .dz-rank-row .nm{flex:1;font:700 16px 'Rajdhani',sans-serif;letter-spacing:.5px}
-.dz-rank-row .n{font:700 22px 'Rajdhani',sans-serif;color:#fff}
+.dz-rank-row .n{font:700 22px 'Rajdhani',sans-serif;color:#f5c842}
