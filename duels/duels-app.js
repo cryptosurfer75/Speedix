@@ -134,7 +134,7 @@
     var canLeave = ph === 'fight' && mine && mine.role === 'helper';
     var h = '<div class="dz-card' + (mine ? ' mine' : '') + '"><div class="dz-row"><span class="dz-tag ' + (ph === 'fight' || ph === 'decision' ? 'fight' : 'done') + '">' + (ph === 'fight' ? 'EN COURS' : ph === 'decision' ? 'SCORE FINAL' : 'TERMINÉ') + '</span><span class="dz-muted">Land n°' + d.stake_idx + ' vs n°' + d.target_idx + '</span></div>' +
       '<div class="dz-vs" style="margin-top:8px">' + logo(d.attacker_team) + '<div class="mid"><span class="l" style="color:' + esc(team(d.attacker_team).color) + '">' + esc(team(d.attacker_team).name) + '</span><span class="x">⚔️</span><span class="r" style="color:' + esc(team(d.defender_team).color) + '">' + esc(team(d.defender_team).name) + '</span></div>' + logo(d.defender_team) + '</div>' +
-      '<div class="dz-bar"><i style="width:' + (att + def ? 100 * att / tot : 50) + '%;background:' + (att >= def ? '#2fe08a' : '#ff4d9d') + '"></i><i style="width:' + (att + def ? 100 * def / tot : 50) + '%;background:' + (def >= att ? '#2fe08a' : '#ff4d9d') + '"></i></div>' +
+      '<div class="dz-bar"><i style="width:' + (att + def ? 100 * att / tot : 50) + '%;background:' + (att === def ? '#555a6b' : att > def ? '#2fe08a' : '#ff4d9d') + '"></i><i style="width:' + (att + def ? 100 * def / tot : 50) + '%;background:' + (att === def ? '#555a6b' : def > att ? '#2fe08a' : '#ff4d9d') + '"></i></div>' +
       '<div class="dz-sc"><span>' + fmt(att) + '</span><span class="dz-muted" style="align-self:center">' + cd + '</span><span>' + fmt(def) + '</span></div>' +
       '<div class="dz-members"><div>' + attMembers.map(memberLine).join('') + '</div><div>' + defMembers.map(memberLine).join('') + '</div></div>';
     if (ph !== 'done') {
