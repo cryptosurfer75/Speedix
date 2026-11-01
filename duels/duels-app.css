@@ -102,3 +102,4 @@
 #dz-pot-row .dz-pot small{font:700 10px 'Space Mono',monospace;letter-spacing:1px;color:#b3a3dd}
 #dz-pot-row .dz-pot b{font:700 22px 'Rajdhani',sans-serif;color:#f5c842;line-height:1.1}
 #dz-mappot{display:none}
+#dz-tabs [data-tab="rules"]{grid-column:2}

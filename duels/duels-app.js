@@ -121,8 +121,9 @@
   async function render() {
     if (!$('dz-app') || !S) return;
     var notifN = window.__duelUnread || 0;
-    var tiles = [['map', '🗺️', 'Carte', 0], ['duels', '⚔️', 'Duels', ((S.duels || []).filter(function (d) { return d.status === 'active'; })).length], ['notifs', '🔔', 'Notifs', notifN], ['hist', '🕓', 'Historique', 0], ['rules', '📜', 'Règles', 0]];
-    if (me() === ADMIN_UID) tiles.push(['dev', '🧪', 'Test', 0]);
+    var tiles = [['map', '🗺️', 'Carte', 0], ['duels', '⚔️', 'Duels', ((S.duels || []).filter(function (d) { return d.status === 'active'; })).length], ['notifs', '🔔', 'Notifs', notifN], ['hist', '🕓', 'Historique', 0]];
+    if (me() === ADMIN_UID) tiles.push(['dev', '🧪', 'Test', 0]);   // Test à gauche, Règles toujours à droite
+    tiles.push(['rules', '📜', 'Règles', 0]);
     $('dz-tabs').innerHTML = tiles.map(function (t) { var cls = t[0] === 'rules' ? 'glass-gold' : tab === t[0] ? 'solid-green' : 'white'; return '<button class="tour-tile-btn ' + cls + '" data-tab="' + t[0] + '"><span class="tour-tile-border"></span><span class="tour-tile-fill"></span><span class="tour-tile-emoji">' + t[1] + '</span>' + t[2] + (t[3] ? '<b>' + t[3] + '</b>' : '') + '</button>'; }).join('');
     ['map', 'duels', 'notifs', 'hist', 'rules', 'dev'].forEach(function (t) { $('p-' + t).classList.toggle('on', t === tab); });
     renderPotRow();
