@@ -8682,6 +8682,24 @@ const supabaseClient = window.supabase.createClient(
   supabaseKey,
   { auth: __speedixAuthOpts }
 );
+
+// Lectures de CLASSEMENT partagées (01/11/2026, panne de charge du dimanche) : plusieurs écrans demandaient la MÊME fonction (points_by_player /
+// team_pts_before_join, période courante) à chaque ouverture de l'appli (5 à 7 requêtes identiques). Ici : UNE requête par fenêtre de 15 s,
+// les appels simultanés partagent la même réponse. Chaque appelant reçoit sa PROPRE copie (aucune mutation partagée). Lecture seule, aucune règle.
+var _rpcSharedCache = {};
+function rpcShared(name, args, ttlMs){
+  var key = name + ':' + JSON.stringify(args || {}), now = Date.now(), e = _rpcSharedCache[key];
+  if(!e || now - e.t >= (ttlMs || 15000)){
+    var p = supabaseClient.rpc(name, args);
+    e = _rpcSharedCache[key] = {t: now, p: p};
+    p.then(function(r){ if(!r || r.error) delete _rpcSharedCache[key]; }, function(){ delete _rpcSharedCache[key]; });
+  }
+  return e.p.then(function(r){
+    if(!r || r.error || !r.data) return r;
+    return {data: JSON.parse(JSON.stringify(r.data)), error: r.error, status: r.status, count: r.count};
+  });
+}
+
 var hcur=1;
 var currentUser=null;
 
@@ -9488,8 +9506,7 @@ async function loadPlayersFromSupabase(){
   //    plafonné à 1000 lignes par PostgREST, ce qui faisait disparaître les
   //    courses des derniers joueurs (un RP pouvait s'afficher à 0 pt alors
   //    qu'il avait couru). Fonction créée dans Supabase (dashboard SQL).
-  const { data: aggData, error: runsErr } = await supabaseClient
-    .rpc('points_by_player', { p_period: 0 });
+  const { data: aggData, error: runsErr } = await rpcShared('points_by_player', { p_period: 0 });
 
   if(runsErr){
     if(panel) panel.innerHTML = '<div style="padding:1.5rem;text-align:center;color:var(--red);font-size:.8rem">⚠️ Erreur runs : ' + runsErr.message + '</div>';
@@ -14317,7 +14334,7 @@ async function _processEndOfPeriodInner(){
   var {data:allPlayers}=await supabaseClient.from('players').select('id,username,league,grade,competitive,rpc_balance,nyx_balance,premium,premium_trial,premium_until,infirmerie_until,infirmerie_started_at,consecutive_zero_periods,is_visible,frozen,buyin_debt,calibration_period,created_at,active_periods,boost_stock,gel_stock,is_bot');
   // Agrégation côté base (fonction points_by_player) — un SELECT brut sur runs
   // serait plafonné à 1000 lignes et fausserait gains + montées/descentes.
-  var {data:allRuns}=await supabaseClient.rpc('points_by_player',{p_period:0});
+  var {data:allRuns}=await rpcShared('points_by_player',{p_period:0});
   if(!allPlayers||!allRuns){return;}
 
   var ptsByPlayer={};
@@ -24074,8 +24091,8 @@ async function renderTeams(){
     //    (team_pts_before_join, exception « 0 pt à l'arrivée »). Plus aucun
     //    téléchargement de toutes les courses côté appareil.
     var [_aggRes,_pbjRes]=await Promise.all([
-      supabaseClient.rpc('points_by_player',{p_period:0}),
-      supabaseClient.rpc('team_pts_before_join',{p_period:0})
+      rpcShared('points_by_player',{p_period:0}),
+      rpcShared('team_pts_before_join',{p_period:0})
     ]);
     if(_aggRes.error) throw _aggRes.error;
     var ptsByPlayer={};
@@ -28943,8 +28960,8 @@ async function loadTeamMembers(teamId, teamName){
     // l'arrivée dans la team (exception « 0 pt à l'arrivée ») : plus aucun
     // téléchargement de toutes les courses de la période.
     Promise.all([
-      supabaseClient.rpc('points_by_player',{p_period:0}),
-      supabaseClient.rpc('team_pts_before_join',{p_period:0})
+      rpcShared('points_by_player',{p_period:0}),
+      rpcShared('team_pts_before_join',{p_period:0})
     ]).then(function(r){ return {data:r[0].data||[], pbj:r[1].data||[], error:r[0].error}; }),
     supabaseClient.from('palmares').select('rank').eq('team_id',teamId)
   ]);
@@ -29090,7 +29107,7 @@ async function openStatRanking(metric){
     // Agrégé EN BASE (points_by_player) : 1 ligne par joueur, au lieu de télécharger
     // toutes les courses de la période par paquets de 1000.
     var _aggCol={points:'total_points',distance:'total_distance',elevation:'total_elevation',time:'total_time',__count:'runs_count'}[cfg.runCol];
-    var {data:_agg}=await supabaseClient.rpc('points_by_player',{p_period:0});
+    var {data:_agg}=await rpcShared('points_by_player',{p_period:0});
     (_agg||[]).forEach(function(r){ curByP[r.player_id]=Number(r[_aggCol])||0; });
   }
   // Total = périodes terminées (colonne cumulée) + mois en cours.
@@ -29179,7 +29196,7 @@ async function openCountryRanking(nat){
   // Points de la période en cours par joueur : agrégés côté base (points_by_player)
   // au lieu de télécharger toutes les courses par paquets de 1000.
   var curPts={};
-  var _aggRes=await supabaseClient.rpc('points_by_player',{p_period:0});
+  var _aggRes=await rpcShared('points_by_player',{p_period:0});
   (_aggRes.data||[]).forEach(function(r){ curPts[r.player_id]=r.total_points||0; });
   // Team pays = tous les RP d'un drapeau ; score = somme des points de la période.
   var byNat={}, totNat={};
