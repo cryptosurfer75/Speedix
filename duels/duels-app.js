@@ -4,7 +4,7 @@
  * Interrupteur : game_settings.duels_mode = 'off' | 'admin' | 'on'. Tant que ce n'est pas ouvert pour ce RP, le bouton DUEL est grisé. */
 (function () {
   'use strict';
-  var NOW_SKEW = 0, S = null, TEAMS = {}, tab = 'duels', timer = null, inited = false, initing = false;
+  var NOW_SKEW = 0, S = null, MAPDATA = null, TEAMS = {}, tab = 'duels', timer = null, inited = false, initing = false;
   var ADMIN_UID = '0cba7ec2-3d9d-4b08-9b51-280aa0c05a28';
   var $ = function (id) { return document.getElementById(id); };
   var esc = function (x) { return typeof escapeHtml === 'function' ? escapeHtml(String(x == null ? '' : x)) : String(x == null ? '' : x).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
@@ -43,6 +43,7 @@
     var r = await supabaseClient.rpc('duel_my_state');
     if (r.error || !r.data) { S = { enabled: false }; renderTeamRow(); updateBadge(); return S; }
     S = r.data; if (S.now) NOW_SKEW = Date.parse(S.now) - Date.now();
+    if (tab === 'map' && $('dz-app') && $('dz-app').classList.contains('on')) { var mr = await supabaseClient.rpc('duel_map_data'); if (mr.data && mr.data.enabled) { MAPDATA = mr.data; await loadTeams(MAPDATA.teams.map(function (t) { return t.id; })); } }
     var ids = []; (S.duels || []).forEach(function (d) { ids.push(d.attacker_team, d.defender_team); }); ids.push(S.team_id);
     await loadTeams(ids);
     renderTeamRow(); updateBadge();
@@ -96,23 +97,34 @@
     if ($('dz-app')) return;
     var el = document.createElement('div'); el.id = 'dz-app';
     el.innerHTML = '<div class="dz-head"><div class="dz-head-row"><div style="width:40px;flex-shrink:0"></div><div class="dz-head-title"><img src="league-title-chevron-left.webp" alt=""><div class="dz-ttl">DUEL <span style="color:#f5c842">TEAM</span></div><img src="league-title-chevron-right.webp" alt=""></div><button class="dz-closex" id="dz-close" title="Fermer"></button></div><div class="dz-head-line"></div></div>' +
-      '<div class="dz-tabs" id="dz-tabs"></div><div class="dz-body"><div class="dz-pane" id="p-duels"></div><div class="dz-pane" id="p-notifs"></div><div class="dz-pane" id="p-hist"></div><div class="dz-pane" id="p-rules"></div><div class="dz-pane" id="p-dev"></div></div>';
+      '<div class="dz-tabs" id="dz-tabs"></div><div class="dz-body"><div class="dz-pane" id="p-map"><svg id="dz-map"></svg><div id="dz-side"></div><div id="dz-mappot"></div></div><div class="dz-pane" id="p-duels"></div><div class="dz-pane" id="p-notifs"></div><div class="dz-pane" id="p-hist"></div><div class="dz-pane" id="p-rules"></div><div class="dz-pane" id="p-dev"></div></div>';
     document.body.appendChild(el);
     $('dz-close').onclick = close;
-    $('dz-tabs').onclick = function (e) { var b = e.target.closest('[data-tab]'); if (b) { tab = b.dataset.tab; if (tab === 'duels') markSeen(); if (tab === 'notifs') supabaseClient.rpc('duel_mark_notifications_read'); render(); } };
+    $('dz-tabs').onclick = function (e) { var b = e.target.closest('[data-tab]'); if (b) { tab = b.dataset.tab; if (tab === 'map') MAPDATA = null; if (tab === 'duels') markSeen(); if (tab === 'notifs') supabaseClient.rpc('duel_mark_notifications_read'); render(); } };
     el.addEventListener('click', onAction);
   }
   function open() { shell(); $('dz-app').classList.add('on'); tab = 'duels'; markSeen(); refresh().then(render); render(); }
   function close() { var e = $('dz-app'); if (e) e.classList.remove('on'); }
 
+  // Carte des teams : données = duel_map_data ; dessin = duels-map.js (disposition calculée côté appli, affichage seulement)
+  async function drawTeamMap() {
+    if (!window.DuelsMap) return;
+    if (!MAPDATA) { var mr = await supabaseClient.rpc('duel_map_data'); if (!mr.data || !mr.data.enabled) return; MAPDATA = mr.data; await loadTeams(MAPDATA.teams.map(function (t) { return t.id; })); }
+    DuelsMap.draw({
+      me: me(), myTeam: S.team_id, pot: S.pot, duels: S.duels || [], mapData: MAPDATA, team: team,
+      logoUrl: function (id) { var t = team(id); try { if (typeof getBlasonIdx === 'function' && typeof AVAIL_BLASON_SMALL !== 'undefined') { var bi = getBlasonIdx(t); if (bi >= 0 && AVAIL_BLASON_SMALL[bi]) return AVAIL_BLASON_SMALL[bi]; } } catch (e) {} return ''; }
+    });
+  }
+
   async function render() {
     if (!$('dz-app') || !S) return;
     var notifN = window.__duelUnread || 0;
-    var tiles = [['duels', '⚔️', 'Duels', ((S.duels || []).filter(function (d) { return d.status === 'active'; })).length], ['notifs', '🔔', 'Notifs', notifN], ['hist', '🕓', 'Historique', 0], ['rules', '📜', 'Règles', 0]];
+    var tiles = [['map', '🗺️', 'Carte', 0], ['duels', '⚔️', 'Duels', ((S.duels || []).filter(function (d) { return d.status === 'active'; })).length], ['notifs', '🔔', 'Notifs', notifN], ['hist', '🕓', 'Historique', 0], ['rules', '📜', 'Règles', 0]];
     if (me() === ADMIN_UID) tiles.push(['dev', '🧪', 'Test', 0]);
     $('dz-tabs').innerHTML = tiles.map(function (t) { var cls = t[0] === 'rules' ? 'glass-gold' : tab === t[0] ? 'solid-green' : 'white'; return '<button class="tour-tile-btn ' + cls + '" data-tab="' + t[0] + '"><span class="tour-tile-border"></span><span class="tour-tile-fill"></span><span class="tour-tile-emoji">' + t[1] + '</span>' + t[2] + (t[3] ? '<b>' + t[3] + '</b>' : '') + '</button>'; }).join('');
-    ['duels', 'notifs', 'hist', 'rules', 'dev'].forEach(function (t) { $('p-' + t).classList.toggle('on', t === tab); });
-    if (tab === 'duels') $('p-duels').innerHTML = paneDuels();
+    ['map', 'duels', 'notifs', 'hist', 'rules', 'dev'].forEach(function (t) { $('p-' + t).classList.toggle('on', t === tab); });
+    if (tab === 'map') await drawTeamMap();
+    else if (tab === 'duels') $('p-duels').innerHTML = paneDuels();
     else if (tab === 'hist') $('p-hist').innerHTML = paneHist();
     else if (tab === 'rules') $('p-rules').innerHTML = paneRules();
     else if (tab === 'dev') $('p-dev').innerHTML = paneDev();
