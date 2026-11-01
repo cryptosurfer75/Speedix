@@ -22591,12 +22591,18 @@ function _formatTeamChallengeDates(startIso,endIso){
   var s=new Date(startIso), e=new Date(endIso.slice ? endIso : endIso);
   // endIso est le lendemain minuit (exclusif) -- le dernier jour affiché est la veille.
   var eDisp=new Date(new Date(endIso).getTime()-1000);
+  // Fin à une heure précise (ex. dimanche 22h, heure d'hiver) : on affiche CE jour-là avec l'heure,
+  // sinon « dim 01 nov. » se lisait comme « jusqu'à minuit » (confusion signalée 01/11/2026).
+  var _eh=parseInt(new Date(endIso).toLocaleTimeString('fr-FR',{hour:'2-digit',hour12:false,timeZone:'Europe/Paris'}),10)%24;
+  var _em=parseInt(new Date(endIso).toLocaleTimeString('fr-FR',{minute:'2-digit',timeZone:'Europe/Paris'}),10);
+  var hourSuffix='';
+  if(_eh!==0||_em!==0){ eDisp=new Date(endIso); hourSuffix=' · '+_eh+'h'+(_em?(_em<10?'0':'')+_em:''); }
   var optsDay={weekday:'short',day:'2-digit'};
   var optsMonth={month:'short'};
   var sStr=s.toLocaleDateString('fr-FR',optsDay).replace('.','');
   var eStr=eDisp.toLocaleDateString('fr-FR',optsDay).replace('.','');
   var mStr=eDisp.toLocaleDateString('fr-FR',optsMonth).replace('.','');
-  return sStr+' - '+eStr+' '+mStr+'.';
+  return sStr+' - '+eStr+' '+mStr+'.'+hourSuffix;
 }
 
 // ──────────────────────────────────────────────────────────────────────────
