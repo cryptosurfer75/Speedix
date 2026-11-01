@@ -251,6 +251,8 @@
       return '<div class="dz-t' + (selTeam === id ? ' on' : '') + '" data-t="' + id + '">' + logo(id) + '<span>' + esc(teamName(id)) + '</span><small>' + fmt(cc.n) + '</small></div>';
     }).join('') : '');
     $('dz-side').querySelector('.dz-side-h').onclick = function () { sideOpen = !sideOpen; drawMap(); };
+    var chip = $('dz-selchip');   // le menu déroulant n'est plus affiché : la team choisie dans le Classement se retire d'un clic sur ce bouton
+    if (chip) { chip.innerHTML = selTeam ? '<button>' + logo(selTeam) + '<span>' + esc(teamName(selTeam)) + '</span><b>✕</b></button>' : ''; var cb = chip.querySelector('button'); if (cb) cb.onclick = function () { selTeam = null; drawMap(); }; }
     [].forEach.call($('dz-side').querySelectorAll('.dz-t'), function (n) { n.onclick = function () { selTeam = n.dataset.t && selTeam !== n.dataset.t ? n.dataset.t : null; sideOpen = false; drawMap(); }; });
   }
   function bindMap() {
@@ -274,9 +276,6 @@
       if (pinch && Object.keys(ptrs).length === 2) { var d = dist(), m2 = mid(); if (d > 4 && pinch > 4) zoomAt(pinch / d, m2[0], m2[1]); pinch = d; return; }
       if (!dr) return; var r = svg.getBoundingClientRect(); view[0] = dr[2] - (e.clientX - dr[0]) / r.width * view[2]; view[1] = dr[3] - (e.clientY - dr[1]) / r.height * view[3]; svg.setAttribute('viewBox', view.join(' '));
     });
-    // boutons + / − (au cas où le pincement ou la molette ne sont pas disponibles)
-    var zb = $('dz-zoom');
-    if (zb) zb.onclick = function (e) { var b = e.target.closest('[data-z]'); if (!b) return; var r = svg.getBoundingClientRect(); zoomAt(b.dataset.z === 'in' ? 1 / 1.4 : 1.4, r.left + r.width / 2, r.top + r.height / 2); };
   }
 
   function draw(c) {

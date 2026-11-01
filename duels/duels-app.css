@@ -113,3 +113,11 @@
 .dz-rank-row img,.dz-rank-row u{width:28px;height:28px;border-radius:50%;object-fit:cover;flex:none}
 .dz-rank-row .nm{flex:1;font:700 16px 'Rajdhani',sans-serif;letter-spacing:.5px}
 .dz-rank-row .n{font:700 22px 'Rajdhani',sans-serif;color:#f5c842}
+
+/* carte : plus de menu déroulant ni de boutons de zoom (zoom au doigt) ; la carte prend toute la place ; puce « team choisie ✕ » */
+#dz-side{display:none}
+#dz-zoom{display:none}
+#dz-selchip{position:absolute;z-index:2;top:8px;left:8px}
+#dz-selchip button{display:flex;align-items:center;gap:6px;background:#0c0f1af0;border:1.5px solid #f5c842;border-radius:18px;color:#fff;padding:3px 10px 3px 4px;font:700 14px 'Rajdhani',sans-serif;cursor:pointer}
+#dz-selchip img,#dz-selchip u{width:22px;height:22px;border-radius:50%;object-fit:cover;background:#334;text-decoration:none}
+#dz-selchip b{color:#f5c842}

@@ -99,13 +99,13 @@
     if ($('dz-app')) return;
     var el = document.createElement('div'); el.id = 'dz-app';
     el.innerHTML = '<div class="dz-head"><div class="dz-head-row"><div style="width:40px;flex-shrink:0"></div><div class="dz-head-title"><img src="league-title-chevron-left.webp" alt=""><div class="dz-ttl">DUEL <span style="color:#f5c842">TEAM</span></div><img src="league-title-chevron-right.webp" alt=""></div><button class="dz-closex" id="dz-close" title="Fermer"></button></div><div class="dz-head-line"></div></div>' +
-      '<div class="dz-tabs" id="dz-tabs"></div><div id="dz-pot-row"></div><div class="dz-body"><div class="dz-pane" id="p-map"><div id="dz-mapframe"><svg id="dz-map"></svg><div id="dz-mappot"></div><div id="dz-zoom"><button data-z="in" aria-label="Zoom avant">+</button><button data-z="out" aria-label="Zoom arrière">−</button></div></div><div id="dz-side"></div></div><div class="dz-pane" id="p-rank"></div><div class="dz-pane" id="p-duels"></div><div class="dz-pane" id="p-notifs"></div><div class="dz-pane" id="p-hist"></div><div class="dz-pane" id="p-rules"></div><div class="dz-pane" id="p-dev"></div></div>';
+      '<div class="dz-tabs" id="dz-tabs"></div><div id="dz-pot-row"></div><div class="dz-body"><div class="dz-pane" id="p-map"><div id="dz-mapframe"><svg id="dz-map"></svg><div id="dz-mappot"></div><div id="dz-selchip"></div></div><div id="dz-side"></div></div><div class="dz-pane" id="p-rank"></div><div class="dz-pane" id="p-duels"></div><div class="dz-pane" id="p-notifs"></div><div class="dz-pane" id="p-hist"></div><div class="dz-pane" id="p-rules"></div><div class="dz-pane" id="p-dev"></div></div>';
     document.body.appendChild(el);
     $('dz-close').onclick = close;
     $('dz-tabs').onclick = function (e) { var b = e.target.closest('[data-tab]'); if (b) { tab = b.dataset.tab; if (tab === 'map' || tab === 'rank') MAPDATA = null; if (tab === 'duels') markSeen(); if (tab === 'notifs') supabaseClient.rpc('duel_mark_notifications_read'); render(); } };
     el.addEventListener('click', onAction);
   }
-  function open() { shell(); $('dz-app').classList.add('on'); tab = 'duels'; markSeen(); refresh().then(render); render(); }
+  function open() { shell(); $('dz-app').classList.add('on'); tab = 'map'; markSeen(); refresh().then(render); render(); }
   function close() { var e = $('dz-app'); if (e) e.classList.remove('on'); }
 
   // Classement des teams par nombre de Lands (propriétés + locations réunies : un seul total)
