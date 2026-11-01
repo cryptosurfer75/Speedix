@@ -62,3 +62,10 @@
 /* outils de test admin */
 .dz-dev{background:#12162a;border:1px dashed #4a3380;border-radius:10px;padding:10px;font-size:12px;color:#b3a3dd;display:flex;flex-direction:column;gap:8px}
 .dz-dev select,.dz-dev input{background:#1b1f38;color:#fff;border:1px solid #4a3380;border-radius:6px;padding:5px 7px}
+
+/* journal de la cagnotte */
+#dz-pot-modal{position:fixed;inset:0;z-index:2300;background:#000a;display:flex;align-items:center;justify-content:center;padding:16px}
+.dz-pot-box{position:relative;max-height:80vh;overflow:auto}
+.dz-pot-total{font:700 28px 'Rajdhani',sans-serif;color:#f5c842;margin:2px 0 10px}
+.dz-pot-row{display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-top:1px solid #2b3050;font-size:14px}
+.dz-pot-row b{font-family:'Rajdhani',sans-serif;white-space:nowrap}

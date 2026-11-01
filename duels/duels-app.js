@@ -64,9 +64,10 @@
     var pot = S && S.team_id === tid && S.pot != null ? S.pot : null;
     if (pot == null) { var r = await supabaseClient.from('team_pots').select('balance').eq('team_id', tid).maybeSingle(); pot = r.data ? Number(r.data.balance) : 0; }
     var on = !!(S && S.enabled);
-    host.innerHTML = '<div class="dz-pot"><small>💰 CAGNOTTE DE LA TEAM</small><b>' + fmt(pot) + ' RPC</b></div>' +
+    host.innerHTML = '<div class="dz-pot" id="myteam-pot-tile" style="cursor:pointer" title="Voir les mouvements"><small>💰 CAGNOTTE DE LA TEAM</small><b>' + fmt(pot) + ' RPC</b></div>' +
       '<button class="tour-tile-btn white" id="myteam-duel-btn"' + (on ? '' : ' disabled title="Bientôt disponible"') + '><span class="tour-tile-border"></span><span class="tour-tile-fill"></span><span class="tour-tile-emoji">⚔️</span>DUEL</button>';
     var b = $('myteam-duel-btn'); if (b && on) b.onclick = function () { open(); };
+    var pt = $('myteam-pot-tile'); if (pt) pt.onclick = function () { openPot(pot); };
   }
 
   /* ---------- pastille rouge sur la tuile SPEEDIX TOUR de la Player Card (un duel lancé sur MA Land, pas encore vu) ---------- */
@@ -220,6 +221,29 @@
     await refresh();
   }
 
+  /* ---------- journal de la cagnotte : uniquement les défaites (burn), les Jokers et les versements mensuels ---------- */
+  async function openPot(pot) {
+    var tid = window.__myTeamId; if (!tid) return;
+    var old = $('dz-pot-modal'); if (old) old.remove();
+    var m = document.createElement('div'); m.id = 'dz-pot-modal';
+    m.innerHTML = '<div class="dz-modal-box dz-pot-box"><button class="dz-closex" id="dz-pot-x" title="Fermer" style="position:absolute;top:8px;right:8px;width:32px;height:32px"></button><div class="dz-modal-t">💰 Cagnotte de la team</div><div class="dz-pot-total">' + fmt(pot) + ' RPC</div><div id="dz-pot-list" class="dz-muted">Chargement…</div></div>';
+    document.body.appendChild(m);
+    m.onclick = function (e) { if (e.target === m || e.target.id === 'dz-pot-x') m.remove(); };
+    var r = await supabaseClient.from('team_pot_tx').select('delta,reason,duel_id,created_at').eq('team_id', tid).neq('reason', 'Test admin').order('created_at', { ascending: false }).limit(100);
+    var rows = r.data || [], ids = rows.map(function (x) { return x.duel_id; }).filter(function (x) { return x; }), duels = {};
+    if (ids.length) { var dr = await supabaseClient.from('duels').select('id,attacker_team,defender_team').in('id', ids); (dr.data || []).forEach(function (d) { duels[d.id] = d; }); await loadTeams((dr.data || []).reduce(function (a, d) { return a.concat([d.attacker_team, d.defender_team]); }, [])); }
+    var list = $('dz-pot-list'); if (!list) return;
+    if (!rows.length) { list.textContent = 'Aucun mouvement pour l\'instant.'; return; }
+    list.className = ''; list.innerHTML = rows.map(function (x) {
+      var d = duels[x.duel_id], other = d ? team(d.attacker_team === tid ? d.defender_team : d.attacker_team).name : '', label;
+      if (x.reason === 'Burn de défaite') label = 'Défaite ' + other;
+      else if (x.reason === 'Joker') label = 'Joker ' + other;
+      else label = 'Crédit ' + new Date(x.created_at).toLocaleDateString('fr-FR', { month: 'long', timeZone: 'Europe/Paris' });
+      var pos = x.delta > 0;
+      return '<div class="dz-pot-row"><span>' + esc(label) + '</span><b style="color:' + (pos ? '#2ddb80' : '#ff6fae') + '">' + (pos ? '+ ' : '− ') + fmt(Math.abs(x.delta)) + ' RPC</b></div>';
+    }).join('');
+  }
+
   /* ---------- lancer un duel depuis la case atterrie (fenêtre « Case occupée » du Tour) ---------- */
   async function launch(idx) {
     if (!(S && S.enabled)) { toast('Les duels ne sont pas encore ouverts.', true); return; }
@@ -237,5 +261,5 @@
     await refresh(); open();
   }
 
-  window.Duels = { init: init, open: open, close: close, launch: launch, refresh: refresh, renderTeamRow: renderTeamRow, updateBadge: updateBadge, enabled: function () { return !!(S && S.enabled); } };
+  window.Duels = { openPot: openPot, init: init, open: open, close: close, launch: launch, refresh: refresh, renderTeamRow: renderTeamRow, updateBadge: updateBadge, enabled: function () { return !!(S && S.enabled); } };
 })();
