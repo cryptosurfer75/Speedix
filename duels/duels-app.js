@@ -148,7 +148,7 @@
     try { if (typeof getBlasonIdx === 'function' && typeof AVAIL_BLASON_SMALL !== 'undefined') { var bi = getBlasonIdx(t); if (bi >= 0 && AVAIL_BLASON_SMALL[bi]) return '<img src="' + esc(AVAIL_BLASON_SMALL[bi]) + '" alt="">'; } } catch (e) {}
     return '<u style="display:inline-block;background:' + esc(t.color || '#334') + '"></u>';
   }
-  function memberLine(m) { return '<div class="dz-mrow"><span>' + esc(m.username) + (m.role === 'launcher' ? ' 🗡️' : m.role === 'holder' ? ' 🛡️' : '') + '</span><b>' + fmt(m.pts) + ' pts</b></div>'; }
+  function memberLine(m) { return '<div class="dz-mrow"><span' + (m.premium ? ' style="color:var(--gold)"' : '') + '>' + esc(m.username) + (m.premium ? '<span title="Premium" style="margin-left:.15rem;font-size:.7rem;line-height:1;display:inline-block">★</span>' : '') + (m.role === 'launcher' ? ' 🗡️' : m.role === 'holder' ? ' 🛡️' : '') + '</span><b>' + fmt(m.pts) + ' pts</b></div>'; }
 
   function duelCard(d) {
     var ph = phaseOf(d), L = d.loss || {}, att = L.att != null ? L.att : sidePts(d, 'att'), def = L.def != null ? L.def : sidePts(d, 'def'), tot = Math.max(1, att + def);
