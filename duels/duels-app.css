@@ -38,7 +38,7 @@
 .dz-tag.fight{background:#33205e;color:#c3a2ff}.dz-tag.done{background:#14432b;color:#9dffcc}
 .dz-btn{border:0;border-radius:8px;padding:8px 14px;cursor:pointer;background:#2b3050;color:#fff;font-weight:700}
 .dz-btn[disabled]{opacity:.4;cursor:not-allowed}
-#dz-app .dz-btn.green{font-family:'Bebas Neue','Rajdhani',sans-serif;font-size:15px;font-weight:400;letter-spacing:1.5px;text-transform:uppercase;color:#2ddb80;background:linear-gradient(135deg,rgba(45,219,128,.28),rgba(45,219,128,.08));border:1.5px solid rgba(45,219,128,.6);border-radius:10px}
+#dz-app .dz-btn.green,#dz-modal .dz-btn.green{font-family:'Bebas Neue','Rajdhani',sans-serif;font-size:15px;font-weight:400;letter-spacing:1.5px;text-transform:uppercase;color:#2ddb80;background:linear-gradient(135deg,rgba(45,219,128,.28),rgba(45,219,128,.08));border:1.5px solid rgba(45,219,128,.6);border-radius:10px}
 .dz-muted{color:#8f86b8;font-size:12px}.dz-yel{color:#f5c842}
 .dz-losses{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:6px}
 .dz-loss{border-radius:8px;padding:8px;font-size:12px;background:#000;border:1px solid rgba(255,77,77,.45);color:#fff}
@@ -133,3 +133,4 @@
 /* mon duel (tout en haut) : cadre vert quand ma team gagne, rouge quand elle perd */
 .dz-card.mine.win{border:2px solid #2fe08a;box-shadow:0 0 14px rgba(47,224,138,.4)}
 .dz-card.mine.lose{border:2px solid #ff4d4d;box-shadow:0 0 14px rgba(255,77,77,.4)}
+#dz-modal .dz-btn:not(.green){font-family:'Bebas Neue','Rajdhani',sans-serif;font-size:15px;font-weight:400;letter-spacing:1.5px;border-radius:10px}

@@ -269,7 +269,7 @@
     return new Promise(function (resolve) {
       var old = $('dz-modal'); if (old) old.remove();
       var m = document.createElement('div'); m.id = 'dz-modal';
-      m.innerHTML = '<div class="dz-modal-box dz-duelc"><div class="dz-duelc-img">' + SWORDS + '</div><div class="dz-duelc-t">DUEL</div><div class="dz-duelc-msg">Tu es sur le point de défier <b>' + esc(name || 'ce RP') + '</b> dans le but de lui prendre sa Land. En contrepartie, tu mets en jeu une de tes Lands en location. Veux-tu faire un duel avec ce RP ?</div><div class="dz-row" style="margin-top:16px;gap:10px"><button class="dz-btn" style="flex:1;text-transform:uppercase" id="dzc-no">Annuler</button><button class="dz-btn dz-violet" style="flex:1;text-transform:uppercase" id="dzc-yes">Lancer le duel</button></div></div>';
+      m.innerHTML = '<div class="dz-modal-box dz-duelc"><div class="dz-duelc-img">' + SWORDS + '</div><div class="dz-duelc-t">DUEL</div><div class="dz-duelc-msg">Tu es sur le point de défier <b>' + esc(name || 'ce RP') + '</b> dans le but de lui prendre sa Land. En contrepartie, tu mets en jeu une de tes Lands en location. Veux-tu faire un duel avec ce RP ?</div><div class="dz-row" style="margin-top:16px;gap:10px"><button class="dz-btn" style="flex:1;text-transform:uppercase" id="dzc-no">Annuler</button><button class="dz-btn green" style="flex:1;text-transform:uppercase" id="dzc-yes">Lancer le duel</button></div></div>';
       document.body.appendChild(m);
       var done = function (v) { m.remove(); resolve(v); };
       $('dzc-no').onclick = function () { done(false); }; $('dzc-yes').onclick = function () { done(true); };
