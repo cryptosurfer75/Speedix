@@ -148,6 +148,13 @@
     try { if (typeof getBlasonIdx === 'function' && typeof AVAIL_BLASON_SMALL !== 'undefined') { var bi = getBlasonIdx(t); if (bi >= 0 && AVAIL_BLASON_SMALL[bi]) return '<img src="' + esc(AVAIL_BLASON_SMALL[bi]) + '" alt="">'; } } catch (e) {}
     return '<u style="display:inline-block;background:' + esc(t.color || '#334') + '"></u>';
   }
+  // Flamme du burn : se place du côté de l'équipe qui mène, de plus en plus loin du centre et de plus en plus grosse quand l'écart se creuse.
+  function flame(att, def, ph) {
+    if (ph !== 'fight' && ph !== 'decision') return '';
+    var tot = att + def; if (!tot || att === def) return '';
+    var r = Math.abs(att - def) / tot, left = att > def ? 50 - r * 44 : 50 + r * 44;
+    return '<span class="dz-flame" style="left:' + left.toFixed(1) + '%;font-size:' + Math.round(15 + r * 15) + 'px" title="Burn">🔥</span>';
+  }
   function memberLine(m) { return '<div class="dz-mrow"><span' + (m.premium ? ' style="color:var(--gold)"' : '') + '>' + esc(m.username) + (m.premium ? '<span title="Premium" style="margin-left:.15rem;font-size:.7rem;line-height:1;display:inline-block">★</span>' : '') + (m.role === 'launcher' ? ' 🗡️' : m.role === 'holder' ? ' 🛡️' : '') + '</span><b>' + fmt(m.pts) + ' pts</b></div>'; }
 
   function duelCard(d) {
@@ -160,7 +167,7 @@
     var winning = mine ? (mine.side === 'att' ? att > def : def >= att) : false;   // égalité : la défense l'emporte
     var h = '<div class="dz-card' + (mine ? ' mine ' + (winning ? 'win' : 'lose') : '') + '"><div class="dz-row"><span class="dz-tag ' + (ph === 'fight' || ph === 'decision' ? 'fight' : 'done') + '">' + (ph === 'fight' ? 'EN COURS' : ph === 'decision' ? 'SCORE FINAL' : 'TERMINÉ') + '</span><span class="dz-muted">Land n°' + d.stake_idx + ' vs n°' + d.target_idx + '</span></div>' +
       '<div class="dz-vs" style="margin-top:8px">' + logo(d.attacker_team) + '<div class="mid"><span class="l" style="color:' + esc(team(d.attacker_team).color) + '">' + esc(team(d.attacker_team).name) + '</span><span class="x">⚔️</span><span class="r" style="color:' + esc(team(d.defender_team).color) + '">' + esc(team(d.defender_team).name) + '</span></div>' + logo(d.defender_team) + '</div>' +
-      '<div class="dz-bar"><i style="width:' + (att + def ? 100 * att / tot : 50) + '%;background:' + (att === def ? (att ? '#ff4d9d' : '#555a6b') : att > def ? '#2fe08a' : '#ff4d9d') + '"></i><i style="width:' + (att + def ? 100 * def / tot : 50) + '%;background:' + (att === def ? (att ? '#2fe08a' : '#555a6b') : def > att ? '#2fe08a' : '#ff4d9d') + '"></i></div>' +
+      '<div class="dz-barwrap">' + flame(att, def, ph) + '<div class="dz-bar"><i style="width:' + (att + def ? 100 * att / tot : 50) + '%;background:' + (att === def ? (att ? '#ff4d9d' : '#555a6b') : att > def ? '#2fe08a' : '#ff4d9d') + '"></i><i style="width:' + (att + def ? 100 * def / tot : 50) + '%;background:' + (att === def ? (att ? '#2fe08a' : '#555a6b') : def > att ? '#2fe08a' : '#ff4d9d') + '"></i></div></div>' +
       '<div class="dz-sc"><span>' + fmt(att) + '</span><span class="dz-muted" style="align-self:center">' + cd + '</span><span>' + fmt(def) + '</span></div>' +
       '<div class="dz-members"><div>' + attMembers.map(memberLine).join('') + '</div><div>' + defMembers.map(memberLine).join('') + '</div></div>';
     if (ph !== 'done') {
