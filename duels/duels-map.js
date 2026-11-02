@@ -67,7 +67,7 @@
       base[id] = byTeam[id].map(xy); var n = base[id].length, cx_ = base[id].reduce(function (a, q) { return a + q[0]; }, 0) / n, cy_ = base[id].reduce(function (a, q) { return a + q[1]; }, 0) / n;
       cen[id] = [cx_, cy_]; rad[id] = Math.max.apply(null, base[id].map(function (q) { return Math.hypot(q[0] - cx_, q[1] - cy_); }));
     });
-    var steps = [], RMAX = 14; for (var sr = -RMAX; sr <= RMAX; sr++) for (var sq = -RMAX - 7; sq <= RMAX + 7; sq++) { var sv = cart(sq, sr), sn = Math.hypot(sv[0], sv[1]); if (sn <= RMAX * D) steps.push([sv[0], sv[1], sn]); }
+    var steps = [], RMAX = 40; for (var sr = -RMAX; sr <= RMAX; sr++) for (var sq = -RMAX - 7; sq <= RMAX + 7; sq++) { var sv = cart(sq, sr), sn = Math.hypot(sv[0], sv[1]); if (sn <= RMAX * D) steps.push([sv[0], sv[1], sn]); }
     steps.sort(function (a, b) { return a[2] - b[2]; });
     var GAP = 1.7 * D, clash = function (x, ox, y) {
       var oy = OFF[y], cdx = cen[x][0] + ox[0] - cen[y][0] - oy[0], cdy = cen[x][1] + ox[1] - cen[y][1] - oy[1];
@@ -101,9 +101,8 @@
     var myT = me && st.players[me] ? st.players[me].team : null, isMy = function (z) { return z.attackerTeam === myT || z.defenderTeam === myT ? 1 : 0; };
     duelList.slice().sort(function (x, y) { return (isMy(y) - isMy(x)) || Math.max(byTeam[y.attackerTeam].length, byTeam[y.defenderTeam].length) - Math.max(byTeam[x.attackerTeam].length, byTeam[x.defenderTeam].length); }).forEach(function (d) {
       var A = d.attackerTeam, B = d.defenderTeam, big = byTeam[A].length >= byTeam[B].length ? A : B, small = big === A ? B : A;
-      if (A === myT) { big = A; small = B; } else if (B === myT) { big = B; small = A; } // ta team reste au centre : c'est l'adversaire qui se déplace
       var pk = place(small, big, true), mv = small, an = big;
-      if (!pk && big !== myT) { pk = place(big, small, true); mv = big; an = small; }
+      if (!pk) { pk = place(big, small, true); mv = big; an = small; }
       if (!pk) { pk = place(small, big, false); mv = small; an = big; }
       if (pk) { OFF[mv] = pk; TOUCH.push([mv, an]); }
     });
