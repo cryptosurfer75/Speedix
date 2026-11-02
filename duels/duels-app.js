@@ -112,7 +112,7 @@
     if (!MAPDATA) { var mr = await supabaseClient.rpc('duel_map_data'); if (!mr.data || !mr.data.enabled) return; MAPDATA = mr.data; await loadTeams(MAPDATA.teams.map(function (t) { return t.id; })); }
     var T = (MAPDATA.teams || []).slice().sort(function (x, y) { return (y.n - x.n) || (x.id < y.id ? -1 : 1); });
     $('p-rank').innerHTML = '<div class="dz-list">' + (T.length ? T.map(function (t, i) {
-      return '<div class="dz-rank-row' + (t.id === S.team_id ? ' me' : '') + '" data-rank-team="' + esc(t.id) + '"><b class="dz-rk">' + (i + 1) + '</b>' + logo(t.id) + '<span class="nm" style="color:' + esc(team(t.id).color) + '">' + esc(team(t.id).name) + '</span><b class="n">' + fmt(t.n) + '</b></div>';
+      return '<div class="dz-rank-row' + (t.id === S.team_id ? ' me' : '') + '" data-rank-team="' + esc(t.id) + '"><b class="dz-rk">' + (i + 1) + '</b>' + logo(t.id) + '<span class="nm" style="color:' + esc(team(t.id).color) + '">' + esc(team(t.id).name) + '</span><span class="wl"><b class="w">✔ ' + fmt(t.wins || 0) + '</b><b class="l">✖ ' + fmt(t.losses || 0) + '</b></span><b class="n">' + fmt(t.n) + '</b></div>';
     }).join('') : '<div class="dz-card dz-muted">Aucune team pour l\'instant.</div>') + '</div>';
   }
 
