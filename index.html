@@ -34149,6 +34149,8 @@ window.Tour.init = async function(){
       not_logged_in:"Connecte-toi pour jouer au Tour.",
       network:"Petit souci réseau, réessaie dans un instant."
     };
+    // 03/11/2026 : Land visée ou misée dans un duel actif = ni achat ni préemption (le serveur refuse, 'land_en_duel')
+    if(err==='land_en_duel'){ if(typeof window.showToast==='function') window.showToast('🔒 Cette Land est verrouillée sur un duel, achat impossible.'); return; }
     if(typeof window.showToast==='function') window.showToast('⚠️ '+(MSG[err]||'Action impossible pour le moment.'));
   }
   // Achat direct du droit d'acquisition (2026-08-01, 20 NYX) — même effet que la
