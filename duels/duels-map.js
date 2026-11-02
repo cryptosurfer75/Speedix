@@ -118,15 +118,21 @@
       OFF[id] = chosen; placed.push(id);
     });
     var USED = {};
+    // cases de contact : on évite celles cachées sous le blason de la team (au centre) ; si la team est trop petite, on prend toutes ses cases
+    var freeOf = function (id) {
+      var pts = shown(id), cx = pts.reduce(function (a, p) { return a + p[0]; }, 0) / pts.length, cy = pts.reduce(function (a, p) { return a + p[1]; }, 0) / pts.length, sz = Math.max(34, Math.min(110, 16 * Math.sqrt(pts.length) * 1.1));
+      var f = pts.filter(function (p) { return Math.hypot(p[0] - cx, p[1] - cy) >= sz / 2 + S * 0.5; });
+      return f.length ? f : pts;
+    };
     duelList.forEach(function (d) {
-      var A = d.attackerTeam, B = d.defenderTeam, pa = shown(A), pm = shown(B), best = null;
+      var A = d.attackerTeam, B = d.defenderTeam, pa = freeOf(A), pm = freeOf(B), best = null;
       pa.forEach(function (a) { pm.forEach(function (m) { var dd = Math.hypot(a[0] - m[0], a[1] - m[1]); if (!best || dd < best.d) best = { d: dd, a: a, m: m }; }); });
       var vt = me && st.players[me] ? st.players[me].team : null, sc = E.scores(st, d), attLead = sc.att > sc.def, col = '#f5c842'; // jaune : duel qui ne nous concerne pas
       if (vt === A || vt === B) col = ((vt === A) === attLead) ? '#2fe08a' : '#ff1fa8'; // vert : ma team mène (égalité : le défenseur mène) · rose : ma team est derrière
       var mineD = vt === A || vt === B, ca = best.a, cm = best.m;
       if (!mineD) { // duel d'autres teams : une case jaune par duel sur chaque team (le nombre de cases = le nombre de duels ouverts), sans lien
         var pick = function (team, target) {
-          var u = USED[team] = USED[team] || {}, cs = shown(team).sort(function (p, q) { return Math.hypot(p[0] - target[0], p[1] - target[1]) - Math.hypot(q[0] - target[0], q[1] - target[1]); });
+          var u = USED[team] = USED[team] || {}, cs = freeOf(team).sort(function (p, q) { return Math.hypot(p[0] - target[0], p[1] - target[1]) - Math.hypot(q[0] - target[0], q[1] - target[1]); });
           for (var ci = 0; ci < cs.length; ci++) { var key = cs[ci][0].toFixed(1) + ',' + cs[ci][1].toFixed(1); if (!u[key]) { u[key] = 1; return cs[ci]; } }
           return cs[0];
         };
