@@ -148,12 +148,11 @@
     try { if (typeof getBlasonIdx === 'function' && typeof AVAIL_BLASON_SMALL !== 'undefined') { var bi = getBlasonIdx(t); if (bi >= 0 && AVAIL_BLASON_SMALL[bi]) return '<img src="' + esc(AVAIL_BLASON_SMALL[bi]) + '" alt="">'; } } catch (e) {}
     return '<u style="display:inline-block;background:' + esc(t.color || '#334') + '"></u>';
   }
-  // Flamme du burn : se place du côté de l'équipe qui mène, de plus en plus loin du centre et de plus en plus grosse quand l'écart se creuse.
+  // Flamme du burn : petit repère posé sur la barre, pile à la séparation vert / rose (comme le repère d'un tirage à la corde).
   function flame(att, def, ph) {
     if (ph !== 'fight' && ph !== 'decision') return '';
-    var tot = att + def; if (!tot || att === def) return '';
-    var r = Math.abs(att - def) / tot, left = att > def ? 50 - r * 44 : 50 + r * 44;
-    return '<span class="dz-flame" style="left:' + left.toFixed(1) + '%;font-size:' + Math.round(15 + r * 15) + 'px" title="Burn">🔥</span>';
+    var tot = att + def; if (!tot) return '';
+    return '<span class="dz-flame" style="left:' + Math.min(97, Math.max(3, 100 * att / tot)).toFixed(1) + '%" title="Burn">🔥</span>';
   }
   function memberLine(m) { return '<div class="dz-mrow"><span' + (m.premium ? ' style="color:var(--gold)"' : '') + '>' + esc(m.username) + (m.premium ? '<span title="Premium" style="margin-left:.15rem;font-size:.7rem;line-height:1;display:inline-block">★</span>' : '') + (m.role === 'launcher' ? ' 🗡️' : m.role === 'holder' ? ' 🛡️' : '') + '</span><b>' + fmt(m.pts) + ' pts</b></div>'; }
 

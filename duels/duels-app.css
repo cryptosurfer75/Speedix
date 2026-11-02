@@ -148,5 +148,5 @@
 .dz-rank-row .w{color:#2fe08a}.dz-rank-row .l{color:#ff4d4d}
 
 .dz-barwrap{position:relative}
-.dz-flame{position:absolute;top:13px;transform:translate(-50%,-50%);line-height:1;z-index:2;pointer-events:none;filter:drop-shadow(0 0 6px rgba(255,120,30,.8));animation:dzFlame 1s ease-in-out infinite alternate}
+.dz-flame{position:absolute;top:-6px;font-size:15px;transform:translate(-50%,-50%);line-height:1;z-index:2;pointer-events:none;filter:drop-shadow(0 0 6px rgba(255,120,30,.8));animation:dzFlame 1s ease-in-out infinite alternate}
 @keyframes dzFlame{from{transform:translate(-50%,-50%) scale(.92) rotate(-4deg)}to{transform:translate(-50%,-50%) scale(1.1) rotate(4deg)}}
