@@ -9351,6 +9351,11 @@ async function onLoginSuccess(user, isNew){
   if(typeof checkTourV2WelcomeBonus==='function'){
     setTimeout(function(){ checkTourV2WelcomeBonus(); }, 10000);
   }
+  // Après le rechargement forcé par consumeTourAdvance() (changement de compte) : on réclame l'avancée maintenant que le Tour est propre.
+  setTimeout(function(){
+    var _f=false; try{ _f = sessionStorage.getItem('speedix_tour_claim_after_reload')==='1'; sessionStorage.removeItem('speedix_tour_claim_after_reload'); }catch(e){}
+    if(_f && typeof consumeTourAdvance==='function'){ _pendingTourKm = 1; consumeTourAdvance(); }
+  }, 3500);
   if(typeof checkPendingTourAdvance==='function'){
     setTimeout(function(){
       if(_tourConsumeLock) return; // une avancée est déjà en cours de traitement (_tourClaimAndAnimate) — éviter de proposer la popup par-dessus
@@ -20017,6 +20022,14 @@ function consumeTourAdvance(){
   if(_tourConsumeLock) return;
   if(!_pendingTourKm || _pendingTourKm<=0) return;
   _pendingTourKm = 0;
+  // 02/11/2026 (Nakamoto, changement de compte sans rechargement) : Tour.init() recharge la page quand le Tour en mémoire est celui d'un autre
+  // compte. L'avancée était déjà réclamée au serveur juste avant ce rechargement : le pion bougeait en base, mais l'animation et la fenêtre
+  // de la case étaient perdues avec la page. On recharge D'ABORD, puis on réclame après (drapeau lu au démarrage, cf plus bas).
+  if(window.Tour && typeof Tour.needsReload==='function' && Tour.needsReload()){
+    try{ sessionStorage.setItem('speedix_tour_claim_after_reload','1'); }catch(e){}
+    location.reload();
+    return;
+  }
   // nav('lands') déclenche déjà Tour.init() tout seul (cf nav(), ~50ms puis
   // onShow() à 200/500/1200ms) — ne PAS le rappeler ici, sinon double init
   // (calques de carte dupliqués). On se cale après le dernier onShow().
@@ -36237,7 +36250,10 @@ window.Tour.init = async function(){
   // copie, donc les mutations restent visibles au travers de Tour.LANDS/Tour.ME.
   Object.assign(window.Tour, {
     LANDS, ME,
-    waitClear: _tourWaitClear, runKm, applyServerMove, runKmFromInput, resetDemo, simulateFreeLanding, simulateEtapeLanding,
+    waitClear: _tourWaitClear,
+    // 02/11/2026 : vrai si le Tour en mémoire appartient à un autre compte (Tour.init va alors recharger la page).
+    needsReload: function(){ return !!(_tourInitialized && _tourInitializedForUserId && currentUser && currentUser.id && currentUser.id!==_tourInitializedForUserId); },
+    runKm, applyServerMove, runKmFromInput, resetDemo, simulateFreeLanding, simulateEtapeLanding,
     buyAcquisitionRightDemo, openMyLandsPage, closeMyLandsPage,
     confirmRent, closeRentModal, goToRpcMarket,
     preemptLand, preemptGoPremium, preemptBuyAcquisitionRight, preemptGoToNyxMarket,
