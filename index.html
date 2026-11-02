@@ -19977,9 +19977,21 @@ async function _tourClaimAndAnimate(){
   if(!(window.Tour && typeof Tour.applyServerMove==='function' && currentUser)) return {status:'not_ready'};
   _tourConsumeLock = true;
   try{
-    var res = await supabaseClient.rpc('tour_advance_position', {p_player_id: currentUser.id});
+    var res = await supabaseClient.rpc('tour_advance_position', {p_player_id: currentUser.id, p_stepwise: true});
     var d = res && res.data;
     if(d && d.ok && d.moved>0) Tour.applyServerMove(d);
+    // 02/11/2026 : plusieurs courses du même jour = un déplacement par course. Le serveur en traite une par appel ; on attend la fin
+    // de l'animation + des fenêtres d'atterrissage avant de réclamer la suivante (sinon la position locale serait écrasée en plein trajet).
+    var _stepGuard = 0;
+    while(d && d.ok && d.remaining>0 && _stepGuard++<12){
+      await new Promise(function(r){ setTimeout(r, 600); });
+      await Tour.waitClear();
+      var res2 = await supabaseClient.rpc('tour_advance_position', {p_player_id: currentUser.id, p_stepwise: true});
+      var d2 = res2 && res2.data;
+      if(!(d2 && d2.ok)) break;
+      d = d2;
+      if(d.moved>0) Tour.applyServerMove(d);
+    }
     // Pion bloqué par une dette (2026-10-29) : le serveur n'a rien consommé, on rappelle au RP ce qu'il doit.
     if(d && d.ok && Tour.ME) Tour.ME.debt = d.blocked ? (d.debt||0) : 0;
     if(d && d.ok && d.blocked && typeof Tour.showDebtModal==='function') Tour.showDebtModal(d.debt);
@@ -36225,7 +36237,7 @@ window.Tour.init = async function(){
   // copie, donc les mutations restent visibles au travers de Tour.LANDS/Tour.ME.
   Object.assign(window.Tour, {
     LANDS, ME,
-    runKm, applyServerMove, runKmFromInput, resetDemo, simulateFreeLanding, simulateEtapeLanding,
+    waitClear: _tourWaitClear, runKm, applyServerMove, runKmFromInput, resetDemo, simulateFreeLanding, simulateEtapeLanding,
     buyAcquisitionRightDemo, openMyLandsPage, closeMyLandsPage,
     confirmRent, closeRentModal, goToRpcMarket,
     preemptLand, preemptGoPremium, preemptBuyAcquisitionRight, preemptGoToNyxMarket,
