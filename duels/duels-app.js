@@ -157,7 +157,8 @@
     var attMembers = (d.members || []).filter(function (m) { return m.side === 'att'; }), defMembers = (d.members || []).filter(function (m) { return m.side === 'def'; });
     var canJoin = ph === 'fight' && !mine && ((myTeam === d.attacker_team && attMembers.length < sideCap(attMembers)) || (myTeam === d.defender_team && defMembers.length < sideCap(defMembers))) && !(S.duels || []).some(function (x) { return x.status === 'active' && (x.members || []).some(function (m) { return m.player_id === meId; }); });
     var canLeave = ph === 'fight' && mine && mine.role === 'helper';
-    var h = '<div class="dz-card' + (mine ? ' mine' : '') + '"><div class="dz-row"><span class="dz-tag ' + (ph === 'fight' || ph === 'decision' ? 'fight' : 'done') + '">' + (ph === 'fight' ? 'EN COURS' : ph === 'decision' ? 'SCORE FINAL' : 'TERMINÉ') + '</span><span class="dz-muted">Land n°' + d.stake_idx + ' vs n°' + d.target_idx + '</span></div>' +
+    var winning = mine ? (mine.side === 'att' ? att > def : def >= att) : false;   // égalité : la défense l'emporte
+    var h = '<div class="dz-card' + (mine ? ' mine ' + (winning ? 'win' : 'lose') : '') + '"><div class="dz-row"><span class="dz-tag ' + (ph === 'fight' || ph === 'decision' ? 'fight' : 'done') + '">' + (ph === 'fight' ? 'EN COURS' : ph === 'decision' ? 'SCORE FINAL' : 'TERMINÉ') + '</span><span class="dz-muted">Land n°' + d.stake_idx + ' vs n°' + d.target_idx + '</span></div>' +
       '<div class="dz-vs" style="margin-top:8px">' + logo(d.attacker_team) + '<div class="mid"><span class="l" style="color:' + esc(team(d.attacker_team).color) + '">' + esc(team(d.attacker_team).name) + '</span><span class="x">⚔️</span><span class="r" style="color:' + esc(team(d.defender_team).color) + '">' + esc(team(d.defender_team).name) + '</span></div>' + logo(d.defender_team) + '</div>' +
       '<div class="dz-bar"><i style="width:' + (att + def ? 100 * att / tot : 50) + '%;background:' + (att === def ? (att ? '#ff4d9d' : '#555a6b') : att > def ? '#2fe08a' : '#ff4d9d') + '"></i><i style="width:' + (att + def ? 100 * def / tot : 50) + '%;background:' + (att === def ? (att ? '#2fe08a' : '#555a6b') : def > att ? '#2fe08a' : '#ff4d9d') + '"></i></div>' +
       '<div class="dz-sc"><span>' + fmt(att) + '</span><span class="dz-muted" style="align-self:center">' + cd + '</span><span>' + fmt(def) + '</span></div>' +
@@ -179,7 +180,10 @@
     return h + '</div>';
   }
   function paneDuels() {
-    var act = (S.duels || []).filter(function (d) { return d.status === 'active'; }).sort(function (a, b) { var ma = (a.members || []).some(function (m) { return m.player_id === me(); }), mb = (b.members || []).some(function (m) { return m.player_id === me(); }); return (mb ? 1 : 0) - (ma ? 1 : 0); });
+    // Ordre : 1) le duel où JE suis engagé (cadre vert / rouge), 2) les duels de MA team, 3) tous les autres ; dans chaque groupe, ceux qui finissent le plus tôt d'abord
+    var meId = me(), myT = S.team_id;
+    var grp = function (d) { if ((d.members || []).some(function (m) { return m.player_id === meId; })) return 0; return d.attacker_team === myT || d.defender_team === myT ? 1 : 2; };
+    var act = (S.duels || []).filter(function (d) { return d.status === 'active'; }).sort(function (x, y) { return (grp(x) - grp(y)) || (Date.parse(x.end_at) - Date.parse(y.end_at)); });
     return '<div class="dz-list">' + (act.length ? act.map(duelCard).join('') : '<div class="dz-card dz-muted">Aucun duel en cours. Pour en lancer un, tombe sur la Land d\'une autre team pendant ton Tour.</div>') + '</div>';
   }
   function paneHist() {
@@ -258,15 +262,31 @@
   }
 
   /* ---------- lancer un duel depuis la case atterrie (fenêtre « Case occupée » du Tour) ---------- */
-  async function launch(idx) {
+  // Fenêtre de confirmation avant de lancer un duel : épées croisées + message clair (promesse : true = lancer, false = annuler)
+  var SWORDS = '<svg viewBox="0 0 64 64" width="72" height="72" aria-hidden="true" style="filter:drop-shadow(0 0 8px rgba(228,84,255,.75))"><defs><linearGradient id="dzbl" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#dfe3f2"/><stop offset=".5" stop-color="#ffffff"/><stop offset="1" stop-color="#aeb6d2"/></linearGradient></defs>' +
+    ['45', '-45'].map(function (ang) { return '<g transform="rotate(' + ang + ' 32 32)"><path d="M32 3 L36.5 38 L27.5 38 Z" fill="url(#dzbl)" stroke="#e454ff" stroke-width="1.2" stroke-linejoin="round"/><rect x="20" y="38" width="24" height="4.5" rx="2" fill="#e454ff"/><rect x="29.5" y="42.5" width="5" height="12" rx="2" fill="#7a4fd0" stroke="#e454ff" stroke-width="1"/><circle cx="32" cy="57" r="3.2" fill="#e454ff"/></g>'; }).join('') + '</svg>';
+  function confirmDuel(name) {
+    return new Promise(function (resolve) {
+      var old = $('dz-modal'); if (old) old.remove();
+      var m = document.createElement('div'); m.id = 'dz-modal';
+      m.innerHTML = '<div class="dz-modal-box dz-duelc"><div class="dz-duelc-img">' + SWORDS + '</div><div class="dz-duelc-t">DUEL</div><div class="dz-duelc-msg">Tu es sur le point de défier <b>' + esc(name || 'ce RP') + '</b> dans le but de lui prendre sa Land. En contrepartie, tu mets en jeu une de tes Lands en location. Veux-tu faire un duel avec ce RP ?</div><div class="dz-row" style="margin-top:16px;gap:10px"><button class="dz-btn" style="flex:1;text-transform:uppercase" id="dzc-no">Annuler</button><button class="dz-btn dz-violet" style="flex:1;text-transform:uppercase" id="dzc-yes">Lancer le duel</button></div></div>';
+      document.body.appendChild(m);
+      var done = function (v) { m.remove(); resolve(v); };
+      $('dzc-no').onclick = function () { done(false); }; $('dzc-yes').onclick = function () { done(true); };
+      m.onclick = function (e) { if (e.target === m) done(false); };
+    });
+  }
+
+  async function launch(idx, name) {
     if (!(S && S.enabled)) { toast('Les duels ne sont pas encore ouverts.', true); return; }
     var chk = await supabaseClient.rpc('duel_can_launch', { p_idx: idx });
     if (chk.error || !chk.data) { toast('Erreur, réessaie.', true); return; }
     if (chk.data.ok === false) { toast(REASONS[chk.data.error] || chk.data.error, true); return; }
-    if (typeof askConfirm === 'function') {
-      var ok = await askConfirm('Tu mises ta Land n°' + chk.data.stake + ' contre celle-ci.\nLe duel dure 72 h : les 2 Lands sont verrouillées.', { title: 'Lancer un duel ?', emoji: '⚔️', success: true, okLabel: 'Lancer', cancelLabel: 'Annuler' });
-      if (!ok) return;
+    if (!name) { // nom du RP visé : repli si l'appelant ne l'a pas fourni
+      var h = await supabaseClient.from('tour_lands').select('holder_id').eq('idx', idx).maybeSingle();
+      if (h.data && h.data.holder_id) { var pl = await supabaseClient.from('players').select('username').eq('id', h.data.holder_id).maybeSingle(); if (pl.data) name = pl.data.username; }
     }
+    if (!(await confirmDuel(name))) return;
     var r = await supabaseClient.rpc('duel_launch', { p_idx: idx });
     if (r.error || !r.data) { toast('Erreur, réessaie.', true); return; }
     if (r.data.ok === false) { toast(REASONS[r.data.error] || r.data.error, true); return; }

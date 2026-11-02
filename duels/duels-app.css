@@ -121,3 +121,15 @@
 #dz-selchip button{display:flex;align-items:center;gap:6px;background:#0c0f1af0;border:1.5px solid #f5c842;border-radius:18px;color:#fff;padding:3px 10px 3px 4px;font:700 14px 'Rajdhani',sans-serif;cursor:pointer}
 #dz-selchip img,#dz-selchip u{width:22px;height:22px;border-radius:50%;object-fit:cover;background:#334;text-decoration:none}
 #dz-selchip b{color:#f5c842}
+
+/* fenêtre de confirmation d'un duel (épées croisées) */
+.dz-modal-box.dz-duelc{border-color:#e454ff;box-shadow:0 0 22px rgba(228,84,255,.35);text-align:center}
+.dz-duelc-img{display:flex;justify-content:center;margin:-4px 0 2px}
+.dz-duelc-t{font:700 28px 'Bebas Neue',sans-serif;letter-spacing:4px;color:#fff;line-height:1;margin-bottom:8px}
+.dz-duelc-msg{font-size:14px;line-height:1.55;color:#e9e6f7}
+.dz-duelc-msg b{color:#e454ff}
+.dz-btn.dz-violet{border-color:rgba(228,84,255,.7);color:#e454ff;background:#0c0f1a}
+
+/* mon duel (tout en haut) : cadre vert quand ma team gagne, rouge quand elle perd */
+.dz-card.mine.win{border:2px solid #2fe08a;box-shadow:0 0 14px rgba(47,224,138,.4)}
+.dz-card.mine.lose{border:2px solid #ff4d4d;box-shadow:0 0 14px rgba(255,77,77,.4)}
