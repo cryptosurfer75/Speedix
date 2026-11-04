@@ -31724,6 +31724,27 @@ window.Tour.init = async function(){
   // condition de préemption).
   const TOUR_ELIGIBLE_GRADES = ['confirme','expert','pro','elite'];
   let _tourPlayerRow = null;
+  // Pion « auto » (04/11/2026) : un RP qui n'avait jamais choisi son départ a été démarré par le serveur 72 h après sa 1re course
+  // et son pion a avancé seul (déplacement + redevances). À sa 1re ouverture du Tour on lui rend le résumé, une seule fois.
+  let _tourGhostSummary = null;
+  if(currentUser && currentUser.id){
+    try{
+      const {data:_gh} = await supabaseClient.rpc('tour_ghost_ack');
+      if(_gh && typeof _gh==='object') _tourGhostSummary = _gh;
+    }catch(e){ console.warn('[Tour] tour_ghost_ack:', e); }
+  }
+  if(_tourGhostSummary){
+    const g = _tourGhostSummary, en = (typeof SPEEDIX_LANG!=='undefined' && SPEEDIX_LANG==='en');
+    const km = Math.round(Number(g.km)||0), paid = Math.round(Number(g.paid)||0), tolls = Number(g.tolls)||0, lost = Math.round(Number(g.lost_km)||0);
+    const city = escapeHtml(String(g.city||''));
+    setTimeout(function(){
+      showCelebrationModal(
+        en ? '🗺️ Your pawn is already on the Tour!' : '🗺️ Ton pion est déjà sur le Tour !',
+        en ? `Your pawn left from <b>${city}</b> and moved <b class="rm-gold">${km} km</b> with your runs. It paid <b class="rm-gold">${paid} RPC</b> in tolls (${tolls} stop${tolls>1?'s':''}) to the players who own those Lands.${lost>0?` <br>${lost} km did not count while a toll was unpaid.`:''}<br>Rent or buy your own Lands to earn the tolls of the others!`
+           : `Ton pion est parti de <b>${city}</b> et a avancé de <b class="rm-gold">${km} km</b> grâce à tes courses. Il a payé <b class="rm-gold">${paid} RPC</b> de redevances (${tolls} passage${tolls>1?'s':''}) aux RP propriétaires des Lands croisées.${lost>0?` <br>${lost} km n'ont pas compté pendant qu'une redevance restait impayée.`:''}<br>Loue ou achète tes propres Lands pour encaisser à ton tour !`,
+        'neutral');
+    }, 1800);
+  }
   if(currentUser && currentUser.id){
     const {data} = await supabaseClient.from('players')
       .select('rpc_balance,nyx_balance,tour_acquisition_rights,premium,username,grade,tour_idx,tour_laps,tour_start_city,tour_start_idx,tour_forsale_seen_at,tour_friend_colors,tour_bench_left,tour_debt_rpc')
