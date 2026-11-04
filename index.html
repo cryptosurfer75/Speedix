@@ -31793,6 +31793,7 @@ window.Tour.init = async function(){
   // de main. Résultat : la même personne pouvait changer de couleur d'une
   // session à l'autre. players.tour_color = SOURCE UNIQUE désormais, posée une
   // fois pour toutes au 1er croisement et jamais recalculée après.
+  var _tourTeamNames = {}; // id RP → nom de sa team (affiché entre parenthèses dans la modale « Case occupée », utile pour choisir un duel)
   function _tourOwnerObj(id, nameMap, eligMap, startIdxMap, colorMap, lapsMap){
     if(!id) return null;
     if(currentUser && id===currentUser.id) return ME;
@@ -31830,6 +31831,14 @@ window.Tour.init = async function(){
           _laps[p.id] = p.tour_laps||0;
           if(p.tour_color) _colors[p.id] = p.tour_color;
         });
+        try{
+          const {data:tm} = await supabaseClient.from('team_members').select('team_id,player_id').in('player_id', Array.from(_ids));
+          if(tm && tm.length){
+            const {data:tms} = await supabaseClient.from('teams').select('id,name').in('id', Array.from(new Set(tm.map(m=>m.team_id))));
+            const _tn = {}; (tms||[]).forEach(t=>{ _tn[t.id]=t.name; });
+            tm.forEach(m=>{ if(_tn[m.team_id]) _tourTeamNames[m.player_id]=_tn[m.team_id]; });
+          }
+        }catch(e){ console.warn('[Tour] teams propriétaires:', e); }
       }
       (dbLands||[]).forEach(row=>{
         const l = LANDS[row.idx];
@@ -34355,7 +34364,7 @@ window.Tour.init = async function(){
       }
       return {
         title: 'Case occupée — n°'+land.idx,
-        sub: `Désolé, cette Land appartient déjà à ${land.owner.name}${stars}.${extra} ${rentPrefix} automatique d'une redevance de : <b class="rm-gold">${amount} RPC</b>.`,
+        sub: `Désolé, cette Land appartient déjà à ${land.owner.name}${_tourTeamNames[land.owner.id]?' ('+escapeHtml(String(_tourTeamNames[land.owner.id]))+')':''}${stars}.${extra} ${rentPrefix} automatique d'une redevance de : <b class="rm-gold">${amount} RPC</b>.`,
         btns
       };
     }
