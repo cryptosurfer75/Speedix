@@ -287,7 +287,8 @@
 
   function draw(c) {
     ctx = c; me = c.me; MD = c.mapData || { teams: [], mine: null };
-    var active = (c.duels || []).filter(function (d) { return d.status === 'active'; });
+    // un duel dont le temps est écoulé (en attente du règlement/Joker, 1 h) ne clignote plus sur la carte (04/11/2026)
+    var active = (c.duels || []).filter(function (d) { return d.status === 'active' && !(d.end_at && new Date(d.end_at).getTime() <= Date.now()); });
     st.active = active.map(function (d) { var L = d.loss || {}; return { id: d.id, attackerTeam: d.attacker_team, defenderTeam: d.defender_team, att: L.att || 0, def: L.def || 0 }; });
     st.engaged = null;
     active.forEach(function (d) {
