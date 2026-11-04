@@ -4980,10 +4980,11 @@ select option{background:#040c1c}
         <div class="eco-row"><span data-i18n="eco.stars.s2">★★ Étoile ×2</span><span class="eco-price">2 000 RPC</span></div>
         <div class="eco-row"><span data-i18n="eco.stars.s3">★★★ Étoile ×3</span><span class="eco-price">3 000 RPC</span></div>
         <div data-i18n="eco.stars.passage" style="margin-top:.6rem;border-top:1px solid var(--border);padding-top:.5rem;font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--muted2);margin-bottom:.4rem">Passage</div>
-        <div class="eco-row"><span data-i18n="eco.stars.s0">Sans étoile</span><span class="eco-price">250 RPC</span></div>
-        <div class="eco-row"><span data-i18n="eco.stars.s1">★ Étoile ×1</span><span class="eco-price">400 RPC</span></div>
-        <div class="eco-row"><span data-i18n="eco.stars.s2">★★ Étoile ×2</span><span class="eco-price">600 RPC</span></div>
-        <div class="eco-row"><span data-i18n="eco.stars.s3">★★★ Étoile ×3</span><span class="eco-price">800 RPC</span></div>
+        <div class="eco-row"><span data-i18n="eco.stars.rent">En location</span><span class="eco-price">500 RPC</span></div>
+        <div class="eco-row"><span data-i18n="eco.stars.s0">Propriété sans étoile</span><span class="eco-price">600 RPC</span></div>
+        <div class="eco-row"><span data-i18n="eco.stars.s1">★ Étoile ×1</span><span class="eco-price">800 RPC</span></div>
+        <div class="eco-row"><span data-i18n="eco.stars.s2">★★ Étoile ×2</span><span class="eco-price">1 000 RPC</span></div>
+        <div class="eco-row"><span data-i18n="eco.stars.s3">★★★ Étoile ×3</span><span class="eco-price">1 200 RPC</span></div>
       </div>
     </div>
 
@@ -7286,7 +7287,8 @@ const I18N = {
     'eco.stars.s2'              : '★★ Étoile ×2',
     'eco.stars.s3'              : '★★★ Étoile ×3',
     'eco.stars.passage'         : 'Passage',
-    'eco.stars.s0'              : 'Sans étoile',
+    'eco.stars.rent'            : 'En location',
+    'eco.stars.s0'              : 'Propriété sans étoile',
     // — Page Premium (page-access)
     'prem.page.title'           : 'Free <span style="color:var(--gold)">vs Premium</span>',
     'prem.page.subtitle'        : '5,99€ / mois · ou 59,99€ / an',
@@ -8082,7 +8084,8 @@ const I18N = {
     'eco.stars.s2'              : '★★ Star ×2',
     'eco.stars.s3'              : '★★★ Star ×3',
     'eco.stars.passage'         : 'Crossing',
-    'eco.stars.s0'              : 'No star',
+    'eco.stars.rent'            : 'Rented',
+    'eco.stars.s0'              : 'Owned, no star',
     // — Premium page (page-access)
     'prem.page.title'           : 'Free <span style="color:var(--gold)">vs</span> Premium',
     'prem.page.subtitle'        : '€5.99 / month · or €59.99 / year',
@@ -32135,7 +32138,7 @@ window.Tour.init = async function(){
   // la 2e, 3000 la 3e (index = nombre d'étoiles déjà posées, l.stars||0).
   const STAR_PRICES_RPC = [1000, 2000, 3000];
   const STAR_MAX = 3;
-  const BASE_REDEVANCE_RPC = 250;
+  const BASE_REDEVANCE_RPC = 500; // = redevance d'une Land en LOCATION (cf RENT_REDEVANCE_RPC)
   // Redevance perçue par le propriétaire quand un RP tombe sur sa Land. Une Land
   // LOUÉE ou POSSÉDÉE SANS étoile rapporte 250 RPC/passage — acheter la Land
   // n'augmente rien en soi. Ce que ça ouvre, c'est le DROIT de poser des étoiles
@@ -32145,11 +32148,16 @@ window.Tour.init = async function(){
   // donc (l.stars||0) vaut 0 et retombe sur 250.
   // Villes étapes : 400 sans étoile puis 600 / 800 / 1 200 (barème du 2026-10-29).
   // MIROIR de tour_land_toll() en base — garder synchro, NE PAS diverger.
-  const LAND_REDEVANCE_RPC = [250,400,600,800];
-  const ETAPE_REDEVANCE_RPC = [400,600,800,1200];
+  // ⚠️ BARÈME TEST du 2026-11-04 (demande user) : location 500 | propriété 600/800/1000/1200 | étape 800/1000/1200/1500.
+  // (ancien barème 10-29 : 250/400/600/800 et étape 400/600/800/1200 — les commentaires ci-dessus datent de lui.)
+  const RENT_REDEVANCE_RPC = 500;
+  const LAND_REDEVANCE_RPC = [600,800,1000,1200];
+  const ETAPE_REDEVANCE_RPC = [800,1000,1200,1500];
   function landRedevance(l){
     const i = Math.min(l.stars||0,3);
-    return (l.type==='etape' ? ETAPE_REDEVANCE_RPC : LAND_REDEVANCE_RPC)[i];
+    if(l.type==='etape') return ETAPE_REDEVANCE_RPC[i];
+    if(l.status==='rented') return RENT_REDEVANCE_RPC;
+    return LAND_REDEVANCE_RPC[i];
   }
   // Grade CONFIRMÉ ou plus (seule condition Free pour pouvoir acheter des Lands,
   // sans le droit d'acquisition ni le Premium) — 2026-08-06, branché en réel :
