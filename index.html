@@ -2402,6 +2402,8 @@ body::after{
   background:linear-gradient(180deg, rgba(245,200,66,.22) 0%, transparent 75%), #0c0f1a;
 }
 .mlc-bevel.mlc-etape .mlc-buy-btn.mlc-sell-btn:hover{ border-color:var(--gold); }
+.duel-won-hex{filter:drop-shadow(0 0 6px #39ff14);animation:duelWonPulse 1.6s ease-in-out infinite}
+@keyframes duelWonPulse{0%,100%{filter:drop-shadow(0 0 3px #39ff14)}50%{filter:drop-shadow(0 0 10px #39ff14)}}
 /* "Acheter" de la carte Locataire (2026-08-06, corrigé : vert de la carte au
    lieu du jaune uniforme), léger fondu conservé — distinct du vert générique
    "Acheter" de la Marketplace (.mlc-buy-btn seul, sans fondu, inchangé). */
@@ -32395,6 +32397,19 @@ window.Tour.init = async function(){
     hex.on('click', ()=>{ if(l.owner===ME) openMyLandsPage(l.idx); });
     l.layer = hex;
   });
+  // Lands gagnées en duel par MA team depuis moins de 48 h : vert vif lumineux + mention dans la fenêtre (04/11/2026, demande user).
+  const _DUEL_WON = {};
+  function _applyDuelWon(l){
+    const w = l && _DUEL_WON[l.idx];
+    if(!w || !l.layer || l.type==='etape') return;
+    l.layer.setStyle({fillColor:'#39ff14', fillOpacity:.95, color:'#d9ffb0', weight:4});
+    try{ if(l.layer._path) l.layer._path.classList.add('duel-won-hex'); }catch(e){}
+    if(l.owner!==ME) l.layer.bindPopup(popupHtml(l) + '<div style="margin-top:.35rem;font-weight:700;color:#39ff14">🏆 Gagnée en duel par ta team</div>');
+  }
+  try{
+    const {data:_won} = await supabaseClient.rpc('tour_duel_won_lands');
+    (Array.isArray(_won)?_won:[]).forEach(function(w){ if(LANDS[w.idx]){ _DUEL_WON[w.idx] = w; _applyDuelWon(LANDS[w.idx]); } });
+  }catch(e){ console.warn('[Tour] tour_duel_won_lands:', e); }
   // Remet à jour le style d'une case après restauration depuis localStorage —
   // même logique de couleur que la boucle de création juste au-dessus.
   function _refreshLandVisual(l){
@@ -32405,6 +32420,7 @@ window.Tour.init = async function(){
       color: (l.mine && MINE_STROKE[l.status]) ? MINE_STROKE[l.status] : '#00000060', weight: l.mine ? 3 : 1
     });
     if(l.owner===ME) l.layer.unbindPopup(); else l.layer.bindPopup(popupHtml(l));
+    _applyDuelWon(l);
   }
 
   // ── Révélation silencieuse des cases TRAVERSÉES pendant une course (2026-08-01) :
