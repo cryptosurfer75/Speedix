@@ -218,7 +218,7 @@
       ['🏆 Résultat', ['Attaque gagnante : la Land attaquée va au RP qui a lancé le duel.', 'Défense gagnante : le RP gagne la Land du RP adverse. S\'il a atteint sa limite de locations (8 en Free) elle va à un RP Premium de sa team.<br>Si personne ne peut la recevoir, elle est remise en jeu.', 'Égalité : le défenseur gagne.']],
       ['💰 Cagnotte de la team', ['La cagnotte est alimentée par 20 % des RPC des RP qui composent la team.', 'Elle paie les défaites et le Joker.']],
       ['💸 Défaite', ['La Land mise en jeu change de team.', '20 RPC par point d\'écart sont brûlés dans la cagnotte de la team perdante.', 'Le burn ne peut pas dépasser 15 % de la cagnotte totale.']],
-      ['🏳️ Joker', ['Pour éviter le burn, le capitaine peut poser un Joker.', 'Prix progressif du Joker : 1 000, 1 500 puis 2 000 RPC × nombre de RP.', 'En compensation, les RP du duel gagnant reçoivent des NYX en proportion de l\'écart de points.', '300 pts minimum / RP dans le duel pour les gagner.']]
+      ['🏳️ Joker', ['Pour éviter le burn, le capitaine peut poser un Joker.', 'Prix progressif du Joker : 1 000, 1 500 puis 2 000 RPC × nombre de RP.', 'En compensation, les RP du duel gagnant reçoivent des NYX offerts par le jeu en proportion de l\'écart de points.', '300 pts minimum / RP dans le duel pour les gagner.']]
     ];
     return '<div class="dz-list dz-rules-page">' + R.map(function (r) { return '<div class="rules-section"><h3>' + r[0] + '</h3><ul class="dz-rules">' + r[1].map(function (x) { return '<li>' + x + '</li>'; }).join('') + '</ul></div>'; }).join('') + '</div>';
   }
