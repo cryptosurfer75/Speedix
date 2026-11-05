@@ -89,6 +89,8 @@
 .dz-pot-v{font:700 22px 'Rajdhani',sans-serif;color:#f5c842;line-height:1.1}
 @keyframes dzblink{0%,100%{opacity:.15}50%{opacity:1}}
 .dz-blink{animation:dzblink 1.8s infinite}
+.dz-won{animation:dzwon 2.4s ease-in-out infinite}
+@keyframes dzwon{0%,100%{opacity:1}50%{opacity:.4}}
 @media (max-width:600px){
   #dz-mappot{width:calc(50% - 12px);max-width:none;padding:6px 8px}
   .dz-pot-t{font-size:9px;letter-spacing:.5px;line-height:1.3}
