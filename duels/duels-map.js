@@ -307,14 +307,9 @@
     // un duel dont le temps est écoulé (en attente du règlement/Joker, 1 h) ne clignote plus sur la carte (04/11/2026)
     var active = (c.duels || []).filter(function (d) { return d.status === 'active' && !(d.end_at && new Date(d.end_at).getTime() <= Date.now()); });
     st.active = active.map(function (d) { var L = d.loss || {}; return { id: d.id, attackerTeam: d.attacker_team, defenderTeam: d.defender_team, att: L.att || 0, def: L.def || 0 }; });
-    // Lands gagnées en duel depuis moins de 48 h : une case hachurée de la couleur de la team de l'équipe gagnante
+    // Lands gagnées en duel et encore détenues par la team (calculées en base, duel_map_data.won) : case hachurée sans limite de durée
     st.wonN = {};
-    (c.duels || []).forEach(function (d) {
-      var r = d.result || {};
-      if (d.status !== 'done' || !d.end_at || Date.now() - Date.parse(d.end_at) >= 48 * 3600 * 1000) return;
-      if (r.winner === 'attackers') st.wonN[d.attacker_team] = (st.wonN[d.attacker_team] || 0) + 1;
-      else if (r.winner === 'defenders' && r.receiver) st.wonN[d.defender_team] = (st.wonN[d.defender_team] || 0) + 1;
-    });
+    (MD.teams || []).forEach(function (t) { if (+t.won > 0) st.wonN[t.id] = +t.won; });
     st.engaged = null;
     active.forEach(function (d) {
       var ms = d.members || [];

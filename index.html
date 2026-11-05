@@ -36243,7 +36243,12 @@ window.Tour.init = async function(){
     // forceMove. "Vu" n'est marqué qu'une fois la voie libre : si l'appli ferme
     // pendant l'attente, ce rappel se représente à la prochaine ouverture.
     await _tourWaitClear();
-    showRentDueModal(res.amount, res.lands_count, res.days_left, res.per_land, res.expiring_count);
+    // 05/11/2026 : checkRentNotice est appelée à l'ouverture du Tour par DEUX chemins (onShow + fin d'init). Le 2e attendait derrière la
+    // fenêtre du 1er puis la rouvrait dès que le RP l'avait fermée (ou payée) : « le popup apparaît deux fois ». On revérifie donc après l'attente.
+    try{ if(localStorage.getItem(_tourRentSeenKey())) return; }catch(e){}
+    const res2 = await _tourCall('tour_rent_status', {});
+    if(!res2 || !res2.pending) return;
+    showRentDueModal(res2.amount, res2.lands_count, res2.days_left, res2.per_land, res2.expiring_count);
     } finally { _rentNoticeBusy = false; }
   }
   // ── Dette du pion (2026-10-29, règle validée avec l'user) : redevance / carte perte / tempête que le RP ne
@@ -36411,7 +36416,7 @@ window.Tour.init = async function(){
 })();
 
 </script>
-<script src="duels/duels-map.js?v=16"></script>
+<script src="duels/duels-map.js?v=17"></script>
 <script src="duels/duels-app.js?v=32"></script>
 </body>
 </html>
