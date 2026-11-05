@@ -183,9 +183,9 @@
       }
       var mineCells = [];
       srt.forEach(function (o, rank) {
-        var p = pts[o[1]], own = rank < cc.own;
+        var p = pts[o[1]], own = rank < cc.own, wonCell = rank >= srt.length - Math.min(srt.length, st.wonN[id] || 0);
         mnx = Math.min(mnx, p[0]); mxx = Math.max(mxx, p[0]); mny = Math.min(mny, p[1]); mxy = Math.max(mxy, p[1]);
-        els[id].push(E_('polygon', own ? { points: hexPts(p[0], p[1], S - 1), fill: col, stroke: '#fff', 'stroke-opacity': .55, 'stroke-width': 1.2 }
+        els[id].push(E_('polygon', wonCell ? { points: hexPts(p[0], p[1], S - 1), fill: '#2fe08a', stroke: '#fff', 'stroke-width': 2 } : own ? { points: hexPts(p[0], p[1], S - 1), fill: col, stroke: '#fff', 'stroke-opacity': .55, 'stroke-width': 1.2 }
           : { points: hexPts(p[0], p[1], S - 1), fill: col, 'fill-opacity': .4, stroke: col, 'stroke-width': 2 }));
         if (id === myT && mineJ[o[1]]) mineCells.push(p);
       });
@@ -290,6 +290,14 @@
     // un duel dont le temps est écoulé (en attente du règlement/Joker, 1 h) ne clignote plus sur la carte (04/11/2026)
     var active = (c.duels || []).filter(function (d) { return d.status === 'active' && !(d.end_at && new Date(d.end_at).getTime() <= Date.now()); });
     st.active = active.map(function (d) { var L = d.loss || {}; return { id: d.id, attackerTeam: d.attacker_team, defenderTeam: d.defender_team, att: L.att || 0, def: L.def || 0 }; });
+    // Lands gagnées en duel depuis moins de 48 h : une case verte simple dans le territoire de l'équipe gagnante
+    st.wonN = {};
+    (c.duels || []).forEach(function (d) {
+      var r = d.result || {};
+      if (d.status !== 'done' || !d.end_at || Date.now() - Date.parse(d.end_at) >= 48 * 3600 * 1000) return;
+      if (r.winner === 'attackers') st.wonN[d.attacker_team] = (st.wonN[d.attacker_team] || 0) + 1;
+      else if (r.winner === 'defenders' && r.receiver) st.wonN[d.defender_team] = (st.wonN[d.defender_team] || 0) + 1;
+    });
     st.engaged = null;
     active.forEach(function (d) {
       var ms = d.members || [];

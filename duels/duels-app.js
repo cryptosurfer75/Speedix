@@ -157,9 +157,9 @@
   function memberLine(m) { return '<div class="dz-mrow"><span' + (m.premium ? ' style="color:var(--gold)"' : '') + '>' + esc(m.username) + (m.premium ? '<span title="Premium" style="margin-left:.15rem;font-size:.7rem;line-height:1;display:inline-block">★</span>' : '') + (m.role === 'launcher' ? ' 🗡️' : m.role === 'holder' ? ' 🛡️' : '') + '</span><b>' + fmt(m.pts) + ' pts</b></div>'; }
 
   function duelCard(d) {
-    var ph = phaseOf(d), L = d.loss || {}, att = L.att != null ? L.att : sidePts(d, 'att'), def = L.def != null ? L.def : sidePts(d, 'def'), tot = Math.max(1, att + def);
+    var ph = phaseOf(d), L = d.loss || {}, R0 = ph === 'done' ? (d.result || {}) : {}, att = L.att != null ? L.att : R0.att != null ? R0.att : sidePts(d, 'att'), def = L.def != null ? L.def : R0.def != null ? R0.def : sidePts(d, 'def'), tot = Math.max(1, att + def);
     var meId = me(), mine = (d.members || []).filter(function (m) { return m.player_id === meId; })[0], myTeam = S.team_id;
-    var cd = ph === 'fight' ? '⏳ ' + cdown(Date.parse(d.end_at) - now()) : ph === 'decision' ? '🏳️ Joker possible : ' + cdown(Date.parse(d.resolve_at) - now()) : '';
+    var cd = ph === 'fight' ? '⏳ ' + cdown(Date.parse(d.end_at) - now()) : ph === 'decision' ? '🏳️ Joker possible : ' + cdown(Date.parse(d.resolve_at) - now()) : '🏆 ' + esc(team(R0.winner === 'attackers' ? d.attacker_team : d.defender_team).name);
     var attMembers = (d.members || []).filter(function (m) { return m.side === 'att'; }), defMembers = (d.members || []).filter(function (m) { return m.side === 'def'; });
     var canJoin = ph === 'fight' && !mine && ((myTeam === d.attacker_team && attMembers.length < sideCap(attMembers)) || (myTeam === d.defender_team && defMembers.length < sideCap(defMembers))) && !(S.duels || []).some(function (x) { return x.status === 'active' && (x.members || []).some(function (m) { return m.player_id === meId; }); });
     var canLeave = ph === 'fight' && mine && mine.role === 'helper';
@@ -190,10 +190,13 @@
     var meId = me(), myT = S.team_id;
     var grp = function (d) { if ((d.members || []).some(function (m) { return m.player_id === meId; })) return 0; return d.attacker_team === myT || d.defender_team === myT ? 1 : 2; };
     var act = (S.duels || []).filter(function (d) { return d.status === 'active'; }).sort(function (x, y) { return (grp(x) - grp(y)) || (Date.parse(x.end_at) - Date.parse(y.end_at)); });
-    return '<div class="dz-list">' + (act.length ? act.map(duelCard).join('') : '<div class="dz-card dz-muted">Aucun duel en cours. Pour en lancer un, tombe sur la Land d\'une autre team pendant ton Tour.</div>') + '</div>';
+    // Duels terminés depuis moins de 48 h (de toutes les teams) : affichés sous les duels en cours, puis ils disparaissent du mur
+    var fin = (S.duels || []).filter(function (d) { return d.status === 'done' && Date.now() - Date.parse(d.end_at) < 48 * 3600 * 1000; }).sort(function (x, y) { return Date.parse(y.end_at) - Date.parse(x.end_at); });
+    return '<div class="dz-list">' + (act.length ? act.map(duelCard).join('') : '<div class="dz-card dz-muted">Aucun duel en cours. Pour en lancer un, tombe sur la Land d\'une autre team pendant ton Tour.</div>') +
+      (fin.length ? '<div class="dz-muted" style="margin:10px 2px 0">Terminés depuis moins de 48 h</div>' + fin.map(duelCard).join('') : '') + '</div>';
   }
   function paneHist() {
-    var done = (S.duels || []).filter(function (d) { return d.status === 'done'; });
+    var done = (S.duels || []).filter(function (d) { return d.status === 'done' && (d.attacker_team === S.team_id || d.defender_team === S.team_id); });   // historique = MA team seulement (le mur affiche les duels terminés des autres pendant 48 h)
     if (!done.length) return '<div class="dz-list"><div class="dz-card dz-muted">Aucun duel terminé pour l\'instant.</div></div>';
     return '<div class="dz-list">' + done.map(function (d) {
       var r = d.result || {}, pen = r.penalty || {}, myT = S.team_id, att = d.attacker_team === myT, won = (r.winner === 'attackers') === att, lines = '';
