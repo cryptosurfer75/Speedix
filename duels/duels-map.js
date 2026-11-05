@@ -193,7 +193,16 @@
         mnx = Math.min(mnx, p[0]); mxx = Math.max(mxx, p[0]); mny = Math.min(mny, p[1]); mxy = Math.max(mxy, p[1]);
         els[id].push(E_('polygon', own ? { points: hexPts(p[0], p[1], S - 1), fill: col, stroke: '#fff', 'stroke-opacity': .55, 'stroke-width': 1.2 }
           : { points: hexPts(p[0], p[1], S - 1), fill: col, 'fill-opacity': .4, stroke: col, 'stroke-width': 2 }));
-        if (wonCell) E_('polygon', { points: hexPts(p[0], p[1], S - 1), fill: 'none', stroke: col, 'stroke-width': 4.5, 'stroke-linejoin': 'round' });   // Land gagnée < 48 h : même case, simple contour un peu plus épais
+        if (wonCell) { // Land gagnée < 48 h : la case est remplie en hachures de la couleur de la team (motif SVG)
+          var pid = 'dzw' + String(id).replace(/[^a-z0-9]/gi, '');
+          if (!document.getElementById(pid)) {
+            var pat = document.createElementNS(NS, 'pattern'); pat.id = pid; pat.setAttribute('width', 8); pat.setAttribute('height', 8); pat.setAttribute('patternUnits', 'userSpaceOnUse'); pat.setAttribute('patternTransform', 'rotate(45)');
+            var bg = document.createElementNS(NS, 'rect'); bg.setAttribute('width', 8); bg.setAttribute('height', 8); bg.setAttribute('fill', '#0b1020'); pat.appendChild(bg);
+            var ln = document.createElementNS(NS, 'rect'); ln.setAttribute('width', 4); ln.setAttribute('height', 8); ln.setAttribute('fill', col); pat.appendChild(ln);
+            defs.appendChild(pat);
+          }
+          E_('polygon', { points: hexPts(p[0], p[1], S - 1), fill: 'url(#' + pid + ')', stroke: col, 'stroke-width': 3, 'stroke-linejoin': 'round' });
+        }
         if (id === myT && mineJ[o[1]]) mineCells.push(p);
       });
       if (id === myT) mineOutline = mineCells;
@@ -297,7 +306,7 @@
     // un duel dont le temps est écoulé (en attente du règlement/Joker, 1 h) ne clignote plus sur la carte (04/11/2026)
     var active = (c.duels || []).filter(function (d) { return d.status === 'active' && !(d.end_at && new Date(d.end_at).getTime() <= Date.now()); });
     st.active = active.map(function (d) { var L = d.loss || {}; return { id: d.id, attackerTeam: d.attacker_team, defenderTeam: d.defender_team, att: L.att || 0, def: L.def || 0 }; });
-    // Lands gagnées en duel depuis moins de 48 h : un contour un peu plus épais (même couleur que la team, ni rempli ni clignotant) sur une case du territoire de l'équipe gagnante
+    // Lands gagnées en duel depuis moins de 48 h : une case hachurée de la couleur de la team de l'équipe gagnante
     st.wonN = {};
     (c.duels || []).forEach(function (d) {
       var r = d.result || {};
