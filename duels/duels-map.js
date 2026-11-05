@@ -181,10 +181,13 @@
           });
         }
       }
-      var mineCells = [], wonSet = {}, wonK = Math.min(srt.length, st.wonN[id] || 0), bsz = Math.max(34, Math.min(110, 16 * Math.sqrt(pts.length) * 1.1));
-      // cases gagnées : les plus proches du centre de la team, juste hors du blason, pour qu'elles se voient dès l'ouverture de la carte
-      for (var wr = 0; wr < srt.length && wonK > 0; wr++) if (srt[wr][0] >= bsz / 2 + S * 0.5) { wonSet[wr] = 1; wonK--; }
-      for (var wr2 = 0; wr2 < srt.length && wonK > 0; wr2++) if (!wonSet[wr2]) { wonSet[wr2] = 1; wonK--; }
+      var mineCells = [], wonSet = {}, wonK = Math.min(srt.length, st.wonN[id] || 0);
+      // cases gagnées : à l'EXTÉRIEUR du territoire (il a grandi), côté centre de la carte générale pour être vues dès l'ouverture
+      if (wonK > 0) {
+        var gcx = occ.reduce(function (a, q) { return a + q[0]; }, 0) / occ.length, gcy = occ.reduce(function (a, q) { return a + q[1]; }, 0) / occ.length, dmax = srt[srt.length - 1][0];
+        var outer = srt.map(function (o, rk) { return rk; }).filter(function (rk) { return srt[rk][0] >= dmax * 0.7; }).sort(function (u, v) { return Math.hypot(pts[srt[u][1]][0] - gcx, pts[srt[u][1]][1] - gcy) - Math.hypot(pts[srt[v][1]][0] - gcx, pts[srt[v][1]][1] - gcy); });
+        outer.slice(0, wonK).forEach(function (rk) { wonSet[rk] = 1; });
+      }
       srt.forEach(function (o, rank) {
         var p = pts[o[1]], own = rank < cc.own, wonCell = !!wonSet[rank];
         mnx = Math.min(mnx, p[0]); mxx = Math.max(mxx, p[0]); mny = Math.min(mny, p[1]); mxy = Math.max(mxy, p[1]);
