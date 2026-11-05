@@ -36289,9 +36289,16 @@ window.Tour.init = async function(){
     }
     showRentDueModal(res.amount, res.lands_count, res.days_left, res.per_land, res.expiring_count);
   }
+  let _payRentBusy = false;   // 05/11/2026 : un 2e clic / une 2e fenêtre ne relance pas le paiement
   async function payMonthlyRent(){
+    if(_payRentBusy) return;
+    _payRentBusy = true;
+    try{ await _payMonthlyRentInner(); } finally { _payRentBusy = false; }
+  }
+  async function _payMonthlyRentInner(){
     const res = await _tourCall('tour_pay_monthly_rent', {});
     if(!res.ok){
+      if(res.error==='already_paid'){ closeRentModal(); if(typeof window.showToast==='function') window.showToast('✅ Loyer déjà payé ce mois-ci.'); return; }
       if(res.error==='insufficient_rpc'){ if(typeof window.showToast==='function') window.showToast('⚠️ Solde RPC insuffisant pour payer le loyer.'); return; }
       if(res.error==='nothing_due'){ closeRentModal(); if(typeof window.showToast==='function') window.showToast('✅ Rien à payer.'); return; }
       _tourErrorToast(res.error); return;
