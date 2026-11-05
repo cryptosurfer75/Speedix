@@ -181,9 +181,12 @@
           });
         }
       }
-      var mineCells = [];
+      var mineCells = [], wonSet = {}, wonK = Math.min(srt.length, st.wonN[id] || 0), bsz = Math.max(34, Math.min(110, 16 * Math.sqrt(pts.length) * 1.1));
+      // cases gagnées : les plus proches du centre de la team, juste hors du blason, pour qu'elles se voient dès l'ouverture de la carte
+      for (var wr = 0; wr < srt.length && wonK > 0; wr++) if (srt[wr][0] >= bsz / 2 + S * 0.5) { wonSet[wr] = 1; wonK--; }
+      for (var wr2 = 0; wr2 < srt.length && wonK > 0; wr2++) if (!wonSet[wr2]) { wonSet[wr2] = 1; wonK--; }
       srt.forEach(function (o, rank) {
-        var p = pts[o[1]], own = rank < cc.own, wonCell = rank >= srt.length - Math.min(srt.length, st.wonN[id] || 0);
+        var p = pts[o[1]], own = rank < cc.own, wonCell = !!wonSet[rank];
         mnx = Math.min(mnx, p[0]); mxx = Math.max(mxx, p[0]); mny = Math.min(mny, p[1]); mxy = Math.max(mxy, p[1]);
         els[id].push(E_('polygon', wonCell ? { points: hexPts(p[0], p[1], S - 1), fill: col, stroke: '#fff', 'stroke-width': 2, 'class': 'dz-won' } : own ? { points: hexPts(p[0], p[1], S - 1), fill: col, stroke: '#fff', 'stroke-opacity': .55, 'stroke-width': 1.2 }
           : { points: hexPts(p[0], p[1], S - 1), fill: col, 'fill-opacity': .4, stroke: col, 'stroke-width': 2 }));
