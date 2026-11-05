@@ -185,7 +185,8 @@
       // cases gagnées : à l'EXTÉRIEUR du territoire (il a grandi), côté centre de la carte générale pour être vues dès l'ouverture
       if (wonK > 0) {
         var gcx = occ.reduce(function (a, q) { return a + q[0]; }, 0) / occ.length, gcy = occ.reduce(function (a, q) { return a + q[1]; }, 0) / occ.length, dmax = srt[srt.length - 1][0];
-        var outer = srt.map(function (o, rk) { return rk; }).filter(function (rk) { return srt[rk][0] >= dmax * 0.7; }).sort(function (u, v) { return Math.hypot(pts[srt[u][1]][0] - gcx, pts[srt[u][1]][1] - gcy) - Math.hypot(pts[srt[v][1]][0] - gcx, pts[srt[v][1]][1] - gcy); });
+        var isEdge = function (rk) { var n = 0, q0 = pts[srt[rk][1]]; for (var z = 0; z < pts.length; z++) if (z !== srt[rk][1] && Math.hypot(pts[z][0] - q0[0], pts[z][1] - q0[1]) < D * 1.1) n++; return n < 6; };   // vraie case de bordure : au moins un voisin vide
+        var outer = srt.map(function (o, rk) { return rk; }).filter(function (rk) { return isEdge(rk); }).sort(function (u, v) { return Math.hypot(pts[srt[u][1]][0] - gcx, pts[srt[u][1]][1] - gcy) - Math.hypot(pts[srt[v][1]][0] - gcx, pts[srt[v][1]][1] - gcy); });
         outer.slice(0, wonK).forEach(function (rk) { wonSet[rk] = 1; });
       }
       srt.forEach(function (o, rank) {
