@@ -2402,8 +2402,6 @@ body::after{
   background:linear-gradient(180deg, rgba(245,200,66,.22) 0%, transparent 75%), #0c0f1a;
 }
 .mlc-bevel.mlc-etape .mlc-buy-btn.mlc-sell-btn:hover{ border-color:var(--gold); }
-.duel-won-hex{filter:drop-shadow(0 0 6px #39ff14);animation:duelWonPulse 1.6s ease-in-out infinite}
-@keyframes duelWonPulse{0%,100%{filter:drop-shadow(0 0 3px #39ff14)}50%{filter:drop-shadow(0 0 10px #39ff14)}}
 /* "Acheter" de la carte Locataire (2026-08-06, corrigé : vert de la carte au
    lieu du jaune uniforme), léger fondu conservé — distinct du vert générique
    "Acheter" de la Marketplace (.mlc-buy-btn seul, sans fondu, inchangé). */
@@ -32397,18 +32395,39 @@ window.Tour.init = async function(){
     hex.on('click', ()=>{ if(l.owner===ME) openMyLandsPage(l.idx); });
     l.layer = hex;
   });
-  // Lands gagnées en duel par MA team depuis moins de 48 h : vert vif lumineux + mention dans la fenêtre (04/11/2026, demande user).
-  const _DUEL_WON = {};
+  // Lands gagnées en duel par MA team et encore détenues par elle : remplissage HACHURÉ de la couleur de la team, sans limite de durée
+  // (05/11/2026, remplace le vert vif de 48 h). Même motif que sur la carte des teams des Duels.
+  const _DUEL_WON = {}; let _duelWonColor = '#8895a7';
+  function _duelWonPattern(){
+    try{
+      const svg = map.getPanes().overlayPane.querySelector('svg'); if(!svg) return null;
+      const NS = 'http://www.w3.org/2000/svg', pid = 'tour-duel-won-pat';
+      let pat = svg.querySelector('#'+pid);
+      if(!pat){
+        let defs = svg.querySelector('defs'); if(!defs){ defs = document.createElementNS(NS,'defs'); svg.insertBefore(defs, svg.firstChild); }
+        pat = document.createElementNS(NS,'pattern'); pat.id = pid;
+        pat.setAttribute('width',8); pat.setAttribute('height',8); pat.setAttribute('patternUnits','userSpaceOnUse'); pat.setAttribute('patternTransform','rotate(45)');
+        const bg = document.createElementNS(NS,'rect'); bg.setAttribute('width',8); bg.setAttribute('height',8); bg.setAttribute('fill','#0b1020'); pat.appendChild(bg);
+        const ln = document.createElementNS(NS,'rect'); ln.setAttribute('width',4); ln.setAttribute('height',8); ln.setAttribute('class','duel-won-line'); pat.appendChild(ln);
+        defs.appendChild(pat);
+      }
+      pat.querySelector('.duel-won-line').setAttribute('fill', _duelWonColor);
+      return 'url(#'+pid+')';
+    }catch(e){ return null; }
+  }
   function _applyDuelWon(l){
-    const w = l && _DUEL_WON[l.idx];
-    if(!w || !l.layer || l.type==='etape') return;
-    l.layer.setStyle({fillColor:'#39ff14', fillOpacity:.95, color:'#d9ffb0', weight:4});
-    try{ if(l.layer._path) l.layer._path.classList.add('duel-won-hex'); }catch(e){}
-    if(l.owner!==ME) l.layer.bindPopup(popupHtml(l) + '<div style="margin-top:.35rem;font-weight:700;color:#39ff14">🏆 Gagnée en duel par ta team</div>');
+    if(!l || !_DUEL_WON[l.idx] || !l.layer || l.type==='etape') return;
+    const fillUrl = _duelWonPattern();
+    l.layer.setStyle({fillOpacity:1, color:_duelWonColor, weight:3});
+    try{ if(fillUrl && l.layer._path) l.layer._path.setAttribute('fill', fillUrl); }catch(e){}
+    if(l.owner!==ME) l.layer.bindPopup(popupHtml(l) + '<div style="margin-top:.35rem;font-weight:700">⚔️ Gagnée en duel par ta team</div>');
   }
   try{
     const {data:_won} = await supabaseClient.rpc('tour_duel_won_lands');
-    (Array.isArray(_won)?_won:[]).forEach(function(w){ if(LANDS[w.idx]){ _DUEL_WON[w.idx] = w; _applyDuelWon(LANDS[w.idx]); } });
+    if(_won && Array.isArray(_won.lands)){
+      if(_won.color) _duelWonColor = _won.color;
+      _won.lands.forEach(function(idx){ if(LANDS[idx]){ _DUEL_WON[idx] = true; _applyDuelWon(LANDS[idx]); } });
+    }
   }catch(e){ console.warn('[Tour] tour_duel_won_lands:', e); }
   // Remet à jour le style d'une case après restauration depuis localStorage —
   // même logique de couleur que la boucle de création juste au-dessus.
