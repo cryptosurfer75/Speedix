@@ -2454,6 +2454,7 @@ body::after{
 @keyframes tourDicePop{0%{transform:scale(1.5)}100%{transform:scale(1)}}
 </style>
 <link rel="stylesheet" href="duels/duels-app.css?v=24">
+<style>.tb-bonus{white-space:nowrap}@media(max-width:480px){.tb-bonus{display:block}.tb-sep{display:none}}</style>
 </head>
 <body>
 
@@ -24325,7 +24326,7 @@ async function renderTeams(){
         // Bonus team : affiché dès qu'il y a >6 RP (vert si actif, gris si 0%)
         // pour donner la visibilité du potentiel même quand les extras sont inactifs.
         var bonusLabel=nb>6
-          ?' · <span style="color:'+(t._bonus>0?'var(--green)':'var(--muted2)')+'">+ '+tabularPts(t._bonus||0)+' pts</span>'
+          ?'<span class="tb-sep"> · </span><span class="tb-bonus" style="color:'+(t._bonus>0?'var(--green)':'var(--muted2)')+'">+ '+tabularPts(t._bonus||0)+' pts</span>'
           :'';
         var hasMyTeam=!!window.__myTeamId;
         var requestBtn=(!isOpen&&t.private&&!t.parent_team_id&&!hasMyTeam&&currentUser)?'<span onclick="event.stopPropagation();requestJoinTeam(\''+t.id+'\',\''+encodeURIComponent(t.name)+'\')" title="Demander à rejoindre" style="font-size:.75rem;margin-left:.3rem;cursor:pointer;opacity:.7;transition:opacity .15s" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.7">📩</span>':'';
@@ -24564,7 +24565,7 @@ async function renderTeams(){
               +'<div>'
                 +'<div style="font-family:Bebas Neue,sans-serif;font-size:1.2rem;letter-spacing:2px;color:var(--text)">'+(_myTeamData.name||'—')+'</div>'
                 +'<div style="font-size:.68rem;color:var(--muted2)">📍 '+(_myTeamData.city||'—')+' · '+(_myTeamData._nb||0)+' RP / '+getTeamCapacity(_myTeamData)
-                  +(_myTeamData._bonus>0?' · <span style="color:var(--green)">+ '+_myTeamData._bonus.toLocaleString(SPEEDIX_LANG)+' pts</span>':'')
+                  +(_myTeamData._bonus>0?'<span class="tb-sep"> · </span><span class="tb-bonus" style="color:var(--green)">+ '+_myTeamData._bonus.toLocaleString(SPEEDIX_LANG)+' pts</span>':'')
                 +'</div>'
               +'</div>'
             +'</div>'
