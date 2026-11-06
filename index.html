@@ -4202,6 +4202,10 @@ select option{background:#040c1c}
       </div>
       <span onclick="cancelReplyTo()" style="cursor:pointer;color:var(--muted2);font-size:.85rem;padding:0 .2rem" title="Annuler">✕</span>
     </div>
+    <div id="leaguechat-as-wrap" style="display:none;align-items:center;gap:.5rem;padding:.5rem 1rem 0;border-top:1px solid rgba(144,96,240,.25);font-size:.72rem;color:var(--muted2)">
+      <span>🤖 Écrire en tant que</span>
+      <select id="leaguechat-as" style="flex:1;min-width:0;max-width:260px;padding:.35rem .5rem;border-radius:6px;border:1px solid rgba(144,96,240,.35);background:rgba(4,12,28,.5);color:var(--text);font-size:.78rem"><option value="">Moi (Val-DM)</option></select>
+    </div>
     <div style="display:flex;gap:.5rem;padding:.75rem 1rem;border-top:1px solid rgba(144,96,240,.25)">
       <input id="leaguechat-input" type="text" placeholder="Message…" maxlength="300" style="flex:1;min-width:0;padding:.7rem .8rem;border-radius:8px;border:1px solid rgba(144,96,240,.25);background:rgba(4,12,28,.5);color:var(--text);font-size:.95rem;outline:none" onkeydown="if(event.key==='Enter')sendLeagueMessage()">
       <button id="leaguechat-send-btn" onclick="sendLeagueMessage()" style="flex-shrink:0;padding:.55rem 1.1rem;border-radius:8px;border:1.5px solid rgba(45,219,128,.6);background:linear-gradient(135deg,rgba(45,219,128,.28),rgba(45,219,128,.08));color:var(--green);font-size:.85rem;font-weight:700;cursor:pointer">→</button>
@@ -15492,7 +15496,29 @@ function startLeagueChatPoll(key){
   },3000);
 }
 
+// Menu « écrire en tant que » (06/11/2026, demande user) : admin seulement ET web ordinateur seulement (jamais sur téléphone).
+// L'envoi passe par la fonction base admin_chat_as_bot (la RLS interdit d'écrire avec le player_id d'un autre).
+var _botPickerReady=false;
+async function _initLeagueBotPicker(){
+  if(_botPickerReady) return;
+  try{
+    if(!(typeof isAdmin==='function' && isAdmin())) return;
+    if(!window.matchMedia || !window.matchMedia('(min-width: 900px) and (pointer: fine)').matches) return;
+    var wrap=document.getElementById('leaguechat-as-wrap'), sel=document.getElementById('leaguechat-as');
+    if(!wrap||!sel) return;
+    var {data:bots}=await supabaseClient.from('players').select('id,username').eq('is_bot',true).order('username');
+    if(!bots) return;
+    sel.innerHTML='<option value="">Moi (Val-DM)</option>'+bots.map(function(b){return '<option value="'+b.id+'">'+escapeHtml(b.username)+'</option>';}).join('');
+    sel.addEventListener('change',function(){
+      var inp=document.getElementById('leaguechat-input');
+      if(inp) inp.placeholder=sel.value?('Message de '+sel.options[sel.selectedIndex].text+'…'):'Message…';
+    });
+    wrap.style.display='flex';
+    _botPickerReady=true;
+  }catch(e){ console.warn('[chat] menu bots',e); }
+}
 async function loadLeagueChat(key){
+  _initLeagueBotPicker();
   _unlockAdminChatLength();
   if(!currentUser){
     if(_leagueChatPollInterval){clearInterval(_leagueChatPollInterval);_leagueChatPollInterval=null;}
@@ -15807,6 +15833,12 @@ async function sendLeagueMessage(){
     return;
   }
   _lastLeagueSendAt=Date.now();
+  var _asSel=document.getElementById('leaguechat-as');
+  if(_asSel && _asSel.value && _botPickerReady){   // admin qui écrit au nom d'un bot
+    var {data:_asRes,error:_asErr}=await supabaseClient.rpc('admin_chat_as_bot',{p_bot_id:_asSel.value,p_content:content,p_reply_to:_replyingToId||null});
+    if(_asErr||!_asRes||!_asRes.ok){ showToast('⚠️ Message du bot non envoyé : '+((_asErr&&_asErr.message)||(_asRes&&_asRes.error)||'erreur')); return; }
+    input.value=''; cancelReplyTo(); loadLeagueChat(_leagueChatKey); return;
+  }
   var body={league:_leagueChatKey,player_id:currentUser.id,content:content};
   if(_replyingToId) body.reply_to_id=_replyingToId;
   await window.fetch(supabaseUrl+'/rest/v1/league_messages',{
@@ -17544,6 +17576,41 @@ async function ensureAdminPanelLoaded(){
   try{ await _initAdminPanelHeavy(); }
   catch(e){ _adminHeavyLoaded=false; console.warn('[admin] chargement du panel',e); }
 }
+// Transforme un <select> de joueurs en champ de recherche + liste filtrée. Le <select> reste dans la page (caché) et garde la valeur,
+// donc tout le code existant qui lit .value / .options continue de marcher.
+function adminSearchSelect(selId){
+  var sel=document.getElementById(selId);
+  if(!sel||sel.dataset.searchReady) return;
+  sel.dataset.searchReady='1';
+  var box=document.createElement('div'); box.style.cssText='position:relative;width:100%';
+  var inp=document.createElement('input'); inp.type='text'; inp.placeholder='🔎 Tape les premières lettres…'; inp.autocomplete='off'; inp.autocapitalize='off'; inp.spellcheck=false;
+  inp.style.cssText=sel.getAttribute('style')||'width:100%';
+  var list=document.createElement('div');
+  list.style.cssText='display:none;position:absolute;left:0;right:0;top:100%;margin-top:2px;z-index:50;max-height:45vh;overflow-y:auto;background:var(--bg3);border:1px solid var(--border2);border-radius:6px;box-shadow:0 6px 18px rgba(0,0,0,.45)';
+  sel.parentNode.insertBefore(box,sel); box.appendChild(inp); box.appendChild(list); sel.style.display='none';
+  function render(){
+    var q=inp.value.trim().toLowerCase(), out=[];
+    for(var i=0;i<sel.options.length;i++){
+      var o=sel.options[i]; if(!o.value) continue;
+      var t=o.text.toLowerCase();
+      if(!q || t.indexOf(q)>=0) out.push({o:o,r:t.indexOf(q)===0?0:1});
+    }
+    out.sort(function(a,b){return a.r-b.r;});
+    list.innerHTML='';
+    out.slice(0,40).forEach(function(x){
+      var d=document.createElement('div'); d.textContent=x.o.text; d.style.cssText='padding:.55rem .7rem;font-size:.85rem;cursor:pointer;border-bottom:1px solid var(--border2)';
+      d.addEventListener('mousedown',function(e){ e.preventDefault(); pick(x.o); });
+      d.addEventListener('touchstart',function(e){ e.preventDefault(); pick(x.o); },{passive:false});
+      list.appendChild(d);
+    });
+    if(!out.length){ var n=document.createElement('div'); n.textContent='Aucun joueur'; n.style.cssText='padding:.55rem .7rem;font-size:.8rem;color:var(--muted2)'; list.appendChild(n); }
+    list.style.display='block';
+  }
+  function pick(o){ sel.value=o.value; inp.value=o.text; list.style.display='none'; inp.blur(); sel.dispatchEvent(new Event('change')); }
+  inp.addEventListener('focus',function(){ if(!sel.value) inp.value=''; inp.select(); render(); });
+  inp.addEventListener('input',function(){ sel.value=''; render(); });
+  inp.addEventListener('blur',function(){ setTimeout(function(){ list.style.display='none'; if(!sel.value) inp.value=''; },150); });
+}
 async function _initAdminPanelHeavy(){
   adminSetupCollapsibleBlocks();
   adminLoadTicker();
@@ -17570,6 +17637,8 @@ async function _initAdminPanelHeavy(){
       s.innerHTML='<option value="">— Choisir —</option>'+_adminOptsHtml;
     }
   });
+  // Champ de recherche (tape les premières lettres) à la place de la longue liste à faire défiler — surtout utile sur téléphone (06/11/2026)
+  ['admin-player','admin-wallet-player','admin-premium-player'].forEach(adminSearchSelect);
   // Charger l'historique
   adminLoadHistory();
   adminLoadFlagged();
@@ -33593,8 +33662,11 @@ window.Tour.init = async function(){
     // tour_start_idx DE CE PROPRIÉTAIRE (cf owner.startIdx, _tourOwnerObj) --
     // même format que le popup "RP simulé"/ami existant plus bas (simulate150()).
     const _kmLine = l.owner ? `${(((l.idx - (l.owner.startIdx||0)) % TOTAL_CELLS + TOTAL_CELLS) % TOTAL_CELLS) + (l.owner.laps||0)*TOTAL_CELLS} km parcourus → case n°${l.idx}<br>` : '';
-    if(l.status==='rented') return `<b>En location</b><br>${_kmLine}Locataire : ${l.owner.name}<br>Prélèvement d'une redevance de : ${landRedevance(l)} RPC`;
-    if(l.status==='owned') return `<b>Land propriétaire</b><br>${_kmLine}Propriétaire : ${l.owner.name} (${'★'.repeat(l.stars)})<br>Prélèvement d'une redevance de : ${landRedevance(l)} RPC`;
+    // 06/11/2026 : le nom du RP (et sa distance parcourue) sur une case du tracé = réservé aux Premium (essai gratuit compris) — anti-triche :
+    // le tracé devant soi doit rester une surprise, pas un outil pour viser un RP précis. La fenêtre d'atterrissage (« Case occupée »), elle, garde le nom (duel).
+    const _lockTxt = `🔒 Réservé aux Premium`;
+    if(l.status==='rented') return `<b>En location</b><br>${ME.premium ? _kmLine : ''}Locataire : ${ME.premium ? l.owner.name : _lockTxt}<br>Prélèvement d'une redevance de : ${landRedevance(l)} RPC`;
+    if(l.status==='owned') return `<b>Land propriétaire</b><br>${ME.premium ? _kmLine : ''}Propriétaire : ${ME.premium ? `${l.owner.name} (${'★'.repeat(l.stars)})` : _lockTxt}<br>Prélèvement d'une redevance de : ${landRedevance(l)} RPC`;
     return '';
   }
   
