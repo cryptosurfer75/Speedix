@@ -33664,9 +33664,10 @@ window.Tour.init = async function(){
     const _kmLine = l.owner ? `${(((l.idx - (l.owner.startIdx||0)) % TOTAL_CELLS + TOTAL_CELLS) % TOTAL_CELLS) + (l.owner.laps||0)*TOTAL_CELLS} km parcourus → case n°${l.idx}<br>` : '';
     // 06/11/2026 : le nom du RP (et sa distance parcourue) sur une case du tracé = réservé aux Premium (essai gratuit compris) — anti-triche :
     // le tracé devant soi doit rester une surprise, pas un outil pour viser un RP précis. La fenêtre d'atterrissage (« Case occupée »), elle, garde le nom (duel).
-    const _lockTxt = `🔒 Réservé aux Premium`;
-    if(l.status==='rented') return `<b>En location</b><br>${ME.premium ? _kmLine : ''}Locataire : ${ME.premium ? l.owner.name : _lockTxt}<br>Prélèvement d'une redevance de : ${landRedevance(l)} RPC`;
-    if(l.status==='owned') return `<b>Land propriétaire</b><br>${ME.premium ? _kmLine : ''}Propriétaire : ${ME.premium ? `${l.owner.name} (${'★'.repeat(l.stars)})` : _lockTxt}<br>Prélèvement d'une redevance de : ${landRedevance(l)} RPC`;
+    const _lockTxt = `🔒 Réservé Premium`;
+    const _tm = (l.owner && _tourTeamNames[l.owner.id]) ? ` (${escapeHtml(String(_tourTeamNames[l.owner.id]))})` : '';
+    if(l.status==='rented') return `<b>En location</b><br>${ME.premium ? _kmLine : ''}Locataire : ${ME.premium ? l.owner.name + _tm : _lockTxt}<br>Prélèvement d'une redevance de : ${landRedevance(l)} RPC`;
+    if(l.status==='owned') return `<b>Land propriétaire</b><br>${ME.premium ? _kmLine : ''}Propriétaire : ${ME.premium ? `${l.owner.name}${_tm} (${'★'.repeat(l.stars)})` : _lockTxt}<br>Prélèvement d'une redevance de : ${landRedevance(l)} RPC`;
     return '';
   }
   
