@@ -4,7 +4,7 @@
  * Interrupteur : game_settings.duels_mode = 'off' | 'admin' | 'on'. Tant que ce n'est pas ouvert pour ce RP, le bouton DUEL est grisé. */
 (function () {
   'use strict';
-  var NOW_SKEW = 0, S = null, MAPDATA = null, TEAMS = {}, tab = 'duels', timer = null, inited = false, initing = false;
+  var NOW_SKEW = 0, S = null, MAPDATA = null, TEAMS = {}, tab = 'duels', timer = null, inited = false, initing = false, finOpen = false;
   var $ = function (id) { return document.getElementById(id); };
   var esc = function (x) { return typeof escapeHtml === 'function' ? escapeHtml(String(x == null ? '' : x)) : String(x == null ? '' : x).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
   var fmt = function (n) { return Math.round(n || 0).toLocaleString('fr-FR'); };
@@ -190,13 +190,13 @@
     var meId = me(), myT = S.team_id;
     var grp = function (d) { if ((d.members || []).some(function (m) { return m.player_id === meId; })) return 0; return d.attacker_team === myT || d.defender_team === myT ? 1 : 2; };
     var act = (S.duels || []).filter(function (d) { return d.status === 'active'; }).sort(function (x, y) { return (grp(x) - grp(y)) || (Date.parse(x.end_at) - Date.parse(y.end_at)); });
-    // Duels terminés depuis moins de 48 h (de toutes les teams) : affichés sous les duels en cours, puis ils disparaissent du mur
-    var fin = (S.duels || []).filter(function (d) { return d.status === 'done' && Date.now() - Date.parse(d.end_at) < 48 * 3600 * 1000; }).sort(function (x, y) { return Date.parse(y.end_at) - Date.parse(x.end_at); });
+    // Duels terminés de la période (toutes les teams, filtrés sur period_start : remise à zéro à la rotation ; l'onglet Historique garde TOUS les duels de ma team) : tuile repliable sous les duels en cours
+    var fin = (S.duels || []).filter(function (d) { return d.status === 'done' && (!S.period_start || Date.parse(d.resolve_at || d.end_at) >= Date.parse(S.period_start)); }).sort(function (x, y) { return Date.parse(y.end_at) - Date.parse(x.end_at); });
     return '<div class="dz-list">' + (act.length ? act.map(duelCard).join('') : '<div class="dz-card dz-muted">Aucun duel en cours. Pour en lancer un, tombe sur la Land d\'une autre team pendant ton Tour.</div>') +
-      (fin.length ? '<div class="dz-muted" style="margin:10px 2px 0">Terminés depuis moins de 48 h</div>' + fin.map(duelCard).join('') : '') + '</div>';
+      (fin.length ? '<div class="dz-fin' + (finOpen ? ' open' : '') + '"><button type="button" class="dz-fin-btn" data-fin="1"><span>✅ Duels terminés</span><b>' + fin.length + '</b></button>' + (finOpen ? fin.map(duelCard).join('') : '') + '</div>' : '') + '</div>';
   }
   function paneHist() {
-    var done = (S.duels || []).filter(function (d) { return d.status === 'done' && (d.attacker_team === S.team_id || d.defender_team === S.team_id); });   // historique = MA team seulement (le mur affiche les duels terminés des autres pendant 48 h)
+    var done = (S.duels || []).filter(function (d) { return d.status === 'done' && (d.attacker_team === S.team_id || d.defender_team === S.team_id); });   // historique = MA team seulement (la tuile « Duels terminés » du mur montre ceux de toutes les teams)
     if (!done.length) return '<div class="dz-list"><div class="dz-card dz-muted">Aucun duel terminé pour l\'instant.</div></div>';
     return '<div class="dz-list">' + done.map(function (d) {
       var r = d.result || {}, pen = r.penalty || {}, myT = S.team_id, att = d.attacker_team === myT, won = (r.winner === 'attackers') === att, lines = '';
@@ -236,6 +236,7 @@
     var rk = e.target.closest('[data-rank-team]');
     if (rk) { tab = 'map'; if (window.DuelsMap) DuelsMap.select(rk.dataset.rankTeam); render(); return; }   // clic sur une team du classement = on la montre sur la carte
     var b = e.target.closest('button'); if (!b) return; var r;
+    if (b.dataset.fin) { finOpen = !finOpen; $('p-duels').innerHTML = paneDuels(); return; }   // tuile « Duels terminés » : l'état ouvert/fermé survit aux rafraîchissements
     if (b.dataset.cancel) { var m = $('dz-modal'); if (m) m.remove(); return; }
     if (b.dataset.join) r = await supabaseClient.rpc('duel_join', { p_duel: +b.dataset.join });
     else if (b.dataset.leave) r = await supabaseClient.rpc('duel_leave', { p_duel: +b.dataset.leave });
