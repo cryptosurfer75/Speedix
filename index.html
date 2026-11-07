@@ -1052,6 +1052,7 @@ body::after{
   #league-mobile-selector{display:block !important}
   /* Recherche RP : bouton visible uniquement sur mobile ET si Premium (classe .lrs-on en JS) */
   #league-rp-search-btn.lrs-on{display:inline-flex !important}
+  #league-rp-search-btn.lrs-locked{opacity:.4;filter:grayscale(.75) !important}
   /* Boutons Chat/Recherche de la page League (2026-07-21) : icône seule sur
      mobile, même taille carrée exacte pour les 2 (Strava garde SON TEXTE
      COMPLET partout, exigé par leur API — jamais réduit en icône, cf. HTML). */
@@ -3770,7 +3771,7 @@ select option{background:#040c1c}
     <div id="league-zone-line" style="display:none;font-size:.85rem;color:var(--muted2);flex:1;min-width:70px"></div>
     <div id="league-action-btns" style="display:flex;flex-wrap:wrap;gap:.4rem;margin-left:auto">
       <button class="lg-icon-btn" onclick="openLeagueChat()" title="Chat commun à tous les RP" style="position:relative;z-index:0;display:inline-flex;align-items:center;justify-content:center;gap:.3rem;height:31px;padding:0 .7rem;border:none;background:transparent;color:var(--gold);font-weight:700;font-size:.65rem;letter-spacing:.5px;cursor:pointer;white-space:nowrap;box-sizing:border-box;filter:drop-shadow(0 0 5px rgba(245,200,66,.3))"><span style="position:absolute;inset:0;clip-path:polygon(6px 0,calc(100% - 6px) 0,100% 6px,100% calc(100% - 6px),calc(100% - 6px) 100%,6px 100%,0 calc(100% - 6px),0 6px);background:linear-gradient(135deg,rgba(255,225,150,.85) 0%,rgba(245,200,66,.55) 50%,rgba(190,140,10,.85) 100%);z-index:-2"></span><span style="position:absolute;inset:1.5px;clip-path:polygon(6px 0,calc(100% - 6px) 0,100% 6px,100% calc(100% - 6px),calc(100% - 6px) 100%,6px 100%,0 calc(100% - 6px),0 6px);background:linear-gradient(135deg,rgba(245,200,66,.16),rgba(245,200,66,.04)),#0c0f1a;z-index:-1"></span><span class="lg-actlbl">💬 CHAT</span><span class="lg-acticon" style="display:none;font-size:1.1rem">💬</span><span id="leaguechat-notif-badge" style="display:none;position:absolute;top:-4px;right:-4px;width:14px;height:14px;border-radius:50%;background:#ff4444;border:2px solid #020408"></span></button>
-      <!-- Bouton recherche RP (mobile uniquement, Premium) — même gabarit que le
+      <!-- Bouton recherche RP (mobile uniquement, grisé si Free) — même gabarit que le
            bouton Chat, visible via la classe .lrs-on posée par updateLeaguePickerLabel.
            Ouvre/ferme la barre de recherche juste en dessous plutôt que de l'afficher
            en permanence. -->
@@ -4915,7 +4916,7 @@ select option{background:#040c1c}
       </div>
       <div style="display:flex;justify-content:space-between;align-items:center;gap:.5rem">
         <div id="rpc-convert-preview" style="font-size:.75rem;color:var(--text)">Tu obtiendras <span style="color:var(--green)">0 NYX</span></div>
-        <button onclick="confirmConvertRpcToNyx()" style="width:50%;flex-shrink:0;padding:.4rem .6rem;border-radius:8px;border:1.5px solid rgba(45,219,128,.5);background:linear-gradient(175deg,rgba(45,219,128,.18),rgba(45,219,128,.06));color:var(--green);font-size:.75rem;font-weight:800;letter-spacing:.5px;cursor:pointer;box-shadow:0 2px 8px rgba(45,219,128,.2);transition:all .15s" onmouseover="this.style.background='linear-gradient(175deg,rgba(45,219,128,.28),rgba(45,219,128,.1))';this.style.boxShadow='0 3px 12px rgba(45,219,128,.3)'" onmouseout="this.style.background='linear-gradient(175deg,rgba(45,219,128,.18),rgba(45,219,128,.06))';this.style.boxShadow='0 2px 8px rgba(45,219,128,.2)'">Valider</button>
+        <button id="rpc-convert-btn" onclick="confirmConvertRpcToNyx()" style="width:50%;flex-shrink:0;padding:.4rem .6rem;border-radius:8px;border:1.5px solid rgba(45,219,128,.5);background:linear-gradient(175deg,rgba(45,219,128,.18),rgba(45,219,128,.06));color:var(--green);font-size:.75rem;font-weight:800;letter-spacing:.5px;cursor:pointer;box-shadow:0 2px 8px rgba(45,219,128,.2);transition:all .15s" onmouseover="this.style.background='linear-gradient(175deg,rgba(45,219,128,.28),rgba(45,219,128,.1))';this.style.boxShadow='0 3px 12px rgba(45,219,128,.3)'" onmouseout="this.style.background='linear-gradient(175deg,rgba(45,219,128,.18),rgba(45,219,128,.06))';this.style.boxShadow='0 2px 8px rgba(45,219,128,.2)'">Valider</button>
       </div>
     </div>
   </div>
@@ -12218,7 +12219,10 @@ function buildLeaguePicker(){
 function updateLeaguePickerLabel(){
   // Bouton recherche RP : réservé Premium (le CSS @media le limite au mobile).
   var _srchBtn=document.getElementById('league-rp-search-btn');
-  if(_srchBtn) _srchBtn.classList.toggle('lrs-on', typeof isPremium==='function' && isPremium());
+  if(_srchBtn){
+    _srchBtn.classList.add('lrs-on');
+    _srchBtn.classList.toggle('lrs-locked', !(typeof isPremium==='function' && isPremium()));
+  }
   const league=LEAGUES.find(l=>l.key===activeLeagueKey);
   if(!league)return;
   const lbl=document.getElementById('league-picker-label');
@@ -12330,6 +12334,10 @@ function selectLeague(key){
 // Ouvre/ferme la barre de recherche (repliée derrière le bouton 🔍 RECHERCHE RP
 // pour ne pas prendre de place tant qu'elle n'est pas utilisée).
 function toggleLeagueRpSearch(){
+  if(typeof isPremium==='function' && !isPremium()){
+    showToast('🔒 Passe en Premium pour rechercher un RP');
+    return;
+  }
   var wrap=document.getElementById('league-rp-search-wrap');
   if(!wrap) return;
   var opening=(wrap.style.display==='none'||!wrap.style.display);
@@ -15982,7 +15990,7 @@ async function renderSocialFeed(){
   // Toujours afficher la barre
   var premBar=document.getElementById('feed-premium-bar');
   if(premBar) premBar.style.display='block';
-  // Griser "Mes amis" + masquer recherche si Free — ne touche que l'emoji et
+  // Griser "Mes amis" + recherche (grisée, non utilisable) si Free — ne touche que l'emoji et
   // le label (spans dédiés, 2026-08-07), jamais le bouton entier : sinon ça
   // écrase la structure emoji-au-dessus/texte-en-dessous à chaque rendu.
   var friendsTab=document.getElementById('feed-tab-friends');
@@ -15993,12 +16001,24 @@ async function renderSocialFeed(){
     friendsTab.style.opacity='.4';
     if(friendsEmoji) friendsEmoji.textContent='🔒';
     if(friendsLabel) friendsLabel.textContent=t('social.tab.friends');
-    if(searchWrap) searchWrap.style.display='none';
+    if(searchWrap){
+      searchWrap.style.display='';
+      searchWrap.style.opacity='.4';
+      searchWrap.style.filter='grayscale(.75)';
+      searchWrap.onclick=function(){ showToast('🔒 Passe en Premium pour rechercher un RP'); };
+      var _fs=document.getElementById('feed-search'); if(_fs) _fs.readOnly=true;
+    }
   } else if(friendsTab){
     friendsTab.style.opacity='1';
     if(friendsEmoji) friendsEmoji.textContent='👥';
     if(friendsLabel) friendsLabel.textContent=t('social.tab.friends');
-    if(searchWrap) searchWrap.style.display='';
+    if(searchWrap){
+      searchWrap.style.display='';
+      searchWrap.style.opacity='';
+      searchWrap.style.filter='';
+      searchWrap.onclick=null;
+      var _fs2=document.getElementById('feed-search'); if(_fs2) _fs2.readOnly=false;
+    }
   }
   if(!currentUser){feed.innerHTML='<div style="text-align:center;padding:2rem;color:var(--muted2);font-size:.82rem">Connecte-toi pour voir le fil social</div>';return;}
   // Sur un re-render (le feed a déjà des cartes, ex: après un like), on ne
@@ -18637,6 +18657,8 @@ function isFullPremium(){
 }
 
 function updatePremiumUI(){
+  var _cvb=document.getElementById('rpc-convert-btn');
+  if(_cvb){ _cvb.style.opacity=isPremium()?'':'.4'; _cvb.style.filter=isPremium()?'':'grayscale(.75)'; }
   var el=document.getElementById('premium-status');
   var btn=document.getElementById('premium-btn');
   if(!el) return;
