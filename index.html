@@ -28162,7 +28162,7 @@ async function pickQuestDirect(badgeId){
   if(!b) return;
   // Badge réservé Premium (2026-10-17) : refus propre ici ; le serveur (trigger guard_premium_quest) refuse aussi.
   if(b.premium_only && !isPremium() && !(unlockedMapGlobal||{})[badgeId] && !(activeQuestsMapGlobal||{})[badgeId] && !(pausedQuestsMapGlobal||{})[badgeId]){
-    showPremiumGate('Ce badge est réservé aux membres Premium.');
+    _premiumBadgeGate();
     return;
   }
   var cap=_questPickerCap();
@@ -28413,6 +28413,15 @@ function _badgeRarityHtml(b,color){
 }
 // Badge réservé Premium (17/10/2026) : pour un RP non Premium, la tuile n'affiche JAMAIS la photo du badge
 // (silhouette générique ⭐) et un clic ouvre la fenêtre Premium habituelle, pas le détail du badge.
+// Badge Premium verrouillé : 1er clic → modal Premium, suivants → toast vert.
+function _premiumBadgeGate(){
+  if(!window.__premiumBadgeGateSeen){
+    window.__premiumBadgeGateSeen=true;
+    showPremiumGate('Ce badge est réservé aux membres Premium.');
+  } else {
+    showToast('🔒 Badge réservé aux membres Premium');
+  }
+}
 function _premLockedStub(b){
   return Object.assign({},b,{image:null,hexBadge:false,medal:false,ribbonColors:null,icon:'⭐'});
 }
@@ -28425,7 +28434,7 @@ async function showBadgeDetail(badgeId){
   if(!_badgesCatalog) return;
   var b=_badgesCatalog.find(function(x){return x.id===badgeId;});
   if(!b) return;
-  if(_badgePremLockedForMe(b)){ showPremiumGate('Ce badge est réservé aux membres Premium.'); return; }
+  if(_badgePremLockedForMe(b)){ _premiumBadgeGate(); return; }
   var color=b.color||'#f5c842';
   var rewards=[];
   if(b.reward_rpc) rewards.push('<span style="color:var(--gold)">+'+b.reward_rpc.toLocaleString(SPEEDIX_LANG)+' RPC</span>');
