@@ -33753,6 +33753,10 @@ window.Tour.init = async function(){
   // "aucune popup ouverte à cet instant précis" — sinon même race, juste décalée
   // d'un tick) avant de laisser partir/afficher quoi que ce soit côté Tour.
   let _tourAnimating = false;
+  // 07/11/2026 : entre la fin du déplacement (_tourAnimating=false) et l'ouverture réelle de la fenêtre de la case (setTimeout de onArrive,
+  // ~1,4 s), plus rien ne signalait « atterrissage en cours » : avec 2 courses le même jour, le 2e déplacement partait dans ce trou, et la
+  // fenêtre de la 1re case s'ouvrait en plein trajet puis était remplacée par celle de la 2e (1re arrivée jamais vue).
+  let _tourLandingPending = false;
   function _tourModalOpen(){
     const m = document.getElementById('tour-rent-modal');
     return !!(m && m.classList.contains('open'));
@@ -33766,10 +33770,10 @@ window.Tour.init = async function(){
     return new Promise(function(resolve){
       var t0=Date.now();
       (function poll(){
-        if(!_tourAnimating && !_tourModalOpen() && !_celebPipelineBusy()) resolve();
+        if(!_tourAnimating && !_tourLandingPending && !_tourModalOpen() && !_celebPipelineBusy()) resolve();
         // Garde-fou (01/11/2026, compte de test Jordan Smith : le serveur avait déjà avancé le pion mais l'animation n'a jamais démarré, ni
         // l'atterrissage) : si une fenêtre reste ouverte plus de 25 s, on lance quand même le déplacement plutôt que d'attendre indéfiniment.
-        else if(!_tourAnimating && Date.now()-t0>25000){ console.warn('[tour] attente des fenêtres > 25 s : départ forcé', {rent:_tourModalOpen(), celeb:_celebPipelineBusy()}); resolve(); }
+        else if(!_tourAnimating && !_tourLandingPending && Date.now()-t0>25000){ console.warn('[tour] attente des fenêtres > 25 s : départ forcé', {rent:_tourModalOpen(), celeb:_celebPipelineBusy()}); resolve(); }
         else setTimeout(poll, 250);
       })();
     });
@@ -34057,12 +34061,15 @@ window.Tour.init = async function(){
       const _d = Tour3D.landing(pos.lat, pos.lng, {big: land.type==='etape', name: land.name});
       if(_d > _arrDelay) _arrDelay = _d;
     }
+    _tourLandingPending = true;
     setTimeout(()=>{
-      if(land.type==='etape'){
-        if(!land.ownerEtape || land.ownerEtape===ME) openEtapeModal(land);
-        else openOccupiedEtapeModal(land); // étape possédée par un autre RP (2026-08-22)
-      }
-      else openLandModal(land);
+      try{
+        if(land.type==='etape'){
+          if(!land.ownerEtape || land.ownerEtape===ME) openEtapeModal(land);
+          else openOccupiedEtapeModal(land); // étape possédée par un autre RP (2026-08-22)
+        }
+        else openLandModal(land);
+      } finally { _tourLandingPending = false; }
     }, _arrDelay);
   }
   
