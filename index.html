@@ -12333,9 +12333,18 @@ function selectLeague(key){
 
 // Ouvre/ferme la barre de recherche (repliée derrière le bouton 🔍 RECHERCHE RP
 // pour ne pas prendre de place tant qu'elle n'est pas utilisée).
+// Recherche RP verrouillée (Free) : 1er clic → modal Premium, suivants → toast vert.
+function _premiumSearchGate(){
+  if(!window.__premiumSearchGateSeen){
+    window.__premiumSearchGateSeen=true;
+    showPremiumGate('La recherche de RP est disponible avec le statut Premium.');
+  } else {
+    showToast('🔒 Passe en Premium pour rechercher un RP');
+  }
+}
 function toggleLeagueRpSearch(){
   if(typeof isPremium==='function' && !isPremium()){
-    showToast('🔒 Passe en Premium pour rechercher un RP');
+    _premiumSearchGate();
     return;
   }
   var wrap=document.getElementById('league-rp-search-wrap');
@@ -16005,7 +16014,7 @@ async function renderSocialFeed(){
       searchWrap.style.display='';
       searchWrap.style.opacity='.4';
       searchWrap.style.filter='grayscale(.75)';
-      searchWrap.onclick=function(){ showToast('🔒 Passe en Premium pour rechercher un RP'); };
+      searchWrap.onclick=_premiumSearchGate;
       var _fs=document.getElementById('feed-search'); if(_fs) _fs.readOnly=true;
     }
   } else if(friendsTab){
