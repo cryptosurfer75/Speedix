@@ -27389,6 +27389,17 @@ async function swapCollabPriority(participantIdA,participantIdB){
   }
 }
 
+// Plafond d'acceptation atteint : un Free voit les propositions de tous ses voisins mais n'en accepte qu'un à la fois.
+// 1er clic = fenêtre Premium (comme ailleurs), ensuite le bandeau vert.
+function _collabCapNotice(msg){
+  if(typeof isPremium==='function' && !isPremium() && !window.__collabCapGateSeen){
+    window.__collabCapGateSeen=true;
+    showPremiumGate('Défis entre voisins : 1 à la fois en Free, 2 en Premium.');
+  } else {
+    showToast(msg);
+  }
+}
+
 async function acceptCollabChallenge(participantId){
   if(!currentUser) return;
   try {
@@ -27416,7 +27427,7 @@ async function acceptCollabChallenge(participantId){
     }).length;
     if(monthCount>=_maxMonth){
       var _premiumMonthHint=(_maxMonth===2)?' (Premium = 6 max)':'';
-      showToast('⚠️ Quota mensuel atteint : '+_maxMonth+' défis collaboratifs ce mois'+_premiumMonthHint+'. Reviens le mois prochain.');
+      _collabCapNotice('⚠️ Quota mensuel atteint : '+_maxMonth+' défis collaboratifs ce mois'+_premiumMonthHint+'. Reviens le mois prochain.');
       return;
     }
     // CAP SIMULTANÉ : un RP ne peut pas avoir plus de N défis collaboratifs
@@ -27445,7 +27456,7 @@ async function acceptCollabChallenge(participantId){
     }).length;
     if(activeCount>=_maxActive){
       var _premiumHint=(_maxActive===1)?' (Premium = 2 max)':'';
-      showToast('⚠️ Maximum '+_maxActive+' défis collaboratifs en cours'+_premiumHint+'. Termine-en un avant d\'en accepter un nouveau.');
+      _collabCapNotice('⚠️ Maximum '+_maxActive+' défis collaboratifs en cours'+_premiumHint+'. Termine-en un avant d\'en accepter un nouveau.');
       return;
     }
     var nowIso=new Date().toISOString();
