@@ -21,7 +21,8 @@
     mode_test_cibles_bots: 'Mode test : seules les Lands de bots peuvent être visées.', camp_complet: 'Ce camp est complet (3 RP maximum).', camp_complet_premium: 'Ce camp est complet (4 RP, le maximum avec un Premium).', pas_de_ta_team: 'Ce duel ne concerne pas ta team.',
     duel_termine: 'Le duel est terminé : les points sont figés.', duel_introuvable: 'Duel introuvable.', joker_pas_encore: 'Le Joker se joue à la fin du duel, dans l\'heure qui suit.',
     pas_capitaine: 'Seul le capitaine de la team peut jouer le Joker.', joker_deja_joue: 'Le Joker est déjà joué sur ce duel.', rien_a_eviter: 'Ton équipe n\'a pas de burn à éviter.',
-    cagnotte_insuffisante: 'La cagnotte de la team est insuffisante pour ce Joker.', ne_peut_pas_quitter: 'Tu ne peux pas quitter ce duel (ta Land est en jeu).', pas_en_duel: 'Tu n\'es pas dans ce duel.', interdit: 'Action réservée.'
+    cagnotte_insuffisante: 'La cagnotte de la team est insuffisante pour ce Joker.', ne_peut_pas_quitter: 'Tu ne peux pas quitter ce duel (ta Land est en jeu).', pas_en_duel: 'Tu n\'es pas dans ce duel.', interdit: 'Action réservée.',
+    prisonnier_pas_autorise: 'Seul le RP attaqué ou le capitaine peut jouer le Prisonnier.', prisonnier_deja_designe: 'Un prisonnier a déjà été désigné dans ce duel.', prisonnier_conditions: 'Les conditions du Prisonnier ne sont plus réunies.', prisonnier_cible: 'Ce RP ne peut pas être désigné.', prisonnier_ne_quitte_pas: 'Tu es prisonnier : tu ne peux plus quitter la partie.'
   };
   function toast(msg, bad) {
     var d = document.createElement('div'); d.className = 'dz-toast' + (bad ? ' bad' : ''); d.textContent = msg; document.body.appendChild(d); setTimeout(function () { d.remove(); }, 3800);
@@ -47,6 +48,7 @@
     await loadTeams(ids);
     renderTeamRow(); updateBadge();
     if ($('dz-app') && $('dz-app').classList.contains('on')) render();
+    showPrisonerNotice();
     return S;
   }
   async function init() {
@@ -154,7 +156,7 @@
     var tot = att + def; if (!tot) return '';
     return '<span class="dz-flame" style="left:' + Math.min(97, Math.max(3, 100 * att / tot)).toFixed(1) + '%" title="Burn">🔥</span>';
   }
-  function memberLine(m) { return '<div class="dz-mrow"><span' + (m.premium ? ' style="color:var(--gold)"' : '') + '>' + esc(m.username) + (m.premium ? '<span title="Premium" style="margin-left:.15rem;font-size:.7rem;line-height:1;display:inline-block">★</span>' : '') + (m.role === 'launcher' ? ' 🗡️' : m.role === 'holder' ? ' 🛡️' : '') + '</span><b>' + fmt(m.pts) + ' pts</b></div>'; }
+  function memberLine(m, prisonerId) { return '<div class="dz-mrow"><span' + (m.premium ? ' style="color:var(--gold)"' : '') + '>' + esc(m.username) + (m.premium ? '<span title="Premium" style="margin-left:.15rem;font-size:.7rem;line-height:1;display:inline-block">★</span>' : '') + (m.role === 'launcher' ? ' 🗡️' : m.role === 'holder' ? ' 🛡️' : '') + (prisonerId && m.player_id === prisonerId ? ' <span title="Prisonnier">🔒</span>' : '') + '</span><b>' + fmt(m.pts) + ' pts</b></div>'; }
 
   function duelCard(d) {
     var ph = phaseOf(d), L = d.loss || {}, R0 = ph === 'done' ? (d.result || {}) : {}, att = L.att != null ? L.att : R0.att != null ? R0.att : sidePts(d, 'att'), def = L.def != null ? L.def : R0.def != null ? R0.def : sidePts(d, 'def'), tot = Math.max(1, att + def);
@@ -168,7 +170,7 @@
       '<div class="dz-vs" style="margin-top:8px">' + logo(d.attacker_team) + '<div class="mid"><span class="l" style="color:' + esc(team(d.attacker_team).color) + '">' + esc(team(d.attacker_team).name) + '</span><span class="x">⚔️</span><span class="r" style="color:' + esc(team(d.defender_team).color) + '">' + esc(team(d.defender_team).name) + '</span></div>' + logo(d.defender_team) + '</div>' +
       '<div class="dz-barwrap">' + flame(att, def, ph) + '<div class="dz-bar"><i style="width:' + (att + def ? 100 * att / tot : 50) + '%;background:' + (att === def ? (att ? '#ff4d9d' : '#555a6b') : att > def ? '#2fe08a' : '#ff4d9d') + '"></i><i style="width:' + (att + def ? 100 * def / tot : 50) + '%;background:' + (att === def ? (att ? '#2fe08a' : '#555a6b') : def > att ? '#2fe08a' : '#ff4d9d') + '"></i></div></div>' +
       '<div class="dz-sc"><span>' + fmt(att) + '</span><span class="dz-muted" style="align-self:center">' + cd + '</span><span>' + fmt(def) + '</span></div>' +
-      '<div class="dz-members"><div>' + attMembers.map(memberLine).join('') + '</div><div>' + defMembers.map(memberLine).join('') + '</div></div>';
+      '<div class="dz-members"><div>' + attMembers.map(function (m) { return memberLine(m, d.prisoner_id); }).join('') + '</div><div>' + defMembers.map(function (m) { return memberLine(m, d.prisoner_id); }).join('') + '</div></div>';
     if (ph !== 'done') {
       var cells = '', burnCol = 0, delta = L.delta || 0;
       if (delta > 0) {
@@ -181,6 +183,7 @@
       }
       var btn = canJoin ? '<button class="dz-btn green" data-join="' + d.id + '">Rejoindre le duel</button>' : canLeave ? '<button class="dz-btn green" data-leave="' + d.id + '">Quitter</button>' : '';
       if (btn) cells += '<div class="dz-joincell" style="grid-column:' + (burnCol === 1 ? 2 : 1) + ';grid-row:1">' + btn + '</div>';
+      if (ph === 'fight' && d.prisoner_avail) cells += '<div class="dz-joincell" style="grid-column:2;grid-row:2"><button class="dz-btn dz-violet dz-prison" data-prison="' + d.id + '">🔒 Prisonnier</button></div>';   // MIROIR de _duel_prisoner_ok (base) : l\'appli n\'affiche que le verdict du serveur
       if (cells) h += '<div class="dz-losses">' + cells + '</div>';
     }
     return h + '</div>';
@@ -221,6 +224,7 @@
       ['🏆 Résultat', ['Attaque gagnante : la Land attaquée va au RP qui a lancé le duel.', 'Défense gagnante : le RP gagne la Land du RP adverse. S\'il a atteint sa limite de locations (8 en Free) elle va à un RP Premium de sa team.<br>Si personne ne peut la recevoir, elle est remise en jeu.', 'Égalité : le défenseur gagne.']],
       ['💰 Cagnotte de la team', ['La cagnotte est alimentée par 20 % des RPC des RP qui composent la team.', 'Elle paie les défaites et le Joker.']],
       ['💸 Défaite', ['La Land mise en jeu change de team.', '20 RPC par point d\'écart sont brûlés dans la cagnotte de la team perdante.', 'Le burn ne peut pas dépasser 15 % de la cagnotte totale.']],
+      ['🔒 Le Prisonnier', ['Après 24 h, si la défense compte 30 % d\'écart de points avec l\'attaque et 100 pts / RP, elle peut faire prisonnier un RP adverse.', 'Les pts du prisonnier désigné sont alors bloqués sur les 24 dernières heures.', 'Un seul prisonnier par duel.']],
       ['🏳️ Joker', ['Pour éviter le burn, le capitaine peut poser un Joker.', 'Prix progressif du Joker : 1 000, 1 500 puis 2 000 RPC × nombre de RP.', 'En compensation, les RP du duel gagnant reçoivent des NYX offerts par le jeu en proportion de l\'écart de points.', '300 pts minimum / RP dans le duel pour les gagner.']]
     ];
     return '<div class="dz-list dz-rules-page">' + R.map(function (r) { return '<div class="rules-section"><h3>' + r[0] + '</h3><ul class="dz-rules">' + r[1].map(function (x) { return '<li>' + x + '</li>'; }).join('') + '</ul></div>'; }).join('') + '</div>';
@@ -232,14 +236,50 @@
     m.innerHTML = '<div class="dz-modal-box"><div style="font-size:15px;line-height:1.5">Joue ton Joker (<b class="dz-yel">' + fmt(S.joker_price) + ' RPC</b>) pour éviter le burn de ta cagnotte (<b class="dz-yel">− ' + fmt(burn) + ' RPC</b>).</div><div class="dz-row" style="margin-top:16px;gap:10px"><button class="dz-btn" style="flex:1;text-transform:uppercase" data-cancel="1">Annuler</button><button class="dz-btn green" style="flex:1" data-confirmjoker="' + id + '">Jouer</button></div></div>';
     $('dz-app').appendChild(m);
   }
+  /* ---------- Le Prisonnier ---------- */
+  var PRISON_SVG = '<svg width="150" height="70" viewBox="0 0 150 70" style="display:block;margin:8px auto 12px"><defs><linearGradient id="dzpg" x1="0" x2="1"><stop offset="0" stop-color="#5b6078"/><stop offset=".5" stop-color="#c9cde0"/><stop offset="1" stop-color="#4a4f66"/></linearGradient><linearGradient id="dzph" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#c9cde0"/><stop offset="1" stop-color="#4a4f66"/></linearGradient></defs><rect x="1" y="1" width="148" height="68" rx="14" fill="#07090f" stroke="#8a90a8" stroke-width="3"/>' + [0, 1, 2, 3, 4, 5].map(function (i) { return '<rect x="' + (18 + i * 20) + '" y="8" width="7" height="54" rx="3" fill="url(#dzpg)"/>'; }).join('') + '<rect x="8" y="20" width="134" height="6" rx="3" fill="url(#dzph)"/><rect x="8" y="44" width="134" height="6" rx="3" fill="url(#dzph)"/></svg>';
+  var prisonSel = null;
+  function askPrisoner(id) {
+    var old = $('dz-modal'); if (old) old.remove();
+    var m = document.createElement('div'); m.id = 'dz-modal';
+    m.innerHTML = '<div class="dz-modal-box dz-duelc dz-prisonbox"><div class="dz-duelc-t">LE PRISONNIER</div>' + PRISON_SVG + '<div class="dz-duelc-msg" style="text-align:left">Ta team est attaquée et répond aux conditions suivantes :<div style="margin:6px 0 0 4px">▻ <b>+30 % d\'écart de points après 24 h</b><br>▻ <b>100 pts réalisés / RP</b></div><br>Tu peux faire prisonnier un RP adverse et bloquer ses points pour les 24 dernières heures !<br><br>Pour activer cette défense, ta team doit payer <b class="dz-yel">' + fmt(S.prisoner_price) + ' RPC</b> et choisir ensuite son prisonnier.</div><div class="dz-row" style="margin-top:16px;gap:10px"><button class="dz-btn" style="flex:1;text-transform:uppercase" data-cancel="1">Annuler</button><button class="dz-btn green" style="flex:1" data-prison-pay="' + id + '">Payer</button></div></div>';
+    $('dz-app').appendChild(m);
+  }
+  function pickPrisoner(id, pid) {
+    var d = (S.duels || []).filter(function (x) { return x.id === +id; })[0]; if (!d) return;
+    prisonSel = { duel: +id, pid: pid || null };
+    var rows = (d.members || []).filter(function (x) { return x.side === 'att'; }).map(function (x) {
+      return '<button class="dz-prison-row' + (x.player_id === pid ? ' on' : '') + '" data-prison-pick="' + x.player_id + '"><span>' + (x.player_id === pid ? '◉' : '○') + ' &nbsp;' + esc(x.username) + '</span><b>' + fmt(x.pts) + ' pts</b></button>';
+    }).join('');
+    var m = $('dz-modal') || document.createElement('div'); m.id = 'dz-modal';
+    m.innerHTML = '<div class="dz-modal-box dz-duelc dz-prisonbox"><div class="dz-duelc-t">LE PRISONNIER</div><div class="dz-duelc-msg" style="margin-bottom:12px">Choisis le RP que tu souhaites bloquer.</div>' + rows + '<div class="dz-row" style="margin-top:14px"><button class="dz-btn green" style="flex:1"' + (pid ? '' : ' disabled') + ' data-prison-go="' + id + '">Valider</button></div></div>';
+    if (!m.parentNode) $('dz-app').appendChild(m);
+  }
+  // Écran du prisonnier : montré une seule fois (par appareil) dès que l'appli apprend qu'il est bloqué
+  function showPrisonerNotice() {
+    try {
+      var meId = me(); if (!meId || !S || !S.duels) return;
+      var d = S.duels.filter(function (x) { return x.status === 'active' && x.prisoner_id === meId; })[0]; if (!d) return;
+      var key = 'dz-prisoner-seen-' + d.id; if (localStorage.getItem(key) || $('dz-prison-modal')) return;
+      localStorage.setItem(key, '1');
+      var m = document.createElement('div'); m.id = 'dz-prison-modal';
+      m.innerHTML = '<div class="dz-modal-box dz-duelc dz-prisonbox" style="position:relative"><button class="dz-closex" id="dz-prison-x" title="Fermer" style="position:absolute;top:8px;right:8px;width:32px;height:32px;transform:none"></button><div class="dz-duelc-t">TU ES PRISONNIER</div>' + PRISON_SVG + '<div class="dz-duelc-msg" style="text-align:left">Tes points sont bloqués pour les 24 dernières heures du duel.<br><br>Tu ne peux plus quitter la partie.</div></div>';
+      document.body.appendChild(m);
+      m.onclick = function (e) { if (e.target === m || e.target.id === 'dz-prison-x') m.remove(); };
+    } catch (e) { /* stockage indisponible : on n'affiche rien plutôt que de boucler */ }
+  }
   async function onAction(e) {
     var rk = e.target.closest('[data-rank-team]');
     if (rk) { tab = 'map'; if (window.DuelsMap) DuelsMap.select(rk.dataset.rankTeam); render(); return; }   // clic sur une team du classement = on la montre sur la carte
     var b = e.target.closest('button'); if (!b) return; var r;
     if (b.dataset.fin) { finOpen = !finOpen; $('p-duels').innerHTML = paneDuels(); return; }   // tuile « Duels terminés » : l'état ouvert/fermé survit aux rafraîchissements
     if (b.dataset.cancel) { var m = $('dz-modal'); if (m) m.remove(); return; }
+    if (b.dataset.prison) { askPrisoner(b.dataset.prison); return; }
+    if (b.dataset.prisonPay) { pickPrisoner(b.dataset.prisonPay, null); return; }
+    if (b.dataset.prisonPick) { pickPrisoner(prisonSel && prisonSel.duel, b.dataset.prisonPick); return; }
     if (b.dataset.join) r = await supabaseClient.rpc('duel_join', { p_duel: +b.dataset.join });
     else if (b.dataset.leave) r = await supabaseClient.rpc('duel_leave', { p_duel: +b.dataset.leave });
+    else if (b.dataset.prisonGo) { if (!prisonSel || !prisonSel.pid) return; var m3 = $('dz-modal'); if (m3) m3.remove(); r = await supabaseClient.rpc('duel_play_prisoner', { p_duel: +b.dataset.prisonGo, p_target: prisonSel.pid }); prisonSel = null; }
     else if (b.dataset.joker) { askJoker(b.dataset.joker); return; }
     else if (b.dataset.confirmjoker) { var m2 = $('dz-modal'); if (m2) m2.remove(); r = await supabaseClient.rpc('duel_play_joker', { p_duel: +b.dataset.confirmjoker }); }
     else return;
