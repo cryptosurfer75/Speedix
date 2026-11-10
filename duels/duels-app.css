@@ -154,11 +154,11 @@
 @keyframes dzFlame{from{transform:translate(-50%,-50%) scale(.92) rotate(-4deg)}to{transform:translate(-50%,-50%) scale(1.1) rotate(4deg)}}
 
 /* Tuile repliable « Duels terminés » sous les duels en cours (07/11/2026) */
-.dz-fin{margin-top:18px;padding-top:14px;border-top:1px dashed rgba(228,84,255,.35)}
+.dz-fin{margin-top:18px;padding-top:14px;padding-bottom:60vh;border-top:1px dashed rgba(228,84,255,.35)}
 .dz-fin-btn{width:100%;cursor:pointer;display:flex;align-items:center;gap:8px;padding:.7rem .9rem;border:1.5px solid rgba(228,84,255,.45);border-radius:10px;background:#0c0f1a;color:#fff;font-weight:700;font-size:.8rem;letter-spacing:.5px;font-family:inherit;text-align:left}
-.dz-fin-btn::after{content:'▾';color:#e454ff;transition:transform .2s}
-.dz-fin.open .dz-fin-btn::after{transform:rotate(180deg)}
-.dz-fin-btn b{margin-left:auto;margin-right:6px;color:#e454ff}
+.dz-fin-btn::before{content:'▾';color:#e454ff;transition:transform .2s}   /* flèche À GAUCHE : à droite elle tombait sur le geste/bouton retour Android */
+.dz-fin.open .dz-fin-btn::before{transform:rotate(180deg)}
+.dz-fin-btn b{margin-left:auto;margin-right:14px;color:#e454ff}
 .dz-fin.open .dz-fin-btn{margin-bottom:10px}
 .dz-fin>.dz-card{margin-bottom:10px}
 
