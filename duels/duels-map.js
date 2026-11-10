@@ -117,12 +117,31 @@
       }
       OFF[id] = chosen; placed.push(id);
     });
+    // Cases GAGNÉES en duel (hachurées) : calculées ici une seule fois (source unique), pour que la case qui clignote ne soit jamais l'une d'elles.
+    // Règle : à l'EXTÉRIEUR du territoire (il a grandi), côté centre de la carte générale pour être vues dès l'ouverture.
+    var pkey = function (q) { return q[0].toFixed(1) + ',' + q[1].toFixed(1); }, WONK = {};
+    (function () {
+      var all = []; Object.keys(byTeam).forEach(function (id) { shown(id).forEach(function (q) { all.push(q); }); });
+      if (!all.length) return;
+      var gcx = all.reduce(function (a, q) { return a + q[0]; }, 0) / all.length, gcy = all.reduce(function (a, q) { return a + q[1]; }, 0) / all.length;
+      Object.keys(byTeam).forEach(function (id) {
+        var pts = shown(id), wk = Math.min(pts.length, st.wonN[id] || 0);
+        if (!(wk > 0)) return;
+        var cx = pts.reduce(function (a, q) { return a + q[0]; }, 0) / pts.length, cy = pts.reduce(function (a, q) { return a + q[1]; }, 0) / pts.length;
+        var srt = pts.map(function (q, j) { return [Math.hypot(q[0] - cx, q[1] - cy), j]; }).sort(function (a, b) { return a[0] - b[0]; });
+        var isEdge = function (rk) { var n = 0, q0 = pts[srt[rk][1]]; for (var z = 0; z < pts.length; z++) if (z !== srt[rk][1] && Math.hypot(pts[z][0] - q0[0], pts[z][1] - q0[1]) < D * 1.1) n++; return n < 6; };   // vraie case de bordure : au moins un voisin vide
+        var outer = srt.map(function (o, rk) { return rk; }).filter(function (rk) { return isEdge(rk); }).sort(function (u, v) { return Math.hypot(pts[srt[u][1]][0] - gcx, pts[srt[u][1]][1] - gcy) - Math.hypot(pts[srt[v][1]][0] - gcx, pts[srt[v][1]][1] - gcy); });
+        WONK[id] = {}; outer.slice(0, wk).forEach(function (rk) { WONK[id][pkey(pts[srt[rk][1]])] = 1; });
+      });
+    })();
+    var isWon = function (id, q) { return !!(WONK[id] && WONK[id][pkey(q)]); };
     var USED = {};
     // cases de contact : on évite celles cachées sous le blason de la team (au centre) ; si la team est trop petite, on prend toutes ses cases
     var freeOf = function (id) {
       var pts = shown(id), cx = pts.reduce(function (a, p) { return a + p[0]; }, 0) / pts.length, cy = pts.reduce(function (a, p) { return a + p[1]; }, 0) / pts.length, sz = Math.max(34, Math.min(110, 16 * Math.sqrt(pts.length) * 1.1));
       var f = pts.filter(function (p) { return Math.hypot(p[0] - cx, p[1] - cy) >= sz / 2 + S * 0.5; });
-      return f.length ? f : pts;
+      var nh = (f.length ? f : pts).filter(function (p) { return !isWon(id, p); });   // jamais une Land hachurée (gagnée) si une autre existe : la case qui clignote doit rester lisible
+      return nh.length ? nh : (f.length ? f : pts);
     };
     duelList.forEach(function (d) {
       var A = d.attackerTeam, B = d.defenderTeam, pa = freeOf(A), pm = freeOf(B), best = null;
@@ -176,19 +195,14 @@
           BORD.forEach(function (bd) {
             if (bd.duel !== md.id) return;
             var mineIsA = bd.A === myT, other = mineIsA ? bd.m : bd.a, best = null;
-            locPicked.forEach(function (j) { var dd = Math.hypot(pts[j][0] - other[0], pts[j][1] - other[1]); if (!best || dd < best.d) best = { d: dd, p: pts[j] }; });
+            var cand = locPicked.filter(function (j) { return !isWon(id, pts[j]); }); if (!cand.length) cand = locPicked;   // de préférence une case non hachurée
+            cand.forEach(function (j) { var dd = Math.hypot(pts[j][0] - other[0], pts[j][1] - other[1]); if (!best || dd < best.d) best = { d: dd, p: pts[j] }; });
             if (best) { if (mineIsA) bd.a = best.p; else bd.m = best.p; }
           });
         }
       }
-      var mineCells = [], wonSet = {}, wonK = Math.min(srt.length, st.wonN[id] || 0);
-      // cases gagnées : à l'EXTÉRIEUR du territoire (il a grandi), côté centre de la carte générale pour être vues dès l'ouverture
-      if (wonK > 0) {
-        var gcx = occ.reduce(function (a, q) { return a + q[0]; }, 0) / occ.length, gcy = occ.reduce(function (a, q) { return a + q[1]; }, 0) / occ.length, dmax = srt[srt.length - 1][0];
-        var isEdge = function (rk) { var n = 0, q0 = pts[srt[rk][1]]; for (var z = 0; z < pts.length; z++) if (z !== srt[rk][1] && Math.hypot(pts[z][0] - q0[0], pts[z][1] - q0[1]) < D * 1.1) n++; return n < 6; };   // vraie case de bordure : au moins un voisin vide
-        var outer = srt.map(function (o, rk) { return rk; }).filter(function (rk) { return isEdge(rk); }).sort(function (u, v) { return Math.hypot(pts[srt[u][1]][0] - gcx, pts[srt[u][1]][1] - gcy) - Math.hypot(pts[srt[v][1]][0] - gcx, pts[srt[v][1]][1] - gcy); });
-        outer.slice(0, wonK).forEach(function (rk) { wonSet[rk] = 1; });
-      }
+      var mineCells = [], wonSet = {};
+      srt.forEach(function (o, rk) { if (isWon(id, pts[o[1]])) wonSet[rk] = 1; });   // cases gagnées : voir WONK (calculé avant le choix des cases qui clignotent)
       srt.forEach(function (o, rank) {
         var p = pts[o[1]], own = rank < cc.own, wonCell = !!wonSet[rank];
         mnx = Math.min(mnx, p[0]); mxx = Math.max(mxx, p[0]); mny = Math.min(mny, p[1]); mxy = Math.max(mxy, p[1]);

@@ -3290,6 +3290,11 @@ select option{background:#040c1c}
              l'avatar. Blanc/gris (cohérent badge C classement + FAQ), pas bleu
              ni gold. Clic = vraie fenêtre modale (#calib-info-modal), plus de
              toast (illisible, signalé par l'user). -->
+        <!-- Badge Infirmerie 🏥 (2026-11-10) : visible pour TOUS, y compris le RP lui-même (avant, seul son entrée dans le classement des autres l'affichait). Coin bas-gauche du pseudo. -->
+        <div id="pc-inf-badge" title="En infirmerie" style="display:none;position:absolute;z-index:4;left:-16px;bottom:-14px;width:22px;height:22px;cursor:pointer">
+          <div style="position:absolute;inset:0;clip-path:polygon(6px 0,calc(100% - 6px) 0,100% 6px,100% calc(100% - 6px),calc(100% - 6px) 100%,6px 100%,0 calc(100% - 6px),0 6px);background:rgba(255,100,100,.75)"></div>
+          <div style="position:absolute;inset:1.5px;clip-path:polygon(5px 0,calc(100% - 5px) 0,100% 5px,100% calc(100% - 5px),calc(100% - 5px) 100%,5px 100%,0 calc(100% - 5px),0 5px);background:#0c0f1a;display:flex;align-items:center;justify-content:center;font-size:.7rem;line-height:1">🏥</div>
+        </div>
         <div id="pc-calib-badge" onclick="event.stopPropagation();showCalibInfoModal()" title="Période de calibrage" style="display:none;position:absolute;z-index:4;right:-16px;bottom:-14px;width:22px;height:22px;cursor:pointer">
           <div style="position:absolute;inset:0;clip-path:polygon(6px 0,calc(100% - 6px) 0,100% 6px,100% calc(100% - 6px),calc(100% - 6px) 100%,6px 100%,0 calc(100% - 6px),0 6px);background:rgba(255,255,255,.55)"></div>
           <div style="position:absolute;inset:1.5px;clip-path:polygon(5px 0,calc(100% - 5px) 0,100% 5px,100% calc(100% - 5px),calc(100% - 5px) 100%,5px 100%,0 calc(100% - 5px),0 5px);background:#0c0f1a;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:.68rem;font-weight:700;color:#ffffff">C</div>
@@ -11318,6 +11323,13 @@ function renderDashboard(){
       var _pcInStarter=((p.leagueKey||p.league||'').toString().toLowerCase()==='starter');
       var _pcIsCalib=(p.competitive===false);
       _pcCalibEl.style.display=(!_pcInStarter&&_pcIsCalib)?'block':'none';
+    }
+    // Badge Infirmerie 🏥 : MA fiche = état local (window.__infirmerie, mis à jour dès l'activation) ; fiche d'un autre RP = sa colonne infirmerie_until.
+    var _pcInfEl=document.getElementById('pc-inf-badge');
+    if(_pcInfEl){
+      var _pcInInf=isOwn?(typeof isInInfirmerie==='function'&&isInInfirmerie()):!!(p.infirmerie_until&&new Date(p.infirmerie_until)>new Date());
+      _pcInfEl.style.display=_pcInInf?'block':'none';
+      _pcInfEl.onclick=function(e){ e.stopPropagation(); if(isOwn&&typeof openInfirmerieModal==='function') openInfirmerieModal(); else showToast('🏥 '+(p.name||'Ce RP')+' est en infirmerie'); };
     }
     // Catégorie d'âge FFA (2026-08-05) — cf AGE_CATEGORIES/computeAgeCategory.
     // Petite tuile biseautée grise entre Grade et Ligue, juste le raccourci
@@ -21077,6 +21089,20 @@ function openInfirmerieModal(){
   openModal('land-modal');
 }
 
+// Après activation/reprise : MA ligne du classement (liste PLAYERS), MA fiche et le tableau de bord doivent refléter l'état tout de suite
+// (avant 2026-11-10 seul window.__infirmerie était mis à jour : le RP ne voyait donc pas son 🏥 dans le classement avant un rechargement, alors que les autres le voyaient).
+function _syncMyInfirmerieEverywhere(until){
+  try{
+    if(currentUser && Array.isArray(PLAYERS)){
+      var me=PLAYERS.find(function(p){return p._uuid===currentUser.id;});
+      if(me) me.infirmerie_until=until;
+    }
+    if(window.__myPlayer) window.__myPlayer.infirmerie_until=until;
+    if(typeof renderDashboard==='function') renderDashboard();
+    if(typeof renderLeaguePanel==='function'){ try{ renderLeaguePanel(); }catch(e){} }
+  }catch(e){ console.warn('[infirmerie sync]',e); }
+}
+
 // Active l'infirmerie (v2, 2026-09-19) : pas de durée à choisir, sortie
 // volontaire via deactivateInfirmerie() quand le RP se sent prêt.
 async function activateInfirmerie(){
@@ -21107,7 +21133,7 @@ async function activateInfirmerie(){
   window.__infirmerie.until=new Date(Date.now()+10*365*24*3600*1000).toISOString();
   window.__infirmerie.startedAt=nowIso;
   showToast('🏥 Infirmerie activée');
-  if(typeof renderDashboard==='function') renderDashboard();
+  _syncMyInfirmerieEverywhere(window.__infirmerie.until);
   return true;
 }
 
@@ -21124,7 +21150,7 @@ async function deactivateInfirmerie(){
   window.__infirmerie.startedAt=null;
   window.__infirmerie.history.push({started_at:null,duration_days:_res.days,ended_at:new Date().toISOString()});
   showToast('✅ De retour de l\'infirmerie ('+_res.days+' jour'+(_res.days>1?'s':'')+') — bonne reprise !');
-  if(typeof renderDashboard==='function') renderDashboard();
+  _syncMyInfirmerieEverywhere(null);
   return true;
 }
 
@@ -36579,7 +36605,7 @@ window.Tour.init = async function(){
 })();
 
 </script>
-<script src="duels/duels-map.js?v=17"></script>
+<script src="duels/duels-map.js?v=18"></script>
 <script src="duels/duels-app.js?v=37"></script>
 </body>
 </html>
