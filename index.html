@@ -25351,7 +25351,9 @@ var _CITY_CREST_OVERRIDES=[
   // ribbonBands (2026-10-18) : ruban en bandes verticales (ici couleurs de la Jamaïque : vert | noir | or) ; ribbonColors reste la paire c1/c2 du skin gagnant (doré → vert foncé).
   {match:/KINGSTON/i, image:'ai-icons/challenge-crests/kingston-v1.webp', medal:true, ribbonColors:['#ffd100','#0b6b2b'], ribbonBands:['#0e9a3e','#111111','#ffd100'], ribbonFlat:true, ribbonHalf:20, yearDy:7},
   // Corrida du Gévaudan / Marvejols (13/12/2026, 6 km) : Père Noël + clocher, ruban de Noël 4 bandes rouge/vert alternées (choix user 23/10). ribbonColors = skin gagnant c1/c2 (rouge → vert).
-  {match:/MARVEJOLS|G[EÉ]VAUDAN/i, image:'ai-icons/challenge-crests/marvejols-v1.webp', medal:true, ribbonColors:['#e8353a','#1b7a3a'], ribbonBands:['#c1121f','#1b7a3a','#c1121f','#1b7a3a'], ribbonFlat:true, ribbonHalf:20, medalImgH:94, yearDy:7, frameBands:['#c1121f','#1b7a3a','#c1121f','#1b7a3a']}
+  {match:/MARVEJOLS|G[EÉ]VAUDAN/i, image:'ai-icons/challenge-crests/marvejols-v1.webp', medal:true, ribbonColors:['#e8353a','#1b7a3a'], ribbonBands:['#c1121f','#1b7a3a','#c1121f','#1b7a3a'], ribbonFlat:true, ribbonHalf:20, medalImgH:94, yearDy:7, frameBands:['#c1121f','#1b7a3a','#c1121f','#1b7a3a']},
+  // HOUILLES (Corrida, 27/12/2026) : faucon + clocher, anneau recoloré CITRON VERT (teinte inédite) ; ruban citron vert ; bas du ruban en ARC qui épouse l'anneau (ribbonPts, calé sur le rond de houilles-v2).
+  {match:/HOUILLES/i, image:'ai-icons/challenge-crests/houilles-v2.webp', medal:true, ribbonColors:['#ecf75a','#7d8c00'], ribbonPts:'30,0 70,0 70,24.83 68,23.85 66,23.0 64,22.26 62,21.63 60,21.11 58,20.69 56,20.37 54,20.14 52,20.01 50,19.97 48,20.02 46,20.17 44,20.41 42,20.75 40,21.19 38,21.72 36,22.37 34,23.12 32,23.99 30,24.99', ribbonHalf:20, medalImgH:94, yearDy:7}
 ];
 function _decorateBadgeWithCityCrest(b){
   if(!b || b.image) return b; // déjà décoré (ou pas de match nécessaire)
@@ -27033,6 +27035,16 @@ async function renderCollabChallenges(){
         finished.push(item); // success/failed/expired/cancelled
       }
     });
+    // Limite atteinte (quota mensuel / défis simultanés, cf _collabQuotaCheck) → bannière + boutons « Accepter » grisés (au lieu d'un refus après le clic).
+    var _quotaState=null; try{ _quotaState=await _collabQuotaCheck(); }catch(eq){ _quotaState=null; }
+    // Voisins avec qui j'ai DÉJÀ joué un défi (accepté des 2 côtés, jamais expiré/refusé) : les autres = « nouveau voisin », proposés en premier.
+    var _playedWith={};
+    inProgress.concat(finished).forEach(function(it){
+      var st=it.chal.status;
+      if(it.neighbor && it.part.accepted_at && it.neighbor.accepted_at && (st==='success'||st==='failed'||st==='in_progress')) _playedWith[it.neighbor.player_id]=true;
+    });
+    function _isNewNeighbor(it){ return !!(it.neighbor && !_playedWith[it.neighbor.player_id]); }
+    toAccept.sort(function(x,y){ return (_isNewNeighbor(y)?1:0)-(_isNewNeighbor(x)?1:0); });
 
     var html='';
     function _challengeMeta(code){
@@ -27100,12 +27112,15 @@ async function renderCollabChallenges(){
     // À ACCEPTER (priorité haute)
     if(toAccept.length){
       html+='<div style="font-family:Bebas Neue,sans-serif;font-size:.8rem;letter-spacing:1.5px;color:var(--cyan);margin-bottom:.3rem">⚡ À ACCEPTER</div>';
+      // Max 4 propositions en attente par RP (serveur, propose-collab-challenges). Le RP choisit librement ; le 1er duo qui valide joue ensemble.
+      html+='<div style="font-size:.7rem;color:var(--muted2);line-height:1.5;margin-bottom:.5rem">Accepte le défi qui te convient ou refuse-le. Les duos se forment quand les 2 ont accepté : sois réactif ! 😉</div>';
+      if(_quotaState) html+='<div style="padding:.55rem .7rem;border-radius:8px;border:1px solid rgba(245,200,66,.45);background:rgba(245,200,66,.08);color:var(--gold);font-size:.74rem;line-height:1.5;margin-bottom:.6rem">'+_quotaState.msg+'</div>';
       toAccept.forEach(function(it){
         var meta=_challengeMeta(it.chal.challenge_code);
         var inner=
           '<div style="font-family:\'Bebas Neue\',sans-serif;font-size:.85rem;letter-spacing:2px;color:var(--cyan);margin-bottom:.4rem">NOUVEAU DÉFI</div>'
           // Intro
-          +'<div style="font-size:.82rem;color:var(--text);margin-bottom:.7rem;line-height:1.5">Speedix te propose de relever un défi avec ton voisin '+_neighborChip(it.neighborInfo)+' :</div>'
+          +'<div style="font-size:.82rem;color:var(--text);margin-bottom:.7rem;line-height:1.5">Speedix te propose de relever un défi avec ton voisin '+_neighborChip(it.neighborInfo)+(_isNewNeighbor(it)?' <span style="font-size:.62rem;font-weight:700;color:var(--green);border:1px solid rgba(45,219,128,.5);border-radius:10px;padding:.05rem .4rem;white-space:nowrap">✨ nouveau voisin</span>':'')+' :</div>'
           // Bloc Défi
           +'<div style="padding:.55rem .65rem;border-radius:8px;background:rgba(245,200,66,.08);border:1px solid rgba(245,200,66,.3);margin-bottom:.5rem;text-align:left">'
           +'<div style="font-size:.62rem;color:var(--gold);margin-bottom:.25rem;text-transform:uppercase;letter-spacing:.7px;font-weight:700;text-align:center">🤜🤛 Défi</div>'
@@ -27121,7 +27136,9 @@ async function renderCollabChallenges(){
           // Boutons
           +'<div style="display:flex;gap:.45rem">'
           +'<button onclick="declineCollabChallenge(\''+it.part.id+'\')" style="flex:1;padding:.55rem;border-radius:7px;border:1px solid var(--border2);background:rgba(255,255,255,.03);color:var(--muted2);font-weight:700;font-size:.78rem;cursor:pointer">Refuser</button>'
-          +'<button onclick="acceptCollabChallenge(\''+it.part.id+'\')" style="flex:1;padding:.55rem;border-radius:7px;border:1.5px solid var(--green);background:linear-gradient(175deg,rgba(45,219,128,.22),rgba(20,160,80,.12));color:var(--green);font-weight:700;font-size:.85rem;cursor:pointer">✓ Accepter</button>'
+          +(_quotaState
+            ? '<button onclick="_collabCapNotice(\''+_quotaState.msg.replace(/'/g,"\\'")+'\')" style="flex:1;padding:.55rem;border-radius:7px;border:1.5px solid var(--border2);background:#0c0f1a;color:var(--muted2);font-weight:700;font-size:.8rem;cursor:pointer;opacity:.75">Limite atteinte</button>'
+            : '<button onclick="acceptCollabChallenge(\''+it.part.id+'\')" style="flex:1;padding:.55rem;border-radius:7px;border:1.5px solid var(--green);background:linear-gradient(175deg,rgba(45,219,128,.22),rgba(20,160,80,.12));color:var(--green);font-weight:700;font-size:.85rem;cursor:pointer">✓ Accepter</button>')
           +'</div>';
         html+=_collabBadgeShell('var(--cyan)','rgba(32,208,224,.2)','🤜🤛',inner);
       });
@@ -27186,7 +27203,7 @@ async function renderCollabChallenges(){
           var myMin=myProg.time_done||0, nMin=neighProg.time_done||0;
           progLine='Total à deux : '+_fmtMin(myMin+nMin)+'/'+_fmtMin(crit.value)+' · Toi : '+_fmtMin(myMin)+' · '+_neighborChip(it.neighborInfo)+' : '+_fmtMin(nMin);
         }
-        // Pastille de rang cliquable (2 défis en cours max en Premium, mais code
+        // Pastille de rang cliquable (3 défis en cours max en Premium, mais code
         // générique) — permet de choisir quel défi consomme en priorité la
         // prochaine course (cf. règle FIFO dans _recomputeCollabProgressForPlayer).
         // Clic sur un rang != 1 → passe en tête. Clic sur le rang 1 → échange
@@ -27400,14 +27417,17 @@ function _collabCapNotice(msg){
   }
 }
 
-async function acceptCollabChallenge(participantId){
-  if(!currentUser) return;
-  try {
-    // CAP MENSUEL : Free = 2 défis/mois calendaire, Premium = 6 défis/mois.
-    // Compte tout défi accepté (declined=false, accepted_at>=début du mois courant).
-    // Admin = pas de cap (utile pour tester / animer le jeu).
-    var _isAdminBypass=(typeof isAdmin==='function' && isAdmin());
-    var _maxMonth=_isAdminBypass?999999:((typeof isPremium==='function' && isPremium())?6:2);
+// QUOTA DÉFIS VOISINS (source unique côté client) : utilisée par acceptCollabChallenge (blocage) ET renderCollabChallenges (bannière « limite atteinte »
+// + boutons grisés). Renvoie null si le RP peut encore accepter, sinon {kind:'month'|'active', msg}.
+//   Free    : 3 défis acceptés par mois calendaire (hors 'expired') ET 1 défi à la fois.
+//   Premium : mois ILLIMITÉ (aucun cap mensuel) ET 3 défis à la fois (acceptés + proposed/in_progress non échus).
+//   Admin   : illimité. (Décision user 10/11/2026 ; MIROIR dans REGISTRE-REGLES-METIER.md.)
+async function _collabQuotaCheck(){
+  var _isAdminBypass=(typeof isAdmin==='function' && isAdmin());
+  if(_isAdminBypass) return null;
+  var _prem=(typeof isPremium==='function' && isPremium());
+  if(!_prem){
+    var _maxMonth=3;
     var _now=new Date();
     var _monthStartIso=new Date(_now.getFullYear(),_now.getMonth(),1).toISOString();
     var {data:myMonth}=await supabaseClient.from('collab_challenge_participants')
@@ -27415,50 +27435,41 @@ async function acceptCollabChallenge(participantId){
       .eq('player_id',currentUser.id)
       .eq('declined',false)
       .gte('accepted_at',_monthStartIso);
-    // Un défi 'proposed' (moi accepté, voisin pas encore répondu) RÉSERVE sa
-    // place dans le quota pendant les 48h de fenêtre de réponse (deadline
-    // acceptance_deadline) — sinon rien n'empêche d'accepter/valider un 2e
-    // défi pendant que le 1er est encore en attente, ce qui romprait le cap.
-    // Seul 'expired' (voisin qui refuse ou ne répond pas à temps) libère la
-    // place : le joueur ne doit pas perdre une place pour une réponse qui ne
-    // dépend pas de lui, mais tant que ça reste possible, ça compte.
+    // Un défi 'proposed' (moi accepté, voisin pas encore répondu) RÉSERVE sa place dans le quota pendant les 48h de fenêtre de réponse ;
+    // seul 'expired' (voisin qui refuse ou ne répond pas à temps) libère la place.
     var monthCount=(myMonth||[]).filter(function(p){
       return !p.collab_challenges || p.collab_challenges.status!=='expired';
     }).length;
     if(monthCount>=_maxMonth){
-      var _premiumMonthHint=(_maxMonth===2)?' (Premium = 6 max)':'';
-      _collabCapNotice('⚠️ Quota mensuel atteint : '+_maxMonth+' défis collaboratifs ce mois'+_premiumMonthHint+'. Reviens le mois prochain.');
-      return;
+      return {kind:'month', msg:'⚠️ Limite atteinte : '+_maxMonth+' défis voisins ce mois-ci. Passe en Premium pour augmenter ton quota (défis mensuels illimités).'};
     }
-    // CAP SIMULTANÉ : un RP ne peut pas avoir plus de N défis collaboratifs
-    // engagés à la fois (acceptés + status proposed/in_progress). Empêche la
-    // dispersion et garde les défis significatifs.
-    //   Free    = 1 défi max
-    //   Premium = 2 défis max
-    //   Admin   = pas de cap (test / animation)
-    var _maxActive=_isAdminBypass?999999:((typeof isPremium==='function' && isPremium())?2:1);
-    var {data:myActive}=await supabaseClient.from('collab_challenge_participants')
-      .select('challenge_id,collab_challenges(status,deadline)')
-      .eq('player_id',currentUser.id)
-      .not('accepted_at','is',null)
-      .eq('declined',false);
-    // Un défi compte comme "actif" UNIQUEMENT si son statut est proposed/in_progress
-    // ET que sa deadline n'est pas dépassée. Sans ce 2e check, un défi expiré non
-    // encore rattrapé par le cron resolve-collab-challenges resterait actif et
-    // bloquerait l'acceptation d'un nouveau (cas remonté par Val-DM 2026-05-10).
-    var _nowMs=Date.now();
-    var activeCount=(myActive||[]).filter(function(p){
-      var c=p.collab_challenges; if(!c) return false;
-      var st=c.status;
-      if(st!=='proposed' && st!=='in_progress') return false;
-      if(c.deadline && new Date(c.deadline).getTime()<_nowMs) return false;
-      return true;
-    }).length;
-    if(activeCount>=_maxActive){
-      var _premiumHint=(_maxActive===1)?' (Premium = 2 max)':'';
-      _collabCapNotice('⚠️ Maximum '+_maxActive+' défis collaboratifs en cours'+_premiumHint+'. Termine-en un avant d\'en accepter un nouveau.');
-      return;
-    }
+  }
+  var _maxActive=_prem?3:1;
+  var {data:myActive}=await supabaseClient.from('collab_challenge_participants')
+    .select('challenge_id,collab_challenges(status,deadline)')
+    .eq('player_id',currentUser.id)
+    .not('accepted_at','is',null)
+    .eq('declined',false);
+  // « actif » = proposed/in_progress ET deadline non dépassée (cas Val-DM 2026-05-10 : un défi expiré non encore rattrapé par le cron bloquait).
+  var _nowMs=Date.now();
+  var activeCount=(myActive||[]).filter(function(p){
+    var c=p.collab_challenges; if(!c) return false;
+    var st=c.status;
+    if(st!=='proposed' && st!=='in_progress') return false;
+    if(c.deadline && new Date(c.deadline).getTime()<_nowMs) return false;
+    return true;
+  }).length;
+  if(activeCount>=_maxActive){
+    return {kind:'active', msg:(_prem?'⚠️ Limite atteinte : termine un de tes défis pour en accepter un autre.':'⚠️ Limite atteinte : termine ton défi pour en accepter un autre ou passe en Premium pour augmenter ton quota.')};
+  }
+  return null;
+}
+
+async function acceptCollabChallenge(participantId){
+  if(!currentUser) return;
+  try {
+    var _quota=await _collabQuotaCheck();
+    if(_quota){ _collabCapNotice(_quota.msg); return; }
     var nowIso=new Date().toISOString();
     // 1. Patch ma ligne participant
     var {data:upd, error:errU}=await supabaseClient.from('collab_challenge_participants')
