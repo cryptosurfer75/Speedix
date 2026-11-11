@@ -21936,6 +21936,7 @@ async function syncStravaActivities(silent){
     // (paquets de 200) pour tout récupérer, peu importe le nombre de courses.
     var activities=[];
     var _page=1;
+    var _listComplete=true;   // liste Strava lue jusqu'au bout (sans erreur, sans garde-fou de pages) : seule condition pour le contrôle de cohérence ci-dessous
     while(true){
       var _resp=await window.fetch('https://www.strava.com/api/v3/athlete/activities?per_page=200&page='+_page+'&after='+after,{
         headers:{'Authorization':'Bearer '+window.__stravaToken}
@@ -21945,8 +21946,19 @@ async function syncStravaActivities(silent){
       activities=activities.concat(_batch);
       if(_batch.length<200) break;     // dernière page atteinte
       _page++;
-      if(_page>20) break;              // garde-fou : 20 × 200 = 4000 courses max
+      if(_page>20){ _listComplete=false; break; }   // garde-fou : 20 × 200 = 4000 courses max
     }
+    // Contrôle de cohérence Strava ↔ SPEEDIX (2026-11-11, cas Jodho/Jimmy : courses supprimées ou recoupées sur Strava après import).
+    // AUCUNE suppression ni correction automatique : la liste COMPLÈTE déjà lue (0 appel Strava en plus) est envoyée à la base, qui SIGNALE les écarts
+    // dans strava_run_review ; l'admin tranche cas par cas. Jamais sur une liste vide ou incomplète. Silencieux pour le RP.
+    try{
+      if(_listComplete && activities.length>0){
+        supabaseClient.rpc('strava_reconcile_report',{
+          p_after:afterDate.toISOString(),
+          p_activities:activities.map(function(x){ return {id:x.id,type:x.type,distance:x.distance,moving_time:x.moving_time,elev:x.total_elevation_gain||0}; })
+        }).then(function(r){ if(r&&r.error) console.warn('[strava review]',r.error.message); });
+      }
+    }catch(eRev){ console.warn('[strava review] échec',eRev); }
     // Filtrer les nouvelles activités (pas encore importées)
     var newActivities=[];
     // En-tête récap : combien Strava nous a renvoyé + depuis quelle date
