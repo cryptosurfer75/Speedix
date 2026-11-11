@@ -88,6 +88,8 @@
   function isMyLandTargeted(d) { return (d.members || []).some(function (m) { return m.player_id === me() && m.role === 'holder'; }); }
   function updateBadge() {
     var host = document.querySelector('[data-tuto-target="lands"]'), wrap = host && host.parentElement; if (!wrap) return;
+    // La tuile Tour est enveloppée dans un cadre biseauté (clip-path) : une pastille posée DANS ce cadre est rognée au coin (cas vu le 11/11/2026). On l'ancre sur le conteneur NON clippé juste au-dessus, comme les pastilles Feed/Cash Run.
+    if (wrap.id === 'tab-lands-outer' && wrap.parentElement) wrap = wrap.parentElement;
     var b = $('duel-tour-badge');
     if (!b) { b = document.createElement('div'); b.id = 'duel-tour-badge'; b.style.cssText = "display:none;position:absolute;top:-4px;right:-4px;width:16px;height:16px;border-radius:50%;background:#ff4444;border:2px solid #020408;box-sizing:border-box;font-size:.55rem;font-weight:700;color:#fff;font-family:'Space Mono',monospace;align-items:center;justify-content:center;pointer-events:none"; wrap.appendChild(b); }
     var seen = getSeen(), n = ((S && S.duels) || []).filter(function (d) { return d.status === 'active' && isMyLandTargeted(d) && seen.indexOf(d.id) < 0; }).length;
