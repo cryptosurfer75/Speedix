@@ -25391,7 +25391,9 @@ var _CITY_CREST_OVERRIDES=[
   // Corrida du Gévaudan / Marvejols (13/12/2026, 6 km) : Père Noël + clocher, ruban de Noël 4 bandes rouge/vert alternées (choix user 23/10). ribbonColors = skin gagnant c1/c2 (rouge → vert).
   {match:/MARVEJOLS|G[EÉ]VAUDAN/i, image:'ai-icons/challenge-crests/marvejols-v1.webp', medal:true, ribbonColors:['#e8353a','#1b7a3a'], ribbonBands:['#c1121f','#1b7a3a','#c1121f','#1b7a3a'], ribbonFlat:true, ribbonHalf:20, medalImgH:94, yearDy:7, frameBands:['#c1121f','#1b7a3a','#c1121f','#1b7a3a']},
   // HOUILLES (Corrida, 27/12/2026) : faucon + clocher, anneau recoloré CITRON VERT (teinte inédite) ; ruban citron vert ; bas du ruban en ARC qui épouse l'anneau (ribbonPts, calé sur le rond de houilles-v2).
-  {match:/HOUILLES/i, image:'ai-icons/challenge-crests/houilles-v2.webp', medal:true, ribbonColors:['#ecf75a','#7d8c00'], ribbonPts:'30,0 70,0 70,24.83 68,23.85 66,23.0 64,22.26 62,21.63 60,21.11 58,20.69 56,20.37 54,20.14 52,20.01 50,19.97 48,20.02 46,20.17 44,20.41 42,20.75 40,21.19 38,21.72 36,22.37 34,23.12 32,23.99 30,24.99', ribbonHalf:20, medalImgH:94, yearDy:7}
+  {match:/HOUILLES/i, image:'ai-icons/challenge-crests/houilles-v2.webp', medal:true, ribbonColors:['#ecf75a','#7d8c00'], ribbonPts:'30,0 70,0 70,24.83 68,23.85 66,23.0 64,22.26 62,21.63 60,21.11 58,20.69 56,20.37 54,20.14 52,20.01 50,19.97 48,20.02 46,20.17 44,20.41 42,20.75 40,21.19 38,21.72 36,22.37 34,23.12 32,23.99 30,24.99', ribbonHalf:20, medalImgH:94, yearDy:7},
+  // FUVELAINE (Fuveau, 03/01/2027) : paysage Sainte-Victoire + lavande, anneau doré recoloré en MAUVE AMÉTHYSTE, ruban mauve orchidée (teinte inédite) ; bas du ruban en V qui épouse la pointe du blason.
+  {match:/FUVELAINE|FUVEAU/i, image:'ai-icons/challenge-crests/fuveau-v1.webp', medal:true, ribbonColors:['#d0a2dc','#6a3b7f'], ribbonPts:'30,0 70,0 70,24 50,14.6 30,24', ribbonHalf:20, medalImgH:94, yearDy:7}
 ];
 function _decorateBadgeWithCityCrest(b){
   if(!b || b.image) return b; // déjà décoré (ou pas de match nécessaire)
