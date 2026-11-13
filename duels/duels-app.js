@@ -14,7 +14,7 @@
     land_inconnue: 'Land inconnue.', seules_les_locations_sont_en_jeu: 'Seules les Lands louées sont en jeu : les propriétés et les villes étapes sont à l\'abri.',
     land_en_pause: 'Cette Land vient de remporter un duel : elle est protégée 48 h.', pas_de_team: 'Il te faut une team pour lancer un duel.',
     land_sans_team: 'Cette Land n\'appartient à aucune team.', meme_team: 'C\'est une Land de ta propre team.', meme_famille: 'Cette Land est dans la même équipe que toi (T1 / T2) : pas de duel possible entre vous.', deja_engage: 'Tu es déjà engagé sur un duel. Un seul à la fois !',
-    land_deja_en_duel: 'Cette Land est déjà en duel.', defenseur_deja_engage: 'Ce RP défend déjà un duel.', bail_arrive_a_echeance: 'Ton bail arrive à échéance, tu ne peux miser cette Land dans un duel.',
+    land_deja_en_duel: 'Cette Land est déjà en duel.', defenseur_deja_engage: 'Ce RP défend déjà un duel.', defenseur_en_infirmerie: 'Ce RP est en infirmerie : on ne peut pas tirer sur l\'ambulance, attaque impossible.', bail_arrive_a_echeance: 'Ton bail arrive à échéance, tu ne peux miser cette Land dans un duel.',
     aucune_location_a_miser: 'Il te faut au moins une Land en location à miser.', plafond_locations_atteint: 'Tu as atteint ta limite de locations (8 en Free).',
     cagnotte_insuffisante_pour_lancer: 'La cagnotte de ta team doit couvrir au moins le prix du Joker pour lancer un duel.',
     team_au_max_en_attaque: 'Ta team a déjà atteint son maximum de duels en attaque.', team_adverse_au_max_en_defense: 'Cette team défend déjà le maximum de duels.',
