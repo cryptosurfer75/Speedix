@@ -289,9 +289,9 @@
     Object.keys(els).forEach(function (id) { els[id].forEach(function (e) { e.style.opacity = (selTeam === null || selTeam === id) ? 1 : .12; }); });
     // panneau latéral
     var mt = st.players[me].team;
-    $('dz-mappot').innerHTML = '<div class="dz-pot-t">💰 CAGNOTTE ' + esc(teamName(mt)).toUpperCase() + '</div><div class="dz-pot-v">' + fmt(E.potOf(st, mt)) + ' RPC</div>';
+    $('dz-mappot').innerHTML = '<div class="dz-pot-t">💰 ' + (window.dzT ? window.dzT('CAGNOTTE') : 'CAGNOTTE') + ' ' + esc(teamName(mt)).toUpperCase() + '</div><div class="dz-pot-v">' + fmt(E.potOf(st, mt)) + ' RPC</div>';
     var head = '<div class="dz-side-h" data-toggle="1">' + (selTeam ? logo(selTeam) + '<span>' + esc(teamName(selTeam)) + '</span>' : '<span>🗺️ Teams</span>') + '<b>' + (sideOpen ? '▴' : '▾') + '</b></div>';
-    $('dz-side').innerHTML = head + (sideOpen ? '<div class="dz-t' + (selTeam === null ? ' on' : '') + '" data-t="">Toutes les teams</div>' + Object.keys(byTeam).sort(function (a, b) { return byTeam[b].length - byTeam[a].length; }).map(function (id) {
+    $('dz-side').innerHTML = head + (sideOpen ? '<div class="dz-t' + (selTeam === null ? ' on' : '') + '" data-t="">' + (window.dzT ? window.dzT('Toutes les teams') : 'Toutes les teams') + '</div>' + Object.keys(byTeam).sort(function (a, b) { return byTeam[b].length - byTeam[a].length; }).map(function (id) {
       var cc = c[id] || { own: 0, loc: 0 };
       return '<div class="dz-t' + (selTeam === id ? ' on' : '') + '" data-t="' + id + '">' + logo(id) + '<span>' + esc(teamName(id)) + '</span><small>' + fmt(cc.n) + '</small></div>';
     }).join('') : '');

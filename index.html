@@ -2454,7 +2454,7 @@ body::after{
 
 @keyframes tourDicePop{0%{transform:scale(1.5)}100%{transform:scale(1)}}
 </style>
-<link rel="stylesheet" href="duels/duels-app.css?v=30">
+<link rel="stylesheet" href="duels/duels-app.css?v=31">
 <style>.tb-bonus{white-space:nowrap}@media(max-width:480px){.tb-bonus{display:block}.tb-sep{display:none}}</style>
 </head>
 <body>
@@ -9421,6 +9421,8 @@ async function onLoginSuccess(user, isNew){
   }
   // Duels de Land (livrés éteints : bouton grisé tant que game_settings.duels_mode ne l'ouvre pas pour ce RP)
   if(window.Duels){ setTimeout(function(){ Duels.init(); }, 2600); }
+  // Langue du RP enregistrée en base (13/11/2026) : le serveur envoie notifications et push dans sa langue (players.lang ; fr par défaut)
+  try{ if(typeof SPEEDIX_LANG!=='undefined'){ supabaseClient.rpc('set_my_lang',{p_lang:SPEEDIX_LANG}).then(function(){},function(){}); } }catch(e){}
   // Cadeau d'anniversaire — popup si le RP se connecte le jour J (une seule
   // fois par an, cf birthday_gift_year, MIROIR : la vérité vient du clic
   // ACCEPTER qui pose la colonne, ce check ne fait qu'ouvrir la popup).
@@ -20549,16 +20551,7 @@ function showRpcConvertInfo(emoji, title, message){
 async function confirmConvertRpcToNyx(){
   if(!currentUser) return;
   if(!isPremium()){ showPremiumGate('Convertir tes RPC en NYX est réservé au Premium.'); return; }
-  // Tant que les achats réels (IAP) ne sont pas branchés (cf chantier stores),
-  // seuls l'essai 15 jours (premiumTrial) et le futur vrai Premium payant
-  // (premiumPaid, posé par grant-iap) ont accès — le Premium offert/admin (ni
-  // l'un ni l'autre) reste bloqué, mirroir du même check dans convert_rpc_to_nyx
-  // (source unique) — ce n'est ici qu'un raccourci d'affichage (2026-08-14).
-  var mp=window.__myPlayer||{};
-  if(!mp.premiumTrial && !mp.premiumPaid && !isAdmin()){
-    showRpcConvertInfo('⏳','BIENTÔT DISPONIBLE','La conversion RPC → NYX sera activée dès l\'ouverture du vrai Premium payant. Les essais 15 jours y ont déjà accès.');
-    return;
-  }
+  // (13/11/2026) Plus de restriction « essai / payant seulement » : les Premium offerts convertissent aussi (le plafond 50 NYX/mois et le statut Premium restent revérifiés par convert_rpc_to_nyx).
   var input=document.getElementById('rpc-convert-input');
   var raw=parseInt(input && input.value, 10);
   var nyx=(raw && raw>0) ? Math.floor(raw/RPC_CONVERT_RATE) : 0;
@@ -20571,7 +20564,6 @@ async function confirmConvertRpcToNyx(){
   if(error || !res || !res.ok){
     var err=res && res.error;
     if(err==='not_premium'){ showPremiumGate('Convertir tes RPC en NYX est réservé au Premium.'); return; }
-    if(err==='coming_soon'){ showRpcConvertInfo('⏳','BIENTÔT DISPONIBLE','La conversion RPC → NYX sera activée dès l\'ouverture du vrai Premium payant. Les essais 15 jours y ont déjà accès.'); return; }
     if(err==='insufficient_rpc'){ showRpcConvertInfo('⚠️','RPC INSUFFISANT','Ton solde RPC est insuffisant pour convertir ce montant.'); return; }
     if(err==='cap_reached'){
       showRpcConvertInfo('⏳','PLAFOND ATTEINT','Tu as déjà converti le maximum autorisé ce mois-ci (50 NYX).<br>Reviens le mois prochain pour convertir à nouveau.');
@@ -31669,6 +31661,110 @@ window.Tour.init = async function(){
   // cartes, dans l'esprit des cartes Chance/Caisse de Communauté. Équilibrées à
   // 25 gains / 25 pertes en NOMBRE (net +5720 RPC en valeur — volontairement
   // généreux, gardé tel quel : "on reste comme ça sur l'équilibre"). ──
+  // Traduction EN des cartes chance / surprise du Tour (clé = texte FR exact)
+  const BONUS_TEXT_EN = {
+ "Ta course est annulée à cause d'un orage, tu perds tes frais d'inscription": "Your race is cancelled because of a storm, you lose your entry fee",
+ "Promotion au rayon chaussures de course, tu gagnes un bon d'achat": "Sale on running shoes, you win a gift voucher",
+ "Tu bats ton record personnel sur 10 km, le club te félicite avec une prime": "You beat your 10 km personal best, your club congratulates you with a bonus",
+ "Ta montre GPS tombe en panne la veille de la course, tu dois la remplacer": "Your GPS watch dies the day before the race, you have to replace it",
+ "Un sponsor local repère tes performances et te propose un partenariat": "A local sponsor spots your performances and offers you a partnership",
+ "Ampoule au talon à J-2 d'un marathon, séance chez le podologue": "Blister on your heel two days before a marathon, appointment with the podiatrist",
+ "Tu gagnes un dossard gratuit pour ta prochaine course": "You win a free bib for your next race",
+ "Ta voiture tombe en panne sur la route du marathon, dépannage en urgence": "Your car breaks down on the way to the marathon, emergency towing",
+ "Un supporter te reconnaît et t'offre un bon d'achat running": "A supporter recognizes you and gives you a running gift voucher",
+ "Tendinite au genou, tu dois consulter un kiné": "Knee tendinitis, you have to see a physio",
+ "Tu remportes le classement de ta catégorie d'âge": "You win your age-group ranking",
+ "Ton club de course augmente sa cotisation annuelle": "Your running club raises its annual membership fee",
+ "Ton club t'offre un stage d'entraînement en altitude": "Your club offers you an altitude training camp",
+ "Vol de ton vélo d'entraînement devant chez toi": "Your training bike is stolen in front of your home",
+ "Tu deviens ambassadeur d'une marque de boissons énergétiques": "You become an ambassador for an energy drink brand",
+ "Grosse chaleur, tu dois racheter des électrolytes en urgence": "Heat wave, you urgently have to buy more electrolytes",
+ "Tu termines finisher d'un ultra-trail, prime spéciale": "You finish an ultra-trail, special bonus",
+ "Panne de réveil, tu rates le départ et dois payer un nouveau dossard": "Alarm clock failure, you miss the start and must pay for a new bib",
+ "Un ami t'invite à un stage gratuit de préparation physique": "A friend invites you to a free fitness training camp",
+ "Ta paire de chaussures s'use plus vite que prévu, il faut la remplacer": "Your shoes wear out faster than expected, you need to replace them",
+ "Tu gagnes le tirage au sort d'un marathon major (New York)": "You win the draw for a major marathon (New York)",
+ "Crampe géante en pleine course, tu dois abandonner et rembourser ton dossard": "Giant cramp mid-race, you have to quit and refund your bib",
+ "Ta performance impressionne un recruteur de club élite, prime de transfert": "Your performance impresses an elite club recruiter, transfer bonus",
+ "Ton sac de trail se déchire pendant une sortie": "Your trail backpack tears during a run",
+ "Tu gagnes un cours de yoga récupération offert": "You win a free recovery yoga class",
+ "Amende pour stationnement gênant près du point de départ": "Fine for illegal parking near the start line",
+ "Une marque te sponsorise pour une saison complète": "A brand sponsors you for a full season",
+ "Chute sur un sentier boueux, ta tenue est à réparer": "You fall on a muddy trail, your kit needs repair",
+ "Tu bats le record du parcours local, la mairie t'offre une prime": "You break the local course record, the town hall gives you a bonus",
+ "Le prix des dossards augmente cette saison": "Bib prices go up this season",
+ "Tu es choisi comme pacer officiel d'un marathon": "You are chosen as the official pacer of a marathon",
+ "Perte de ton dossard avant le départ, réimpression en urgence": "You lose your bib before the start, urgent reprint",
+ "Un influenceur running partage ta story": "A running influencer shares your story",
+ "Ta salle de sport augmente son abonnement": "Your gym raises its membership fee",
+ "Tu remportes un giveaway Strava": "You win a Strava giveaway",
+ "Blessure aux ischio-jambiers, séances de kiné prolongées": "Hamstring injury, extended physio sessions",
+ "Une entreprise locale te sponsorise pour porter son logo": "A local company sponsors you to wear its logo",
+ "Ta ceinture porte-gourde se casse en pleine course": "Your hydration belt breaks mid-race",
+ "Tu finis dans le top 10 d'un trail régional": "You finish in the top 10 of a regional trail",
+ "Panne de ton appli de suivi GPS, abonnement premium à racheter": "Your GPS tracking app breaks down, you have to buy premium again",
+ "Un magazine running te consacre un article": "A running magazine writes an article about you",
+ "Coup de chaud, prise en charge par les secours de la course": "Heatstroke, you are taken care of by the race medics",
+ "Tu es sélectionné pour représenter ta région aux championnats": "You are selected to represent your region at the championships",
+ "Grève des transports, tu dois payer un taxi pour rejoindre le départ": "Transport strike, you have to pay for a taxi to reach the start",
+ "Ton club remporte le challenge inter-clubs grâce à toi": "Your club wins the inter-club challenge thanks to you",
+ "Vol de tes affaires au vestiaire pendant une course": "Your belongings are stolen from the locker room during a race",
+ "Tu bats ton record sur marathon de plus de 10 minutes, prime exceptionnelle": "You beat your marathon record by more than 10 minutes, exceptional bonus",
+ "Une averse détruit ton dossard papier, réimpression en urgence": "A downpour ruins your paper bib, urgent reprint",
+ "Tu es invité à tester en avant-première les chaussures d'une marque": "You are invited to test a brand's new shoes before release",
+ "Fatigue accumulée, tu dois annuler un objectif et rembourser ton inscription": "Accumulated fatigue, you have to cancel a goal and refund your registration",
+ "Tu retrouves une pièce oubliée dans la poche de ton legging de course": "You find a forgotten coin in your running leggings pocket",
+ "Un pâtissier du quartier t'offre des viennoiseries après ton footing matinal": "A neighborhood baker gives you pastries after your morning jog",
+ "Ta boutique de sport te fait une remise fidélité surprise": "Your sports shop gives you a surprise loyalty discount",
+ "Tu gagnes le quiz post-course organisé par les bénévoles": "You win the post-race quiz organized by the volunteers",
+ "Un passant t'applaudit et te glisse un bon d'achat pour ta prochaine paire": "A passer-by applauds you and slips you a voucher for your next pair of shoes",
+ "Ta mutuelle rembourse enfin ta visite chez le podologue": "Your health insurance finally refunds your podiatrist visit",
+ "Tu es tiré au sort pour porter la flamme d'un relais local": "You are drawn to carry the flame of a local relay",
+ "Un ami annule et te cède son dossard déjà payé pour un trail": "A friend cancels and gives you their already-paid trail bib",
+ "Tu remportes le concours de la plus belle photo Strava du mois": "You win the best Strava photo of the month contest",
+ "Un kiné te propose une séance découverte gratuite après une belle perf": "A physio offers you a free discovery session after a great performance",
+ "Ton club t'élit coureur du mois, prime symbolique à la clé": "Your club names you runner of the month, symbolic bonus included",
+ "Une marque de boissons isotoniques te choisit comme testeur": "An isotonic drink brand picks you as a tester",
+ "Tu retrouves ta vieille carte cadeau running non utilisée": "You find your old unused running gift card",
+ "Un randonneur croisé sur le parcours te file des barres énergétiques premium à revendre": "A hiker you meet on the course hands you premium energy bars to resell",
+ "Ton employeur rembourse ton inscription à la course d'entreprise": "Your employer refunds your registration to the company race",
+ "Tu gagnes le pari amical du dernier kilomètre contre un pote": "You win the friendly last-kilometer bet against a buddy",
+ "Une appli de coaching t'offre 3 mois d'abonnement premium, tu la reventes": "A coaching app offers you 3 months of premium, you resell it",
+ "Le speaker de la course cite ton nom au micro, un sponsor local t'envoie un cadeau": "The race announcer calls your name on the mic, a local sponsor sends you a gift",
+ "Tu trouves une place de parking gratuite juste devant le point de départ": "You find a free parking spot right in front of the start line",
+ "Un ostéopathe du village t'offre une consultation post-marathon": "A village osteopath offers you a post-marathon consultation",
+ "Tu remportes le tirage au sort des dossards VIP d'une course locale": "You win the draw for VIP bibs of a local race",
+ "Ta banque t'offre des points fidélité en scannant ton dossard sponsorisé": "Your bank gives you loyalty points for scanning your sponsored bib",
+ "Un photographe bénévole t'envoie gratuitement tes plus belles photos de course, tu les revends": "A volunteer photographer sends you your best race photos for free, you resell them",
+ "Ton assurance sport te rembourse une paire de chaussures usées": "Your sports insurance refunds a pair of worn-out shoes",
+ "Tu gagnes le manager's challenge inter-entreprises": "You win the inter-company managers' challenge",
+ "Une salle de sport partenaire t'offre un mois gratuit, tu le revends": "A partner gym offers you a free month, you resell it",
+ "Tu trouves un bon de réduction dans un sachet de gel énergétique": "You find a discount voucher in an energy gel sachet",
+ "Ton horloge connectée détecte un nouveau record de VO2max, la marque t'envoie une prime ambassadeur": "Your smartwatch detects a new VO2max record, the brand sends you an ambassador bonus",
+ "Un vétérinaire de quartier t'offre une consultation gratuite pour ton chien de course": "A neighborhood vet offers a free consultation for your running dog",
+ "Tu es choisi comme visage d'une campagne d'affichage running locale": "You are chosen as the face of a local running ad campaign",
+ "Une conserverie locale sponsorise ton ravitaillement, tu empoches la différence": "A local cannery sponsors your aid station, you pocket the difference",
+ "Tu remportes le concours du meilleur temps de passage à un point de ravitaillement": "You win the contest for the best split time at an aid station",
+ "Un chauffeur VTC t'offre la course retour après ton marathon": "A ride-share driver gives you the ride back after your marathon",
+ "Ta ville t'accorde une prime sportif exemplaire": "Your city grants you an exemplary athlete bonus",
+ "Tu retrouves de l'argent glissé dans une vieille paire de baskets": "You find money tucked in an old pair of sneakers",
+ "Un coach sportif t'offre une séance de préparation mentale": "A sports coach offers you a mental preparation session",
+ "Tu gagnes le pari du plus beau maillot de la course": "You win the bet for the best jersey of the race",
+ "Une agence événementielle te recrute comme pacer rémunéré pour un jour": "An event agency hires you as a paid pacer for a day",
+ "Ton assurance annulation te rembourse un dossard non couru": "Your cancellation insurance refunds a bib you didn't run",
+ "Tu es choisi pour tester en exclusivité une nouvelle appli de running": "You are chosen to exclusively test a new running app",
+ "Ta gourde fuit dans ton sac et abîme ton téléphone": "Your water bottle leaks in your bag and damages your phone",
+ "Tu perds ton bracelet chronométré, remplacement facturé": "You lose your timing wristband, replacement charged",
+ "Un chien en laisse s'emmêle dans tes lacets, tu dois racheter une paire": "A dog on a leash tangles in your laces, you have to buy a new pair",
+ "Ton brassard porte-téléphone casse en pleine sortie": "Your phone armband breaks mid-run",
+ "Tu confonds les vestiaires et perds ta veste technique": "You mix up the locker rooms and lose your technical jacket",
+ "Une averse surprise détruit ton dossard, réimpression express payante": "A sudden downpour destroys your bib, paid express reprint",
+ "Ton application de coaching bugue et te facture deux fois l'abonnement": "Your coaching app glitches and charges you twice for the subscription",
+ "Tu écrases accidentellement ta montre GPS en la posant sur le buffet": "You accidentally crush your GPS watch by putting it on the sideboard",
+ "Un coup de vent t'arrache ta casquette dans le fossé, rachat obligatoire": "A gust of wind blows your cap into the ditch, mandatory replacement",
+ "Tu payes une amende pour avoir garé ton vélo sur la ligne d'arrivée": "You pay a fine for parking your bike on the finish line"
+};
+  const _bt = function(t){ return (typeof SPEEDIX_LANG!=='undefined' && SPEEDIX_LANG==='en' && BONUS_TEXT_EN[t]) || t; };
   const BONUS_CARDS = [
     {text:"Ta course est annulée à cause d'un orage, tu perds tes frais d'inscription", amount:-300},
     {text:"Promotion au rayon chaussures de course, tu gagnes un bon d'achat", amount:500},
@@ -31861,7 +31957,7 @@ window.Tour.init = async function(){
     const l = LANDS[c.idx];
     if(!l || l.status==='etape') return; // sécurité, ne devrait jamais arriver (idx choisis à la main)
     l.status = 'bonus';
-    l.bonusText = c.text;
+    l.bonusText = _bt(c.text);
     l.bonusAmount = c.amount;
   });
   // ── Cases « Banc de touche » (2026-10-16, demande explicite user) : atterrir
@@ -32682,7 +32778,7 @@ window.Tour.init = async function(){
     // Le gain/perte affiché dans la pop-up doit vraiment bouger la cagnotte
     // (2026-08-02, demande explicite) : appliqué ICI, au moment du tirage.
     if(l.status==='bonus' && !l.bonusText){
-      const card = drawBonusCard(); l.bonusText = card.text; l.bonusAmount = card.amount;
+      const card = drawBonusCard(); l.bonusText = _bt(card.text); l.bonusAmount = card.amount;
       updatePlayerStatusPanel();
       // Crédit RÉEL (2026-08-06, bug corrigé — même défaut que le tour complet :
       // ME.rpc était juste modifié en local, jamais écrit en base). Le montant
@@ -36619,7 +36715,8 @@ window.Tour.init = async function(){
 })();
 
 </script>
-<script src="duels/duels-map.js?v=19"></script>
-<script src="duels/duels-app.js?v=40"></script>
+<script src="duels/duels-map.js?v=20"></script>
+<script src="duels/duels-i18n.js?v=1"></script>
+<script src="duels/duels-app.js?v=41"></script>
 </body>
 </html>
