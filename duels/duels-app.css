@@ -32,8 +32,8 @@
 .dz-bar i{display:block;height:100%}
 .dz-sc{display:flex;justify-content:space-between;font:700 22px 'Rajdhani',sans-serif;color:#f5c842}
 .dz-members{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:6px;font-size:12px;color:#b3a3dd}
-.dz-members > div{background:#000;border:1px solid #2a2a2a;border-radius:8px;padding:6px 8px}
-.dz-mrow{display:flex;justify-content:space-between;gap:10px}.dz-mrow b{white-space:nowrap;color:#fff}
+.dz-members > div{min-width:0;background:#000;border:1px solid #2a2a2a;border-radius:8px;padding:6px 8px}
+.dz-mrow{display:flex;justify-content:space-between;align-items:center;gap:6px;white-space:nowrap;min-height:20px}.dz-mrow>span{min-width:0;overflow:hidden;text-overflow:ellipsis}.dz-mrow b{white-space:nowrap;color:#fff;flex:none}
 .dz-tag{display:inline-block;font:700 10px 'Space Mono',monospace;letter-spacing:1px;padding:2px 8px;border-radius:10px;background:#33205e;color:#c3a2ff}
 .dz-tag.fight{background:#33205e;color:#c3a2ff}.dz-tag.done{background:#14432b;color:#9dffcc}
 .dz-btn{border:0;border-radius:8px;padding:8px 14px;cursor:pointer;background:#2b3050;color:#fff;font-weight:700}

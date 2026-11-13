@@ -158,7 +158,7 @@
     var tot = att + def; if (!tot) return '';
     return '<span class="dz-flame" style="left:' + Math.min(97, Math.max(3, 100 * att / tot)).toFixed(1) + '%" title="Burn">🔥</span>';
   }
-  function memberLine(m, prisonerId) { return '<div class="dz-mrow"><span' + (m.premium ? ' style="color:var(--gold)"' : '') + '>' + esc(m.username) + (m.premium ? '<span title="Premium" style="margin-left:.15rem;font-size:.7rem;line-height:1;display:inline-block">★</span>' : '') + (m.role === 'launcher' ? ' 🗡️' : m.role === 'holder' ? ' 🛡️' : '') + (prisonerId && m.player_id === prisonerId ? ' <span title="Prisonnier">🔒</span>' : '') + '</span><b>' + fmt(m.pts) + ' pts</b></div>'; }
+  function memberLine(m, prisonerId) { return '<div class="dz-mrow"><span' + (m.premium ? ' style="color:var(--gold)"' : '') + '>' + esc(m.username) + (m.premium ? '<span title="Premium" style="margin-left:.15rem;font-size:.7rem;line-height:1;display:inline-block">★</span>' : '') + (m.role === 'launcher' ? ' 🗡️' : m.role === 'holder' ? ' 🛡️' : '') + (prisonerId && m.player_id === prisonerId ? ' <span title="Prisonnier">🔒</span>' : '') + '</span><b>' + fmt(m.pts) + '</b></div>'; }
 
   function duelCard(d) {
     var ph = phaseOf(d), L = d.loss || {}, R0 = ph === 'done' ? (d.result || {}) : {}, att = L.att != null ? L.att : R0.att != null ? R0.att : sidePts(d, 'att'), def = L.def != null ? L.def : R0.def != null ? R0.def : sidePts(d, 'def'), tot = Math.max(1, att + def);
