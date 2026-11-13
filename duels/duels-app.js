@@ -4,7 +4,7 @@
  * Interrupteur : game_settings.duels_mode = 'off' | 'admin' | 'on'. Tant que ce n'est pas ouvert pour ce RP, le bouton DUEL est grisé. */
 (function () {
   'use strict';
-  var NOW_SKEW = 0, CARDS = null, cardsMissing = false, cardSel = null, S = null, MAPDATA = null, TEAMS = {}, tab = 'duels', timer = null, inited = false, initing = false, finOpen = false;
+  var NOW_SKEW = 0, handOrder = null, handSig = '', CARDS = null, cardsMissing = false, cardSel = null, S = null, MAPDATA = null, TEAMS = {}, tab = 'duels', timer = null, inited = false, initing = false, finOpen = false;
   var $ = function (id) { return document.getElementById(id); };
   var esc = function (x) { return typeof escapeHtml === 'function' ? escapeHtml(String(x == null ? '' : x)) : String(x == null ? '' : x).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
   var fmt = function (n) { return Math.round(n || 0).toLocaleString(LOC()); };
@@ -123,6 +123,11 @@
     document.body.appendChild(el);
     $('dz-close').onclick = close;
     $('dz-tabs').onclick = function (e) { var b = e.target.closest('[data-tab]'); if (b) { tab = b.dataset.tab; if (tab === 'map' || tab === 'rank') MAPDATA = null; if (tab === 'duels') markSeen(); if (tab === 'notifs') supabaseClient.rpc('duel_mark_notifications_read'); render(); } };
+    // kiosque des cartes : on balaie le doigt pour amener une autre carte au centre
+    var sx = null, swiped = false;
+    el.addEventListener('pointerdown', function (e) { sx = e.target.closest && e.target.closest('.dz-hand') ? e.clientX : null; swiped = false; });
+    el.addEventListener('pointerup', function (e) { if (sx == null) return; var dx = e.clientX - sx; sx = null; if (Math.abs(dx) > 40) { swiped = true; moveHand(dx < 0 ? 1 : -1); } });
+    el.addEventListener('click', function (e) { if (swiped) { e.stopPropagation(); e.preventDefault(); swiped = false; } }, true);
     el.addEventListener('click', onAction);
   }
   function open() { shell(); $('dz-app').classList.add('on'); tab = 'map'; markSeen(); refresh().then(render); render(); }
@@ -288,6 +293,7 @@
     var b = e.target.closest('button'); if (!b) return; var r;
     if (b.dataset.fin) { finOpen = !finOpen; $('p-duels').innerHTML = paneDuels(); return; }   // tuile « Duels terminés » : l'état ouvert/fermé survit aux rafraîchissements
     if (b.dataset.cancel) { var m = $('dz-modal'); if (m) m.remove(); return; }
+    if (b.dataset.handGo !== undefined) { swapHand(+b.dataset.handGo); return; }
     if (b.dataset.wheelOpen) { var wsp = ((CARDS && CARDS.spins) || []).filter(function (x) { return x.id === +b.dataset.wheelOpen; })[0]; if (wsp) { if (wsp.status === 'offered') showWheelResult(wsp, { ok: true, result: wsp.result, price: wsp.price }); else openWheel(wsp, true); } return; }
     if (b.dataset.cardPlay) { askCard(+b.dataset.cardPlay, b.dataset.kind); return; }
     if (b.dataset.cardPick) { pickCardTarget(b); return; }
@@ -346,16 +352,27 @@
   /* ---------- « MES CARTES » : une seule fois, au-dessus des duels ---------- */
   function cardsBlock() {
     if (!CARDS) return '';
-    var cap = CARDS.cap || 2, have = CARDS.cards || [], inDuel = myDuel() != null, html = '';
+    var cap = CARDS.cap || 2, have = CARDS.cards || [], inDuel = myDuel() != null;
     if (!have.length) return '<div class="dz-cards"><div class="dz-cards-h"><span>' + dzT('MES CARTES') + '</span><b>0 / ' + cap + '</b></div><div class="dz-cards-none">' + dzT('Gagne une carte en remportant un duel') + '</div>' + pieBlock() + '</div>';
-    for (var i = 0; i < cap; i++) {
-      if (i < have.length) html += '<button class="dz-slot' + (inDuel ? '' : ' off') + '" data-card-play="' + have[i].id + '" data-kind="' + have[i].card + '">' + ctile(have[i].card) + '</button>';
-      else html += '<div class="dz-slot empty">' + dzT('Gagne une carte en remportant un duel') + '</div>';
-    }
-    if (cap < 3) html += '<div class="dz-slot locked"><span>🔒</span><small>' + dzT('Emplacement Premium') + '</small></div>';
+    var items = [];
+    have.forEach(function (c) { items.push({ t: 'card', c: c }); });
+    while (items.length < cap) items.push({ t: 'empty' });
+    if (cap < 3) items.push({ t: 'locked' });
+    // Kiosque : TOUJOURS 3 places visibles (gauche · centre · droite). On touche une carte de côté : elle prend le centre et la carte du centre prend SA place (échange), rien ne disparaît.
+    var sig = items.map(function (it) { return it.t === 'card' ? it.c.id : it.t; }).join('|');
+    if (!handOrder || handSig !== sig) { handOrder = have.length >= 2 ? [0, 1, 2] : [1, 0, 2]; handSig = sig; }
+    var html = handOrder.map(function (k, pos) {
+      var it = items[k], cls = 'dz-slot ' + (pos === 1 ? 'o0' : pos === 0 ? 'om1' : 'o1') + (it.t === 'card' && !inDuel ? ' off' : '');
+      if (it.t === 'card') return '<button class="' + cls + '" ' + (pos === 1 ? 'data-card-play="' + it.c.id + '" data-kind="' + it.c.card + '"' : 'data-hand-go="' + pos + '"') + '>' + ctile(it.c.card) + '</button>';
+      if (it.t === 'empty') return '<button class="' + cls + ' empty" data-hand-go="' + pos + '"><span>' + dzT('Gagne une carte en remportant un duel') + '</span></button>';
+      return '<button class="' + cls + ' locked" data-hand-go="' + pos + '"><span>🔒</span><small>' + dzT('Emplacement Premium') + '</small></button>';
+    }).join('');
+    var center = items[handOrder[1]];
     return '<div class="dz-cards"><div class="dz-cards-h"><span>' + dzT('MES CARTES') + '</span><b>' + have.length + ' / ' + cap + '</b></div><div class="dz-hand">' + html + '</div>' +
-      '<div class="dz-cards-hint">' + (have.length ? (inDuel ? dzT('Touche une carte pour la jouer dans ton duel') : dzT('Rejoins un duel pour jouer une carte')) : '') + '</div>' + pieBlock() + '</div>';
+      '<div class="dz-cards-hint">' + (center.t === 'card' ? (inDuel ? dzT('Touche une carte pour la jouer dans ton duel') : dzT('Rejoins un duel pour jouer une carte')) : '') + '</div>' + pieBlock() + '</div>';
   }
+  function swapHand(pos) { if (!handOrder || pos === 1) return; var t = handOrder[pos]; handOrder[pos] = handOrder[1]; handOrder[1] = t; if ($('p-duels')) $('p-duels').innerHTML = paneDuels(); }
+  function moveHand(d) { swapHand(d > 0 ? 2 : 0); }   // balayage vers la gauche : la carte de droite vient au centre ; vers la droite : celle de gauche
   function myDuel() { return ((S && S.duels) || []).filter(function (d) { return d.status === 'active' && (d.members || []).some(function (m) { return m.player_id === me(); }); })[0] || null; }
 
   /* ---------- fenêtre de validation avant de jouer une carte ---------- */

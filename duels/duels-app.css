@@ -169,8 +169,8 @@
 .dz-cards{margin-bottom:10px}
 .dz-cards-h{display:flex;justify-content:space-between;align-items:baseline;font:600 13px 'Rajdhani',sans-serif;letter-spacing:2px;color:#8a92a8}
 .dz-cards-h b{color:#f5c842;font-size:14px}
-.dz-hand{display:flex;gap:10px;margin-top:8px}
-.dz-slot{flex:1;min-width:0;aspect-ratio:264/595;border:0;padding:0;background:none;border-radius:13px;position:relative;cursor:pointer;color:inherit;font:inherit}
+/* kiosque (voir plus bas) */
+\.dz-slot{aspect-ratio:264/595;border:0;padding:0;background:none;border-radius:13px;position:relative;cursor:pointer;color:inherit;font:inherit}
 .dz-slot.off{opacity:.45;filter:grayscale(.55)}
 .dz-slot.empty,.dz-slot.locked{border:1.5px dashed #242b3d;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;color:#8a92a8;font-size:12px;padding:8px;line-height:1.2;cursor:default;gap:6px}
 .dz-slot.locked{opacity:.6;background:rgba(255,255,255,.015);border-color:rgba(255,255,255,.12)}
@@ -227,3 +227,34 @@
 .dz-pierow.ready{width:100%;cursor:pointer;color:inherit;font:inherit;text-align:left;border-color:#2fe08a;box-shadow:0 0 14px rgba(47,224,138,.35);animation:dzpulse 1.6s ease-in-out infinite}
 .dz-pierow.ready b{color:#2fe08a}
 @keyframes dzpulse{0%,100%{box-shadow:0 0 6px rgba(47,224,138,.25)}50%{box-shadow:0 0 18px rgba(47,224,138,.6)}}
+
+/* burn : toujours sur 2 lignes (même sur petit écran) — la taille s'adapte à la largeur au lieu de passer à la ligne */
+.dz-loss{padding:8px 6px}
+.dz-loss-t{white-space:nowrap;font-size:clamp(11px,3.5vw,14px)}
+.dz-loss-t .dz-burn-w{font-size:clamp(12px,4vw,15px)}
+.dz-loss .dz-muted{white-space:nowrap;font-size:clamp(10px,3vw,12px)}
+
+/* ===== kiosque des cartes : la carte du milieu devant, les voisines incurvées comme autour d'un tube ===== */
+.dz-hand{--cw:min(40vw,160px);position:relative;height:calc(var(--cw) * 595 / 264 + 14px);margin-top:8px;perspective:800px;overflow:hidden;touch-action:pan-y;user-select:none}
+.dz-slot{position:absolute;left:50%;top:6px;width:var(--cw);margin-left:calc(var(--cw) / -2);transition:transform .38s cubic-bezier(.2,.7,.2,1),opacity .3s,filter .3s;transform-style:preserve-3d;cursor:pointer}
+.dz-slot.o0{transform:none;z-index:3}
+.dz-slot.o1{transform:translateX(calc(var(--cw) * .74)) rotateY(-52deg) scale(.88);z-index:2;filter:brightness(.62)}
+.dz-slot.om1{transform:translateX(calc(var(--cw) * -.74)) rotateY(52deg) scale(.88);z-index:2;filter:brightness(.62)}
+.dz-slot.o2,.dz-slot.om2{opacity:0;pointer-events:none;z-index:1}
+.dz-slot.o2{transform:translateX(calc(var(--cw) * 1.1)) rotateY(-70deg) scale(.7)}
+.dz-slot.om2{transform:translateX(calc(var(--cw) * -1.1)) rotateY(70deg) scale(.7)}
+.dz-dots{display:flex;justify-content:center;gap:8px;margin-top:2px}
+.dz-dot{width:8px;height:8px;border-radius:50%;padding:0;border:0;background:#2a3050;cursor:pointer}
+.dz-dot.on{background:#f5c842;box-shadow:0 0 8px rgba(245,200,66,.7)}
+.dz-slot.empty span,.dz-slot.locked span{display:block}
+.dz-slot{height:calc(var(--cw) * 595 / 264);box-sizing:border-box;border:0;padding:0;background:none;border-radius:13px;color:inherit;font:inherit;-webkit-tap-highlight-color:transparent;outline:none}
+.dz-slot.empty,.dz-slot.locked{border:1.5px dashed #242b3d;padding:8px}
+.dz-slot.locked{border-color:rgba(255,255,255,.12)}
+
+/* cases vides / verrouillées du kiosque : un vrai cadre de carte bien visible (pointillés clairs, fond léger), même sur les côtés */
+.dz-slot.empty,.dz-slot.locked{background:linear-gradient(160deg,#1a2038,#0f1324);border:2px dashed #55618f;color:#9aa5c8;opacity:1;justify-content:center;align-items:center;display:flex;flex-direction:column;gap:8px;text-align:center}
+.dz-slot.o1.empty,.dz-slot.om1.empty,.dz-slot.o1.locked,.dz-slot.om1.locked{filter:brightness(.9)}
+.dz-slot.locked span{font-size:34px;filter:none;opacity:.9}
+.dz-slot.locked small{font-size:11px;line-height:1.2;color:#9aa5c8}
+.dz-slot.empty span{font-size:12px;line-height:1.25;padding:0 8px}
+.dz-slot.o1.empty span,.dz-slot.om1.empty span,.dz-slot.o1.locked small,.dz-slot.om1.locked small{display:none}
