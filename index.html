@@ -34697,7 +34697,8 @@ window.Tour.init = async function(){
       // ça (RP pas éligible), la phrase démarrait sur rien ("Sinon, prélèvement…").
       let rentPrefix = 'Prélèvement';
       // Deux choix possibles (préempter OU lancer un duel) : on les laisse NEUTRES, plus de battement sur « Préempter » (demande 01/11).
-      const duelOn = land.status==='rented' && land.owner!==ME && !!(window.Duels && Duels.enabled());
+      // Bouton affiché aussi tant que l'état des duels n'est pas chargé (module lancé 2,6 s après l'ouverture : la fenêtre d'une Land pouvait s'ouvrir avant, sans bouton — cas Karine34 13/11)
+      const duelOn = land.status==='rented' && land.owner!==ME && !!(window.Duels && (!Duels.loaded || !Duels.loaded() || Duels.enabled()));
       if(canPreempt){
         btns = `<button class="rm-btn-play${duelOn?'':' pulse-cta'}" onclick="Tour.preemptLand()">Préempter</button>`;
         extra = ` Tu peux cependant préempter cette Land car ${land.owner.name} n'en est pas encore propriétaire. Veux-tu acheter cette Land ?`;
@@ -36717,6 +36718,6 @@ window.Tour.init = async function(){
 </script>
 <script src="duels/duels-map.js?v=20"></script>
 <script src="duels/duels-i18n.js?v=1"></script>
-<script src="duels/duels-app.js?v=42"></script>
+<script src="duels/duels-app.js?v=43"></script>
 </body>
 </html>

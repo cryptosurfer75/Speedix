@@ -510,6 +510,7 @@
   }
 
   async function launch(idx, name) {
+    if (!S) { try { await refresh(); } catch (e) {} }   // module pas encore chargé (ouverture de l'appli juste avant) : on attend l'état au lieu de dire « pas ouverts »
     if (!(S && S.enabled)) { toast(dzT('Les duels ne sont pas encore ouverts.'), true); return; }
     var chk = await supabaseClient.rpc('duel_can_launch', { p_idx: idx });
     if (chk.error || !chk.data) { toast(dzT('Erreur, réessaie.'), true); return; }
@@ -526,5 +527,5 @@
     await refresh(); open();
   }
 
-  window.Duels = { openCards: function () { return cardsBlock(); }, openPot: openPot, init: init, open: open, close: close, launch: launch, refresh: refresh, renderTeamRow: renderTeamRow, updateBadge: updateBadge, enabled: function () { return !!(S && S.enabled); } };
+  window.Duels = { openCards: function () { return cardsBlock(); }, openPot: openPot, init: init, open: open, close: close, launch: launch, refresh: refresh, renderTeamRow: renderTeamRow, updateBadge: updateBadge, enabled: function () { return !!(S && S.enabled); }, loaded: function () { return S !== null; } };
 })();
