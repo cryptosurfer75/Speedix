@@ -58,13 +58,29 @@
     showWheel();
     return S;
   }
+  // Rafraîchissement des duels UNIQUEMENT quand le RP est sur un écran qui les affiche (écran Duels, page Tour, page Team) :
+  // inutile de solliciter la base pour ceux qui n'y vont pas (décision du fondateur 14/11/2026, économie de CPU Supabase).
+  function onScreen() {
+    var a = $('dz-app'); if (a && a.classList.contains('on')) return true;
+    var l = $('page-lands'), t = $('page-teams');
+    return !!((l && l.classList.contains('active')) || (t && t.classList.contains('active')));
+  }
+  var lastRefreshAt = 0;
+  async function refreshGuard() { lastRefreshAt = Date.now(); return refresh(); }
+  // Appelée à chaque arrivée sur la page Tour / Team : charge l'état si absent ou vieux de plus de 20 s
+  function touch() {
+    if (!currentUser) return;
+    if (!inited && !initing) { init(); return; }
+    if (!initing && (S === null || Date.now() - lastRefreshAt > 20000)) refreshGuard().catch(function (e) { console.warn('[duels] touch', e); });
+  }
   async function init() {
     if (inited || initing || !currentUser) return; initing = true;
-    try { await refresh(); inited = true; } catch (e) { console.warn('[duels] init', e); }
+    try { await refreshGuard(); inited = true; }   // 1 seul appel à l'ouverture de l'appli : le défenseur voit la pastille rouge « duel sur ta Land » même s'il ne va pas sur le Tour
+     catch (e) { console.warn('[duels] init', e); }
     initing = false;
     if (timer) clearInterval(timer);
-    timer = setInterval(function () { if (document.visibilityState !== 'hidden') refresh(); }, 60000);
-    setInterval(function () { document.querySelectorAll('[data-cd-until]').forEach(function (e) { e.textContent = cdHMS(Date.parse(e.dataset.cdUntil) - now()); }); }, 1000);   // comptes à rebours Prison en direct
+    timer = setInterval(function () { if (document.visibilityState !== 'hidden' && onScreen()) refreshGuard().catch(function () {}); }, 60000);
+    setInterval(function () { document.querySelectorAll('[data-cd-until]').forEach(function (e) { e.textContent = cdHMS(Date.parse(e.dataset.cdUntil) - now()); }); }, 1000);   // comptes à rebours 
   }
 
   /* ---------- tuile DUEL de la page SPEEDIX Tour (à côté de la CAGNOTTE du Tour) ---------- */
@@ -527,5 +543,5 @@
     await refresh(); open();
   }
 
-  window.Duels = { openCards: function () { return cardsBlock(); }, openPot: openPot, init: init, open: open, close: close, launch: launch, refresh: refresh, renderTeamRow: renderTeamRow, updateBadge: updateBadge, enabled: function () { return !!(S && S.enabled); }, loaded: function () { return S !== null; } };
+  window.Duels = { touch: touch, openCards: function () { return cardsBlock(); }, openPot: openPot, init: init, open: open, close: close, launch: launch, refresh: refresh, renderTeamRow: renderTeamRow, updateBadge: updateBadge, enabled: function () { return !!(S && S.enabled); }, loaded: function () { return S !== null; } };
 })();
