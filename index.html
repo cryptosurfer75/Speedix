@@ -30175,6 +30175,7 @@ async function _enableNativePush(silent){
           var _pBody=_n.body||data.message||'';
           if(_pBody) setTimeout(function(){ showPushMessageModal(_pTitle,_pBody); },700);
         }catch(_e){}
+        if(data.screen==='tour') data.screen='lands';   // « tour » n'est pas une page : l'écran du Tour s'appelle « lands » (page vide signalée 14/11)
         if(data.screen && typeof nav==='function'){
           nav(data.screen);
           if(data.screen==='defis' && data.tab && typeof switchChallengesTab==='function'){
