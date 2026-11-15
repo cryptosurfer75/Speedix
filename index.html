@@ -14008,7 +14008,7 @@ async function renderMyChallenges(){
       var color=b.color||'#f5c842';
       var isUnlocked=!!unlockedMap[b.id];
       var year=(b.event_date||'').slice(0,4);
-      var eventDate=b.event_date?new Date(b.event_date).toLocaleDateString(SPEEDIX_LANG,{day:'2-digit',month:'short'}):'';
+      var eventDate=b.event_date?new Date(b.event_date).toLocaleDateString(SPEEDIX_LANG,{day:'2-digit',month:'short',timeZone:'UTC'}):'';
       // Bandeau date en haut pour les inscrits (pas encore validés)
       var badge=isUnlocked
         ? ''
@@ -26479,7 +26479,7 @@ async function renderChallenges(){
       var status='upcoming';
       if(today>endDay) status='past';
       else if(today>=startDay) status='today';
-      var eventDate=startDay?new Date(startDay).toLocaleDateString(SPEEDIX_LANG,{day:'2-digit',month:'short'}):'—';
+      var eventDate=startDay?new Date(startDay).toLocaleDateString(SPEEDIX_LANG,{day:'2-digit',month:'short',timeZone:'UTC'}):'—';
       var bannerColor=status==='today'?'#2ddb80':(status==='past'?'#5a6080':color);
       var bannerLabel=status==='today'?'🔥 AUJOURD\'HUI':(status==='past'?'⏱ PASSÉ':'📅 '+eventDate.toUpperCase());
       eventBanner='<div style="position:absolute;top:0;left:0;right:0;background:'+((b.frameBands&&bannerColor===color)?_bandGrad([b.frameBands[0],b.frameBands[1]],90):bannerColor)+';color:#000;font-family:Bebas Neue,sans-serif;font-size:.55rem;letter-spacing:1px;padding:.15rem 0;text-align:center;font-weight:900;border-top-left-radius:11px;border-top-right-radius:11px">'+bannerLabel+'</div>';
@@ -27987,14 +27987,14 @@ async function participateEvent(badgeId,badgeName){
         .select('event_date').eq('id',badgeId).maybeSingle();
       if(newBadge && newBadge.event_date){
         var nd=new Date(newBadge.event_date);
-        var newKey=nd.getFullYear()+'-'+nd.getMonth();
+        var newKey=nd.getUTCFullYear()+'-'+nd.getUTCMonth();
         var {data:myParts}=await supabaseClient.from('player_event_participations')
           .select('badge_id, badges(event_date)').eq('player_id',currentUser.id);
         var sameMonthCount=(myParts||[]).filter(function(p){
           var ed=p.badges && p.badges.event_date;
           if(!ed) return false;
           var d=new Date(ed);
-          return (d.getFullYear()+'-'+d.getMonth())===newKey;
+          return (d.getUTCFullYear()+'-'+d.getUTCMonth())===newKey;
         }).length;
         if(sameMonthCount>=2){
           showToast('⚠️ Maximum 2 challenges/mois en Free. Passe en Premium pour challenges illimités.');
