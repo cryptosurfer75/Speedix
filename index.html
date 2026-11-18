@@ -9434,6 +9434,74 @@ async function onLoginSuccess(user, isNew){
   if(typeof checkAdminAlert==='function'){
     setTimeout(function(){ checkAdminAlert(); }, 3200);
   }
+  // Cagnotte du Tour gagnée (18/11/2026) : fenêtre de victoire à l'ouverture de l'appli
+  // et au retour au premier plan. Lignes posées par jackpot_pay_*() (table jackpot_wins),
+  // marquées vues par jackpot_ack() à la fermeture — indépendant des notifications du Tour.
+  (function(){
+    var _busy=false;
+    function _esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+    function _show(w){
+      if(document.getElementById('jackpot-win-ov')) return;
+      var en=(typeof SPEEDIX_LANG!=='undefined' && SPEEDIX_LANG==='en');
+      var rpc=Number(w.rpc||0).toLocaleString(en?'en-US':'fr-FR');
+      var parts=String(w.detail||'').split('|');
+      var cf='';
+      var cols=['#ff4fa3','#35d0ff','#7dff6a','#f5c842','#ff8a3d','#ffffff'];
+      for(var i=0;i<34;i++){
+        var x=Math.random()*100, y=Math.random()*100, r=Math.round(Math.random()*180);
+        if(Math.random()<.3){ var s=[22,28,36][i%3]; cf+='<i class="jpw-coin" style="left:'+x+'%;top:'+y+'%;--s:'+s+'px;--r:'+(r-90)+'deg">RPC</i>'; }
+        else { cf+='<i class="jpw-rc" style="left:'+x+'%;top:'+y+'%;--w:'+[8,11,14][i%3]+'px;--c:'+cols[i%6]+';--r:'+r+'deg"></i>'; }
+      }
+      var ov=document.createElement('div');
+      ov.id='jackpot-win-ov';
+      ov.innerHTML='<style>'
+        +'#jackpot-win-ov{position:fixed;inset:0;z-index:99999;background:radial-gradient(ellipse at 50% 40%,rgba(98,53,214,.55),rgba(10,6,30,.94) 70%);display:flex;align-items:center;justify-content:center;padding:24px;font-family:Rajdhani,sans-serif}'
+        +'#jackpot-win-ov .jpw-coin{position:absolute;width:var(--s);height:var(--s);border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff1a8,#f5c842 45%,#c98f0a);border:2px solid #fff0a0;display:flex;align-items:center;justify-content:center;font-style:normal;font-weight:700;color:#8a5a00;font-size:calc(var(--s)*.3);transform:rotate(var(--r));pointer-events:none}'
+        +'#jackpot-win-ov .jpw-rc{position:absolute;width:var(--w);height:calc(var(--w)*.45);background:var(--c);border-radius:2px;transform:rotate(var(--r));pointer-events:none}'
+        +'#jackpot-win-ov .jpw-bev{position:relative;z-index:2;width:100%;max-width:340px;padding:3px;background:linear-gradient(135deg,#fff3b8,#f5c842 35%,#a8740a 70%,#f5c842);clip-path:polygon(18px 0,calc(100% - 18px) 0,100% 18px,100% calc(100% - 18px),calc(100% - 18px) 100%,18px 100%,0 calc(100% - 18px),0 18px);filter:drop-shadow(0 0 28px rgba(245,200,66,.45))}'
+        +'#jackpot-win-ov .jpw-in{position:relative;background:#0c0f1a;padding:26px 20px 22px;text-align:center;clip-path:polygon(16px 0,calc(100% - 16px) 0,100% 16px,100% calc(100% - 16px),calc(100% - 16px) 100%,16px 100%,0 calc(100% - 16px),0 16px);background-image:radial-gradient(ellipse at 50% 0,rgba(245,200,66,.18),transparent 60%)}'
+        +'#jackpot-win-ov .jpw-x{position:absolute;top:8px;right:14px;color:#9aa0bd;font-size:20px;font-weight:700;cursor:pointer;padding:4px}'
+        +'#jackpot-win-ov .jpw-tr{font-size:64px;line-height:1;filter:drop-shadow(0 4px 10px rgba(245,200,66,.6))}'
+        +'#jackpot-win-ov h2{font-family:"Baloo 2",Rajdhani,sans-serif;font-weight:800;font-size:34px;color:#fff;letter-spacing:1px;margin-top:4px;line-height:1.05}'
+        +'#jackpot-win-ov h2 span{color:#f5c842}'
+        +'#jackpot-win-ov .jpw-amt{margin:16px 0 4px;font-size:60px;font-weight:700;color:#f5c842;line-height:1;text-shadow:0 0 22px rgba(245,200,66,.55)}'
+        +'#jackpot-win-ov .jpw-amt small{font-size:30px;margin-left:6px}'
+        +'#jackpot-win-ov .jpw-sub{margin-top:8px;font-size:19px;font-weight:600;color:#cfd3e6}'
+        +'#jackpot-win-ov .jpw-sub b{color:#f5c842}'
+        +'#jackpot-win-ov .jpw-det{margin-top:12px;padding-top:12px;border-top:1px solid rgba(245,200,66,.25);font-size:16px;font-weight:600;color:#9aa0bd;line-height:1.35}'
+        +'#jackpot-win-ov .jpw-det b{color:#fff}'
+        +'#jackpot-win-ov .jpw-btn{margin-top:18px;display:block;width:100%;border:2.5px solid #2ddb80;background:#0c0f1a;color:#2ddb80;font-family:Rajdhani,sans-serif;font-weight:700;font-size:21px;letter-spacing:1.5px;padding:12px 0;border-radius:10px;text-transform:uppercase;cursor:pointer}'
+        +'</style>'+cf
+        +'<div class="jpw-bev"><div class="jpw-in"><div class="jpw-x" id="jpw-x">✕</div>'
+        +'<div class="jpw-tr">🏆</div>'
+        +'<h2>'+(en?'BRAVO! <span>YOU WON</span><br>THE TOUR JACKPOT':'BRAVO ! <span>TU AS GAGNÉ</span><br>LA CAGNOTTE DU TOUR')+'</h2>'
+        +'<div class="jpw-amt">+'+_esc(rpc)+'<small>RPC</small></div>'
+        +'<div class="jpw-sub">'+(en?'Your token landed on the <b>winning square</b>!':'Ton pion s\'est posé sur la <b>case gagnante</b> !')+'</div>'
+        +'<div class="jpw-det">Land <b>n°'+_esc(w.land_idx)+'</b>'+(parts[0]?' · '+_esc(parts[0]):'')+(parts[1]?'<br>'+_esc(parts[1].replace(/^après/,'Après'))+' 🏃':'')+'</div>'
+        +'<button class="jpw-btn" id="jpw-ok">'+(en?'CONGRATULATIONS!':'FÉLICITATIONS !')+'</button>'
+        +'</div></div>';
+      document.body.appendChild(ov);
+      function close(){
+        try{ ov.remove(); }catch(e){}
+        try{ supabaseClient.rpc('jackpot_ack').then(function(){},function(){}); }catch(e){}
+        try{ if(typeof walletLoad==='function') walletLoad(); }catch(e){}
+      }
+      document.getElementById('jpw-ok').onclick=close;
+      document.getElementById('jpw-x').onclick=close;
+    }
+    async function check(){
+      if(_busy || typeof currentUser==='undefined' || !currentUser || !currentUser.id) return;
+      _busy=true;
+      try{
+        var r=await supabaseClient.rpc('jackpot_my_pending');
+        if(r && !r.error && r.data && r.data.length) _show(r.data[0]);
+      }catch(e){ console.warn('[jackpot]',e); }
+      _busy=false;
+    }
+    window._checkJackpotWin=check;
+    setTimeout(check, 3800);
+    if(!window._jackpotVis){ window._jackpotVis=true; document.addEventListener('visibilitychange', function(){ if(!document.hidden) window._checkJackpotWin(); }); }
+  })();
   if(typeof checkCollabPendingBanner==='function'){
     setTimeout(function(){ checkCollabPendingBanner(); }, 3500);
   }
