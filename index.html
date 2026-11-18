@@ -31835,6 +31835,9 @@ window.Tour.init = async function(){
  "Tu payes une amende pour avoir garé ton vélo sur la ligne d'arrivée": "You pay a fine for parking your bike on the finish line"
 };
   const _bt = function(t){ return (typeof SPEEDIX_LANG!=='undefined' && SPEEDIX_LANG==='en' && BONUS_TEXT_EN[t]) || t; };
+  // Barème A (18/11/2026, demande user) : tous les montants des cartes chance ×2 (gains +400…+2000, pertes −160…−1200).
+  // Le serveur borne à -1200/+2000 (tour_claim_bonus_card / tour_apply_rpc_delta).
+  const BONUS_SCALE = 2;
   const BONUS_CARDS = [
     {text:"Ta course est annulée à cause d'un orage, tu perds tes frais d'inscription", amount:-300},
     {text:"Promotion au rayon chaussures de course, tu gagnes un bon d'achat", amount:500},
@@ -31887,6 +31890,7 @@ window.Tour.init = async function(){
     {text:"Tu es invité à tester en avant-première les chaussures d'une marque", amount:400},
     {text:"Fatigue accumulée, tu dois annuler un objectif et rembourser ton inscription", amount:-250},
   ];
+  BONUS_CARDS.forEach(function(c){ c.amount *= BONUS_SCALE; });
   // ── 100 cases bonus, réparties régulièrement sur le tracé (2026-08-01, simplifié
   // à la demande de l'user) : ici on décide juste QUELLES cases sont "bonus", pas
   // QUELLE carte elles contiennent — la carte est piochée plus tard, au moment
@@ -32028,7 +32032,7 @@ window.Tour.init = async function(){
     if(!l || l.status==='etape') return; // sécurité, ne devrait jamais arriver (idx choisis à la main)
     l.status = 'bonus';
     l.bonusText = _bt(c.text);
-    l.bonusAmount = c.amount;
+    l.bonusAmount = c.amount * BONUS_SCALE;
   });
   // ── Cases « Banc de touche » (2026-10-16, demande explicite user) : atterrir
   // dessus = soupçon de dopage, le pion reste immobile pendant 2 courses OU le RP
@@ -32853,7 +32857,7 @@ window.Tour.init = async function(){
       // Crédit RÉEL (2026-08-06, bug corrigé — même défaut que le tour complet :
       // ME.rpc était juste modifié en local, jamais écrit en base). Le montant
       // ENVOYÉ n'est qu'un aperçu : tour_claim_bonus_card le CLAMPE lui-même à
-      // la vraie plage du deck (-600 à +1000) côté serveur (2026-08-14, faille
+      // la vraie plage du deck (-1200 à +2000 depuis le barème A du 18/11/2026) côté serveur (2026-08-14, faille
       // corrigée — tour_apply_rpc_delta appliquait n'importe quel montant reçu
       // sans aucune vérification, exploitable depuis la console).
       if(currentUser && currentUser.id){
