@@ -18,7 +18,7 @@
     land_deja_en_duel: dzT('Cette Land est déjà en duel.'), defenseur_deja_engage: dzT('Ce RP défend déjà un duel.'), defenseur_en_infirmerie: dzT('Ce RP est en infirmerie : on ne peut pas tirer sur l\'ambulance, attaque impossible.'), bail_arrive_a_echeance: dzT('Ton bail arrive à échéance, tu ne peux miser cette Land dans un duel.'),
     aucune_location_a_miser: dzT('Il te faut au moins une Land en location à miser.'), plafond_locations_atteint: dzT('Tu as atteint ta limite de locations (8 en Free).'),
     cagnotte_insuffisante_pour_lancer: dzT('La cagnotte de ta team doit couvrir au moins le prix du Joker pour lancer un duel.'),
-    team_au_max_en_attaque: dzT('Ta team a déjà atteint son maximum de duels en attaque.'), team_adverse_au_max_en_defense: dzT('Cette team défend déjà le maximum de duels.'),
+    team_au_max_en_attaque: dzT('Ta team a déjà atteint son maximum de duels en même temps (5 max, attaque et défense comprises).'), team_adverse_au_max_en_defense: dzT('Cette team a déjà atteint son maximum de duels en même temps.'),
     mode_test_cibles_bots: dzT('Mode test : seules les Lands de bots peuvent être visées.'), camp_complet: dzT('Ce camp est complet.'), camp_complet_premium: dzT('Ce camp est complet.'), pas_de_ta_team: dzT('Ce duel ne concerne pas ta team.'),
     duel_termine: dzT('Le duel est terminé : les points sont figés.'), duel_introuvable: dzT('Duel introuvable.'), joker_pas_encore: dzT('Le Joker se joue à la fin du duel, dans l\'heure qui suit.'),
     pas_capitaine: dzT('Seul le capitaine de la team peut jouer le Joker.'), joker_deja_joue: dzT('Le Joker est déjà joué sur ce duel.'), rien_a_eviter: dzT('Ton équipe n\'a pas de burn à éviter.'),
