@@ -2044,6 +2044,8 @@ body::after{
 .rm-btn-play:active{ transform:translateY(0); }
 /* Bouton « Lancer un duel » : même gabarit que Préempter, en violet (couleur des duels) */
 .rm-btn-duel{ color:#e454ff; background:linear-gradient(135deg,rgba(228,84,255,.28),rgba(228,84,255,.08)); border-color:rgba(228,84,255,.6); }
+.rm-btn-gold{ color:var(--gold); background:linear-gradient(135deg,rgba(245,200,66,.28),rgba(245,200,66,.08)); border-color:rgba(245,200,66,.6); }
+.rm-btn-gold:hover{ background:linear-gradient(135deg,rgba(245,200,66,.4),rgba(245,200,66,.14)); }
 .rm-btn-duel:hover{ background:linear-gradient(135deg,rgba(228,84,255,.4),rgba(228,84,255,.14)); }
 /* Rivalité Nord/Sud (2026-08-02, demande explicite, "on essaie comme ça") —
    Paris en bleu marine, Marseille en cyan électrique. Classe couleur posée
@@ -35154,6 +35156,19 @@ window.Tour.init = async function(){
     await _tourSyncWallet();
     preemptLand(); // relance la préemption, canBuyLands() est maintenant vrai
   }
+  // Achat du droit d'acquisition depuis « acheter ma Land louée » (attemptBuyLand), puis reprise de l'achat là où le RP en était
+  // (même recette serveur tour_buy_acquisition_right que preemptBuyAcquisitionRight — pas de seconde règle)
+  async function buyAcquisitionRightThenRetry(){
+    if(ME.nyx < ACQUISITION_RIGHT_PRICE_NYX){ showPreemptNotEnoughNyxForRightModal(); return; }
+    const res = await _tourCall('tour_buy_acquisition_right');
+    if(!res.ok){
+      if(res.error==='insufficient_nyx'){ showPreemptNotEnoughNyxForRightModal(); return; }
+      if(res.error!=='already_owned'){ _tourErrorToast(res.error); return; }
+    }
+    ME.acquisitionRights = true;
+    await _tourSyncWallet();
+    if(typeof window._pendingBuyRetry==='function') window._pendingBuyRetry(); else closeRentModal();
+  }
   function showPreemptNotEnoughNyxForRightModal(){
     const land = window._rentModalLand;
     const bevel = document.getElementById('tour-rm-bevel');
@@ -35964,8 +35979,10 @@ window.Tour.init = async function(){
       document.getElementById('tour-rm-bevel').classList.remove('celebrate','etape-glow','pulse-on','bonus-gain','bonus-loss','event-frame','extra-frame','gift-frame');
       document.getElementById('tour-rm-inner').classList.remove('celebrate');
       document.getElementById('tour-rm-title').innerHTML = `😕 <span style="color:#fff">CONDITIONS</span> <span style="color:var(--gold)">NON REMPLIES</span>`;
-      document.getElementById('tour-rm-sub').textContent = `Désolé, tu ne peux pas encore acheter cette Land — il te faut le statut Premium, un droit d'acquisition, ou le grade CONFIRMÉ. Veux-tu passer Premium ?`;
-      document.getElementById('tour-rm-btns').innerHTML = `<button class="tour-btn" onclick="Tour.closeRentModal()">Annuler</button><button class="rm-btn-play pulse-cta" onclick="Tour.simulateGoPremium()">Passer Premium</button>`;
+      document.getElementById('tour-rm-sub').textContent = `Désolé, tu ne peux pas encore acheter cette Land. Il te faut le statut Premium, être Confirmé ou obtenir un droit d'acquisition pour ${ACQUISITION_RIGHT_PRICE_NYX} NYX. À toi de choisir.`;
+      // 2026-11-21 : le droit d'acquisition à 20 NYX est proposé ici aussi (un RP ne voyait que « Passer Premium » et ne savait pas qu'il pouvait l'acheter) — même choix que la préemption (showPreemptNoRightsModal)
+      document.getElementById('tour-rm-btns').innerHTML = `<button class="rm-btn-play rm-btn-gold" onclick="Tour.simulateGoPremium()">Premium</button><button class="rm-btn-play pulse-cta" onclick="Tour.buyAcquisitionRightThenRetry()">Droit d'acquisition</button>`;   // 2 tuiles seulement ; la croix en haut de la fenêtre ferme
+      window._rentModalLand = land;
       document.getElementById('tour-rent-modal').classList.add('open');
       document.getElementById('tour-rm-status-strip').innerHTML = renderModalStatusStrip();
       return;
@@ -36698,7 +36715,7 @@ window.Tour.init = async function(){
     runKm, applyServerMove, runKmFromInput, resetDemo, simulateFreeLanding, simulateEtapeLanding,
     buyAcquisitionRightDemo, openMyLandsPage, closeMyLandsPage,
     confirmRent, closeRentModal, goToRpcMarket,
-    preemptLand, preemptGoPremium, preemptBuyAcquisitionRight, preemptGoToNyxMarket,
+    preemptLand, preemptGoPremium, preemptBuyAcquisitionRight, buyAcquisitionRightThenRetry, preemptGoToNyxMarket,
     preemptGoToNyxMarketForRight, cancelPreemptRetry,
     buyMyRentedLand, releaseLand, buyStarFromModal, openStarModal,
     openSellModal, confirmSellLand, cancelSale, focusLandOnMap,
@@ -36790,7 +36807,7 @@ window.Tour.init = async function(){
 })();
 
 </script>
-<script src="duels/duels-map.js?v=20"></script>
+<script src="duels/duels-map.js?v=21"></script>
 <script src="duels/duels-i18n.js?v=1"></script>
 <script src="duels/duels-app.js?v=44"></script>
 </body>

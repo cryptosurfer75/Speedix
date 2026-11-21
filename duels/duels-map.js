@@ -85,11 +85,11 @@
       for (var u = 0; u < pa.length; u++) for (var v = 0; v < pb.length; v++) { var h = Math.hypot(pa[u][0] + ox[0] - pb[v][0] - oy[0], pa[u][1] + ox[1] - pb[v][1] - oy[1]); if (h < m) m = h; }
       return m;
     }, touches = function (d) { return d >= D * .99 && d <= D * 1.02; };
-    var place = function (mov, anc, strict) {
+    var place = function (mov, anc, strict, keep) {   // keep : on garde les contacts déjà obtenus (TOUCH) même quand l'espacement strict avec les autres teams est relâché
       var o0 = OFF[mov];
       for (var si2 = 0; si2 < steps.length; si2++) {
         var cand = [o0[0] + steps[si2][0], o0[1] + steps[si2][1]], good = touches(dmin(mov, cand, anc));
-        for (var ti = 0; ti < TOUCH.length && good && strict; ti++) { var tp = TOUCH[ti], z2 = tp[0] === mov ? tp[1] : tp[1] === mov ? tp[0] : null; if (z2 && z2 !== anc && !touches(dmin(mov, cand, z2))) good = false; }
+        for (var ti = 0; ti < TOUCH.length && good && (strict || keep); ti++) { var tp = TOUCH[ti], z2 = tp[0] === mov ? tp[1] : tp[1] === mov ? tp[0] : null; if (z2 && z2 !== anc && !touches(dmin(mov, cand, z2))) good = false; }
         for (var zi = 0; zi < dids.length && good; zi++) { var z = dids[zi]; if (z === mov || z === anc) continue; var dz = dmin(mov, cand, z); if ((duelPair[mov + '|' + z] || !strict) ? dz < D * .99 : dz < GAP) good = false; }
         if (good) return cand;
       }
@@ -103,6 +103,9 @@
       var A = d.attackerTeam, B = d.defenderTeam, big = byTeam[A].length >= byTeam[B].length ? A : B, small = big === A ? B : A;
       var pk = place(small, big, true), mv = small, an = big;
       if (!pk) { pk = place(big, small, true); mv = big; an = small; }
+      // espacement relâché mais contacts déjà obtenus conservés (une team prise entre deux duels doit rester collée aux deux adversaires)
+      if (!pk) { pk = place(small, big, false, true); mv = small; an = big; }
+      if (!pk) { pk = place(big, small, false, true); mv = big; an = small; }
       if (!pk) { pk = place(small, big, false); mv = small; an = big; }
       if (pk) { OFF[mv] = pk; TOUCH.push([mv, an]); }
     });
