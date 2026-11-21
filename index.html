@@ -29285,7 +29285,8 @@ async function loadTeamMembers(teamId, teamName){
     m._ptsForTeam=computeTeamMemberPtsForTeam(pts, m.role, joinedBefore, ptsBeforeJoin);
     // Gardé pour l'affichage (2026-08-08, demande explicite user, signalement d'un
     // RP) : même exemption que le calcul juste au-dessus (jamais pour le capitaine).
-    m._joinedAfterCutoff=(!joinedBefore && m.role!=='capitaine');
+    // MIROIR de computeTeamMemberPtsForTeam : arrivé après le 10 MAIS avec 0 pt à l'arrivée = compté normalement → pas de croix.
+    m._joinedAfterCutoff=(!joinedBefore && m.role!=='capitaine' && ptsBeforeJoin!==0);
   });
   // Tri principal : ptsForTeam desc (pour identifier top 6 et extras), tiebreak sur pts
   data.sort(function(a,b){
