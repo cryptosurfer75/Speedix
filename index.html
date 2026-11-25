@@ -23556,10 +23556,12 @@ async function openTeamWeekendChallenge(){
   // localStorage par édition, même principe que _markCollabSeen.
   if(edition) _markTeamChallengeSeen(edition.id);
 
-  // Défi effort : « team 2 » (teams.parent_team_id) jouée avec sa team principale -- MIROIR de _effort_player_stats().
+  // Défi effort : les « team 2 » fusionnées avec leur team principale viennent de la base (RPC effort_team_map, source unique de la règle).
+  var tcExt={}, myRealTeamId=teamId; // id team 2 fusionnée -> id team principale
   if(_tcIsEffort(edition)){
-    var {data:_tcSelf}=await supabaseClient.from('teams').select('parent_team_id').eq('id',teamId).maybeSingle();
-    if(_tcSelf&&_tcSelf.parent_team_id) teamId=_tcSelf.parent_team_id;
+    var _mapRes=await supabaseClient.rpc('effort_team_map',{p_edition:edition.id});
+    tcExt=(_mapRes&&_mapRes.data)||{};
+    if(tcExt[teamId]) teamId=tcExt[teamId];
   }
 
   // Palmarès de MA team, toutes éditions confondues -- affiché de façon
@@ -23600,10 +23602,7 @@ async function openTeamWeekendChallenge(){
     var {data:allJoined}=await supabaseClient.from('team_challenge_participants')
       .select('player_id,team_id').eq('edition_id',edition.id);
     allJoined=allJoined||[];
-    var tcExt={}; // id team 2 -> id team principale
     if(_tcIsEffort(edition)){
-      var {data:_exts2}=await supabaseClient.from('teams').select('id,parent_team_id').not('parent_team_id','is',null);
-      (_exts2||[]).forEach(function(x){tcExt[x.id]=x.parent_team_id;});
       allJoined=allJoined.map(function(j){return {player_id:j.player_id, team_id:tcExt[j.team_id]||j.team_id};});
     }
     var allPlayerIds=allJoined.map(function(j){return j.player_id;});
@@ -23674,7 +23673,7 @@ async function openTeamWeekendChallenge(){
     allTeamsStats=teamIdsInvolved.map(buildTeamStats).sort(function(a,b){return _tcIsEffort(edition)?(b.totalKm-a.totalKm):(b.totalCapped-a.totalCapped);});
   }
 
-  _teamChallengeCache={myTeamId:teamId, edition:edition, capKm:capKm, allTeamsStats:allTeamsStats, part:partData, squad:squadData, relay:relayData,
+  _teamChallengeCache={myTeamId:teamId, myRealTeamId:myRealTeamId, edition:edition, capKm:capKm, allTeamsStats:allTeamsStats, part:partData, squad:squadData, relay:relayData,
     successCount:successCount||0, failedCount:failedCount||0, history:historyRows};
   _teamChallengeTab='intro';
   _teamChallengeHistoryOpen=false;
@@ -24007,7 +24006,7 @@ async function joinTeamWeekendChallenge(teamId){
   var edition=_teamChallengeCache&&_teamChallengeCache.edition;
   if(!edition) return;
   var {error}=await supabaseClient.from('team_challenge_participants')
-    .insert({player_id:currentUser.id, team_id:teamId, edition_id:edition.id});
+    .insert({player_id:currentUser.id, team_id:(_teamChallengeCache.myRealTeamId||teamId), edition_id:edition.id}); // sa vraie team : la fusion T1/T2 se calcule en base
   if(error){ showToast('⚠️ Inscription impossible ('+(error.message||'erreur')+')'); return; }
   showToast('✅ Inscrit au défi collectif !');
   openTeamWeekendChallenge();
