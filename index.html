@@ -23974,7 +23974,7 @@ function _renderTeamChallengeModal(){
         +(mine?mine.joinedIds.length:0)+' / '+(mine?mine.teamSize:0)+' RP de la team inscrits'
       +'</div>'))
       +rowsHtml))
-      +recordHtml;
+      +(_tcIsEffort(edition)?'':recordHtml); // défi effort : tuiles Réussi/Échec masquées pendant le défi (plus de place), visibles à la fin
   } else {
     // "intro" (vue par défaut à l'ouverture) : juste l'explication du défi +
     // le bouton pour participer, comme demandé -- rien d'autre.
