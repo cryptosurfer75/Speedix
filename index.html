@@ -23556,6 +23556,12 @@ async function openTeamWeekendChallenge(){
   // localStorage par édition, même principe que _markCollabSeen.
   if(edition) _markTeamChallengeSeen(edition.id);
 
+  // Défi effort : « team 2 » (teams.parent_team_id) jouée avec sa team principale -- MIROIR de _effort_player_stats().
+  if(_tcIsEffort(edition)){
+    var {data:_tcSelf}=await supabaseClient.from('teams').select('parent_team_id').eq('id',teamId).maybeSingle();
+    if(_tcSelf&&_tcSelf.parent_team_id) teamId=_tcSelf.parent_team_id;
+  }
+
   // Palmarès de MA team, toutes éditions confondues -- affiché de façon
   // significative sous "Ma team" (demande explicite 2026-09-26 : "case
   // défi réussi / défi échec... que tu places en dessous de manière très
@@ -23594,6 +23600,12 @@ async function openTeamWeekendChallenge(){
     var {data:allJoined}=await supabaseClient.from('team_challenge_participants')
       .select('player_id,team_id').eq('edition_id',edition.id);
     allJoined=allJoined||[];
+    var tcExt={}; // id team 2 -> id team principale
+    if(_tcIsEffort(edition)){
+      var {data:_exts2}=await supabaseClient.from('teams').select('id,parent_team_id').not('parent_team_id','is',null);
+      (_exts2||[]).forEach(function(x){tcExt[x.id]=x.parent_team_id;});
+      allJoined=allJoined.map(function(j){return {player_id:j.player_id, team_id:tcExt[j.team_id]||j.team_id};});
+    }
     var allPlayerIds=allJoined.map(function(j){return j.player_id;});
     var teamIdsInvolved=Array.from(new Set(allJoined.map(function(j){return j.team_id;})));
     if(teamIdsInvolved.indexOf(teamId)<0) teamIdsInvolved.push(teamId); // ma team affichée même à 0 inscrit
@@ -23630,7 +23642,8 @@ async function openTeamWeekendChallenge(){
     // moins 1 inscrit -- volume négligeable pour ce prototype).
     var teamSizeById={};
     await Promise.all(teamIdsInvolved.map(async function(tid){
-      var {count}=await supabaseClient.from('team_members').select('*',{count:'exact',head:true}).eq('team_id',tid);
+      var famIds=[tid].concat(Object.keys(tcExt).filter(function(k){return tcExt[k]===tid;}));
+      var {count}=await supabaseClient.from('team_members').select('*',{count:'exact',head:true}).in('team_id',famIds);
       teamSizeById[tid]=count||0;
     }));
 
