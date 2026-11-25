@@ -23748,9 +23748,12 @@ function _teamChallengeBlasonFrameHtml(team,size){
 // que les listes de RP du défi collectif (Ma team / Classement) matchent
 // visuellement la fiche équipe.
 function _teamChallengeNameHtml(r,color){
+  // Premium = TOUJOURS en jaune avec son étoile (règle user 25/11), même helpers que les autres listes d'équipe (premCol/premStar).
+  var _pc=premCol(r.name), _col=(_pc!=='var(--text)')?_pc:(color||'var(--text)');
   return '<span style="display:flex;align-items:center;gap:.35rem;min-width:0">'
     +natFlagHtml(r.nat,'.85rem')
-    +'<span style="font-family:\'Big Shoulders Display\',sans-serif;font-weight:900;font-style:italic;display:inline-block;transform:scaleY(1.15);font-size:.85rem;color:'+(color||'var(--text)')+';overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0">'+escapeHtml(r.name)+'</span>'
+    +'<span style="font-family:\'Big Shoulders Display\',sans-serif;font-weight:900;font-style:italic;display:inline-block;transform:scaleY(1.15);font-size:.85rem;color:'+_col+';overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0">'+escapeHtml(r.name)+'</span>'
+    +premStar(r.name)
   +'</span>';
 }
 
