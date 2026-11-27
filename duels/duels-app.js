@@ -162,10 +162,44 @@
   async function drawTeamMap() {
     if (!window.DuelsMap) return;
     if (!MAPDATA) { var mr = await supabaseClient.rpc('duel_map_data'); if (!mr.data || !mr.data.enabled) return; MAPDATA = mr.data; await loadTeams(MAPDATA.teams.map(function (t) { return t.id; })); }
+    // agrandissement de territoire : éligibilité, prix et soldes viennent de la base (tour_upgrade_land, aperçu sans rien écrire)
+    var up = await supabaseClient.rpc('tour_upgrade_land', { p_commit: false }), canGrow = !!(up.data && up.data.eligible);
     DuelsMap.draw({
+      canGrow: canGrow, onGrow: openUpgrade,
       me: me(), myTeam: S.team_id, pot: S.pot, duels: S.duels || [], mapData: MAPDATA, team: team,
       logoUrl: function (id) { var t = team(id); try { if (typeof getBlasonIdx === 'function' && typeof AVAIL_BLASON_SMALL !== 'undefined') { var bi = getBlasonIdx(t); if (bi >= 0 && AVAIL_BLASON_SMALL[bi]) return AVAIL_BLASON_SMALL[bi]; } } catch (e) {} return ''; }
     });
+  }
+
+  /* ---------- agrandir le territoire de la team : la base attribue la prochaine Land de la réserve et débite tout (tour_upgrade_land) ---------- */
+  async function openUpgrade() {
+    var r = await supabaseClient.rpc('tour_upgrade_land', { p_commit: false }), u = r.data;
+    if (r.error || !u || !u.eligible) { toast(dzT('Erreur, réessaie.'), true); return; }
+    var WHY = { plus_de_land: dzT('Plus aucune Land disponible pour le moment.'), rental_limit_reached: dzT('Tu loues déjà {n} Lands, le maximum pour un compte Free.', { n: u.limit }),
+      cagnotte_insuffisante: dzT('La cagnotte de ta team est insuffisante.'), insufficient_nyx: dzT('Il te manque des NYX.'), insufficient_rpc: dzT('Il te manque des RPC pour payer le loyer.') };
+    var line = function (label, cost, cls) { return '<div class="dz-upg-row"><span>' + label + '</span><b class="' + cls + '">' + cost + '</b></div>'; };
+    var old = $('dz-modal'); if (old) old.remove();
+    var m = document.createElement('div'); m.id = 'dz-modal';
+    m.innerHTML = '<div class="dz-modal-box dz-upgbox"><div class="dz-upg-t">' + dzT('Agrandir') + ' <span class="dz-yel">' + dzT('le territoire') + '</span></div>' +
+      (u.idx != null ? '<div class="dz-upg-land"><b>' + dzT('Land n°{n}', { n: u.idx }) + '</b></div>' : '') +
+      line(dzT('Cagnotte Team'), fmt(u.pot_cost) + ' RPC', 'dz-yel') +
+      line('NYX', fmt(u.nyx_cost) + ' NYX', 'dz-upg-nyx') +
+      line(dzT('Loyer du mois'), fmt(u.rent_cost) + ' RPC', 'dz-yel') +
+      '<div class="dz-upg-note">' + dzT('Cette Land viendra s\'ajouter aux tiennes avec le même fonctionnement (loyer, redevance, option d\'achat).') + '</div>' +
+      (u.ok ? '' : '<div class="dz-upg-why">' + (WHY[u.error] || esc(u.error)) + '</div>') +
+      '<div class="dz-row" style="gap:10px;margin-top:14px"><button class="dz-btn" style="flex:1" id="dzu-no">' + dzT('Annuler') + '</button><button class="dz-btn green" style="flex:1" id="dzu-yes"' + (u.ok ? '' : ' disabled') + '>' + dzT('Louer') + '</button></div></div>';
+    document.body.appendChild(m);
+    m.onclick = function (e) { if (e.target === m) m.remove(); };
+    $('dzu-no').onclick = function () { m.remove(); };
+    $('dzu-yes').onclick = async function () {
+      this.disabled = true;
+      var x = await supabaseClient.rpc('tour_upgrade_land', { p_commit: true }), res = x.data;
+      m.remove();
+      if (x.error || !res || !res.done) { toast((res && WHY[res.error]) || dzT('Erreur, réessaie.'), true); return; }
+      toast(dzT('La Land n°{n} rejoint le territoire de ta team !', { n: res.idx }));
+      if (typeof walletLoad === 'function') walletLoad();
+      MAPDATA = null; await refresh();
+    };
   }
 
   async function render() {
@@ -503,6 +537,7 @@
       var d = duels[x.duel_id], other = d ? team(d.attacker_team === tid ? d.defender_team : d.attacker_team).name : '', label;
       if (x.reason === 'Burn de défaite') label = dzT('Défaite {team}', { team: other });
       else if (x.reason === 'Joker') label = dzT('Joker {team}', { team: other });
+      else if (x.reason === 'Agrandissement de territoire') label = dzT('Agrandissement de territoire');
       else label = dzT('Crédit {mois}', { mois: new Date(x.created_at).toLocaleDateString(LOC(), { month: 'long', timeZone: 'Europe/Paris' }) });
       var pos = x.delta > 0;
       return '<div class="dz-pot-row"><span>' + esc(label) + '</span><b style="color:' + (pos ? '#2ddb80' : '#ff6fae') + '">' + (pos ? '+ ' : '− ') + fmt(Math.abs(x.delta)) + ' RPC</b></div>';

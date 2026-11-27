@@ -258,3 +258,14 @@
 .dz-slot.locked small{font-size:11px;line-height:1.2;color:#9aa5c8}
 .dz-slot.empty span{font-size:12px;line-height:1.25;padding:0 8px}
 .dz-slot.o1.empty span,.dz-slot.om1.empty span,.dz-slot.o1.locked small,.dz-slot.om1.locked small{display:none}
+
+/* agrandir le territoire (fenêtre ouverte par les cases « + » de la carte) : mêmes polices et même bouton vert dégradé que les fenêtres du Tour (.rm-btn-play) */
+#dz-modal .dz-upgbox{background:#0c0f1a;border-color:#2fe08a;color:#fff}
+.dz-upg-t{font:400 clamp(20px,6.4vw,28px) 'Bebas Neue',sans-serif;letter-spacing:1.5px;text-align:center;text-transform:uppercase;white-space:nowrap}
+.dz-upg-land{text-align:center;margin:4px 0 12px}.dz-upg-land b{font:700 17px 'Rajdhani',sans-serif;color:#2ddb80;letter-spacing:.5px}
+.dz-upg-row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:9px 0;border-top:1px solid #262b45;font-size:14.5px}
+.dz-upg-row b{font:700 17px 'Rajdhani',sans-serif;white-space:nowrap}.dz-upg-row b.dz-yel{color:#f5c842}.dz-upg-row b.dz-upg-nyx{color:#2ddb80}
+.dz-upg-note{color:#8a92a8;font-size:13px;line-height:1.4;margin-top:6px;border-top:1px solid #262b45;padding-top:9px}
+.dz-upg-why{color:#ff6fae;font-weight:700;font-size:14px;margin-top:10px;text-align:center}
+#dz-modal .dz-upgbox .dz-btn{font-family:'Bebas Neue',sans-serif;font-size:15px;font-weight:400;letter-spacing:1.5px;text-transform:uppercase;border-radius:10px;padding:10px 6px}
+#dz-modal .dz-upgbox .dz-btn:not(.green){background:transparent;color:#8a92a8;border:1.5px solid #8a92a8}

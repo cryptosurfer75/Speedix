@@ -97,7 +97,9 @@
       var score = -broken * 1000, ok = broken === 0;
       pairs.forEach(function (d) { var v = share[Math.min(d[0], d[1]) + '|' + Math.max(d[0], d[1])] || 0; if (v < 2) ok = false; score += (v ? (d[2] ? 300 : 100) : 0) + Math.min(v, 6) * 4; });
       var mi = ids.indexOf(myT);
-      if (mi >= 0) { var sx = 0, sy = 0, k = 0; lab.forEach(function (a, i) { if (a === mi) { sx += cells[i].p[0]; sy += cells[i].p[1]; k++; } }); if (k) score -= Math.hypot(sx / k, sy / k) / S; } // ma team plutôt au centre
+      // chaque team doit toucher l'extérieur de la carte (pour pouvoir agrandir son territoire) : aucune team enclavée
+      var edgeOf = {}; lab.forEach(function (a, i) { if (nb[i].length < 6) edgeOf[a] = 1; });
+      T.forEach(function (t, a) { if (!edgeOf[a]) { ok = false; score -= 600; } });
       return { s: score, ok: ok };
     };
     var best = null, t0 = Date.now(), found = 0;
@@ -179,12 +181,17 @@
     });
     // cases vides en pointillés : le territoire peut grandir (partout où c'est libre + 1 rangée autour)
     var occ = []; Object.keys(byTeam).forEach(function (id) { shown(id).forEach(function (q) { occ.push(q); }); });
+    var mineT = me && st.players[me] ? shown(st.players[me].team) : [], grow = [];
     var qs = Object.keys(st.cells).map(function (k) { return k.split(',').map(Number); }), q0 = 1e9, q1 = -1e9, r0 = 1e9, r1 = -1e9;
     qs.forEach(function (c) { q0 = Math.min(q0, c[0]); q1 = Math.max(q1, c[0]); r0 = Math.min(r0, c[1]); r1 = Math.max(r1, c[1]); });
     for (var gr = r0 - 6; gr <= r1 + 6; gr++) for (var gq = q0 - 6 - Math.ceil(r1 / 2); gq <= q1 + 6 + Math.ceil(-r0 / 2) + 6; gq++) {
       var gp = cart(gq, gr), near = 1e9, taken = false;
       for (var oi = 0; oi < occ.length; oi++) { var dd = Math.hypot(gp[0] - occ[oi][0], gp[1] - occ[oi][1]); if (dd < D * .5) { taken = true; break; } if (dd < near) near = dd; }
-      if (!taken && near <= D * 1.05) E_('polygon', { points: hexPts(gp[0], gp[1], S - 2), fill: 'none', stroke: '#7d8fc4', 'stroke-opacity': .28, 'stroke-width': 1, 'stroke-dasharray': '3 3' });
+      if (!taken && near <= D * 1.05) {
+        // agrandissement : les cases libres au bord de MA team sont en vert et ouvrent la fenêtre de location
+        if (ctx.canGrow && mineT.some(function (q) { return Math.hypot(gp[0] - q[0], gp[1] - q[1]) <= D * 1.05; })) grow.push(gp);
+        else E_('polygon', { points: hexPts(gp[0], gp[1], S - 2), fill: 'none', stroke: '#7d8fc4', 'stroke-opacity': .28, 'stroke-width': 1, 'stroke-dasharray': '3 3' });
+      }
     }
     // liseret « mon territoire » : les propriétés et locations du RP qui regarde, visibles par lui seul, regroupées en un seul îlot
     var mineOutline = [], myOwn = 0, myLoc = 0, myEtape = 0;
@@ -303,6 +310,15 @@
         var pt = hexPts(q[0], q[1], S - 1), hot = b.col;
         E_('polygon', { points: pt, fill: 'none', stroke: '#fff', 'stroke-width': 5, 'stroke-linejoin': 'round' }).style.opacity = dim;
         E_('polygon', dim === 1 ? { points: pt, fill: hot, 'fill-opacity': .85, stroke: hot, 'stroke-width': 3, 'stroke-linejoin': 'round', 'class': 'dz-blink' } : { points: pt, fill: hot, 'fill-opacity': .85, stroke: hot, 'stroke-width': 3, 'stroke-linejoin': 'round', opacity: dim });
+      });
+    });
+    grow.forEach(function (gp) {
+      var cell = E_('polygon', { points: hexPts(gp[0], gp[1], S - 3), fill: '#2fe08a', 'fill-opacity': .1, stroke: '#2fe08a', 'stroke-width': 1.8, 'stroke-dasharray': '4 3' }), plus = E_('path', { d: 'M' + (gp[0] - 6) + ' ' + gp[1] + 'h12M' + gp[0] + ' ' + (gp[1] - 6) + 'v12', stroke: '#2fe08a', 'stroke-width': 2.4, 'stroke-linecap': 'round' });
+      [cell, plus].forEach(function (el) {
+        var at = null; el.style.cursor = 'pointer'; if (selTeam !== null && selTeam !== st.players[me].team) el.style.opacity = .12;
+        el.addEventListener('pointerdown', function (e) { at = [e.clientX, e.clientY]; });
+        // « click » (et pas « pointerup ») : au doigt, un clic fantôme refermerait sinon la fenêtre à peine ouverte
+        el.addEventListener('click', function (e) { if (at && Math.hypot(e.clientX - at[0], e.clientY - at[1]) < 8) ctx.onGrow(); at = null; });   // un glissement de la carte n'ouvre rien
       });
     });
     if (!view) { // la carte est centrée sur le territoire de la team du RP, zoom pour tout voir

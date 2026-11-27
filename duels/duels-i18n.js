@@ -2,6 +2,20 @@
 (function () {
   'use strict';
   var EN = {
+ "Agrandir": "Expand",
+ "le territoire": "the territory",
+ "Land n°{n}": "Land #{n}",
+ "Cagnotte Team": "Team pot",
+ "Loyer du mois": "This month's rent",
+ "Cette Land viendra s'ajouter aux tiennes avec le même fonctionnement (loyer, redevance, option d'achat).": "This Land will join your others and works the same way (rent, toll, option to buy).",
+ "Plus aucune Land disponible pour le moment.": "No Land available right now.",
+ "Tu loues déjà {n} Lands, le maximum pour un compte Free.": "You already rent {n} Lands, the maximum for a Free account.",
+ "La cagnotte de ta team est insuffisante.": "Your team pot is too low.",
+ "Il te manque des NYX.": "You don't have enough NYX.",
+ "Il te manque des RPC pour payer le loyer.": "You don't have enough RPC for the rent.",
+ "Louer": "Rent",
+ "La Land n°{n} rejoint le territoire de ta team !": "Land #{n} joins your team's territory!",
+ "Agrandissement de territoire": "Territory expansion",
  "Connecte-toi pour jouer.": "Log in to play.",
  "Les duels ne sont pas encore ouverts.": "Duels are not open yet.",
  "Tu ne peux pas lancer de duel sur cette Land.": "You can't start a duel on this Land.",
