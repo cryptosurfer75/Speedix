@@ -266,6 +266,9 @@
 .dz-upg-row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:9px 0;border-top:1px solid #262b45;font-size:14.5px}
 .dz-upg-row b{font:700 17px 'Rajdhani',sans-serif;white-space:nowrap}.dz-upg-row b.dz-yel{color:#f5c842}.dz-upg-row b.dz-upg-nyx{color:#2ddb80}
 .dz-upg-note{color:#8a92a8;font-size:13px;line-height:1.4;margin-top:6px;border-top:1px solid #262b45;padding-top:9px}
+.dz-upg-limit{position:relative;padding:48px 18px 22px !important}
+.dz-upg-limit .dz-closex{position:absolute;top:8px;right:8px;width:32px;height:32px;transform:none}
+.dz-upg-msg{text-align:center;font-size:16px;line-height:1.45;margin-top:14px}
 .dz-upg-why{color:#ff6fae;font-weight:700;font-size:14px;margin-top:10px;text-align:center}
 #dz-modal .dz-upgbox .dz-btn{font-family:'Bebas Neue',sans-serif;font-size:15px;font-weight:400;letter-spacing:1.5px;text-transform:uppercase;border-radius:10px;padding:10px 6px}
 #dz-modal .dz-upgbox .dz-btn:not(.green){background:transparent;color:#8a92a8;border:1.5px solid #8a92a8}

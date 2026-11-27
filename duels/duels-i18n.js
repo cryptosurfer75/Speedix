@@ -2,6 +2,7 @@
 (function () {
   'use strict';
   var EN = {
+ "Tu as atteint ta limite d'upgrade en attendant plus de disponibilité.": "You have reached your upgrade limit until more Lands are available.",
  "Agrandir": "Expand",
  "le territoire": "the territory",
  "Land n°{n}": "Land #{n}",

@@ -180,6 +180,12 @@
     var line = function (label, cost, cls) { return '<div class="dz-upg-row"><span>' + label + '</span><b class="' + cls + '">' + cost + '</b></div>'; };
     var old = $('dz-modal'); if (old) old.remove();
     var m = document.createElement('div'); m.id = 'dz-modal';
+    if (u.error === 'deja_agrandi') { // limite par RP atteinte (décidée en base) : message seul, sans prix
+      m.innerHTML = '<div class="dz-modal-box dz-upgbox dz-upg-limit"><button class="dz-closex" id="dzu-no" title="' + dzT('Fermer') + '"></button><div class="dz-upg-t">' + dzT('Agrandir') + ' <span class="dz-yel">' + dzT('le territoire') + '</span></div><div class="dz-upg-msg">' + dzT('Tu as atteint ta limite d\'upgrade en attendant plus de disponibilité.') + '</div></div>';
+      document.body.appendChild(m);
+      m.onclick = function (e) { if (e.target === m || e.target.id === 'dzu-no') m.remove(); };
+      return;
+    }
     m.innerHTML = '<div class="dz-modal-box dz-upgbox"><div class="dz-upg-t">' + dzT('Agrandir') + ' <span class="dz-yel">' + dzT('le territoire') + '</span></div>' +
       (u.idx != null ? '<div class="dz-upg-land"><b>' + dzT('Land n°{n}', { n: u.idx }) + '</b></div>' : '') +
       line(dzT('Cagnotte Team'), fmt(u.pot_cost) + ' RPC', 'dz-yel') +
