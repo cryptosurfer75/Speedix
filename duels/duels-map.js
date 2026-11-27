@@ -24,30 +24,98 @@
   function counts() { // nombres par team, calculés en base (duel_map_data) : n = toutes ses Lands, own = propriétés + étapes, loc = locations
     var c = {}; (MD.teams || []).forEach(function (t) { c[t.id] = { n: +t.n, own: +t.own, etapes: +t.etapes, loc: +t.loc }; }); return c;
   }
-  function buildCells() {
-    var c = counts(), T = (MD.teams || []).filter(function (t) { return c[t.id]; }).map(function (t) { return { id: t.id, n: c[t.id].n }; }).sort(function (a, b) { return (b.n - a.n) || (a.id < b.id ? -1 : 1); });
-    var Rr = function (t) { return S * 1.75 * Math.sqrt(t.n / Math.PI); }, pl = [];
-    T.forEach(function (t, i) {
-      t.R = Rr(t); if (!i) { t.x = 0; t.y = 0; pl.push(t); return; }
-      for (var rad = 0; rad < 5000; rad += 6) {
-        var ok = false;
-        for (var a = 0; a < 360; a += 5) {
-          var x = rad * Math.cos(a * Math.PI / 180), y = rad * Math.sin(a * Math.PI / 180);
-          if (pl.every(function (p) { return Math.hypot(p.x - x, p.y - y) >= (p.R + t.R) * 0.9; })) { t.x = x; t.y = y; ok = true; break; }
-        }
-        if (ok) break;
+  /* Disposition « un seul continent » (27/11/2026) : tous les territoires sont collés, les teams en duel se touchent, les petits
+   * territoires sont au bord (nord, sud, est, ouest). Chaque team a exactement autant de cases que de Lands. AFFICHAGE uniquement.
+   * Calcul déterministe : mêmes données = même carte. */
+  var SMALL_MAX = 7;                       // jusqu'à ce nombre de Lands, la team est placée sur le bord
+  var DIRS = [[1, 0], [1, -1], [0, -1], [-1, 0], [-1, 1], [0, 1]];
+  var lastKey = null;
+  // répartit les points entre les graines avec des effectifs EXACTS en minimisant la somme des distances² (territoires d'un seul bloc)
+  function assign(P, seeds, cap) {
+    var K = seeds.length, lab = new Array(P.length), size = cap.map(function () { return 0; }), members = cap.map(function () { return []; });
+    var cost = P.map(function (p) { return seeds.map(function (z) { var dx = p[0] - z[0], dy = p[1] - z[1]; return dx * dx + dy * dy; }); });
+    var move = cap.map(function () { return []; });   // move[u][v] = case de u la moins chère à céder à v
+    var offer = function (u, q) { for (var v = 0; v < K; v++) if (v !== u) { var d = cost[q][v] - cost[q][u]; if (!move[u][v] || d < move[u][v].d) move[u][v] = { d: d, q: q }; } };
+    var redo = function (u) { move[u] = []; members[u].forEach(function (q) { offer(u, q); }); };
+    for (var i = 0; i < P.length; i++) {
+      var best = [], via = [], u, v;
+      for (u = 0; u < K; u++) { best[u] = cost[i][u]; via[u] = -1; }
+      for (var it = 0; it < K; it++) {     // plus court chemin jusqu'à une team qui a encore de la place
+        var changed = false;
+        for (u = 0; u < K; u++) for (v = 0; v < K; v++) { var e = move[u][v]; if (e && best[u] + e.d < best[v] - 1e-6) { best[v] = best[u] + e.d; via[v] = u; changed = true; } }
+        if (!changed) break;
       }
-      pl.push(t);
-    });
-    var RAD = 60, pairs = [];
-    for (var q = -RAD; q <= RAD; q++) for (var r = -RAD; r <= RAD; r++) {
-      if (Math.abs(q + r) > RAD) continue; var p = cart(q, r);
-      T.forEach(function (t, i) { var d = Math.hypot(p[0] - t.x, p[1] - t.y) / t.R; if (d < 2.2) pairs.push([d, q, r, i]); });
+      var end = -1; for (u = 0; u < K; u++) if (size[u] < cap[u] && (end < 0 || best[u] < best[end])) end = u;
+      var path = [end], seen = {}; seen[end] = 1; while (via[path[0]] >= 0 && !seen[via[path[0]]]) { seen[via[path[0]]] = 1; path.unshift(via[path[0]]); }
+      size[end]++;
+      for (var k = path.length - 1; k > 0; k--) { var from = path[k - 1], to = path[k], c = move[from][to].q; members[from].splice(members[from].indexOf(c), 1); members[to].push(c); lab[c] = to; }
+      members[path[0]].push(i); lab[i] = path[0];
+      if (path.length > 1) path.forEach(redo); else offer(path[0], i);
     }
-    pairs.sort(function (a, b) { return a[0] - b[0]; });
-    var owner = {}, got = T.map(function () { return 0; });
-    pairs.forEach(function (e) { var k = e[1] + ',' + e[2], i = e[3]; if (owner[k] || got[i] >= T[i].n) return; owner[k] = T[i].id; got[i]++; });
-    st.cells = owner;
+    return lab;
+  }
+  function buildCells() {
+    var c = counts(), T = (MD.teams || []).filter(function (t) { return c[t.id] && c[t.id].n > 0; }).map(function (t) { return { id: t.id, n: c[t.id].n }; }).sort(function (a, b) { return (b.n - a.n) || (a.id < b.id ? -1 : 1); });
+    var myT = me && st.players[me] ? st.players[me].team : null;
+    var key = JSON.stringify([T, st.active.map(function (d) { return [d.attackerTeam, d.defenderTeam]; }), myT]);
+    if (key === lastKey && st.cache) { st.cells = st.cache; return; }
+    var N = T.reduce(function (a, t) { return a + t.n; }, 0), R = Math.ceil(Math.sqrt(N / 2.6)) + 3, cells = [];
+    for (var q = -R * 2; q <= R * 2; q++) for (var r = -R * 2; r <= R * 2; r++) { var p = cart(q, r); cells.push({ q: q, r: r, p: p, d: Math.hypot(p[0], p[1] * 1.04) }); }
+    cells.sort(function (a, b) { return (a.d - b.d) || (a.q - b.q) || (a.r - b.r); });
+    cells = cells.slice(0, N);
+    var at = {}; cells.forEach(function (x, i) { at[x.q + ',' + x.r] = i; });
+    var nb = cells.map(function (x) { return DIRS.map(function (v) { return at[(x.q + v[0]) + ',' + (x.r + v[1])]; }).filter(function (j) { return j !== undefined; }); });
+    var fixed = {}, ids = T.map(function (t) { return t.id; });
+    var dist2 = function (i, z) { var dx = cells[i].p[0] - z[0], dy = cells[i].p[1] - z[1]; return dx * dx + dy * dy; };
+    var nearest = function (list, z) { var b = null, bd = 1e18; list.forEach(function (i) { var d = dist2(i, z); if (d < bd) { bd = d; b = i; } }); return b; };
+    var all = cells.map(function (x, i) { return i; }), Rmax = cells.length ? cells[cells.length - 1].d : 0;
+    // petits territoires : au bord, répartis entre nord, sud, est et ouest (le côté le moins chargé d'abord)
+    var fights = {}; st.active.forEach(function (d) { fights[d.attackerTeam] = fights[d.defenderTeam] = 1; });   // une petite team en duel rejoint son adversaire
+    var small = T.map(function (t, i) { return i; }).filter(function (i) { return T[i].n <= SMALL_MAX && !fights[T[i].id]; });
+    if (small.length === T.length) small = [];
+    var sides = [[0, -1], [0, 1], [1, 0], [-1, 0]].map(function (v) { return { aim: [v[0] * (Rmax + S), v[1] * (Rmax + S)], load: 0 }; });
+    small.forEach(function (t) {
+      var side = sides.slice().sort(function (a, b) { return a.load - b.load; })[0]; side.load += T[t].n;
+      var free = all.filter(function (i) { return fixed[i] === undefined; }), got = [nearest(free, side.aim)]; fixed[got[0]] = t;
+      while (got.length < T[t].n) {
+        var cand = []; got.forEach(function (i) { nb[i].forEach(function (j) { if (fixed[j] === undefined) cand.push(j); }); });
+        var nx = cand.length ? nearest(cand, side.aim) : nearest(all.filter(function (i) { return fixed[i] === undefined; }), side.aim);
+        got.push(nx); fixed[nx] = t;
+      }
+    });
+    // grandes teams : elles se partagent le reste ; plusieurs essais, on garde celui où les teams en duel se touchent le mieux
+    var big = T.map(function (t, i) { return i; }).filter(function (i) { return small.indexOf(i) < 0; }), free = all.filter(function (i) { return fixed[i] === undefined; });
+    var P = free.map(function (i) { return cells[i].p; }), cap = big.map(function (i) { return T[i].n; });
+    var pairs = st.active.map(function (d) { return [ids.indexOf(d.attackerTeam), ids.indexOf(d.defenderTeam), d.attackerTeam === myT || d.defenderTeam === myT]; }).filter(function (d) { return d[0] >= 0 && d[1] >= 0; });
+    var seed = 12345, rnd = function () { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
+    var evaluate = function (lab) {
+      var share = {}, broken = 0, seen = {};
+      lab.forEach(function (a, i) { nb[i].forEach(function (j) { var b = lab[j]; if (a < b) share[a + '|' + b] = (share[a + '|' + b] || 0) + 1; }); });
+      var parts = {};
+      lab.forEach(function (a, i) { if (seen[i]) return; var stack = [i], n = 0; seen[i] = 1; while (stack.length) { var x = stack.pop(); n++; nb[x].forEach(function (j) { if (!seen[j] && lab[j] === a) { seen[j] = 1; stack.push(j); } }); } (parts[a] = parts[a] || []).push(n); });
+      Object.keys(parts).forEach(function (a) { broken += T[a].n - Math.max.apply(null, parts[a]); });
+      var score = -broken * 1000, ok = broken === 0;
+      pairs.forEach(function (d) { var v = share[Math.min(d[0], d[1]) + '|' + Math.max(d[0], d[1])] || 0; if (v < 2) ok = false; score += (v ? (d[2] ? 300 : 100) : 0) + Math.min(v, 6) * 4; });
+      var mi = ids.indexOf(myT);
+      if (mi >= 0) { var sx = 0, sy = 0, k = 0; lab.forEach(function (a, i) { if (a === mi) { sx += cells[i].p[0]; sy += cells[i].p[1]; k++; } }); if (k) score -= Math.hypot(sx / k, sy / k) / S; } // ma team plutôt au centre
+      return { s: score, ok: ok };
+    };
+    var best = null, t0 = Date.now(), found = 0;
+    for (var trial = 0; trial < 400; trial++) {
+      var pick = free.map(function (i, k) { return k; }), seeds = big.map(function () { return P[pick.splice(Math.floor(rnd() * pick.length), 1)[0]]; }), sl;
+      for (var pass = 0; pass < 3; pass++) {
+        sl = assign(P, seeds, cap);
+        seeds = big.map(function (t, b) { var sx = 0, sy = 0; sl.forEach(function (v, k) { if (v === b) { sx += P[k][0]; sy += P[k][1]; } }); return [sx / cap[b], sy / cap[b]]; });
+      }
+      var lab = []; free.forEach(function (i, k) { lab[i] = big[sl[k]]; }); Object.keys(fixed).forEach(function (i) { lab[i] = fixed[i]; });
+      var ev = evaluate(lab);
+      if (!best || ev.s > best.s) best = { s: ev.s, lab: lab };
+      if (ev.ok) found++;
+      // on s'arrête dès qu'on a quelques bonnes cartes, ou au bout d'un temps raisonnable sur téléphone
+      if (found >= 4 || (trial >= 3 && Date.now() - t0 > 700)) break;
+    }
+    var owner = {}; if (best) cells.forEach(function (x, i) { owner[x.q + ',' + x.r] = ids[best.lab[i]]; });
+    st.cells = st.cache = owner; lastKey = key;
   }
   var hexPts = function (x, y, s) { var p = ''; for (var k = 0; k < 6; k++) { var a = Math.PI / 180 * (60 * k - 30); p += (x + s * Math.cos(a)).toFixed(1) + ',' + (y + s * Math.sin(a)).toFixed(1) + ' '; } return p; };
 
@@ -57,69 +125,9 @@
     var g = $('dz-g'), defs = svg.firstChild, c = counts(), E_ = function (n, a) { var e = document.createElementNS(NS, n); for (var k in a) e.setAttribute(k, a[k]); g.appendChild(e); return e; };
     var byTeam = {}; Object.keys(st.cells).forEach(function (k) { (byTeam[st.cells[k]] = byTeam[st.cells[k]] || []).push(k); });
     var mnx = 1e9, mxx = -1e9, mny = 1e9, mxy = -1e9; TC = {}; var els = {};
-    // Duels en cours : la team la plus petite est déplacée le temps du duel pour toucher son adversaire (frontière commune)
-    var OFF = {}, BORD = [], D = SQ3 * S, shown = function (id) { var o = OFF[id] || [0, 0]; return (byTeam[id] || []).map(function (k) { var q = xy(k); return [q[0] + o[0], q[1] + o[1]]; }); };
-    // Teams hors duel : écartées d'une case vide les unes des autres (carte plus lisible). On place les plus grosses d'abord ;
-    // chaque team suivante prend le décalage (sur la grille) le plus proche de sa place d'origine qui la laisse à 1 case vide de toutes les autres.
-    var TOUCH = [], ids = Object.keys(byTeam).sort(function (a, b) { return byTeam[b].length - byTeam[a].length; }), base = {}, cen = {}, rad = {}, duelPair = {}, MOVED = {};
-    E.activeDuels(st).forEach(function (d) { duelPair[d.attackerTeam + '|' + d.defenderTeam] = duelPair[d.defenderTeam + '|' + d.attackerTeam] = 1; });
-    ids.forEach(function (id) {
-      base[id] = byTeam[id].map(xy); var n = base[id].length, cx_ = base[id].reduce(function (a, q) { return a + q[0]; }, 0) / n, cy_ = base[id].reduce(function (a, q) { return a + q[1]; }, 0) / n;
-      cen[id] = [cx_, cy_]; rad[id] = Math.max.apply(null, base[id].map(function (q) { return Math.hypot(q[0] - cx_, q[1] - cy_); }));
-    });
-    var steps = [], RMAX = 40; for (var sr = -RMAX; sr <= RMAX; sr++) for (var sq = -RMAX - 7; sq <= RMAX + 7; sq++) { var sv = cart(sq, sr), sn = Math.hypot(sv[0], sv[1]); if (sn <= RMAX * D) steps.push([sv[0], sv[1], sn]); }
-    steps.sort(function (a, b) { return a[2] - b[2]; });
-    var GAP = 1.7 * D, clash = function (x, ox, y) {
-      var oy = OFF[y], cdx = cen[x][0] + ox[0] - cen[y][0] - oy[0], cdy = cen[x][1] + ox[1] - cen[y][1] - oy[1];
-      if (Math.hypot(cdx, cdy) > rad[x] + rad[y] + GAP + D) return false;
-      var pa = base[x], pb = base[y];
-      for (var u = 0; u < pa.length; u++) for (var v = 0; v < pb.length; v++) if (Math.hypot(pa[u][0] + ox[0] - pb[v][0] - oy[0], pa[u][1] + ox[1] - pb[v][1] - oy[1]) < GAP) return true;
-      return false;
-    }, placed = [];
-    ids.forEach(function (id) { OFF[id] = [0, 0]; });
-    // Duels : les deux teams se touchent sans se recouvrir (1 case de contact) ; on garde les contacts déjà obtenus pour les autres duels de la team.
-    var dmin = function (mov, ox, y) {
-      var oy = OFF[y], cdx = cen[mov][0] + ox[0] - cen[y][0] - oy[0], cdy = cen[mov][1] + ox[1] - cen[y][1] - oy[1];
-      if (Math.hypot(cdx, cdy) > rad[mov] + rad[y] + 3 * D) return 1e9;
-      var m = 1e9, pa = base[mov], pb = base[y];
-      for (var u = 0; u < pa.length; u++) for (var v = 0; v < pb.length; v++) { var h = Math.hypot(pa[u][0] + ox[0] - pb[v][0] - oy[0], pa[u][1] + ox[1] - pb[v][1] - oy[1]); if (h < m) m = h; }
-      return m;
-    }, touches = function (d) { return d >= D * .99 && d <= D * 1.02; };
-    var place = function (mov, anc, strict, keep) {   // keep : on garde les contacts déjà obtenus (TOUCH) même quand l'espacement strict avec les autres teams est relâché
-      var o0 = OFF[mov];
-      for (var si2 = 0; si2 < steps.length; si2++) {
-        var cand = [o0[0] + steps[si2][0], o0[1] + steps[si2][1]], good = touches(dmin(mov, cand, anc));
-        for (var ti = 0; ti < TOUCH.length && good && (strict || keep); ti++) { var tp = TOUCH[ti], z2 = tp[0] === mov ? tp[1] : tp[1] === mov ? tp[0] : null; if (z2 && z2 !== anc && !touches(dmin(mov, cand, z2))) good = false; }
-        for (var zi = 0; zi < dids.length && good; zi++) { var z = dids[zi]; if (z === mov || z === anc) continue; var dz = dmin(mov, cand, z); if ((duelPair[mov + '|' + z] || !strict) ? dz < D * .99 : dz < GAP) good = false; }
-        if (good) return cand;
-      }
-      return null;
-    };
-    var inDuel = {}; E.activeDuels(st).forEach(function (d) { inDuel[d.attackerTeam] = inDuel[d.defenderTeam] = 1; }); var dids = ids.filter(function (id) { return inDuel[id]; });
+    var BORD = [], D = SQ3 * S, shown = function (id) { return (byTeam[id] || []).map(xy); };
     var duelList = E.activeDuels(st).filter(function (d) { return byTeam[d.attackerTeam] && byTeam[d.defenderTeam]; });
-    // on traite d'abord les duels de ta team (toujours collés), puis ceux des plus gros territoires : les petits viennent se coller autour, en chaîne
-    var myT = me && st.players[me] ? st.players[me].team : null, isMy = function (z) { return z.attackerTeam === myT || z.defenderTeam === myT ? 1 : 0; };
-    duelList.slice().sort(function (x, y) { return (isMy(y) - isMy(x)) || Math.max(byTeam[y.attackerTeam].length, byTeam[y.defenderTeam].length) - Math.max(byTeam[x.attackerTeam].length, byTeam[x.defenderTeam].length); }).forEach(function (d) {
-      var A = d.attackerTeam, B = d.defenderTeam, big = byTeam[A].length >= byTeam[B].length ? A : B, small = big === A ? B : A;
-      var pk = place(small, big, true), mv = small, an = big;
-      if (!pk) { pk = place(big, small, true); mv = big; an = small; }
-      // espacement relâché mais contacts déjà obtenus conservés (une team prise entre deux duels doit rester collée aux deux adversaires)
-      if (!pk) { pk = place(small, big, false, true); mv = small; an = big; }
-      if (!pk) { pk = place(big, small, false, true); mv = big; an = small; }
-      if (!pk) { pk = place(small, big, false); mv = small; an = big; }
-      if (pk) { OFF[mv] = pk; TOUCH.push([mv, an]); }
-    });
-    // puis les teams hors duel, autour des teams en duel : place libre la plus proche de leur emplacement d'origine, à 1 case vide de toutes les autres
-    var placed = dids.slice();
-    ids.filter(function (id) { return !inDuel[id]; }).forEach(function (id) {
-      var chosen = [0, 0];
-      for (var si = 0; si < steps.length; si++) {
-        var ok = true, o = steps[si];
-        for (var pi = 0; pi < placed.length; pi++) if (clash(id, o, placed[pi])) { ok = false; break; }
-        if (ok) { chosen = [o[0], o[1]]; break; }
-      }
-      OFF[id] = chosen; placed.push(id);
-    });
+    var myT = me && st.players[me] ? st.players[me].team : null;
     // Cases GAGNÉES en duel (hachurées) : calculées ici une seule fois (source unique), pour que la case qui clignote ne soit jamais l'une d'elles.
     // Règle : à l'EXTÉRIEUR du territoire (il a grandi), côté centre de la carte générale pour être vues dès l'ouverture.
     var pkey = function (q) { return q[0].toFixed(1) + ',' + q[1].toFixed(1); }, WONK = {};
@@ -231,6 +239,14 @@
         if (id === myT && mineJ[o[1]]) mineCells.push(p);
       });
       if (id === myT) mineOutline = mineCells;
+      var edge = '';                                   // frontière noire autour de chaque territoire
+      pts.forEach(function (p) { for (var k = 0; k < 6; k++) {
+        var am = Math.PI / 3 * k, nx = p[0] + D * Math.cos(am), ny = p[1] + D * Math.sin(am);
+        if (pts.some(function (q) { return Math.hypot(q[0] - nx, q[1] - ny) < D * .5; })) continue;
+        var a1 = am - Math.PI / 6, a2 = am + Math.PI / 6;
+        edge += 'M' + (p[0] + S * Math.cos(a1)).toFixed(1) + ' ' + (p[1] + S * Math.sin(a1)).toFixed(1) + 'L' + (p[0] + S * Math.cos(a2)).toFixed(1) + ' ' + (p[1] + S * Math.sin(a2)).toFixed(1);
+      } });
+      els[id].push(E_('path', { d: edge, fill: 'none', stroke: '#000', 'stroke-width': 6, 'stroke-linecap': 'round' }));
     });
     if (mineOutline.length) { // un seul contour blanc autour de l'ensemble de mes Lands (calculé sur la grille hexagonale : aucun trou, aucune baie)
       var DIR = [[1, 0], [0, 1], [-1, 1], [-1, 0], [0, -1], [1, -1]], inSet = {}, list = [], qr = function (p) { var r = Math.round(p[1] / (1.5 * S)); return [Math.round(p[0] / (S * SQ3) - r / 2), r]; };
@@ -268,6 +284,14 @@
         var cp = document.createElementNS(NS, 'clipPath'); cp.id = 'dzc' + id; var ci = document.createElementNS(NS, 'circle'); ci.setAttribute('cx', t.cx); ci.setAttribute('cy', t.cy); ci.setAttribute('r', sz / 2); cp.appendChild(ci); defs.appendChild(cp);
         els[id].push(E_('image', { href: ti.logo, x: t.cx - sz / 2, y: t.cy - sz / 2, width: sz, height: sz, 'clip-path': 'url(#dzc' + id + ')' }));
       }
+    });
+    // une case ne sert qu'à un seul duel : ceux de ma team gardent leurs cases, les autres prennent la paire libre la plus proche
+    var busy = {};
+    BORD.filter(function (b) { return b.mine; }).forEach(function (b) { busy[pkey(b.a)] = busy[pkey(b.m)] = 1; });
+    BORD.filter(function (b) { return !b.mine; }).forEach(function (b) {
+      var isFree = function (q) { return !busy[pkey(q)]; }, p = bestPair(b.A, freeOf(b.A).filter(isFree), b.B, freeOf(b.B).filter(isFree));
+      if (p) { b.a = p.a; b.m = p.m; }
+      busy[pkey(b.a)] = busy[pkey(b.m)] = 1;
     });
     // frontière de duel : 2 cases côte à côte, contour rouge qui clignote
     BORD.forEach(function (b) {
