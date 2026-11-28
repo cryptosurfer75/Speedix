@@ -95,26 +95,68 @@
       lab.forEach(function (a, i) { if (seen[i]) return; var stack = [i], n = 0; seen[i] = 1; while (stack.length) { var x = stack.pop(); n++; nb[x].forEach(function (j) { if (!seen[j] && lab[j] === a) { seen[j] = 1; stack.push(j); } }); } (parts[a] = parts[a] || []).push(n); });
       Object.keys(parts).forEach(function (a) { broken += T[a].n - Math.max.apply(null, parts[a]); });
       var score = -broken * 1000, ok = broken === 0;
-      pairs.forEach(function (d) { var v = share[Math.min(d[0], d[1]) + '|' + Math.max(d[0], d[1])] || 0; if (v < 2) ok = false; score += (v ? (d[2] ? 300 : 100) : 0) + Math.min(v, 6) * 4; });
+      var miss = [];   // un duel dont les 2 teams ne se touchent pas passe avant tout le reste (sinon une case clignote toute seule)
+      pairs.forEach(function (d) { var v = share[Math.min(d[0], d[1]) + '|' + Math.max(d[0], d[1])] || 0; if (v < 2) ok = false; if (!v) miss.push(d); score += (v ? (d[2] ? 300 : 100) : (d[2] ? -2000 : -1500)) + Math.min(v, 6) * 4; });
       var mi = ids.indexOf(myT);
       // chaque team doit toucher l'extérieur de la carte (pour pouvoir agrandir son territoire) : aucune team enclavée
       var edgeOf = {}; lab.forEach(function (a, i) { if (nb[i].length < 6) edgeOf[a] = 1; });
-      T.forEach(function (t, a) { if (!edgeOf[a]) { ok = false; score -= 600; } });
-      return { s: score, ok: ok };
+      var shut = [];
+      T.forEach(function (t, a) { if (!edgeOf[a]) { ok = false; score -= 600; shut.push(a); } });
+      return { s: score, ok: ok, miss: miss, shut: shut };
+    };
+    var whole = function (lab, a) {   // la team a est-elle d'un seul bloc ?
+      var start = lab.indexOf(a), n = 0, seen = {}, stack = [start]; if (start < 0) return false; seen[start] = 1;
+      while (stack.length) { var x = stack.pop(); n++; nb[x].forEach(function (j) { if (!seen[j] && lab[j] === a) { seen[j] = 1; stack.push(j); } }); }
+      return n === T[a].n;
+    };
+    // désenclaver : la team prend le plus court chemin vers l'extérieur et rend autant de cases aux teams traversées (effectifs inchangés, blocs intacts)
+    var open = function (lab, ev) {
+      for (var it = 0; it < 4 && ev.shut.length; it++) {
+        var a = ev.shut[0], L = lab.slice(), prev = {}, seen = {}, queue = [], end = null;
+        L.forEach(function (v, i) { if (v === a) { seen[i] = 1; queue.push(i); } });
+        for (var h = 0; h < queue.length && end === null; h++) { var x = queue[h]; if (L[x] !== a && nb[x].length < 6) end = x; else nb[x].forEach(function (j) { if (!seen[j]) { seen[j] = 1; prev[j] = x; queue.push(j); } }); }
+        if (end === null) break;
+        var path = [], onPath = {}; for (var c = end; c !== undefined && L[c] !== a; c = prev[c]) { path.unshift(c); onPath[c] = 1; }
+        var done = path.every(function (c) {
+          var n = L[c]; L[c] = a;
+          for (var g = 0; g < L.length; g++) {
+            if (L[g] !== a || onPath[g] || !nb[g].some(function (j) { return L[j] === n; })) continue;
+            L[g] = n; if (whole(L, a) && whole(L, n)) return true; L[g] = a;
+          }
+          return false;
+        });
+        if (!done) break;
+        var next = evaluate(L); if (!(next.s > ev.s)) break;
+        lab = L; ev = next;
+      }
+      return { lab: lab, ev: ev };
     };
     var best = null, t0 = Date.now(), found = 0;
     for (var trial = 0; trial < 400; trial++) {
       var pick = free.map(function (i, k) { return k; }), seeds = big.map(function () { return P[pick.splice(Math.floor(rnd() * pick.length), 1)[0]]; }), sl;
+      if (best && trial % 4) {   // 3 essais sur 4 : on retouche la meilleure carte trouvée plutôt que de repartir de zéro
+        seeds = best.seeds.slice();
+        var bad = best.miss.length && rnd() < .7 ? best.miss[Math.floor(rnd() * best.miss.length)] : null;
+        if (bad) {   // rapprocher une des 2 teams d'un duel séparé : elle échange sa place avec une voisine de son adversaire
+          var side = rnd() < .5 ? 0 : 1, mv = big.indexOf(bad[side]), to = big.indexOf(bad[1 - side]);
+          if (mv >= 0 && to >= 0) {
+            var near = big.map(function (t, b) { return b; }).filter(function (b) { return b !== mv && b !== to; }).sort(function (u, v) { var z = seeds[to]; return Math.hypot(seeds[u][0] - z[0], seeds[u][1] - z[1]) - Math.hypot(seeds[v][0] - z[0], seeds[v][1] - z[1]); });
+            var w = near[Math.floor(rnd() * Math.min(3, near.length))];
+            if (w !== undefined) { var tmp = seeds[mv]; seeds[mv] = seeds[w]; seeds[w] = tmp; }
+          }
+        } else if (big.length > 1) { var inner = best.shut.length ? big.indexOf(best.shut[0]) : -1, x = inner >= 0 && rnd() < .7 ? inner : Math.floor(rnd() * big.length), y = Math.floor(rnd() * big.length), tm2 = seeds[x]; seeds[x] = seeds[y]; seeds[y] = tm2; }
+      }
       for (var pass = 0; pass < 3; pass++) {
         sl = assign(P, seeds, cap);
         seeds = big.map(function (t, b) { var sx = 0, sy = 0; sl.forEach(function (v, k) { if (v === b) { sx += P[k][0]; sy += P[k][1]; } }); return [sx / cap[b], sy / cap[b]]; });
       }
       var lab = []; free.forEach(function (i, k) { lab[i] = big[sl[k]]; }); Object.keys(fixed).forEach(function (i) { lab[i] = fixed[i]; });
-      var ev = evaluate(lab);
-      if (!best || ev.s > best.s) best = { s: ev.s, lab: lab };
+      var fix = open(lab, evaluate(lab)), ev = fix.ev; lab = fix.lab;
+      if (!best || ev.s > best.s) best = { s: ev.s, lab: lab, seeds: seeds, miss: ev.miss, shut: ev.shut };
       if (ev.ok) found++;
       // on s'arrête dès qu'on a quelques bonnes cartes, ou au bout d'un temps raisonnable sur téléphone
-      if (found >= 4 || (trial >= 3 && Date.now() - t0 > 700)) break;
+      var late = Date.now() - t0;
+      if (found >= 4 || (trial >= 3 && late > 700 && !best.miss.length && !best.shut.length) || (trial >= 3 && late > 2000)) break;
     }
     var owner = {}; if (best) cells.forEach(function (x, i) { owner[x.q + ',' + x.r] = ids[best.lab[i]]; });
     st.cells = st.cache = owner; lastKey = key;
@@ -303,7 +345,7 @@
     // frontière de duel : 2 cases côte à côte, contour rouge qui clignote
     BORD.forEach(function (b) {
       var dim = selTeam !== null && selTeam !== b.A && selTeam !== b.B ? .12 : 1;
-      if (b.mine && Math.hypot(b.a[0] - b.m[0], b.a[1] - b.m[1]) > D * 1.1) { // cases éloignées : lien discret en pointillés (ne clignote pas)
+      if (Math.hypot(b.a[0] - b.m[0], b.a[1] - b.m[1]) > D * 1.1) { // cases éloignées (tout duel) : lien discret en pointillés, jamais une case qui clignote seule
         var ln = E_('line', { x1: b.a[0], y1: b.a[1], x2: b.m[0], y2: b.m[1], stroke: b.col, 'stroke-width': 2, 'stroke-dasharray': '6 6', 'stroke-linecap': 'round' }); ln.style.opacity = .9 * dim;
       }
       [b.a, b.m].forEach(function (q) {
